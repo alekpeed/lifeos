@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v6';
+const CACHE_VERSION = 'lifeos-v7';
 const APP_SHELL = [
   './',
   './index.html',
@@ -24,6 +24,7 @@ const APP_SHELL = [
   './js/interfaces/default/views/places.js',
   './js/interfaces/default/views/links.js',
   './js/interfaces/default/views/bills.js',
+  './js/interfaces/default/views/education.js',
   './vendor/leaflet/leaflet.js',
   './vendor/leaflet/leaflet.css',
   './vendor/leaflet/images/marker-icon.png',

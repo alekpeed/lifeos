@@ -602,3 +602,25 @@
   font-size: var(--text-2xl);
   color: var(--color-text-faint);
 }
+
+/* --- Education module --- */
+
+[data-interface='default'] .mer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+[data-interface='default'] .mer-table th,
+[data-interface='default'] .mer-table td {
+  text-align: left;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+[data-interface='default'] .mer-table th {
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
