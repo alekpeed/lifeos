@@ -333,11 +333,9 @@ function renderKanban(container, tasks, ctx, projectsById, onSelect) {
   container.append(board);
 }
 
-export async function renderTasks(canvas, ctx) {
+export async function renderTasks(canvas, ctx, rerender) {
   const [tasks, projects] = await Promise.all([ctx.data.Tasks.list(), ctx.data.Projects.list()]);
   const projectsById = new Map(projects.map((p) => [p.id, p]));
-
-  const rerender = () => renderTasks(canvas, ctx);
 
   canvas.append(el('h1', { text: 'Tasks' }));
   canvas.append(toolbar(ctx, projects, rerender));

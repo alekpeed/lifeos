@@ -81,6 +81,49 @@ export const Contacts = entities.contacts;
 export const Milestones = entities.milestones;
 export const Attachments = entities.attachments;
 
+// --- Attachments: binary assets (place photos, bill/document PDFs, ...) ---
+// Stored locally as a Blob for now; the Drive sync layer will populate
+// driveFileId on each record once it uploads them.
+
+export async function createAttachment(file, relatedStore, relatedId) {
+  return Attachments.create({
+    relatedStore,
+    relatedId,
+    filename: file.name,
+    mimeType: file.type,
+    blob: file,
+    driveFileId: null,
+  });
+}
+
+export async function getAttachmentsFor(relatedStore, relatedId) {
+  const all = await Attachments.byIndex('relatedStore', relatedStore);
+  return all.filter((a) => a.relatedId === relatedId);
+}
+
+const attachmentUrls = new Map(); // attachment id -> object URL, so we revoke on demand
+
+export function attachmentUrl(attachment) {
+  if (attachmentUrls.has(attachment.id)) return attachmentUrls.get(attachment.id);
+  const url = URL.createObjectURL(attachment.blob);
+  attachmentUrls.set(attachment.id, url);
+  return url;
+}
+
+export function revokeAttachmentUrl(id) {
+  const url = attachmentUrls.get(id);
+  if (url) {
+    URL.revokeObjectURL(url);
+    attachmentUrls.delete(id);
+  }
+}
+
+const baseAttachmentsRemove = Attachments.remove.bind(Attachments);
+Attachments.remove = async (id) => {
+  revokeAttachmentUrl(id);
+  await baseAttachmentsRemove(id);
+};
+
 // --- Settings: plain key-value store, separate shape from the entity stores. ---
 
 const SETTING_DEFAULTS = {

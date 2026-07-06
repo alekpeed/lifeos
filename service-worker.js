@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v3';
+const CACHE_VERSION = 'lifeos-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -16,10 +16,17 @@ const APP_SHELL = [
   './js/interfaces/manifest.js',
   './js/interfaces/default/index.js',
   './js/interfaces/default/dom.js',
+  './js/interfaces/default/leaflet-loader.js',
   './js/interfaces/default/style.css',
   './js/interfaces/default/views/dashboard.js',
   './js/interfaces/default/views/settings.js',
   './js/interfaces/default/views/tasks.js',
+  './js/interfaces/default/views/places.js',
+  './vendor/leaflet/leaflet.js',
+  './vendor/leaflet/leaflet.css',
+  './vendor/leaflet/images/marker-icon.png',
+  './vendor/leaflet/images/marker-icon-2x.png',
+  './vendor/leaflet/images/marker-shadow.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];
