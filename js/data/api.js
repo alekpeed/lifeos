@@ -5,6 +5,9 @@
 
 import * as db from './db.js';
 import { STORE_NAMES } from './schema.js';
+import { events } from './events.js';
+
+export { events };
 
 function nowIso() {
   return new Date().toISOString();
@@ -26,6 +29,7 @@ function createEntityApi(storeName) {
         ...data,
       };
       await db.put(storeName, record);
+      events.emit(storeName, { action: 'create', id: record.id });
       return record;
     },
 
@@ -34,10 +38,14 @@ function createEntityApi(storeName) {
       if (!existing) throw new Error(`${storeName}: no record with id ${id}`);
       const updated = { ...existing, ...patch, id, updatedAt: nowIso() };
       await db.put(storeName, updated);
+      events.emit(storeName, { action: 'update', id });
       return updated;
     },
 
-    remove: (id) => db.remove(storeName, id),
+    async remove(id) {
+      await db.remove(storeName, id);
+      events.emit(storeName, { action: 'remove', id });
+    },
 
     byIndex: (indexName, query) => db.getAllByIndex(storeName, indexName, query),
   };
@@ -91,6 +99,7 @@ export const Settings = {
   },
   async set(key, value) {
     await db.put('settings', { key, value });
+    events.emit('settings', { action: 'update', id: key });
     return value;
   },
   async getAll() {

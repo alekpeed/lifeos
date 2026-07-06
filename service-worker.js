@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1';
+const CACHE_VERSION = 'lifeos-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,9 +6,16 @@ const APP_SHELL = [
   './css/tokens.css',
   './css/base.css',
   './js/app.js',
+  './js/shell.js',
+  './js/modules.js',
   './js/data/db.js',
   './js/data/schema.js',
   './js/data/api.js',
+  './js/data/events.js',
+  './js/interfaces/registry.js',
+  './js/interfaces/manifest.js',
+  './js/interfaces/default/index.js',
+  './js/interfaces/default/style.css',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];
