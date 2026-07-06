@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v2';
+const CACHE_VERSION = 'lifeos-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -15,7 +15,11 @@ const APP_SHELL = [
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
   './js/interfaces/default/index.js',
+  './js/interfaces/default/dom.js',
   './js/interfaces/default/style.css',
+  './js/interfaces/default/views/dashboard.js',
+  './js/interfaces/default/views/settings.js',
+  './js/interfaces/default/views/tasks.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];

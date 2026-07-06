@@ -1,26 +1,20 @@
 // "Meridian" — the default interface. A calm rail-and-canvas daily driver.
-// This is deliberately minimal right now: it proves the interface contract
-// (mount/renderRoute/unmount, ctx-only data access, reactive re-render via
-// ctx.events) so the per-module views can be built out as Tier 1 work.
+// Interface-contract plumbing (mount/renderRoute/unmount, ctx-only data
+// access, reactive re-render via ctx.events) lives here; each module's
+// actual view lives in views/*.js so this file stays a router, not a
+// growing pile of unrelated view code.
 
 import { registerInterface } from '../registry.js';
+import { el } from './dom.js';
+import { renderDashboard } from './views/dashboard.js';
+import { renderSettings } from './views/settings.js';
+import { renderTasks } from './views/tasks.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
 let unsubscribe = null;
 let currentRoute = null;
 let renderPending = false;
-
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'text') node.textContent = v;
-    else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
-    else node.setAttribute(k, v);
-  }
-  for (const child of children) node.append(child);
-  return node;
-}
 
 function buildNav() {
   const nav = el('nav', { class: 'mer-nav', 'aria-label': 'Modules' });
@@ -49,66 +43,6 @@ function markActiveNav(moduleId) {
   }
 }
 
-// --- Module views (placeholders except dashboard + settings for now) ---
-
-async function renderDashboard(canvas) {
-  const feed = await ctx.data.getDueSoonFeed(7);
-  canvas.append(el('h1', { text: 'Today' }));
-  if (!feed.length) {
-    canvas.append(el('p', { class: 'mer-muted', text: 'Nothing due in the next 7 days.' }));
-    return;
-  }
-  const list = el('ul', { class: 'mer-feed' });
-  for (const item of feed) {
-    list.append(
-      el('li', { class: item.overdue ? 'mer-feed-item is-overdue' : 'mer-feed-item' }, [
-        el('span', { class: 'mer-feed-module', text: item.module }),
-        el('span', { class: 'mer-feed-title', text: item.title || '(untitled)' }),
-        el('span', { class: 'mer-feed-date', text: item.dueDate || '' }),
-      ])
-    );
-  }
-  canvas.append(list);
-}
-
-async function renderSettings(canvas) {
-  canvas.append(el('h1', { text: 'Settings' }));
-  const settings = await ctx.data.Settings.getAll();
-
-  const select = (label, key, options, current, onChange) => {
-    const sel = el('select', { onchange: (e) => onChange(e.target.value) });
-    for (const opt of options) {
-      const o = el('option', { value: opt.value, text: opt.label });
-      if (opt.value === current) o.selected = true;
-      sel.append(o);
-    }
-    return el('label', { class: 'mer-setting' }, [el('span', { text: label }), sel]);
-  };
-
-  canvas.append(
-    select('Theme', 'theme', [
-      { value: 'dark', label: 'Dark' },
-      { value: 'light', label: 'Light' },
-    ], settings.theme, (v) => ctx.data.Settings.set('theme', v)),
-
-    select('Accent', 'accent', [
-      { value: 'brass', label: 'Brass' },
-      { value: 'teal', label: 'Teal' },
-      { value: 'garnet', label: 'Garnet' },
-    ], settings.accent, (v) => ctx.data.Settings.set('accent', v)),
-
-    select('Density', 'density', [
-      { value: 'comfortable', label: 'Comfortable' },
-      { value: 'compact', label: 'Compact' },
-    ], settings.density, (v) => ctx.data.Settings.set('density', v)),
-
-    select('Interface', 'activeInterface',
-      ctx.listInterfaces().map((i) => ({ value: i.id, label: i.name })),
-      settings.activeInterface,
-      (v) => ctx.switchInterface(v)),
-  );
-}
-
 function renderPlaceholder(canvas, moduleId) {
   const mod = ctx.modules.find((m) => m.id === moduleId);
   canvas.append(
@@ -120,6 +54,7 @@ function renderPlaceholder(canvas, moduleId) {
 const VIEWS = {
   dashboard: renderDashboard,
   settings: renderSettings,
+  tasks: renderTasks,
 };
 
 // --- Interface contract implementation ---
@@ -129,7 +64,7 @@ async function renderRoute(route) {
   markActiveNav(route.module);
   els.canvas.innerHTML = '';
   const view = VIEWS[route.module] || ((c) => renderPlaceholder(c, route.module));
-  await view(els.canvas, route);
+  await view(els.canvas, ctx, route);
 }
 
 function scheduleRerender() {
