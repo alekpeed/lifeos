@@ -1,4 +1,4 @@
-import { el, fmtDate, todayStr, isPast, parseTags } from '../dom.js';
+import { el, fmtDate, todayStr, isPast, parseTags, RECUR_FREQS, computeNextDueDate } from '../dom.js';
 
 const STATUSES = [
   { value: 'not_started', label: 'Not Started' },
@@ -12,13 +12,6 @@ const PRIORITIES = [
   { value: 'high', label: 'High' },
   { value: 'urgent', label: 'Urgent' },
 ];
-const RECUR_FREQS = [
-  { value: '', label: 'Does not repeat' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'yearly', label: 'Yearly' },
-];
 
 // Module-local UI state. Reset each time the view is (re)entered via mount,
 // but preserved across the reactive re-renders that happen while it's open.
@@ -29,20 +22,6 @@ let state = {
   showSnoozed: false,
   selectedTaskId: null,
 };
-
-function computeNextDueDate(dueDateStr, recurring) {
-  if (!dueDateStr || !recurring?.freq) return null;
-  const d = new Date(dueDateStr + 'T00:00:00');
-  const n = recurring.interval || 1;
-  switch (recurring.freq) {
-    case 'daily': d.setDate(d.getDate() + n); break;
-    case 'weekly': d.setDate(d.getDate() + 7 * n); break;
-    case 'monthly': d.setMonth(d.getMonth() + n); break;
-    case 'yearly': d.setFullYear(d.getFullYear() + n); break;
-    default: return null;
-  }
-  return d.toISOString().slice(0, 10);
-}
 
 async function toggleDone(ctx, task) {
   const goingToDone = task.status !== 'done';

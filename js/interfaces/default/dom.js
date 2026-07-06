@@ -50,3 +50,27 @@ export function hostnameOf(url) {
     return url;
   }
 }
+
+// Shared by any module with a "repeats" field (Tasks, Bills, ...): a
+// recurring record is { freq: 'daily'|'weekly'|'monthly'|'yearly', interval }.
+export const RECUR_FREQS = [
+  { value: '', label: 'Does not repeat' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
+];
+
+export function computeNextDueDate(dueDateStr, recurring) {
+  if (!dueDateStr || !recurring?.freq) return null;
+  const d = new Date(dueDateStr + 'T00:00:00');
+  const n = recurring.interval || 1;
+  switch (recurring.freq) {
+    case 'daily': d.setDate(d.getDate() + n); break;
+    case 'weekly': d.setDate(d.getDate() + 7 * n); break;
+    case 'monthly': d.setMonth(d.getMonth() + n); break;
+    case 'yearly': d.setFullYear(d.getFullYear() + n); break;
+    default: return null;
+  }
+  return d.toISOString().slice(0, 10);
+}

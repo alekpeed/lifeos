@@ -11,6 +11,7 @@ import { renderSettings } from './views/settings.js';
 import { renderTasks } from './views/tasks.js';
 import { renderPlaces } from './views/places.js';
 import { renderLinks } from './views/links.js';
+import { renderBills } from './views/bills.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -60,6 +61,7 @@ const VIEWS = {
   tasks: renderTasks,
   places: renderPlaces,
   links: renderLinks,
+  bills: renderBills,
 };
 
 // --- Interface contract implementation ---

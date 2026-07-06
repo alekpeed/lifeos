@@ -33,5 +33,13 @@ export async function renderSettings(canvas, ctx) {
       ctx.listInterfaces().map((i) => ({ value: i.id, label: i.name })),
       settings.activeInterface,
       (v) => ctx.switchInterface(v)),
+
+    el('label', { class: 'mer-setting' }, [
+      el('span', { text: 'Bill due-soon alert (days)' }),
+      el('input', {
+        type: 'number', min: '1', max: '90', value: settings.billDueSoonDays,
+        onchange: (e) => ctx.data.Settings.set('billDueSoonDays', Number(e.target.value) || 7),
+      }),
+    ]),
   );
 }

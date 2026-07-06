@@ -1,7 +1,8 @@
 import { el, fmtDate } from '../dom.js';
 
 export async function renderDashboard(canvas, ctx) {
-  const feed = await ctx.data.getDueSoonFeed(7);
+  const billDueSoonDays = await ctx.data.Settings.get('billDueSoonDays');
+  const feed = await ctx.data.getDueSoonFeed(7, billDueSoonDays);
   canvas.append(el('h1', { text: 'Today' }));
   if (!feed.length) {
     canvas.append(el('p', { class: 'mer-muted', text: 'Nothing due in the next 7 days.' }));

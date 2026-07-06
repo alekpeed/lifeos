@@ -170,7 +170,9 @@ function isOverdue(dateStr) {
 
 // Merges tasks, bills, and assignments into one date-sorted feed, tagged by
 // source module, for the Dashboard's due-soon strip and overdue callout.
-export async function getDueSoonFeed(days = 7) {
+// Bills get their own threshold (Settings.billDueSoonDays) since the brief
+// calls that out as a separately configurable alert window.
+export async function getDueSoonFeed(days = 7, billDays = days) {
   const [tasks, bills, assignments] = await Promise.all([
     Tasks.list(),
     Bills.list(),
@@ -182,7 +184,7 @@ export async function getDueSoonFeed(days = 7) {
       .filter((t) => t.status !== 'done' && isWithinDays(t.dueDate, days))
       .map((t) => ({ module: 'tasks', id: t.id, title: t.title, dueDate: t.dueDate, overdue: isOverdue(t.dueDate) })),
     ...bills
-      .filter((b) => !b.paid && isWithinDays(b.dueDate, days))
+      .filter((b) => !b.paid && isWithinDays(b.dueDate, billDays))
       .map((b) => ({ module: 'bills', id: b.id, title: b.name, dueDate: b.dueDate, overdue: isOverdue(b.dueDate) })),
     ...assignments
       .filter((a) => a.status !== 'done' && isWithinDays(a.dueDate, days))
