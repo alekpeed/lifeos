@@ -42,3 +42,11 @@ export function parseTags(input) {
     .map((t) => t.trim())
     .filter(Boolean);
 }
+
+export function hostnameOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
