@@ -31,8 +31,9 @@ lets the whole app be redecorated later without rebuilding it:
 - **Tasks** — projects/areas, priority, due dates, recurring tasks, subtasks,
   snooze, "waiting on someone," tags, list or kanban view
 - **Places** — bars/restaurants/trails/friends' houses, photos, map pin,
-  linked people (mini profiles with birthday/relationship/notes), ratings,
-  visit history, revisit flag, a map view, and a separate bucket-list section
+  linked people (linked to real Contacts entries, not a separate record),
+  ratings, visit history, revisit flag, a map view, and a separate
+  bucket-list section
 - **Links** — YouTube watch-later and Articles-to-read, kept as two separate
   lanes, auto-thumbnails for YouTube, tags, watched/read tracking, a "share
   with a note" flag
@@ -50,6 +51,14 @@ lets the whole app be redecorated later without rebuilding it:
   and a Yearly Spend tab combining logged bill payments with active
   subscriptions (annualized) by category. Net worth and savings goals were
   prototyped and then shelved for now — may return later.
+- **Documents vault** — leases, insurance, warranties, category/issuer/
+  policy-number fields, PDF/image attachments, and an expiry-soon/expired
+  alert (configurable window) surfaced on the Dashboard's due-soon feed
+- **Contacts** — a full address book, not just a service-people list: phones,
+  emails, company/job title, relationship, birthday, tags, notes, and a
+  photo, with search and tag filtering. This is the single source of truth
+  for people app-wide — Places' "linked people" links to (or quick-creates)
+  a real Contacts entry rather than keeping its own separate record.
 
 ### Next up 🔜
 - **Google Drive sync** — the two-device backbone. Blocked on you creating a
@@ -61,8 +70,6 @@ lets the whole app be redecorated later without rebuilding it:
   spaced repetition, JLPT preset decks, streaks, browser text-to-speech
 - **Piano/guitar chord tool** — type a chord progression, get real voicings
   for guitar or piano (melody-aware voicing comes in a later phase)
-- **Documents vault** — leases, insurance, warranties, with expiry alerts
-- **Contacts** — your service-people directory (plumber, advisor, etc.)
 - **Utility tools** — currency converter, unit converter, a timezone helper
   for people/places abroad
 - **Milestones / yearly recap** — a life-events timeline and an
@@ -114,7 +121,7 @@ Everything below came out of talking through what would actually feel
 ## 5. Rough order of what's left
 
 1. Google Drive sync (step 0: you create the Google OAuth Client ID)
-2. Documents vault, Contacts, Milestones/recap
+2. Milestones/recap
 3. Utility tools (currency/unit/timezone), "on this day," "surprise me"
 4. Japanese learning module
 5. Piano/guitar chord tool
