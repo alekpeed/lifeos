@@ -114,6 +114,10 @@
   padding: var(--space-xs) var(--space-sm);
 }
 
+[data-interface='default'] .mer-sync-error {
+  color: var(--color-danger);
+}
+
 /* Mobile: rail collapses to a horizontal scroll strip on top. */
 @media (max-width: 44rem) {
   [data-interface='default'] .mer-root {

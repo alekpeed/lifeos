@@ -9,8 +9,20 @@ import { events } from './events.js';
 
 export { events };
 
+// Google Drive sync lives in js/data/ too, behind the same api surface so
+// interfaces reach it through ctx.data like everything else.
+export { connectDrive, syncNow, disconnectDrive, getSyncState } from './sync.js';
+
 function nowIso() {
   return new Date().toISOString();
+}
+
+// Records a deletion so Drive sync can propagate it to the other device
+// instead of the record resurrecting from the other device's snapshot.
+// Keyed by `${store}:${id}` so a delete is uniquely addressable; `extra`
+// carries e.g. an attachment's driveFileId for binary cleanup.
+async function recordTombstone(store, id, extra = {}) {
+  await db.put('_tombstones', { key: `${store}:${id}`, store, id, deletedAt: nowIso(), ...extra });
 }
 
 // One CRUD shape (list/get/create/update/remove) is identical across every
@@ -44,6 +56,9 @@ function createEntityApi(storeName) {
 
     async remove(id) {
       await db.remove(storeName, id);
+      // The `_tombstones` store itself is never tombstoned; everything else
+      // logs its deletion so sync can carry it across devices.
+      if (storeName !== '_tombstones') await recordTombstone(storeName, id);
       events.emit(storeName, { action: 'remove', id });
     },
 
@@ -110,6 +125,10 @@ const attachmentUrls = new Map(); // attachment id -> object URL, so we revoke o
 
 export function attachmentUrl(attachment) {
   if (attachmentUrls.has(attachment.id)) return attachmentUrls.get(attachment.id);
+  // During a sync pull an attachment's metadata can land locally a moment
+  // before its binary finishes downloading; guard against a null blob so
+  // callers get null (a broken-image placeholder) rather than a throw.
+  if (!attachment?.blob) return null;
   const url = URL.createObjectURL(attachment.blob);
   attachmentUrls.set(attachment.id, url);
   return url;
@@ -125,8 +144,15 @@ export function revokeAttachmentUrl(id) {
 
 const baseAttachmentsRemove = Attachments.remove.bind(Attachments);
 Attachments.remove = async (id) => {
+  // Capture driveFileId before deletion so the tombstone can tell a later
+  // sync to delete the Drive binary too (best-effort — an orphaned Drive
+  // file wastes a little space but never corrupts data).
+  const existing = await db.get('attachments', id);
   revokeAttachmentUrl(id);
-  await baseAttachmentsRemove(id);
+  await baseAttachmentsRemove(id); // deletes, writes a basic tombstone, emits
+  if (existing?.driveFileId) {
+    await recordTombstone('attachments', id, { driveFileId: existing.driveFileId });
+  }
 };
 
 // --- One-time migration: Places used to keep its own lightweight "people"

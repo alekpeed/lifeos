@@ -1,6 +1,52 @@
-import { el } from '../dom.js';
+import { el, fmtDate } from '../dom.js';
 
-export async function renderSettings(canvas, ctx) {
+function fmtSyncTime(iso) {
+  if (!iso) return 'never';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${fmtDate(iso.slice(0, 10))}, ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+async function renderSyncSection(canvas, ctx, rerender) {
+  const state = await ctx.data.getSyncState();
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Google Drive sync' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Syncs your data between your devices through your own Google Drive — no company server in between. Uses the drive.file scope, so Life OS can only ever see the LifeOS folder it creates, never the rest of your Drive. Your device preferences (theme, density, active interface) stay local and are not synced.' }));
+
+  const status = el('p', { class: 'mer-muted' });
+  const setStatus = (text, isError) => { status.textContent = text; status.classList.toggle('mer-sync-error', !!isError); };
+  setStatus(state.enabled ? `Last synced: ${fmtSyncTime(state.lastSyncedAt)}` : 'Not connected yet.');
+
+  const runSync = async (fn, label) => {
+    row.querySelectorAll('button').forEach((b) => (b.disabled = true));
+    setStatus(`${label}…`);
+    try {
+      const res = await fn();
+      const changed = res?.affected?.length ? ` (updated ${res.affected.join(', ')})` : '';
+      setStatus(`Synced ${fmtSyncTime(new Date().toISOString())}${changed}.`);
+      await rerender();
+    } catch (err) {
+      setStatus(err.message || String(err), true);
+      row.querySelectorAll('button').forEach((b) => (b.disabled = false));
+    }
+  };
+
+  const connectBtn = el('button', {
+    type: 'button', text: state.enabled ? 'Sync now' : 'Connect Google Drive',
+    onclick: () => runSync(state.enabled ? ctx.data.syncNow : ctx.data.connectDrive, state.enabled ? 'Syncing' : 'Connecting'),
+  });
+  const buttons = [connectBtn];
+  if (state.enabled) {
+    buttons.push(el('button', {
+      type: 'button', text: 'Disconnect',
+      onclick: async () => { await ctx.data.disconnectDrive(); await rerender(); },
+    }));
+  }
+  const row = el('div', { class: 'mer-toolbar' }, buttons);
+  canvas.append(row, status);
+}
+
+export async function renderSettings(canvas, ctx, rerender) {
   canvas.append(el('h1', { text: 'Settings' }));
   const settings = await ctx.data.Settings.getAll();
 
@@ -98,4 +144,6 @@ export async function renderSettings(canvas, ctx) {
   });
 
   canvas.append(el('div', { class: 'mer-toolbar' }, [exportBtn, el('label', { class: 'mer-setting' }, [el('span', { text: 'Import from JSON' }), importInput])]));
+
+  await renderSyncSection(canvas, ctx, rerender || (() => {}));
 }

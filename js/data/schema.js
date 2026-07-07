@@ -8,7 +8,11 @@
 // last-write-wins comparisons have something to read from day one.
 
 export const DB_NAME = 'lifeos';
-export const DB_VERSION = 1;
+// v2 adds the `_tombstones` store for Drive sync (records deletions so they
+// propagate between devices instead of resurrecting from the other device's
+// snapshot). runUpgrade in db.js creates any store that doesn't yet exist,
+// so this bump is non-destructive for existing data.
+export const DB_VERSION = 2;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -127,6 +131,12 @@ export const STORES = [
     { name: 'relatedStore', keyPath: 'relatedStore' },
     { name: 'relatedId', keyPath: 'relatedId' },
   ] },
+
+  // Deletion log for Drive sync. Each record: { key: `${store}:${id}`,
+  // store, id, deletedAt, driveFileId? }. Keyed by the composite `key` so a
+  // deletion is uniquely addressable across stores. Never surfaced in the
+  // UI; travels in each device's snapshot so deletes propagate.
+  { name: '_tombstones', keyPath: 'key' },
 ];
 
 export const STORE_NAMES = STORES.map((s) => s.name);
