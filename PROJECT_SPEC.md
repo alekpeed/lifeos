@@ -36,12 +36,20 @@ lets the whole app be redecorated later without rebuilding it:
 - **Links** — YouTube watch-later and Articles-to-read, kept as two separate
   lanes, auto-thumbnails for YouTube, tags, watched/read tracking, a "share
   with a note" flag
-- **Bills** — recurring or one-time, amount/due date/paid/autopay, PDF
-  attachments, payment history, spend-by-category for the year, a
-  configurable "remind me N days before" threshold
 - **Education** — Semesters → Courses → Assignments, grades and a running
   GPA, % complete + time spent per assignment, a time-invested-vs-grade view,
   course notes and key dates
+- **Books** — currently reading / to read / finished, reading streaks, pages
+  and estimated word counts, genre breakdown, author tracking, ratings/notes
+- **Recipes** — ingredients with scalable servings, steps, a "made it" cook
+  log, grocery list generator
+- **Finance** (formerly "Bills") — Bills tab (recurring or one-time, amount/
+  due date/paid/autopay, PDF attachments, payment history, a configurable
+  "remind me N days before" threshold), a Subscriptions tab (monthly/yearly/
+  weekly billing normalized to a combined monthly total, active/cancelled),
+  and a Yearly Spend tab combining logged bill payments with active
+  subscriptions (annualized) by category. Net worth and savings goals were
+  prototyped and then shelved for now — may return later.
 
 ### Next up 🔜
 - **Google Drive sync** — the two-device backbone. Blocked on you creating a
@@ -49,16 +57,10 @@ lets the whole app be redecorated later without rebuilding it:
   next real build task once that's ready.
 
 ### Still to build 📋 (original spec)
-- **Books** — currently reading / to read / finished, reading streaks, pages
-  and estimated word counts, genre breakdown, author tracking, ratings/notes
-- **Recipes** — ingredients with scalable servings, steps, a "made it" cook
-  log, grocery list generator
 - **Japanese learning** — kana drills, kanji/vocabulary flashcards with
   spaced repetition, JLPT preset decks, streaks, browser text-to-speech
 - **Piano/guitar chord tool** — type a chord progression, get real voicings
   for guitar or piano (melody-aware voicing comes in a later phase)
-- **Finance snapshot** — net worth, savings goals, a subscriptions tracker
-  (separate from Bills)
 - **Documents vault** — leases, insurance, warranties, with expiry alerts
 - **Contacts** — your service-people directory (plumber, advisor, etc.)
 - **Utility tools** — currency converter, unit converter, a timezone helper
@@ -112,7 +114,7 @@ Everything below came out of talking through what would actually feel
 ## 5. Rough order of what's left
 
 1. Google Drive sync (step 0: you create the Google OAuth Client ID)
-2. Books, Recipes, Finance snapshot, Documents vault, Contacts, Milestones/recap
+2. Documents vault, Contacts, Milestones/recap
 3. Utility tools (currency/unit/timezone), "on this day," "surprise me"
 4. Japanese learning module
 5. Piano/guitar chord tool
