@@ -25,9 +25,6 @@ export const STORES = [
   { name: 'places', keyPath: 'id', indexes: [
     { name: 'listType', keyPath: 'listType' },
   ] },
-  { name: 'people', keyPath: 'id', indexes: [
-    { name: 'birthday', keyPath: 'birthday' },
-  ] },
   { name: 'bucketListItems', keyPath: 'id' },
 
   { name: 'links', keyPath: 'id', indexes: [
@@ -91,13 +88,15 @@ export const STORES = [
     { name: 'expiryDate', keyPath: 'expiryDate' },
   ] },
 
-  { name: 'contacts', keyPath: 'id' },
+  { name: 'contacts', keyPath: 'id', indexes: [
+    { name: 'birthday', keyPath: 'birthday' },
+  ] },
 
   { name: 'milestones', keyPath: 'id', indexes: [
     { name: 'date', keyPath: 'date' },
   ] },
 
-  // Binary assets (place photos, bill/document PDFs, book covers, recipe photos).
+  // Binary assets (place/contact photos, bill/document PDFs, book covers, recipe photos).
   // `blob` holds a local offline-first copy; `driveFileId` is populated once the
   // sync layer uploads it. `relatedStore`/`relatedId` point back to the owning record.
   { name: 'attachments', keyPath: 'id', indexes: [

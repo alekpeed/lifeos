@@ -46,58 +46,63 @@ function photoGrid(place, ctx, photos, rerender) {
   return grid;
 }
 
-// --- Linked people ---
+// --- Linked people (linked to real Contacts records — see Contacts module) ---
 
-function personMiniForm(place, ctx, rerender) {
-  const nameInput = el('input', { type: 'text', placeholder: 'Name' });
-  const birthdayInput = el('input', { type: 'date' });
-  const relInput = el('input', { type: 'text', placeholder: 'How you know them' });
-  const photoInput = el('input', { type: 'file', accept: 'image/*' });
+function linkContactForm(place, allContacts, ctx, rerender) {
+  const linkedIds = new Set(place.peopleIds || []);
+  const available = allContacts.filter((c) => !linkedIds.has(c.id));
 
-  return el('form', {
-    class: 'mer-person-form',
-    onsubmit: async (e) => {
-      e.preventDefault();
-      if (!nameInput.value.trim()) return;
-      const person = await ctx.data.People.create({
-        name: nameInput.value.trim(),
-        birthday: birthdayInput.value || null,
-        relationship: relInput.value || '',
-        notes: '',
-      });
-      if (photoInput.files[0]) await ctx.data.createAttachment(photoInput.files[0], 'people', person.id);
-      await ctx.data.Places.update(place.id, { peopleIds: [...(place.peopleIds || []), person.id] });
+  const contactSelect = el('select', {
+    onchange: async (e) => {
+      if (!e.target.value) return;
+      await ctx.data.Places.update(place.id, { peopleIds: [...(place.peopleIds || []), e.target.value] });
       rerender();
     },
   }, [
-    nameInput, birthdayInput, relInput, photoInput,
-    el('button', { type: 'submit', text: 'Add person' }),
+    el('option', { value: '', text: available.length ? 'Link an existing contact…' : '(no other contacts yet)' }),
+    ...available.map((c) => el('option', { value: c.id, text: c.name || '(untitled)' })),
   ]);
+
+  const newNameInput = el('input', { type: 'text', placeholder: 'Or type a new name…' });
+  const addBtn = el('button', {
+    type: 'button', text: 'Add as new contact',
+    onclick: async () => {
+      if (!newNameInput.value.trim()) return;
+      const contact = await ctx.data.Contacts.create({ name: newNameInput.value.trim(), tags: [], phones: [], emails: [] });
+      await ctx.data.Places.update(place.id, { peopleIds: [...(place.peopleIds || []), contact.id] });
+      rerender();
+    },
+  });
+
+  return el('div', { class: 'mer-person-form' }, [contactSelect, newNameInput, addBtn]);
 }
 
 async function peopleSection(place, ctx, rerender) {
   const section = el('div', { class: 'mer-people-list' });
-  const people = await Promise.all((place.peopleIds || []).map((id) => ctx.data.People.get(id)));
-  for (const person of people.filter(Boolean)) {
-    const photos = await ctx.data.getAttachmentsFor('people', person.id);
+  const allContacts = await ctx.data.Contacts.list();
+  const contactsById = new Map(allContacts.map((c) => [c.id, c]));
+  const linked = (place.peopleIds || []).map((id) => contactsById.get(id)).filter(Boolean);
+
+  for (const contact of linked) {
+    const photos = await ctx.data.getAttachmentsFor('contacts', contact.id);
     section.append(el('div', { class: 'mer-person-card' }, [
       photos[0]
-        ? el('img', { class: 'mer-person-photo', src: ctx.data.attachmentUrl(photos[0]), alt: person.name })
+        ? el('img', { class: 'mer-person-photo', src: ctx.data.attachmentUrl(photos[0]), alt: contact.name })
         : el('div', { class: 'mer-person-photo mer-person-photo-empty' }),
       el('div', { class: 'mer-person-info' }, [
-        el('div', { class: 'mer-person-name', text: person.name }),
-        el('div', { class: 'mer-person-meta', text: [person.relationship, person.birthday ? `🎂 ${fmtDate(person.birthday)}` : ''].filter(Boolean).join(' · ') }),
+        el('div', { class: 'mer-person-name', text: contact.name }),
+        el('div', { class: 'mer-person-meta', text: [contact.relationship, contact.birthday ? `🎂 ${fmtDate(contact.birthday)}` : ''].filter(Boolean).join(' · ') }),
       ]),
       el('button', {
-        type: 'button', class: 'mer-icon-btn', text: '×',
+        type: 'button', class: 'mer-icon-btn', text: '×', title: 'Unlink from this place (keeps the contact)',
         onclick: async () => {
-          await ctx.data.Places.update(place.id, { peopleIds: (place.peopleIds || []).filter((id) => id !== person.id) });
+          await ctx.data.Places.update(place.id, { peopleIds: (place.peopleIds || []).filter((id) => id !== contact.id) });
           rerender();
         },
       }),
     ]));
   }
-  section.append(personMiniForm(place, ctx, rerender));
+  section.append(linkContactForm(place, allContacts, ctx, rerender));
   return section;
 }
 

@@ -57,7 +57,6 @@ const entities = Object.fromEntries(entityStores.map((name) => [name, createEnti
 export const Tasks = entities.tasks;
 export const Projects = entities.projects;
 export const Places = entities.places;
-export const People = entities.people;
 export const BucketListItems = entities.bucketListItems;
 export const Links = entities.links;
 export const Semesters = entities.semesters;
@@ -123,6 +122,49 @@ Attachments.remove = async (id) => {
   revokeAttachmentUrl(id);
   await baseAttachmentsRemove(id);
 };
+
+// --- One-time migration: Places used to keep its own lightweight "people"
+// store for linked contacts; that's now folded into the full Contacts
+// module so a person only ever has one record app-wide. This copies any
+// pre-existing linked people (and their photos) into Contacts, repoints
+// Places.peopleIds at the new ids, and clears the legacy store. Safe to
+// call on every boot — it's a no-op once the legacy store is empty or was
+// never created (fresh installs never create it in the first place).
+export async function migrateLegacyPeopleToContacts() {
+  let legacyPeople;
+  try {
+    legacyPeople = await db.getAll('people');
+  } catch {
+    return; // store doesn't exist on this device -- nothing to migrate
+  }
+  if (!legacyPeople.length) return;
+
+  const idMap = new Map();
+  for (const person of legacyPeople) {
+    const contact = await Contacts.create({
+      name: person.name,
+      birthday: person.birthday || null,
+      relationship: person.relationship || '',
+      notes: person.notes || '',
+    });
+    idMap.set(person.id, contact.id);
+  }
+
+  const legacyPhotos = await Attachments.byIndex('relatedStore', 'people');
+  for (const photo of legacyPhotos) {
+    const newId = idMap.get(photo.relatedId);
+    if (newId) await Attachments.update(photo.id, { relatedStore: 'contacts', relatedId: newId });
+  }
+
+  const places = await Places.list();
+  for (const place of places) {
+    if (!place.peopleIds?.length) continue;
+    const remapped = place.peopleIds.map((id) => idMap.get(id) || id);
+    await Places.update(place.id, { peopleIds: remapped });
+  }
+
+  await db.clear('people');
+}
 
 // --- Settings: plain key-value store, separate shape from the entity stores. ---
 
