@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v16';
+const CACHE_VERSION = 'lifeos-v17';
 const APP_SHELL = [
   './',
   './index.html',
@@ -36,6 +36,14 @@ const APP_SHELL = [
   './js/interfaces/default/views/health.js',
   './js/interfaces/default/views/photos.js',
   './js/interfaces/default/views/languages.js',
+  './js/interfaces/default/views/chords.js',
+  './js/theory/notes.js',
+  './js/theory/chords.js',
+  './js/theory/voicings.js',
+  './js/theory/harmony.js',
+  './js/theory/barry.js',
+  './js/theory/lessons.js',
+  './js/audio/synth.js',
   './vendor/leaflet/leaflet.js',
   './vendor/leaflet/leaflet.css',
   './vendor/leaflet/images/marker-icon.png',

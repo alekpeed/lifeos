@@ -671,3 +671,117 @@
 
 [data-interface='default'] .mer-lightbox-prev { left: var(--space-md); }
 [data-interface='default'] .mer-lightbox-next { right: var(--space-md); }
+
+/* --- Chords / harmony module --- */
+
+[data-interface='default'] .mer-voicing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+[data-interface='default'] .mer-voicing-card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+}
+
+[data-interface='default'] .mer-voicing-card.is-dim {
+  border-style: dashed;
+}
+
+[data-interface='default'] .mer-voicing-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  font-family: var(--font-display);
+  margin-bottom: var(--space-xs);
+}
+
+[data-interface='default'] .mer-voicing-desc {
+  font-size: var(--text-sm);
+  margin-top: var(--space-xs);
+}
+
+[data-interface='default'] .mer-play-btn {
+  background: var(--color-bg-overlay);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem var(--space-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+[data-interface='default'] .mer-kbd {
+  width: 100%;
+  max-width: 16rem;
+  display: block;
+  margin: var(--space-xs) 0;
+}
+
+[data-interface='default'] .mer-kbd-white { fill: var(--color-bg); stroke: var(--color-border-strong); stroke-width: 0.6; }
+[data-interface='default'] .mer-kbd-white.is-on { fill: var(--accent); }
+[data-interface='default'] .mer-kbd-black { fill: var(--color-text); }
+[data-interface='default'] .mer-kbd-black.is-on { fill: var(--accent-strong); stroke: var(--color-bg); stroke-width: 0.8; }
+
+[data-interface='default'] .mer-fret {
+  width: 7.5rem;
+  display: block;
+  margin: var(--space-xs) 0;
+}
+
+[data-interface='default'] .mer-fret-line { stroke: var(--color-border-strong); stroke-width: 1; }
+[data-interface='default'] .mer-fret-nut { stroke: var(--color-text); stroke-width: 3; }
+[data-interface='default'] .mer-fret-dot { fill: var(--accent); }
+[data-interface='default'] .mer-fret-open { fill: none; stroke: var(--color-text-muted); stroke-width: 1.2; }
+[data-interface='default'] .mer-fret-mark { fill: var(--color-text-faint); font-size: 9px; }
+[data-interface='default'] .mer-fret-label { fill: var(--color-text-muted); font-size: 8px; }
+
+[data-interface='default'] .mer-fret-none {
+  font-size: var(--text-sm);
+}
+
+[data-interface='default'] .mer-map-center {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+[data-interface='default'] .mer-map-center h2 { margin: 0; }
+
+[data-interface='default'] .mer-map-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+[data-interface='default'] .mer-map-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+[data-interface='default'] .mer-map-chip {
+  background: var(--color-bg-overlay);
+  border: 1px solid var(--color-border-strong);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem var(--space-sm);
+  cursor: pointer;
+  font-family: var(--font-display);
+}
+
+[data-interface='default'] .mer-map-chip:hover { border-color: var(--accent); }
+
+[data-interface='default'] .mer-map-why { font-size: var(--text-sm); }
+
+[data-interface='default'] .mer-toolbar input.is-invalid { border-color: var(--color-danger); }

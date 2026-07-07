@@ -442,6 +442,7 @@ const SEARCH_FIELDS = {
   habits: (r) => r.name,
   languageDecks: (r) => r.name,
   languageLessons: (r) => r.title,
+  chordProgressions: (r) => r.name,
   albums: (r) => r.name,
 };
 
@@ -449,7 +450,8 @@ const SEARCH_MODULE_ROUTE = {
   tasks: 'tasks', places: 'places', links: 'links', semesters: 'education', courses: 'education',
   assignments: 'education', bills: 'finance', subscriptions: 'finance', books: 'books',
   recipes: 'recipes', documents: 'documents', contacts: 'contacts', milestones: 'milestones',
-  habits: 'habits', languageDecks: 'languages', languageLessons: 'languages', albums: 'photos',
+  habits: 'habits', languageDecks: 'languages', languageLessons: 'languages',
+  chordProgressions: 'chords', albums: 'photos',
 };
 
 export async function globalSearch(query) {

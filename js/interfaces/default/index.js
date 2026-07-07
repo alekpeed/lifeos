@@ -24,6 +24,7 @@ import { renderHabits } from './views/habits.js';
 import { renderHealth } from './views/health.js';
 import { renderPhotos } from './views/photos.js';
 import { renderLanguages } from './views/languages.js';
+import { renderChords } from './views/chords.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -86,6 +87,7 @@ const VIEWS = {
   health: renderHealth,
   photos: renderPhotos,
   languages: renderLanguages,
+  chords: renderChords,
 };
 
 // --- Interface contract implementation ---
