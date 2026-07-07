@@ -41,5 +41,13 @@ export async function renderSettings(canvas, ctx) {
         onchange: (e) => ctx.data.Settings.set('billDueSoonDays', Number(e.target.value) || 7),
       }),
     ]),
+
+    el('label', { class: 'mer-setting' }, [
+      el('span', { text: 'Document expiry alert (days)' }),
+      el('input', {
+        type: 'number', min: '1', max: '365', value: settings.documentExpiryDays,
+        onchange: (e) => ctx.data.Settings.set('documentExpiryDays', Number(e.target.value) || 30),
+      }),
+    ]),
   );
 }

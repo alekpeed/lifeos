@@ -133,6 +133,7 @@ const SETTING_DEFAULTS = {
   activeInterface: 'default',
   wordsPerPageDefault: 275,
   billDueSoonDays: 7,
+  documentExpiryDays: 30,
 };
 
 export const Settings = {
@@ -168,15 +169,17 @@ function isOverdue(dateStr) {
   return new Date(dateStr) < new Date(new Date().toDateString());
 }
 
-// Merges tasks, bills, and assignments into one date-sorted feed, tagged by
-// source module, for the Dashboard's due-soon strip and overdue callout.
-// Bills get their own threshold (Settings.billDueSoonDays) since the brief
-// calls that out as a separately configurable alert window.
-export async function getDueSoonFeed(days = 7, billDays = days) {
-  const [tasks, bills, assignments] = await Promise.all([
+// Merges tasks, bills, assignments, and documents into one date-sorted feed,
+// tagged by source module, for the Dashboard's due-soon strip and overdue
+// callout. Bills and documents get their own thresholds (Settings.
+// billDueSoonDays / documentExpiryDays) since the brief calls those out as
+// separately configurable alert windows.
+export async function getDueSoonFeed(days = 7, billDays = days, documentDays = days) {
+  const [tasks, bills, assignments, documents] = await Promise.all([
     Tasks.list(),
     Bills.list(),
     Assignments.list(),
+    Documents.list(),
   ]);
 
   const items = [
@@ -189,6 +192,9 @@ export async function getDueSoonFeed(days = 7, billDays = days) {
     ...assignments
       .filter((a) => a.status !== 'done' && isWithinDays(a.dueDate, days))
       .map((a) => ({ module: 'assignments', id: a.id, title: a.title, dueDate: a.dueDate, overdue: isOverdue(a.dueDate) })),
+    ...documents
+      .filter((d) => isWithinDays(d.expiryDate, documentDays))
+      .map((d) => ({ module: 'documents', id: d.id, title: d.title, dueDate: d.expiryDate, overdue: isOverdue(d.expiryDate) })),
   ];
 
   items.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
