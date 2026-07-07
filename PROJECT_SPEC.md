@@ -78,8 +78,10 @@ lets the whole app be redecorated later without rebuilding it:
   JSON export/import as a Drive-independent backup
 
 ## 3. Additional interfaces 📋
-- A second, structurally different navigation paradigm (not just a
-  recolor of Meridian)
+- **Vespera** — a spatial interface (LifeOS as an orbital station you
+  navigate through, not a dashboard). Fully planned in `VESPERA_SPEC.md`,
+  including the district/space-to-module mapping and v1 scope; not
+  started. Building it is Tier 2 (interface-registry design).
 - An LCARS-inspired mode (Star Trek control-panel aesthetic, original
   execution — no copyrighted assets)
 - Any others that come to mind along the way
@@ -128,7 +130,7 @@ Everything below came out of talking through what would actually feel
 6. Photos/Gallery
 7. AI modules (Claude/GPT/Gemini) + relay + Telegram
 8. Calendar sync, habit engine, geolocation nudges, AI recap, health tracker
-9. Additional interfaces (structural-alternate, LCARS)
+9. Additional interfaces (Vespera, LCARS)
 10. Sharebox companion app for your friend
 
 Nothing here is fixed in stone — the plan has already flexed a few times
