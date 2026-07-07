@@ -79,9 +79,15 @@ lets the whole app be redecorated later without rebuilding it:
   rolling average. No live Garmin API (none exists cleanly) — hand-entered,
   possibly from a CSV export down the road
 - **Photos/Gallery** — albums with a grid + lightbox (prev/next/close)
-- **Japanese learning** — decks and cards, a starter hiragana deck, a
-  simple spaced-repetition review session (Again/Good/Easy), browser
-  text-to-speech playback, and a study streak
+- **Languages** — plug-and-play: language learning is built as installable
+  "packs" (name, code, TTS locale), each owning its own decks/cards
+  (spaced-repetition flashcards, Again/Good/Easy, browser TTS, a study
+  streak) and Lessons (grammar/syntax/morphology explainers with example
+  sentences). Japanese ships as the default pack with a starter hiragana
+  deck and four starter lessons (sentence structure, particles, verb
+  forms, adjective types) — a starting set, not a full curriculum. Adding
+  a second language (Spanish, etc.) later is just a new pack via the
+  in-app "+ Add language" form, no rebuild needed.
 - **Geolocation nudges in Places** — a manual "check nearby places" action
   surfaces want-to-go spots and stale revisit-flagged places within 1km.
   Deliberately not passive/background — a plain PWA (especially on iOS
