@@ -12,7 +12,7 @@
 // client and their own in-memory access token, so the two features are
 // independent — granting one never implies the other, matching least-privilege.
 
-import { GOOGLE_CLIENT_ID, DRIVE_SCOPE, CALENDAR_SCOPE, GIS_SCRIPT_URL } from './sync-config.js';
+import { GOOGLE_CLIENT_ID, DRIVE_SCOPE, CALENDAR_SCOPES, GIS_SCRIPT_URL } from './sync-config.js';
 
 let gisLoaded = null; // Promise that resolves once the GIS script is ready
 
@@ -171,13 +171,13 @@ const CAL = 'https://www.googleapis.com/calendar/v3';
 // those). Returned as [{ id, summary }] so calendar.js can find-or-create the
 // shared "Life OS" calendar by name.
 export async function listAppCalendars() {
-  const resp = await authFetch(CALENDAR_SCOPE, `${CAL}/users/me/calendarList?minAccessRole=owner&maxResults=250`);
+  const resp = await authFetch(CALENDAR_SCOPES, `${CAL}/users/me/calendarList?minAccessRole=owner&maxResults=250`);
   const { items } = await resp.json();
   return (items || []).map((c) => ({ id: c.id, summary: c.summary }));
 }
 
 export async function createCalendar(summary) {
-  const resp = await authFetch(CALENDAR_SCOPE, `${CAL}/calendars`, {
+  const resp = await authFetch(CALENDAR_SCOPES, `${CAL}/calendars`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ summary }),
@@ -190,13 +190,13 @@ export async function createCalendar(summary) {
 // by hand. One page is plenty for a personal due-soon feed.
 export async function listEvents(calendarId, appTag) {
   const q = `privateExtendedProperty=${encodeURIComponent(`${appTag}=1`)}&maxResults=2500&showDeleted=false`;
-  const resp = await authFetch(CALENDAR_SCOPE, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events?${q}`);
+  const resp = await authFetch(CALENDAR_SCOPES, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events?${q}`);
   const { items } = await resp.json();
   return items || [];
 }
 
 export async function insertEvent(calendarId, event) {
-  const resp = await authFetch(CALENDAR_SCOPE, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events`, {
+  const resp = await authFetch(CALENDAR_SCOPES, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(event),
@@ -205,7 +205,7 @@ export async function insertEvent(calendarId, event) {
 }
 
 export async function patchEvent(calendarId, eventId, patch) {
-  await authFetch(CALENDAR_SCOPE, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+  await authFetch(CALENDAR_SCOPES, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
@@ -213,7 +213,7 @@ export async function patchEvent(calendarId, eventId, patch) {
 }
 
 export async function deleteEvent(calendarId, eventId) {
-  await authFetch(CALENDAR_SCOPE, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+  await authFetch(CALENDAR_SCOPES, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
     method: 'DELETE',
   });
 }

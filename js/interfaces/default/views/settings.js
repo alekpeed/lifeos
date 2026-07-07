@@ -53,7 +53,7 @@ async function renderCalendarSection(canvas, ctx, rerender) {
   ]);
 
   canvas.append(el('div', { class: 'mer-subsection-label', text: 'Google Calendar' }));
-  canvas.append(el('p', { class: 'mer-muted', text: `Mirrors your due-soon items — open tasks, unpaid bills, assignments and document expiries — into a dedicated "Life OS" calendar, so they show up on your phone and desktop calendar with reminders. It's a one-way push: Life OS only ever writes to the calendar it creates and never reads or changes your other calendars. Uses the calendar.app.created scope. Independent of Drive sync — you can use either on its own.` }));
+  canvas.append(el('p', { class: 'mer-muted', text: `Mirrors your due-soon items — open tasks, unpaid bills, assignments and document expiries — into a dedicated "Life OS" calendar, so they show up on your phone and desktop calendar with reminders. It's a one-way push: Life OS only ever writes to the calendar it creates and never reads or changes your other calendars. Uses the calendar.app.created scope, plus a read-only scope just to see your calendars' names (so it can find its own instead of making a duplicate) — never their events. Independent of Drive sync — you can use either on its own.` }));
 
   const horizonInput = el('label', { class: 'mer-setting' }, [
     el('span', { text: 'Push items due within (days)' }),

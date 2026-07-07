@@ -93,8 +93,16 @@ offline app shell; the app runs fully without them.
 ### Google Calendar sync — one-way push
 `calendar.js` + `gapi.js` (Calendar REST) + `sync-config.js`; api:
 `connectCalendar`, `syncCalendarNow`, `disconnectCalendar`, `getCalendarState`.
-Scope `calendar.app.created` (the Calendar analogue of `drive.file`: the app
-can only see/touch calendars it created).
+Two scopes requested together as one grant (`CALENDAR_SCOPES` in
+`sync-config.js`): `calendar.app.created` (the Calendar analogue of
+`drive.file` — create/manage calendars and events this app itself creates)
+plus `calendar.calendarlist.readonly` (read-only visibility into calendar
+*names* only, needed so a second device can find the "Life OS" calendar the
+first device already made instead of creating a duplicate; grants no ability
+to read event data on any calendar). `calendarList.list` — the lookup used to
+find-or-create by name — specifically requires that second scope; requesting
+only `calendar.app.created` produces a 403 "insufficient authentication
+scopes" on that one call even though event operations work fine with it alone.
 
 - **Model:** a ONE-WAY mirror, not a two-way sync. Life OS is the source of
   truth; it pushes its due-soon items (open tasks, unpaid bills, open

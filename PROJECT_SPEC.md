@@ -134,8 +134,10 @@ lets the whole app be redecorated later without rebuilding it:
   configurable horizon) into a dedicated "Life OS" calendar, so they show up
   on your phone and desktop calendar with reminders. Push-only: Life OS
   writes just the calendar it creates (calendar.app.created scope — the
-  Calendar twin of drive.file) and never reads or changes your other
-  calendars. Re-syncing is idempotent — each event is matched back to its
+  Calendar twin of drive.file — plus a second read-only scope that only sees
+  your calendars' names, never their events, so it can find its own instead
+  of making a duplicate) and never reads or changes your other calendars.
+  Re-syncing is idempotent — each event is matched back to its
   source record, so there are no duplicates; paying/completing/deleting an
   item removes its event; all your devices push into one shared calendar.
   Connect / Sync now / Disconnect sit in Settings next to Drive sync and work

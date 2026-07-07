@@ -15,13 +15,21 @@ export const GOOGLE_CLIENT_ID =
 
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
-// Calendar sync uses the narrowest possible Calendar scope, chosen to mirror
-// drive.file's philosophy: `calendar.app.created` grants access ONLY to
-// secondary calendars this app itself creates. Life OS makes one dedicated
-// "Life OS" calendar and can never see, read, or modify your primary calendar
-// or any other calendar you already have. Requested independently of Drive —
-// connecting Calendar doesn't require Drive, and vice versa.
+// Calendar sync uses the narrowest possible Calendar scopes, chosen to mirror
+// drive.file's philosophy. Two scopes, requested together as one grant:
+//   - calendar.app.created: create/manage secondary calendars this app itself
+//     creates, and their events. This is the one that does the real work.
+//   - calendar.calendarlist.readonly: read-only visibility into the NAMES of
+//     the user's calendars. Needed only so a second device can find the
+//     "Life OS" calendar the first device already created instead of making a
+//     duplicate — it grants no ability to read event data on any calendar,
+//     app-created or not, and no write access at all.
+// Together these can never see, read, or modify your primary calendar or any
+// other calendar you already have beyond its name. Requested independently of
+// Drive — connecting Calendar doesn't require Drive, and vice versa.
 export const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.app.created';
+export const CALENDAR_LIST_SCOPE = 'https://www.googleapis.com/auth/calendar.calendarlist.readonly';
+export const CALENDAR_SCOPES = `${CALENDAR_SCOPE} ${CALENDAR_LIST_SCOPE}`;
 
 export const GIS_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 

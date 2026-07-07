@@ -22,7 +22,7 @@ import {
   listAppCalendars, createCalendar, listEvents, insertEvent, patchEvent, deleteEvent,
 } from './gapi.js';
 import {
-  CALENDAR_SCOPE, CALENDAR_NAME, CALENDAR_HORIZON_DEFAULT,
+  CALENDAR_SCOPES, CALENDAR_NAME, CALENDAR_HORIZON_DEFAULT,
   CALENDAR_APP_TAG, CALENDAR_KEY_PROP,
 } from './sync-config.js';
 
@@ -159,7 +159,7 @@ async function ensureCalendar() {
 async function push(interactive) {
   if (inFlight) return inFlight;
   inFlight = (async () => {
-    await acquireToken(CALENDAR_SCOPE, interactive); // throws if not granted / offline
+    await acquireToken(CALENDAR_SCOPES, interactive); // throws if not granted / offline
     const horizon = (await getMeta('calendarHorizonDays')) || CALENDAR_HORIZON_DEFAULT;
     const calId = await ensureCalendar();
 
@@ -206,14 +206,14 @@ export async function syncCalendarNow() {
 // Stops pushing; leaves the calendar and its events in place (delete the
 // "Life OS" calendar from Google Calendar directly if you want them gone).
 export async function disconnectCalendar() {
-  forgetToken(CALENDAR_SCOPE);
+  forgetToken(CALENDAR_SCOPES);
   await setMeta('calendarEnabled', false);
 }
 
 export async function getCalendarState() {
   return {
     enabled: (await getMeta('calendarEnabled')) === true,
-    connected: hasLiveToken(CALENDAR_SCOPE),
+    connected: hasLiveToken(CALENDAR_SCOPES),
     lastSyncedAt: await getMeta('calendarLastSyncedAt'),
     calendarId: await getMeta('calendarId'),
   };
