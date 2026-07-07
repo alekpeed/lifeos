@@ -119,11 +119,16 @@ lets the whole app be redecorated later without rebuilding it:
   lessons; and an adjustable fully-synthesized sound engine (osc/FM/ADSR/EQ
   with Piano, Rhodes EP, Organ, Pad presets plus saveable custom presets —
   no samples, so nothing to license and it works offline).
-
-### Next up 🔜
-- **Google Drive sync** — the two-device backbone. Blocked on you creating a
-  one-time Google Cloud "Client ID" (walkthrough already given); this is the
-  next real build task once that's ready.
+- **Google Drive sync** — the two-device backbone. Data reconciles between
+  your devices through your own Drive (drive.file scope, visible LifeOS/
+  folder — no company server). Each device owns one snapshot file and can't
+  clobber the other's; records merge last-write-wins by timestamp; deletes
+  are tracked with tombstones so they propagate instead of resurrecting;
+  photos/PDFs sync as their own Drive files. Device preferences (theme,
+  density, active interface) stay local, not synced. Connect / Sync now /
+  Disconnect live in Settings. The merge core and full IO path are
+  extensively tested; the only unverifiable-without-you piece was the live
+  Google sign-in, which you completed (OAuth Client ID created and wired in).
 
 ### Still to build 📋
 - **AI assistant modules** (Claude/ChatGPT/Gemini panels) + cross-LLM relay +
@@ -131,8 +136,8 @@ lets the whole app be redecorated later without rebuilding it:
   keys/bot token, but live testing needs them, and direct browser-to-API
   calls may hit CORS restrictions that won't be known until tested live.
   Treat as "needs a follow-up session with you present," not a solo build.
-- **Google Calendar sync** — reuses the same Google sign-in as Drive sync,
-  so it's blocked on the same OAuth Client ID.
+- **Google Calendar sync** — reuses the same Google sign-in as Drive sync
+  (the OAuth Client ID now exists), so it's unblocked whenever you want it.
 - **AI-written yearly recap** — needs a working AI module first (see above)
 - **A friend-sharing "Sharebox"** — see Section 4
 
@@ -173,12 +178,11 @@ Everything below came out of talking through what would actually feel
 
 ## 5. Rough order of what's left
 
-1. Google Drive sync (step 0: you create the Google OAuth Client ID)
-2. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
-3. Google Calendar sync (blocked on the same OAuth Client ID as #1), AI-written recap
-4. Additional interfaces (Vespera, LCARS)
-5. Sharebox companion app for your friend
-6. Someday: a standalone music-practice app (progressions, play-along,
+1. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
+2. Google Calendar sync (OAuth Client ID now exists), AI-written recap
+3. Additional interfaces (Vespera, LCARS)
+4. Sharebox companion app for your friend
+5. Someday: a standalone music-practice app (progressions, play-along,
    melody-aware voicing) — deliberately out of LifeOS scope
 
 Nothing here is fixed in stone — the plan has already flexed a few times
