@@ -68,9 +68,11 @@ export const Books = entities.books;
 export const ReadingLogs = entities.readingLogs;
 export const Recipes = entities.recipes;
 export const CookLogs = entities.cookLogs;
-export const JapaneseDecks = entities.japaneseDecks;
-export const JapaneseCards = entities.japaneseCards;
-export const JapaneseReviewLogs = entities.japaneseReviewLogs;
+export const LanguagePacks = entities.languagePacks;
+export const LanguageDecks = entities.languageDecks;
+export const LanguageCards = entities.languageCards;
+export const LanguageReviewLogs = entities.languageReviewLogs;
+export const LanguageLessons = entities.languageLessons;
 export const ChordProgressions = entities.chordProgressions;
 export const FinanceSnapshots = entities.financeSnapshots;
 export const SavingsGoals = entities.savingsGoals;
@@ -168,6 +170,60 @@ export async function migrateLegacyPeopleToContacts() {
   }
 
   await db.clear('people');
+}
+
+// --- One-time migration: the Japanese module used to own its own
+// japaneseDecks/japaneseCards/japaneseReviewLogs stores. Language learning
+// is now plug-and-play (multiple packs, Japanese being the first), so those
+// become languageDecks/languageCards/languageReviewLogs scoped to a
+// "Japanese" LanguagePacks record. Safe to call on every boot -- a no-op
+// once the legacy stores are empty or were never created.
+export async function migrateLegacyJapaneseToLanguagePacks() {
+  let legacyDecks;
+  try {
+    legacyDecks = await db.getAll('japaneseDecks');
+  } catch {
+    return; // store doesn't exist on this device -- nothing to migrate
+  }
+  if (!legacyDecks.length) return;
+
+  const pack = await ensureLanguagePack('ja', 'Japanese', 'ja-JP');
+
+  const deckIdMap = new Map();
+  for (const deck of legacyDecks) {
+    const newDeck = await LanguageDecks.create({ packId: pack.id, name: deck.name });
+    deckIdMap.set(deck.id, newDeck.id);
+  }
+
+  const legacyCards = await db.getAll('japaneseCards');
+  const cardIdMap = new Map();
+  for (const card of legacyCards) {
+    const newDeckId = deckIdMap.get(card.deckId);
+    if (!newDeckId) continue;
+    const newCard = await LanguageCards.create({ deckId: newDeckId, front: card.front, back: card.back, srs: card.srs });
+    cardIdMap.set(card.id, newCard.id);
+  }
+
+  const legacyLogs = await db.getAll('japaneseReviewLogs');
+  for (const log of legacyLogs) {
+    const newCardId = cardIdMap.get(log.cardId);
+    if (!newCardId) continue;
+    await LanguageReviewLogs.create({ cardId: newCardId, date: log.date, quality: log.quality });
+  }
+
+  await db.clear('japaneseDecks');
+  await db.clear('japaneseCards');
+  await db.clear('japaneseReviewLogs');
+}
+
+// Creates the pack if it doesn't already exist (matched by code); returns
+// the existing or newly-created record either way. Called at boot to
+// guarantee Japanese is always available out of the box, and reused by
+// the migration above.
+export async function ensureLanguagePack(code, name, ttsLocale) {
+  const existing = (await LanguagePacks.byIndex('code', code))[0];
+  if (existing) return existing;
+  return LanguagePacks.create({ code, name, ttsLocale });
 }
 
 // --- Settings: plain key-value store, separate shape from the entity stores. ---
@@ -330,7 +386,8 @@ const SEARCH_FIELDS = {
   contacts: (r) => [r.name, r.company].filter(Boolean).join(' '),
   milestones: (r) => r.title,
   habits: (r) => r.name,
-  japaneseDecks: (r) => r.name,
+  languageDecks: (r) => r.name,
+  languageLessons: (r) => r.title,
   albums: (r) => r.name,
 };
 
@@ -338,7 +395,7 @@ const SEARCH_MODULE_ROUTE = {
   tasks: 'tasks', places: 'places', links: 'links', semesters: 'education', courses: 'education',
   assignments: 'education', bills: 'finance', subscriptions: 'finance', books: 'books',
   recipes: 'recipes', documents: 'documents', contacts: 'contacts', milestones: 'milestones',
-  habits: 'habits', japaneseDecks: 'japanese', albums: 'photos',
+  habits: 'habits', languageDecks: 'languages', languageLessons: 'languages', albums: 'photos',
 };
 
 export async function globalSearch(query) {

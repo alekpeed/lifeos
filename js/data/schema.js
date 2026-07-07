@@ -64,14 +64,26 @@ export const STORES = [
     { name: 'recipeId', keyPath: 'recipeId' },
   ] },
 
-  { name: 'japaneseDecks', keyPath: 'id' },
-  { name: 'japaneseCards', keyPath: 'id', indexes: [
+  // Plug-and-play language learning: one or more "packs" (Japanese, Spanish,
+  // ...), each owning its own decks/cards (flashcard SRS) and lessons
+  // (grammar/syntax/morphology explainers). Adding a language later is a
+  // new LanguagePacks record, not a schema change.
+  { name: 'languagePacks', keyPath: 'id', indexes: [
+    { name: 'code', keyPath: 'code' },
+  ] },
+  { name: 'languageDecks', keyPath: 'id', indexes: [
+    { name: 'packId', keyPath: 'packId' },
+  ] },
+  { name: 'languageCards', keyPath: 'id', indexes: [
     { name: 'deckId', keyPath: 'deckId' },
     { name: 'srsDueDate', keyPath: 'srs.dueDate' },
   ] },
-  { name: 'japaneseReviewLogs', keyPath: 'id', indexes: [
+  { name: 'languageReviewLogs', keyPath: 'id', indexes: [
     { name: 'cardId', keyPath: 'cardId' },
     { name: 'date', keyPath: 'date' },
+  ] },
+  { name: 'languageLessons', keyPath: 'id', indexes: [
+    { name: 'packId', keyPath: 'packId' },
   ] },
 
   { name: 'chordProgressions', keyPath: 'id' },

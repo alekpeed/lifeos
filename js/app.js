@@ -2,7 +2,7 @@
 // import side effects), then hand control to the shell.
 
 import { openDatabase } from './data/db.js';
-import { migrateLegacyPeopleToContacts } from './data/api.js';
+import { migrateLegacyPeopleToContacts, migrateLegacyJapaneseToLanguagePacks, ensureLanguagePack } from './data/api.js';
 import './interfaces/manifest.js';
 import { startShell } from './shell.js';
 
@@ -12,6 +12,8 @@ async function boot() {
   try {
     await openDatabase();
     await migrateLegacyPeopleToContacts();
+    await migrateLegacyJapaneseToLanguagePacks();
+    await ensureLanguagePack('ja', 'Japanese', 'ja-JP');
     await startShell();
   } catch (err) {
     appEl.dataset.bootState = 'error';

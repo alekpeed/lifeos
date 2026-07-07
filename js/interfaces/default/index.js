@@ -23,7 +23,7 @@ import { renderTools } from './views/tools.js';
 import { renderHabits } from './views/habits.js';
 import { renderHealth } from './views/health.js';
 import { renderPhotos } from './views/photos.js';
-import { renderJapanese } from './views/japanese.js';
+import { renderLanguages } from './views/languages.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -85,7 +85,7 @@ const VIEWS = {
   habits: renderHabits,
   health: renderHealth,
   photos: renderPhotos,
-  japanese: renderJapanese,
+  languages: renderLanguages,
 };
 
 // --- Interface contract implementation ---
