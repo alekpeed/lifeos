@@ -13,6 +13,7 @@ import { renderPlaces } from './views/places.js';
 import { renderLinks } from './views/links.js';
 import { renderBills } from './views/bills.js';
 import { renderEducation } from './views/education.js';
+import { renderBooks } from './views/books.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -64,6 +65,7 @@ const VIEWS = {
   links: renderLinks,
   bills: renderBills,
   education: renderEducation,
+  books: renderBooks,
 };
 
 // --- Interface contract implementation ---
