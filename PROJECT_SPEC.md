@@ -129,6 +129,20 @@ lets the whole app be redecorated later without rebuilding it:
   Disconnect live in Settings. The merge core and full IO path are
   extensively tested; the only unverifiable-without-you piece was the live
   Google sign-in, which you completed (OAuth Client ID created and wired in).
+- **Google Calendar sync** — a one-way mirror of your due-soon items (open
+  tasks, unpaid bills, assignments, and document expiries within a
+  configurable horizon) into a dedicated "Life OS" calendar, so they show up
+  on your phone and desktop calendar with reminders. Push-only: Life OS
+  writes just the calendar it creates (calendar.app.created scope — the
+  Calendar twin of drive.file) and never reads or changes your other
+  calendars. Re-syncing is idempotent — each event is matched back to its
+  source record, so there are no duplicates; paying/completing/deleting an
+  item removes its event; all your devices push into one shared calendar.
+  Connect / Sync now / Disconnect sit in Settings next to Drive sync and work
+  independently of it, reusing the same Google sign-in. The reconciliation
+  core and full IO path are tested; the one unverifiable-without-you piece is
+  the live Calendar consent grant (same as Drive was — you approve a Calendar
+  permission the first time you connect).
 
 ### Still to build 📋
 - **AI assistant modules** (Claude/ChatGPT/Gemini panels) + cross-LLM relay +
@@ -136,8 +150,6 @@ lets the whole app be redecorated later without rebuilding it:
   keys/bot token, but live testing needs them, and direct browser-to-API
   calls may hit CORS restrictions that won't be known until tested live.
   Treat as "needs a follow-up session with you present," not a solo build.
-- **Google Calendar sync** — reuses the same Google sign-in as Drive sync
-  (the OAuth Client ID now exists), so it's unblocked whenever you want it.
 - **AI-written yearly recap** — needs a working AI module first (see above)
 - **A friend-sharing "Sharebox"** — see Section 4
 
@@ -170,8 +182,6 @@ Everything below came out of talking through what would actually feel
 - **A friend-sharing "Sharebox"** — a small module inside Life OS for you,
   plus a separate lightweight companion app for a friend, both reading/writing
   the same shared Google Drive folder (links, notes, urgency flags, files)
-- **Google Calendar sync** — push the due-soon feed into an actual calendar,
-  reusing the same Google sign-in as Drive sync
 - **AI-written yearly recap** — once an AI module can read your data, have it
   draft the actual recap narrative, not just tally up numbers (the recap's
   numbers-driven aggregation already exists in Milestones)
@@ -179,7 +189,7 @@ Everything below came out of talking through what would actually feel
 ## 5. Rough order of what's left
 
 1. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
-2. Google Calendar sync (OAuth Client ID now exists), AI-written recap
+2. AI-written recap (needs an AI module first)
 3. Additional interfaces (Vespera, LCARS)
 4. Sharebox companion app for your friend
 5. Someday: a standalone music-practice app (progressions, play-along,

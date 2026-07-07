@@ -57,10 +57,18 @@ parsed routes. Unknown modules fall back to the dashboard.
 
 ## Sync (built)
 
-Google Drive sync lives in `js/data/` (`sync.js`, `gapi.js`, `sync-config.js`)
-behind the same api surface — interfaces reach it through `ctx.data`
-(`connectDrive`, `syncNow`, `disconnectDrive`, `getSyncState`) and are
-otherwise unaware of it.
+Two independent Google integrations live in `js/data/` behind the same api
+surface — interfaces reach them through `ctx.data` and are otherwise unaware of
+them. Both share one scope-keyed token layer in `gapi.js`:
+`acquireToken(scope, interactive)` keeps a separate GIS token client and
+in-memory access token per scope, so granting Drive never implies Calendar (or
+vice versa) — least-privilege, each usable on its own. The GIS script and all
+`googleapis.com` calls are cross-origin and network-only, never part of the
+offline app shell; the app runs fully without them.
+
+### Google Drive sync — bidirectional data relay
+`sync.js` + `gapi.js` (Drive REST) + `sync-config.js`; api: `connectDrive`,
+`syncNow`, `disconnectDrive`, `getSyncState`. Scope `drive.file`.
 
 - **Model:** each device owns ONE snapshot file in the Drive `LifeOS/`
   folder (`lifeos-snapshot-<deviceId>.json`). A device only ever writes its
@@ -80,7 +88,27 @@ otherwise unaware of it.
   so it stays per-device.
 - The sync engine writes through `db.*` **directly**, preserving original
   timestamps — never through the `api.js` wrappers that stamp a fresh
-  `updatedAt` — so applying remote changes can't corrupt the merge. Auth is
-  Google Identity Services' token model (`drive.file` scope); the GIS script
-  and all `googleapis.com` calls are cross-origin and network-only, never
-  part of the offline app shell.
+  `updatedAt` — so applying remote changes can't corrupt the merge.
+
+### Google Calendar sync — one-way push
+`calendar.js` + `gapi.js` (Calendar REST) + `sync-config.js`; api:
+`connectCalendar`, `syncCalendarNow`, `disconnectCalendar`, `getCalendarState`.
+Scope `calendar.app.created` (the Calendar analogue of `drive.file`: the app
+can only see/touch calendars it created).
+
+- **Model:** a ONE-WAY mirror, not a two-way sync. Life OS is the source of
+  truth; it pushes its due-soon items (open tasks, unpaid bills, open
+  assignments, document expiries within a configurable horizon) into a
+  dedicated "Life OS" calendar as all-day events. It never reads the user's
+  primary calendar and never imports events back.
+- **Idempotent by source key:** every event carries a private extended
+  property `lifeosKey = ${store}:${id}`. Each push lists only Life OS's own
+  events (filtered by that property, so hand-added events are invisible),
+  then `reconcileEvents()` — a pure, unit-tested function — diffs desired vs.
+  existing into insert / patch / delete. Re-running with no data change is a
+  no-op; duplicate events from an interrupted run self-heal (canonical kept,
+  extras deleted). All devices push the SAME set into the SAME shared calendar
+  (found-or-created by name), so a second device's push simply confirms.
+- **Reads through `db.*` directly** (not `api.js`), avoiding a circular import
+  and keeping the boundary clean; its metadata (`calendarId`,
+  `calendarLastSyncedAt`, `calendarEnabled`) lives in device-local `settings`.

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v18';
+const CACHE_VERSION = 'lifeos-v19';
 const APP_SHELL = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const APP_SHELL = [
   './js/data/sync.js',
   './js/data/sync-config.js',
   './js/data/gapi.js',
+  './js/data/calendar.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
   './js/interfaces/default/index.js',

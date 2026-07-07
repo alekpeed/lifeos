@@ -21,7 +21,7 @@ import {
   createFile, uploadMedia, deleteFile,
 } from './gapi.js';
 import {
-  DRIVE_FOLDER_NAME, SNAPSHOT_PREFIX, ATTACHMENT_PREFIX, SNAPSHOT_FORMAT_VERSION,
+  DRIVE_SCOPE, DRIVE_FOLDER_NAME, SNAPSHOT_PREFIX, ATTACHMENT_PREFIX, SNAPSHOT_FORMAT_VERSION,
 } from './sync-config.js';
 
 // Everything except plain key-value settings (device-local preferences with
@@ -209,7 +209,7 @@ async function pushSnapshot(folderId, deviceId, existingSnapshotFiles) {
 async function sync(interactive) {
   if (inFlight) return inFlight;
   inFlight = (async () => {
-    await acquireToken(interactive); // throws if not granted / offline
+    await acquireToken(DRIVE_SCOPE, interactive); // throws if not granted / offline
     const deviceId = await getDeviceId();
 
     let folderId = await getMeta('syncFolderId');
@@ -262,14 +262,14 @@ export async function syncNow() {
 }
 
 export async function disconnectDrive() {
-  forgetToken();
+  forgetToken(DRIVE_SCOPE);
   await setMeta('syncEnabled', false);
 }
 
 export async function getSyncState() {
   return {
     enabled: (await getMeta('syncEnabled')) === true,
-    connected: hasLiveToken(),
+    connected: hasLiveToken(DRIVE_SCOPE),
     lastSyncedAt: await getMeta('syncLastSyncedAt'),
     deviceId: await getMeta('syncDeviceId'),
   };

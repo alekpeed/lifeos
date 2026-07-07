@@ -1,19 +1,23 @@
-// Google Identity Services token acquisition + minimal Google Drive REST
-// helpers. Isolated here so sync.js deals in "get/put files" rather than
-// OAuth and HTTP details.
+// Google Identity Services token acquisition + minimal Google REST helpers
+// (Drive and Calendar). Isolated here so sync.js / calendar.js deal in
+// "get/put files" and "insert/patch events" rather than OAuth and HTTP details.
 //
 // Network-only by design: the GIS script and all googleapis.com calls are
 // cross-origin, so the service worker's fetch handler ignores them (it
 // returns early for non-same-origin requests), and none of this is part of
 // the offline app shell. The app runs fully without ever loading any of it;
-// sync is purely additive.
+// sync (Drive or Calendar) is purely additive.
+//
+// Tokens are managed per-scope: Drive and Calendar each get their own token
+// client and their own in-memory access token, so the two features are
+// independent — granting one never implies the other, matching least-privilege.
 
-import { GOOGLE_CLIENT_ID, DRIVE_SCOPE, GIS_SCRIPT_URL } from './sync-config.js';
+import { GOOGLE_CLIENT_ID, DRIVE_SCOPE, CALENDAR_SCOPE, GIS_SCRIPT_URL } from './sync-config.js';
 
-let gisLoaded = null;      // Promise that resolves once the GIS script is ready
-let tokenClient = null;    // memoized google.accounts.oauth2 token client
-let token = null;          // { accessToken, expiresAt } — in-memory only
-let pending = null;        // { resolve, reject } for the in-flight token request
+let gisLoaded = null; // Promise that resolves once the GIS script is ready
+
+// scope -> { client, token: { accessToken, expiresAt } | null, pending }
+const clients = new Map();
 
 function loadGis() {
   if (gisLoaded) return gisLoaded;
@@ -30,67 +34,73 @@ function loadGis() {
   return gisLoaded;
 }
 
-async function ensureTokenClient() {
+async function ensureClient(scope) {
   await loadGis();
-  if (tokenClient) return tokenClient;
-  tokenClient = window.google.accounts.oauth2.initTokenClient({
+  let entry = clients.get(scope);
+  if (entry) return entry;
+  entry = { client: null, token: null, pending: null };
+  entry.client = window.google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
-    scope: DRIVE_SCOPE,
+    scope,
     callback: (resp) => {
       if (resp.error) {
-        pending?.reject(new Error(resp.error_description || resp.error));
+        entry.pending?.reject(new Error(resp.error_description || resp.error));
       } else {
-        token = { accessToken: resp.access_token, expiresAt: Date.now() + (resp.expires_in - 60) * 1000 };
-        pending?.resolve(token.accessToken);
+        entry.token = { accessToken: resp.access_token, expiresAt: Date.now() + (resp.expires_in - 60) * 1000 };
+        entry.pending?.resolve(entry.token.accessToken);
       }
-      pending = null;
+      entry.pending = null;
     },
   });
-  return tokenClient;
+  clients.set(scope, entry);
+  return entry;
 }
 
-// Acquire an access token. `interactive` true shows Google's consent/account
-// chooser (used for the explicit "Connect" button); false requests silently
-// (works on later syncs once consent was granted, even in a new session).
-export async function acquireToken(interactive) {
-  if (token && token.expiresAt > Date.now()) return token.accessToken;
-  const client = await ensureTokenClient();
+// Acquire an access token for `scope`. `interactive` true shows Google's
+// consent/account chooser (used for an explicit "Connect" button); false
+// requests silently (works on later syncs once consent was granted).
+export async function acquireToken(scope, interactive) {
+  const existing = clients.get(scope);
+  if (existing?.token && existing.token.expiresAt > Date.now()) return existing.token.accessToken;
+  const entry = await ensureClient(scope);
   return new Promise((resolve, reject) => {
-    pending = { resolve, reject };
+    entry.pending = { resolve, reject };
     try {
-      client.requestAccessToken({ prompt: interactive ? 'consent' : '' });
+      entry.client.requestAccessToken({ prompt: interactive ? 'consent' : '' });
     } catch (err) {
-      pending = null;
+      entry.pending = null;
       reject(err);
     }
   });
 }
 
-export function hasLiveToken() {
-  return !!(token && token.expiresAt > Date.now());
+export function hasLiveToken(scope) {
+  const entry = clients.get(scope);
+  return !!(entry?.token && entry.token.expiresAt > Date.now());
 }
 
-export function forgetToken() {
-  token = null;
+export function forgetToken(scope) {
+  const entry = clients.get(scope);
+  if (entry) entry.token = null;
 }
 
-// --- Drive REST ---
-
-const DRIVE = 'https://www.googleapis.com/drive/v3';
-const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
-
-async function authFetch(url, options = {}) {
-  const accessToken = await acquireToken(false);
+async function authFetch(scope, url, options = {}) {
+  const accessToken = await acquireToken(scope, false);
   const resp = await fetch(url, {
     ...options,
     headers: { Authorization: `Bearer ${accessToken}`, ...(options.headers || {}) },
   });
   if (!resp.ok) {
     const body = await resp.text().catch(() => '');
-    throw new Error(`Drive API ${resp.status}: ${body.slice(0, 200)}`);
+    throw new Error(`Google API ${resp.status}: ${body.slice(0, 200)}`);
   }
   return resp;
 }
+
+// --- Drive REST (scope: drive.file) ---
+
+const DRIVE = 'https://www.googleapis.com/drive/v3';
+const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 
 // Find the app's LifeOS folder (drive.file only sees files we created), or
 // create it. Returns the folder id.
@@ -98,11 +108,11 @@ export async function ensureFolder(name) {
   const q = encodeURIComponent(
     `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
   );
-  const found = await authFetch(`${DRIVE}/files?q=${q}&fields=files(id,name)&spaces=drive`);
+  const found = await authFetch(DRIVE_SCOPE, `${DRIVE}/files?q=${q}&fields=files(id,name)&spaces=drive`);
   const { files } = await found.json();
   if (files.length) return files[0].id;
 
-  const created = await authFetch(`${DRIVE}/files?fields=id`, {
+  const created = await authFetch(DRIVE_SCOPE, `${DRIVE}/files?fields=id`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder' }),
@@ -113,19 +123,19 @@ export async function ensureFolder(name) {
 // List files in a folder whose name starts with `prefix`.
 export async function listFiles(folderId, prefix) {
   const q = encodeURIComponent(`'${folderId}' in parents and name contains '${prefix}' and trashed=false`);
-  const resp = await authFetch(`${DRIVE}/files?q=${q}&fields=files(id,name,modifiedTime)&spaces=drive`);
+  const resp = await authFetch(DRIVE_SCOPE, `${DRIVE}/files?q=${q}&fields=files(id,name,modifiedTime)&spaces=drive`);
   const { files } = await resp.json();
   // `contains` is a loose match; keep only true prefix matches.
   return files.filter((f) => f.name.startsWith(prefix));
 }
 
 export async function downloadText(fileId) {
-  const resp = await authFetch(`${DRIVE}/files/${fileId}?alt=media`);
+  const resp = await authFetch(DRIVE_SCOPE, `${DRIVE}/files/${fileId}?alt=media`);
   return resp.text();
 }
 
 export async function downloadBlob(fileId) {
-  const resp = await authFetch(`${DRIVE}/files/${fileId}?alt=media`);
+  const resp = await authFetch(DRIVE_SCOPE, `${DRIVE}/files/${fileId}?alt=media`);
   return resp.blob();
 }
 
@@ -133,7 +143,7 @@ export async function downloadBlob(fileId) {
 // separately via uploadMedia — a two-step create avoids hand-rolling
 // multipart bodies (which is especially error-prone for binary blobs).
 export async function createFile(name, folderId, mimeType) {
-  const resp = await authFetch(`${DRIVE}/files?fields=id`, {
+  const resp = await authFetch(DRIVE_SCOPE, `${DRIVE}/files?fields=id`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, parents: [folderId], mimeType }),
@@ -142,7 +152,7 @@ export async function createFile(name, folderId, mimeType) {
 }
 
 export async function uploadMedia(fileId, body, contentType) {
-  await authFetch(`${UPLOAD}/files/${fileId}?uploadType=media`, {
+  await authFetch(DRIVE_SCOPE, `${UPLOAD}/files/${fileId}?uploadType=media`, {
     method: 'PATCH',
     headers: { 'Content-Type': contentType },
     body,
@@ -150,5 +160,60 @@ export async function uploadMedia(fileId, body, contentType) {
 }
 
 export async function deleteFile(fileId) {
-  await authFetch(`${DRIVE}/files/${fileId}`, { method: 'DELETE' });
+  await authFetch(DRIVE_SCOPE, `${DRIVE}/files/${fileId}`, { method: 'DELETE' });
+}
+
+// --- Calendar REST (scope: calendar.app.created) ---
+
+const CAL = 'https://www.googleapis.com/calendar/v3';
+
+// Every calendar this OAuth client created (app.created scope returns only
+// those). Returned as [{ id, summary }] so calendar.js can find-or-create the
+// shared "Life OS" calendar by name.
+export async function listAppCalendars() {
+  const resp = await authFetch(CALENDAR_SCOPE, `${CAL}/users/me/calendarList?minAccessRole=owner&maxResults=250`);
+  const { items } = await resp.json();
+  return (items || []).map((c) => ({ id: c.id, summary: c.summary }));
+}
+
+export async function createCalendar(summary) {
+  const resp = await authFetch(CALENDAR_SCOPE, `${CAL}/calendars`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ summary }),
+  });
+  return (await resp.json()).id;
+}
+
+// List only the events Life OS owns on this calendar (filtered by our private
+// extended property), so a resync never sees or disturbs events the user added
+// by hand. One page is plenty for a personal due-soon feed.
+export async function listEvents(calendarId, appTag) {
+  const q = `privateExtendedProperty=${encodeURIComponent(`${appTag}=1`)}&maxResults=2500&showDeleted=false`;
+  const resp = await authFetch(CALENDAR_SCOPE, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events?${q}`);
+  const { items } = await resp.json();
+  return items || [];
+}
+
+export async function insertEvent(calendarId, event) {
+  const resp = await authFetch(CALENDAR_SCOPE, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(event),
+  });
+  return (await resp.json()).id;
+}
+
+export async function patchEvent(calendarId, eventId, patch) {
+  await authFetch(CALENDAR_SCOPE, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function deleteEvent(calendarId, eventId) {
+  await authFetch(CALENDAR_SCOPE, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+    method: 'DELETE',
+  });
 }

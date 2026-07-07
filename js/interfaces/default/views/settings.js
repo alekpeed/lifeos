@@ -46,6 +46,60 @@ async function renderSyncSection(canvas, ctx, rerender) {
   canvas.append(row, status);
 }
 
+async function renderCalendarSection(canvas, ctx, rerender) {
+  const [state, horizon] = await Promise.all([
+    ctx.data.getCalendarState(),
+    ctx.data.Settings.get('calendarHorizonDays'),
+  ]);
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Google Calendar' }));
+  canvas.append(el('p', { class: 'mer-muted', text: `Mirrors your due-soon items — open tasks, unpaid bills, assignments and document expiries — into a dedicated "Life OS" calendar, so they show up on your phone and desktop calendar with reminders. It's a one-way push: Life OS only ever writes to the calendar it creates and never reads or changes your other calendars. Uses the calendar.app.created scope. Independent of Drive sync — you can use either on its own.` }));
+
+  const horizonInput = el('label', { class: 'mer-setting' }, [
+    el('span', { text: 'Push items due within (days)' }),
+    el('input', {
+      type: 'number', min: '7', max: '365', value: horizon,
+      onchange: (e) => ctx.data.Settings.set('calendarHorizonDays', Number(e.target.value) || 90),
+    }),
+  ]);
+  canvas.append(horizonInput);
+
+  const status = el('p', { class: 'mer-muted' });
+  const setStatus = (text, isError) => { status.textContent = text; status.classList.toggle('mer-sync-error', !!isError); };
+  setStatus(state.enabled ? `Last pushed: ${fmtSyncTime(state.lastSyncedAt)}` : 'Not connected yet.');
+
+  const runPush = async (fn, label) => {
+    row.querySelectorAll('button').forEach((b) => (b.disabled = true));
+    setStatus(`${label}…`);
+    try {
+      const res = await fn();
+      const bits = [];
+      if (res?.added) bits.push(`${res.added} added`);
+      if (res?.updated) bits.push(`${res.updated} updated`);
+      if (res?.removed) bits.push(`${res.removed} removed`);
+      setStatus(`Pushed ${fmtSyncTime(new Date().toISOString())}${bits.length ? ` (${bits.join(', ')})` : ''}.`);
+      await rerender();
+    } catch (err) {
+      setStatus(err.message || String(err), true);
+      row.querySelectorAll('button').forEach((b) => (b.disabled = false));
+    }
+  };
+
+  const connectBtn = el('button', {
+    type: 'button', text: state.enabled ? 'Sync calendar now' : 'Connect Google Calendar',
+    onclick: () => runPush(state.enabled ? ctx.data.syncCalendarNow : ctx.data.connectCalendar, state.enabled ? 'Pushing' : 'Connecting'),
+  });
+  const buttons = [connectBtn];
+  if (state.enabled) {
+    buttons.push(el('button', {
+      type: 'button', text: 'Disconnect calendar',
+      onclick: async () => { await ctx.data.disconnectCalendar(); await rerender(); },
+    }));
+  }
+  const row = el('div', { class: 'mer-toolbar' }, buttons);
+  canvas.append(row, status);
+}
+
 export async function renderSettings(canvas, ctx, rerender) {
   canvas.append(el('h1', { text: 'Settings' }));
   const settings = await ctx.data.Settings.getAll();
@@ -146,4 +200,5 @@ export async function renderSettings(canvas, ctx, rerender) {
   canvas.append(el('div', { class: 'mer-toolbar' }, [exportBtn, el('label', { class: 'mer-setting' }, [el('span', { text: 'Import from JSON' }), importInput])]));
 
   await renderSyncSection(canvas, ctx, rerender || (() => {}));
+  await renderCalendarSection(canvas, ctx, rerender || (() => {}));
 }

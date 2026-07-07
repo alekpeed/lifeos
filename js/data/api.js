@@ -13,6 +13,10 @@ export { events };
 // interfaces reach it through ctx.data like everything else.
 export { connectDrive, syncNow, disconnectDrive, getSyncState } from './sync.js';
 
+// Google Calendar sync (one-way push of due-soon items) rides the same api
+// surface. Independent of Drive sync — either can be used without the other.
+export { connectCalendar, syncCalendarNow, disconnectCalendar, getCalendarState } from './calendar.js';
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -262,6 +266,9 @@ const SETTING_DEFAULTS = {
   wordsPerPageDefault: 275,
   billDueSoonDays: 7,
   documentExpiryDays: 30,
+  // How far ahead (days) due items are mirrored into Google Calendar. Read by
+  // the Calendar sync engine; overdue-but-open items are always included too.
+  calendarHorizonDays: 90,
   // Manual/editable rate table (not a live feed) so the currency converter
   // stays usable fully offline. Rates are "1 <currency> = N base units" with
   // USD as the implicit base; edit them from the Tools module as needed.
