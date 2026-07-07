@@ -93,6 +93,16 @@ lets the whole app be redecorated later without rebuilding it:
   Deliberately not passive/background — a plain PWA (especially on iOS
   Safari) can't reliably run background geofencing, so this is
   foreground/user-triggered by design, not a missing feature.
+- **Cross-module contact links** — Documents and Bills can each link to a
+  real Contacts entry (an insurance agent, a utility rep) via a shared
+  picker/quick-create widget; unlinking removes the reference only, never
+  the contact itself
+- **"On this day"** — a Dashboard section surfacing anything dated with
+  today's month/day in a past year, pulled from Milestones, Places visits,
+  and Books started/finished
+- **"Surprise me"** — a Dashboard button offering one random nudge (a
+  want-to-go place, a to-read book, an untried recipe, an open bucket-list
+  goal) with a one-click jump to that module
 
 ### Next up 🔜
 - **Google Drive sync** — the two-device backbone. Blocked on you creating a
@@ -111,8 +121,6 @@ lets the whole app be redecorated later without rebuilding it:
 - **Google Calendar sync** — reuses the same Google sign-in as Drive sync,
   so it's blocked on the same OAuth Client ID.
 - **AI-written yearly recap** — needs a working AI module first (see above)
-- **Documents/Contacts/Finance cross-links, "on this day," "surprise me"** —
-  smaller polish items, not yet built
 - **A friend-sharing "Sharebox"** — see Section 4
 
 ## 3. Additional interfaces 📋
