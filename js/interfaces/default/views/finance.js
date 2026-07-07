@@ -1,4 +1,4 @@
-import { el, fmtDate, todayStr, isPast, RECUR_FREQS, computeNextDueDate } from '../dom.js';
+import { el, fmtDate, todayStr, isPast, RECUR_FREQS, computeNextDueDate, contactLinkField } from '../dom.js';
 
 const SUB_FREQS = [
   { value: 'monthly', label: 'Monthly' },
@@ -46,7 +46,7 @@ async function markPaid(ctx, bill, paid) {
   await ctx.data.Bills.update(bill.id, { paid });
 }
 
-function billMeta(bill) {
+function billMeta(bill, contactsById) {
   const meta = el('div', { class: 'mer-task-meta' });
   if (bill.category) meta.append(el('span', { class: 'mer-chip', text: bill.category }));
   if (typeof bill.amount === 'number') meta.append(el('span', { class: 'mer-chip', text: money(bill.amount) }));
@@ -58,17 +58,20 @@ function billMeta(bill) {
   }
   if (bill.autopay) meta.append(el('span', { class: 'mer-chip', text: 'Autopay' }));
   if (bill.recurring?.freq) meta.append(el('span', { class: 'mer-chip', text: RECUR_FREQS.find((f) => f.value === bill.recurring.freq)?.label || 'Repeats' }));
+  if (bill.contactId && contactsById.has(bill.contactId)) {
+    meta.append(el('span', { class: 'mer-chip', text: `👤 ${contactsById.get(bill.contactId).name}` }));
+  }
   return meta;
 }
 
-function billRow(bill, ctx, onSelect) {
+function billRow(bill, ctx, onSelect, contactsById) {
   const row = el('div', { class: 'mer-task-row' }, [
     el('input', {
       type: 'checkbox', checked: !!bill.paid,
       onclick: (e) => { e.stopPropagation(); markPaid(ctx, bill, e.target.checked); },
     }),
     el('span', { class: bill.paid ? 'mer-task-title is-done' : 'mer-task-title', text: bill.name || '(untitled bill)' }),
-    billMeta(bill),
+    billMeta(bill, contactsById),
   ]);
   row.addEventListener('click', () => onSelect(bill.id));
   return row;
@@ -107,7 +110,7 @@ function paymentHistory(bill, payments, ctx, rerender) {
   return el('div', {}, [list, el('div', { class: 'mer-person-form' }, [dateInput, amountInput, methodInput, addBtn])]);
 }
 
-function billDetailEditor(bill, ctx, rerender) {
+function billDetailEditor(bill, ctx, rerender, allContacts) {
   const patch = (fields) => ctx.data.Bills.update(bill.id, fields).then(rerender);
   const field = (labelText, inputEl) => el('label', { class: 'mer-field' }, [el('span', { text: labelText }), inputEl]);
 
@@ -139,6 +142,10 @@ function billDetailEditor(bill, ctx, rerender) {
       field('Repeats', recurSelect),
     ]),
     autopayCheckbox,
+    el('div', { class: 'mer-subsection-label', text: 'Linked contact' }),
+    contactLinkField(allContacts, bill.contactId, ctx,
+      (contactId) => patch({ contactId }),
+      () => patch({ contactId: null })),
     el('div', { class: 'mer-subsection-label', text: 'PDF attachment' }),
     attachmentPlaceholder,
     el('div', { class: 'mer-subsection-label', text: 'Payment history' }),
@@ -174,7 +181,8 @@ function billDetailEditor(bill, ctx, rerender) {
 }
 
 async function renderBillsTab(container, ctx, rerender) {
-  const bills = await ctx.data.Bills.list();
+  const [bills, allContacts] = await Promise.all([ctx.data.Bills.list(), ctx.data.Contacts.list()]);
+  const contactsById = new Map(allContacts.map((c) => [c.id, c]));
   const categories = [...new Set(bills.map((b) => b.category).filter(Boolean))];
 
   const quickAdd = el('input', {
@@ -207,12 +215,12 @@ async function renderBillsTab(container, ctx, rerender) {
   if (!filtered.length) {
     area.append(el('p', { class: 'mer-muted', text: 'No bills match the current filters.' }));
   } else {
-    for (const bill of filtered) area.append(billRow(bill, ctx, onSelect));
+    for (const bill of filtered) area.append(billRow(bill, ctx, onSelect, contactsById));
   }
 
   if (state.selectedBillId) {
     const bill = bills.find((b) => b.id === state.selectedBillId);
-    if (bill) container.append(billDetailEditor(bill, ctx, rerender));
+    if (bill) container.append(billDetailEditor(bill, ctx, rerender, allContacts));
   }
 }
 

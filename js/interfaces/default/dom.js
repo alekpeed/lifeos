@@ -74,3 +74,35 @@ export function computeNextDueDate(dueDateStr, recurring) {
   }
   return d.toISOString().slice(0, 10);
 }
+
+// A single-contact link picker, shared by any module that wants to point at
+// one Contacts record (Documents' issuer contact, a Bill's account rep,
+// ...) without keeping its own copy of the person. Renders a linked-contact
+// card with an unlink button, or a picker (existing contacts + quick-create
+// by name) when nothing's linked yet.
+export function contactLinkField(allContacts, linkedContactId, ctx, onLink, onUnlink) {
+  const linked = linkedContactId ? allContacts.find((c) => c.id === linkedContactId) : null;
+  if (linked) {
+    return el('div', { class: 'mer-person-card' }, [
+      el('div', { class: 'mer-person-info' }, [el('div', { class: 'mer-person-name', text: linked.name || '(untitled)' })]),
+      el('button', { type: 'button', class: 'mer-icon-btn', text: '×', title: 'Unlink contact', onclick: onUnlink }),
+    ]);
+  }
+
+  const select = el('select', {
+    onchange: (e) => { if (e.target.value) onLink(e.target.value); },
+  }, [
+    el('option', { value: '', text: 'Link an existing contact…' }),
+    ...allContacts.map((c) => el('option', { value: c.id, text: c.name || '(untitled)' })),
+  ]);
+  const newNameInput = el('input', { type: 'text', placeholder: 'Or type a new name…' });
+  const addBtn = el('button', {
+    type: 'button', text: '+ New contact',
+    onclick: async () => {
+      if (!newNameInput.value.trim()) return;
+      const contact = await ctx.data.Contacts.create({ name: newNameInput.value.trim(), tags: [], phones: [], emails: [] });
+      onLink(contact.id);
+    },
+  });
+  return el('div', { class: 'mer-person-form' }, [select, newNameInput, addBtn]);
+}

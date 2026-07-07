@@ -311,6 +311,60 @@ export async function getDueSoonFeed(days = 7, billDays = days, documentDays = d
   return items;
 }
 
+// --- "On this day": anything dated with today's month/day in a past year,
+// pulled from the modules where a look-back is actually meaningful. ---
+
+export async function getOnThisDay() {
+  const now = new Date();
+  const todayMD = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const thisYear = String(now.getFullYear());
+  const [milestones, places, books] = await Promise.all([Milestones.list(), Places.list(), Books.list()]);
+
+  const items = [];
+  for (const m of milestones) {
+    if (!m.date) continue;
+    const [y, md] = [m.date.slice(0, 4), m.date.slice(5, 10)];
+    if (md === todayMD && y !== thisYear) items.push({ year: y, title: m.title, kind: 'Milestone' });
+  }
+  for (const p of places) {
+    for (const d of p.visitDates || []) {
+      const [y, md] = [d.slice(0, 4), d.slice(5, 10)];
+      if (md === todayMD && y !== thisYear) items.push({ year: y, title: p.name, kind: 'Visited' });
+    }
+  }
+  for (const b of books) {
+    for (const [field, kind] of [['finishedDate', 'Finished reading'], ['startedDate', 'Started reading']]) {
+      const d = b[field];
+      if (!d) continue;
+      const [y, md] = [d.slice(0, 4), d.slice(5, 10)];
+      if (md === todayMD && y !== thisYear) items.push({ year: y, title: b.title, kind });
+    }
+  }
+
+  items.sort((a, b) => b.year - a.year);
+  return items;
+}
+
+// --- "Surprise me": one random thing to do, pulled from the pools where an
+// undirected nudge is actually welcome (want-to-go places, unread books,
+// untried recipes, open bucket-list goals). ---
+
+export async function getSurpriseMe() {
+  const [places, books, recipes, bucketItems, cookLogs] = await Promise.all([
+    Places.list(), Books.list(), Recipes.list(), BucketListItems.list(), CookLogs.list(),
+  ]);
+  const cookedRecipeIds = new Set(cookLogs.map((l) => l.recipeId));
+
+  const pool = [
+    ...places.filter((p) => p.listType === 'wantToGo').map((p) => ({ module: 'places', title: p.name, kind: 'Place to visit' })),
+    ...books.filter((b) => b.status === 'to_read').map((b) => ({ module: 'books', title: b.title, kind: 'Book to read' })),
+    ...recipes.filter((r) => !cookedRecipeIds.has(r.id)).map((r) => ({ module: 'recipes', title: r.title, kind: 'Recipe to try' })),
+    ...bucketItems.filter((b) => !b.done).map((b) => ({ module: 'places', title: b.title, kind: 'Bucket-list goal' })),
+  ];
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // --- Milestones: year-in-review aggregation, pulled from every other module ---
 
 export async function getYearInReview(year) {

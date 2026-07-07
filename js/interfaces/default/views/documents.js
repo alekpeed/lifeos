@@ -1,4 +1,4 @@
-import { el, fmtDate, isPast } from '../dom.js';
+import { el, fmtDate, isPast, contactLinkField } from '../dom.js';
 
 let state = {
   categoryFilter: 'all',
@@ -13,10 +13,13 @@ function isExpiringSoon(dateStr, days) {
   return new Date(dateStr + 'T00:00:00') <= cutoff;
 }
 
-function docMeta(doc, expiryDays) {
+function docMeta(doc, expiryDays, contactsById) {
   const meta = el('div', { class: 'mer-task-meta' });
   if (doc.category) meta.append(el('span', { class: 'mer-chip', text: doc.category }));
   if (doc.issuer) meta.append(el('span', { class: 'mer-chip', text: doc.issuer }));
+  if (doc.contactId && contactsById.has(doc.contactId)) {
+    meta.append(el('span', { class: 'mer-chip', text: `👤 ${contactsById.get(doc.contactId).name}` }));
+  }
   if (doc.expiryDate) {
     const expired = isPast(doc.expiryDate);
     const soon = isExpiringSoon(doc.expiryDate, expiryDays);
@@ -28,16 +31,16 @@ function docMeta(doc, expiryDays) {
   return meta;
 }
 
-function docRow(doc, ctx, onSelect, expiryDays) {
+function docRow(doc, ctx, onSelect, expiryDays, contactsById) {
   const row = el('div', { class: 'mer-task-row' }, [
     el('span', { class: 'mer-task-title', text: doc.title || '(untitled document)' }),
-    docMeta(doc, expiryDays),
+    docMeta(doc, expiryDays, contactsById),
   ]);
   row.addEventListener('click', () => onSelect(doc.id));
   return row;
 }
 
-function detailEditor(doc, ctx, rerender) {
+function detailEditor(doc, ctx, rerender, allContacts) {
   const patch = (fields) => ctx.data.Documents.update(doc.id, fields).then(rerender);
   const field = (labelText, inputEl) => el('label', { class: 'mer-field' }, [el('span', { text: labelText }), inputEl]);
 
@@ -63,6 +66,10 @@ function detailEditor(doc, ctx, rerender) {
       field('Expiry date', expiryInput),
     ]),
     field('Notes', notesInput),
+    el('div', { class: 'mer-subsection-label', text: 'Linked contact' }),
+    contactLinkField(allContacts, doc.contactId, ctx,
+      (contactId) => patch({ contactId }),
+      () => patch({ contactId: null })),
     el('div', { class: 'mer-subsection-label', text: 'Attachments' }),
     attachmentPlaceholder,
     el('button', {
@@ -114,8 +121,12 @@ function toolbar(ctx, documents, rerender) {
 export async function renderDocuments(canvas, ctx, rerender) {
   canvas.append(el('h1', { text: 'Documents' }));
 
-  const expiryDays = await ctx.data.Settings.get('documentExpiryDays');
-  const documents = await ctx.data.Documents.list();
+  const [expiryDays, documents, allContacts] = await Promise.all([
+    ctx.data.Settings.get('documentExpiryDays'),
+    ctx.data.Documents.list(),
+    ctx.data.Contacts.list(),
+  ]);
+  const contactsById = new Map(allContacts.map((c) => [c.id, c]));
   canvas.append(toolbar(ctx, documents, rerender));
 
   const area = el('div', { class: 'mer-task-list-area' });
@@ -130,11 +141,11 @@ export async function renderDocuments(canvas, ctx, rerender) {
   if (!filtered.length) {
     area.append(el('p', { class: 'mer-muted', text: 'No documents match the current filters.' }));
   } else {
-    for (const doc of filtered) area.append(docRow(doc, ctx, onSelect, expiryDays));
+    for (const doc of filtered) area.append(docRow(doc, ctx, onSelect, expiryDays, contactsById));
   }
 
   if (state.selectedId) {
     const doc = documents.find((d) => d.id === state.selectedId);
-    if (doc) canvas.append(detailEditor(doc, ctx, rerender));
+    if (doc) canvas.append(detailEditor(doc, ctx, rerender, allContacts));
   }
 }
