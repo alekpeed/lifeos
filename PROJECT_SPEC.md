@@ -59,23 +59,55 @@ lets the whole app be redecorated later without rebuilding it:
   photo, with search and tag filtering. This is the single source of truth
   for people app-wide — Places' "linked people" links to (or quick-creates)
   a real Contacts entry rather than keeping its own separate record.
+- **Milestones** — a life-events timeline (grouped by year) plus a Yearly
+  Recap tab that aggregates stats from every other module (tasks completed,
+  places visited, books finished, bills paid, habit check-ins, etc.) for a
+  given year. The recap is numbers-driven for now; an AI-written narrative
+  version is still on the list, waiting on an AI module.
+- **Search** — one query across every module with a title-like field
+  (tasks, places, links, books, recipes, bills, contacts, milestones,
+  habits, decks...), results grouped by module, click jumps you there
+- **Backup** — manual JSON export/import from Settings, a Drive-independent
+  backup that round-trips attachments (photos/PDFs) too
+- **Tools** — currency converter (manual/editable rate table, not a live
+  feed, so it stays useful fully offline), unit converter (length/weight/
+  volume/temperature), a timezone helper (saved locations vs. your local time)
+- **Habits** — a shared streak mechanic (daily check-in, current streak,
+  total check-ins) usable for any habit — workouts, practice, water intake —
+  instead of separate one-offs per module
+- **Health** — manual-entry sleep/workout/water/weight log with a 7-day
+  rolling average. No live Garmin API (none exists cleanly) — hand-entered,
+  possibly from a CSV export down the road
+- **Photos/Gallery** — albums with a grid + lightbox (prev/next/close)
+- **Japanese learning** — decks and cards, a starter hiragana deck, a
+  simple spaced-repetition review session (Again/Good/Easy), browser
+  text-to-speech playback, and a study streak
+- **Geolocation nudges in Places** — a manual "check nearby places" action
+  surfaces want-to-go spots and stale revisit-flagged places within 1km.
+  Deliberately not passive/background — a plain PWA (especially on iOS
+  Safari) can't reliably run background geofencing, so this is
+  foreground/user-triggered by design, not a missing feature.
 
 ### Next up 🔜
 - **Google Drive sync** — the two-device backbone. Blocked on you creating a
   one-time Google Cloud "Client ID" (walkthrough already given); this is the
   next real build task once that's ready.
 
-### Still to build 📋 (original spec)
-- **Japanese learning** — kana drills, kanji/vocabulary flashcards with
-  spaced repetition, JLPT preset decks, streaks, browser text-to-speech
+### Still to build 📋
 - **Piano/guitar chord tool** — type a chord progression, get real voicings
-  for guitar or piano (melody-aware voicing comes in a later phase)
-- **Utility tools** — currency converter, unit converter, a timezone helper
-  for people/places abroad
-- **Milestones / yearly recap** — a life-events timeline and an
-  auto-generated year-in-review pulled from every other module
-- **Cross-cutting** — global search across everything, and a manual
-  JSON export/import as a Drive-independent backup
+  for guitar or piano (melody-aware voicing comes in a later phase). Tier 2
+  work (chord-voicing logic) — needs a model switch before building.
+- **AI assistant modules** (Claude/ChatGPT/Gemini panels) + cross-LLM relay +
+  **Telegram integration** — plumbing/UI can be built without your real API
+  keys/bot token, but live testing needs them, and direct browser-to-API
+  calls may hit CORS restrictions that won't be known until tested live.
+  Treat as "needs a follow-up session with you present," not a solo build.
+- **Google Calendar sync** — reuses the same Google sign-in as Drive sync,
+  so it's blocked on the same OAuth Client ID.
+- **AI-written yearly recap** — needs a working AI module first (see above)
+- **Documents/Contacts/Finance cross-links, "on this day," "surprise me"** —
+  smaller polish items, not yet built
+- **A friend-sharing "Sharebox"** — see Section 4
 
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you
@@ -91,7 +123,6 @@ lets the whole app be redecorated later without rebuilding it:
 Everything below came out of talking through what would actually feel
 "you" rather than generic — added to the plan, not built yet:
 
-- **Photos/Gallery module** — albums, grid + lightbox view, tags
 - **Three separate AI assistant modules** — Claude, ChatGPT, and Gemini each
   get their *own* themed panel (not one generic "AI" tab), each with your own
   API key stored only on your device. Each can be given permission to read
@@ -109,29 +140,18 @@ Everything below came out of talking through what would actually feel
   the same shared Google Drive folder (links, notes, urgency flags, files)
 - **Google Calendar sync** — push the due-soon feed into an actual calendar,
   reusing the same Google sign-in as Drive sync
-- **A unified habit/streak tracker** — one shared streak mechanic (instead of
-  separate one-offs for Books and Japanese) for things like workouts, practice,
-  water intake
-- **Geolocation nudges in Places** — passive "you're near a Want-to-Go spot"
-  or "haven't been back here in a while" prompts
 - **AI-written yearly recap** — once an AI module can read your data, have it
-  draft the actual recap narrative, not just tally up numbers
-- **Health/sleep tracker** — workouts, sleep hours, hydration, etc., entered
-  manually (no live Garmin API — no clean personal API exists, so this is
-  hand-entered data, possibly from a Garmin CSV export down the road)
+  draft the actual recap narrative, not just tally up numbers (the recap's
+  numbers-driven aggregation already exists in Milestones)
 
 ## 5. Rough order of what's left
 
 1. Google Drive sync (step 0: you create the Google OAuth Client ID)
-2. Milestones/recap
-3. Utility tools (currency/unit/timezone), "on this day," "surprise me"
-4. Japanese learning module
-5. Piano/guitar chord tool
-6. Photos/Gallery
-7. AI modules (Claude/GPT/Gemini) + relay + Telegram
-8. Calendar sync, habit engine, geolocation nudges, AI recap, health tracker
-9. Additional interfaces (Vespera, LCARS)
-10. Sharebox companion app for your friend
+2. Piano/guitar chord tool (Tier 2)
+3. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
+4. Google Calendar sync (blocked on the same OAuth Client ID as #1), AI-written recap
+5. Additional interfaces (Vespera, LCARS)
+6. Sharebox companion app for your friend
 
 Nothing here is fixed in stone — the plan has already flexed a few times
 this week, and that's expected. This doc is meant to be a snapshot you can
