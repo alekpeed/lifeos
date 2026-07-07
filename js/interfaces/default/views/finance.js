@@ -1,17 +1,18 @@
-import { el, fmtDate, todayStr } from '../dom.js';
+import { el, fmtDate, todayStr, isPast, RECUR_FREQS, computeNextDueDate } from '../dom.js';
 
-const FREQS = [
+const SUB_FREQS = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'yearly', label: 'Yearly' },
   { value: 'weekly', label: 'Weekly' },
 ];
 
 let state = {
-  tab: 'networth', // networth | goals | subscriptions
-  categoryFilter: 'all',
+  tab: 'bills', // bills | subscriptions | spend
+  billCategoryFilter: 'all',
+  showPaid: false,
+  selectedBillId: null,
+  subCategoryFilter: 'all',
   showCancelled: false,
-  selectedSnapshotId: null,
-  selectedGoalId: null,
   selectedSubId: null,
 };
 
@@ -26,213 +27,205 @@ function monthlyEquivalent(amount, freq) {
   return a;
 }
 
-function progressBar(pct) {
-  const clamped = Math.max(0, Math.min(100, pct));
-  return el('div', { class: 'mer-progress' }, [
-    el('div', { class: 'mer-progress-fill', style: `width: ${clamped}%` }),
+// --- Bills ---
+
+async function markPaid(ctx, bill, paid) {
+  if (paid) {
+    await ctx.data.BillPayments.create({
+      billId: bill.id,
+      datePaid: todayStr(),
+      amountPaid: bill.amount ?? 0,
+      method: bill.autopay ? 'autopay' : '',
+    });
+    if (bill.recurring?.freq) {
+      const nextDue = computeNextDueDate(bill.dueDate, bill.recurring);
+      await ctx.data.Bills.update(bill.id, { paid: false, dueDate: nextDue || bill.dueDate });
+      return;
+    }
+  }
+  await ctx.data.Bills.update(bill.id, { paid });
+}
+
+function billMeta(bill) {
+  const meta = el('div', { class: 'mer-task-meta' });
+  if (bill.category) meta.append(el('span', { class: 'mer-chip', text: bill.category }));
+  if (typeof bill.amount === 'number') meta.append(el('span', { class: 'mer-chip', text: money(bill.amount) }));
+  if (bill.dueDate) {
+    meta.append(el('span', {
+      class: isPast(bill.dueDate) && !bill.paid ? 'mer-chip is-overdue' : 'mer-chip',
+      text: fmtDate(bill.dueDate),
+    }));
+  }
+  if (bill.autopay) meta.append(el('span', { class: 'mer-chip', text: 'Autopay' }));
+  if (bill.recurring?.freq) meta.append(el('span', { class: 'mer-chip', text: RECUR_FREQS.find((f) => f.value === bill.recurring.freq)?.label || 'Repeats' }));
+  return meta;
+}
+
+function billRow(bill, ctx, onSelect) {
+  const row = el('div', { class: 'mer-task-row' }, [
+    el('input', {
+      type: 'checkbox', checked: !!bill.paid,
+      onclick: (e) => { e.stopPropagation(); markPaid(ctx, bill, e.target.checked); },
+    }),
+    el('span', { class: bill.paid ? 'mer-task-title is-done' : 'mer-task-title', text: bill.name || '(untitled bill)' }),
+    billMeta(bill),
   ]);
+  row.addEventListener('click', () => onSelect(bill.id));
+  return row;
 }
 
-// --- Net Worth ---
-
-function netWorth(snapshot) {
-  const assets = (snapshot.assets || []).reduce((sum, a) => sum + (Number(a.value) || 0), 0);
-  const liabilities = (snapshot.liabilities || []).reduce((sum, l) => sum + (Number(l.value) || 0), 0);
-  return assets - liabilities;
-}
-
-function lineItemsEditor(snapshot, key, ctx, rerender) {
-  const rows = el('div', {}, (snapshot[key] || []).map((item) => {
-    const nameInput = el('input', { type: 'text', value: item.name || '', placeholder: 'Name' });
-    const valueInput = el('input', { type: 'number', step: '0.01', value: item.value ?? '', placeholder: 'Value' });
-    const commit = () => {
-      const items = snapshot[key].map((i) => i.id === item.id ? { ...i, name: nameInput.value, value: Number(valueInput.value) || 0 } : i);
-      ctx.data.FinanceSnapshots.update(snapshot.id, { [key]: items }).then(rerender);
-    };
-    nameInput.onchange = commit;
-    valueInput.onchange = commit;
-    return el('div', { class: 'mer-person-form' }, [
-      nameInput, valueInput,
+function paymentHistory(bill, payments, ctx, rerender) {
+  const list = el('div', { class: 'mer-people-list' });
+  for (const p of payments.sort((a, b) => (a.datePaid < b.datePaid ? 1 : -1))) {
+    list.append(el('div', { class: 'mer-person-card' }, [
+      el('div', { class: 'mer-person-info' }, [
+        el('div', { class: 'mer-person-name', text: money(p.amountPaid) }),
+        el('div', { class: 'mer-person-meta', text: [fmtDate(p.datePaid), p.method].filter(Boolean).join(' · ') }),
+      ]),
       el('button', {
         type: 'button', class: 'mer-icon-btn', text: '×',
-        onclick: () => {
-          const items = snapshot[key].filter((i) => i.id !== item.id);
-          ctx.data.FinanceSnapshots.update(snapshot.id, { [key]: items }).then(rerender);
+        onclick: async () => { await ctx.data.BillPayments.remove(p.id); rerender(); },
+      }),
+    ]));
+  }
+
+  const dateInput = el('input', { type: 'date', value: todayStr() });
+  const amountInput = el('input', { type: 'number', step: '0.01', placeholder: 'Amount', value: bill.amount ?? '' });
+  const methodInput = el('input', { type: 'text', placeholder: 'Method (check, card…)' });
+  const addBtn = el('button', {
+    type: 'button', text: 'Log payment',
+    onclick: async () => {
+      if (!amountInput.value) return;
+      await ctx.data.BillPayments.create({
+        billId: bill.id, datePaid: dateInput.value || todayStr(),
+        amountPaid: Number(amountInput.value), method: methodInput.value || '',
+      });
+      rerender();
+    },
+  });
+
+  return el('div', {}, [list, el('div', { class: 'mer-person-form' }, [dateInput, amountInput, methodInput, addBtn])]);
+}
+
+function billDetailEditor(bill, ctx, rerender) {
+  const patch = (fields) => ctx.data.Bills.update(bill.id, fields).then(rerender);
+  const field = (labelText, inputEl) => el('label', { class: 'mer-field' }, [el('span', { text: labelText }), inputEl]);
+
+  const nameInput = el('input', { type: 'text', value: bill.name || '', onchange: (e) => patch({ name: e.target.value }) });
+  const categoryInput = el('input', { type: 'text', value: bill.category || '', placeholder: 'utilities, insurance, rent…', onchange: (e) => patch({ category: e.target.value }) });
+  const amountInput = el('input', { type: 'number', step: '0.01', value: bill.amount ?? '', onchange: (e) => patch({ amount: e.target.value ? Number(e.target.value) : null }) });
+  const dueInput = el('input', { type: 'date', value: bill.dueDate || '', onchange: (e) => patch({ dueDate: e.target.value || null }) });
+  const recurSelect = el('select', {
+    onchange: (e) => patch({ recurring: e.target.value ? { freq: e.target.value, interval: bill.recurring?.interval || 1 } : null }),
+  }, RECUR_FREQS.map((f) => el('option', { value: f.value, text: f.label, selected: f.value === (bill.recurring?.freq || '') })));
+  const autopayCheckbox = el('label', { class: 'mer-checkbox-label' }, [
+    el('input', { type: 'checkbox', checked: !!bill.autopay, onchange: (e) => patch({ autopay: e.target.checked }) }),
+    el('span', { text: 'Autopay' }),
+  ]);
+
+  const attachmentPlaceholder = el('p', { class: 'mer-muted', text: 'Loading attachment…' });
+  const historyPlaceholder = el('p', { class: 'mer-muted', text: 'Loading payment history…' });
+
+  const detail = el('div', { class: 'mer-task-detail' }, [
+    el('div', { class: 'mer-detail-header' }, [
+      el('h3', { text: bill.name || '(untitled bill)' }),
+      el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.selectedBillId = null; rerender(); } }),
+    ]),
+    el('div', { class: 'mer-field-grid' }, [
+      field('Name', nameInput),
+      field('Category', categoryInput),
+      field('Amount', amountInput),
+      field('Due date', dueInput),
+      field('Repeats', recurSelect),
+    ]),
+    autopayCheckbox,
+    el('div', { class: 'mer-subsection-label', text: 'PDF attachment' }),
+    attachmentPlaceholder,
+    el('div', { class: 'mer-subsection-label', text: 'Payment history' }),
+    historyPlaceholder,
+    el('button', {
+      type: 'button', class: 'mer-danger-btn', text: 'Delete bill',
+      onclick: async () => { await ctx.data.Bills.remove(bill.id); state.selectedBillId = null; rerender(); },
+    }),
+  ]);
+
+  ctx.data.getAttachmentsFor('bills', bill.id).then((attachments) => {
+    const wrap = el('div', {}, [
+      ...attachments.map((a) => el('div', { class: 'mer-person-card' }, [
+        el('a', { href: ctx.data.attachmentUrl(a), target: '_blank', rel: 'noopener', text: a.filename }),
+        el('button', { type: 'button', class: 'mer-icon-btn', text: '×', onclick: async () => { await ctx.data.Attachments.remove(a.id); rerender(); } }),
+      ])),
+      el('input', {
+        type: 'file', accept: 'application/pdf,image/*',
+        onchange: async (e) => {
+          if (e.target.files[0]) await ctx.data.createAttachment(e.target.files[0], 'bills', bill.id);
+          rerender();
         },
       }),
     ]);
-  }));
-
-  const newName = el('input', { type: 'text', placeholder: 'Name' });
-  const newValue = el('input', { type: 'number', step: '0.01', placeholder: 'Value' });
-  const addBtn = el('button', {
-    type: 'button', text: '+ Add',
-    onclick: () => {
-      if (!newName.value.trim()) return;
-      const items = [...(snapshot[key] || []), { id: crypto.randomUUID(), name: newName.value.trim(), value: Number(newValue.value) || 0 }];
-      ctx.data.FinanceSnapshots.update(snapshot.id, { [key]: items }).then(rerender);
-    },
+    attachmentPlaceholder.replaceWith(wrap);
   });
 
-  return el('div', {}, [rows, el('div', { class: 'mer-person-form' }, [newName, newValue, addBtn])]);
-}
-
-function snapshotDetail(snapshot, ctx, rerender) {
-  const patch = (fields) => ctx.data.FinanceSnapshots.update(snapshot.id, fields).then(rerender);
-  const field = (labelText, inputEl) => el('label', { class: 'mer-field' }, [el('span', { text: labelText }), inputEl]);
-
-  const dateInput = el('input', { type: 'date', value: snapshot.date || todayStr(), onchange: (e) => patch({ date: e.target.value }) });
-  const notesInput = el('textarea', { rows: '2', placeholder: 'Notes', onchange: (e) => patch({ notes: e.target.value }) }, [document.createTextNode(snapshot.notes || '')]);
-
-  return el('div', { class: 'mer-task-detail' }, [
-    el('div', { class: 'mer-detail-header' }, [
-      el('h3', { text: `Snapshot — ${fmtDate(snapshot.date)}` }),
-      el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.selectedSnapshotId = null; rerender(); } }),
-    ]),
-    field('Date', dateInput),
-    el('p', {}, [el('strong', { text: `Net worth: ${money(netWorth(snapshot))}` })]),
-    el('div', { class: 'mer-subsection-label', text: 'Assets' }),
-    lineItemsEditor(snapshot, 'assets', ctx, rerender),
-    el('div', { class: 'mer-subsection-label', text: 'Liabilities' }),
-    lineItemsEditor(snapshot, 'liabilities', ctx, rerender),
-    field('Notes', notesInput),
-    el('button', {
-      type: 'button', class: 'mer-danger-btn', text: 'Delete snapshot',
-      onclick: async () => { await ctx.data.FinanceSnapshots.remove(snapshot.id); state.selectedSnapshotId = null; rerender(); },
-    }),
-  ]);
-}
-
-async function renderNetWorth(container, ctx, rerender) {
-  const snapshots = (await ctx.data.FinanceSnapshots.list()).sort((a, b) => (a.date < b.date ? 1 : -1));
-
-  const newBtn = el('button', {
-    type: 'button', text: '+ New snapshot (today)',
-    onclick: async () => {
-      const created = await ctx.data.FinanceSnapshots.create({ date: todayStr(), assets: [], liabilities: [], notes: '' });
-      state.selectedSnapshotId = created.id;
-      rerender();
-    },
+  ctx.data.BillPayments.byIndex('billId', bill.id).then((payments) => {
+    historyPlaceholder.replaceWith(paymentHistory(bill, payments, ctx, rerender));
   });
-  container.append(el('div', { class: 'mer-toolbar' }, [newBtn]));
 
-  const area = el('div', {});
-  container.append(area);
-
-  if (!snapshots.length) {
-    area.append(el('p', { class: 'mer-muted', text: 'No snapshots yet — add one to start tracking net worth over time.' }));
-  } else {
-    area.append(el('p', {}, [el('strong', { text: `Latest net worth: ${money(netWorth(snapshots[0]))}` }), el('span', { text: ` as of ${fmtDate(snapshots[0].date)}` })]));
-
-    const list = el('div', {});
-    snapshots.forEach((snap, i) => {
-      const nw = netWorth(snap);
-      const prev = snapshots[i + 1] ? netWorth(snapshots[i + 1]) : null;
-      const delta = prev !== null ? nw - prev : null;
-      const row = el('div', { class: 'mer-task-row' }, [
-        el('span', { class: 'mer-task-title', text: fmtDate(snap.date) }),
-        el('div', { class: 'mer-task-meta' }, [
-          el('span', { class: 'mer-chip', text: money(nw) }),
-          delta !== null ? el('span', { class: delta >= 0 ? 'mer-chip' : 'mer-chip is-overdue', text: `${delta >= 0 ? '+' : ''}${money(delta)}` }) : null,
-        ]),
-      ]);
-      row.addEventListener('click', () => { state.selectedSnapshotId = state.selectedSnapshotId === snap.id ? null : snap.id; rerender(); });
-      list.append(row);
-    });
-    area.append(list);
-  }
-
-  if (state.selectedSnapshotId) {
-    const snap = snapshots.find((s) => s.id === state.selectedSnapshotId);
-    if (snap) container.append(snapshotDetail(snap, ctx, rerender));
-  }
+  return detail;
 }
 
-// --- Savings Goals ---
+async function renderBillsTab(container, ctx, rerender) {
+  const bills = await ctx.data.Bills.list();
+  const categories = [...new Set(bills.map((b) => b.category).filter(Boolean))];
 
-function goalDetail(goal, ctx, rerender) {
-  const patch = (fields) => ctx.data.SavingsGoals.update(goal.id, fields).then(rerender);
-  const field = (labelText, inputEl) => el('label', { class: 'mer-field' }, [el('span', { text: labelText }), inputEl]);
-
-  const nameInput = el('input', { type: 'text', value: goal.name || '', onchange: (e) => patch({ name: e.target.value }) });
-  const targetInput = el('input', { type: 'number', step: '0.01', value: goal.targetAmount ?? '', onchange: (e) => patch({ targetAmount: Number(e.target.value) || 0 }) });
-  const currentInput = el('input', { type: 'number', step: '0.01', value: goal.currentAmount ?? '', onchange: (e) => patch({ currentAmount: Number(e.target.value) || 0 }) });
-  const targetDateInput = el('input', { type: 'date', value: goal.targetDate || '', onchange: (e) => patch({ targetDate: e.target.value || null }) });
-  const notesInput = el('textarea', { rows: '2', placeholder: 'Notes', onchange: (e) => patch({ notes: e.target.value }) }, [document.createTextNode(goal.notes || '')]);
-
-  const pct = goal.targetAmount ? Math.round(((goal.currentAmount || 0) / goal.targetAmount) * 100) : 0;
-
-  return el('div', { class: 'mer-task-detail' }, [
-    el('div', { class: 'mer-detail-header' }, [
-      el('h3', { text: goal.name || '(untitled goal)' }),
-      el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.selectedGoalId = null; rerender(); } }),
-    ]),
-    progressBar(pct),
-    el('p', { class: 'mer-muted', text: `${money(goal.currentAmount)} of ${money(goal.targetAmount)} (${pct}%)` }),
-    el('div', { class: 'mer-field-grid' }, [
-      field('Name', nameInput),
-      field('Target amount', targetInput),
-      field('Current amount', currentInput),
-      field('Target date', targetDateInput),
-    ]),
-    field('Notes', notesInput),
-    el('button', {
-      type: 'button', class: 'mer-danger-btn', text: 'Delete goal',
-      onclick: async () => { await ctx.data.SavingsGoals.remove(goal.id); state.selectedGoalId = null; rerender(); },
-    }),
-  ]);
-}
-
-async function renderGoals(container, ctx, rerender) {
   const quickAdd = el('input', {
-    type: 'text', class: 'mer-quick-add', placeholder: '+ New savings goal — type a name and press Enter',
+    type: 'text', class: 'mer-quick-add', placeholder: '+ New bill — type a name and press Enter',
     onkeydown: async (e) => {
       if (e.key !== 'Enter' || !e.target.value.trim()) return;
-      await ctx.data.SavingsGoals.create({ name: e.target.value.trim(), targetAmount: 0, currentAmount: 0 });
+      await ctx.data.Bills.create({ name: e.target.value.trim(), paid: false });
       e.target.value = '';
-      rerender();
     },
   });
-  container.append(el('div', { class: 'mer-toolbar' }, [quickAdd]));
+  const categorySelect = el('select', { onchange: (e) => { state.billCategoryFilter = e.target.value; rerender(); } }, [
+    el('option', { value: 'all', text: 'All categories', selected: state.billCategoryFilter === 'all' }),
+    ...categories.map((c) => el('option', { value: c, text: c, selected: c === state.billCategoryFilter })),
+  ]);
+  const paidToggle = el('label', { class: 'mer-checkbox-label' }, [
+    el('input', { type: 'checkbox', checked: state.showPaid, onchange: (e) => { state.showPaid = e.target.checked; rerender(); } }),
+    el('span', { text: 'Show paid' }),
+  ]);
+  container.append(el('div', { class: 'mer-toolbar' }, [quickAdd, categorySelect, paidToggle]));
 
-  const goals = await ctx.data.SavingsGoals.list();
+  const filtered = bills
+    .filter((b) => state.billCategoryFilter === 'all' || b.category === state.billCategoryFilter)
+    .filter((b) => state.showPaid || !b.paid)
+    .sort((a, b) => (a.dueDate || '9999') < (b.dueDate || '9999') ? -1 : 1);
+
   const area = el('div', {});
   container.append(area);
+  const onSelect = (id) => { state.selectedBillId = state.selectedBillId === id ? null : id; rerender(); };
 
-  if (!goals.length) {
-    area.append(el('p', { class: 'mer-muted', text: 'No savings goals yet.' }));
+  if (!filtered.length) {
+    area.append(el('p', { class: 'mer-muted', text: 'No bills match the current filters.' }));
   } else {
-    for (const goal of goals) {
-      const pct = goal.targetAmount ? Math.round(((goal.currentAmount || 0) / goal.targetAmount) * 100) : 0;
-      const row = el('div', { class: 'mer-task-row' }, [
-        el('span', { class: 'mer-task-title', text: goal.name || '(untitled goal)' }),
-        el('div', { class: 'mer-task-meta' }, [
-          el('span', { class: 'mer-chip', text: `${money(goal.currentAmount)} / ${money(goal.targetAmount)}` }),
-          el('span', { class: 'mer-chip', text: `${pct}%` }),
-          goal.targetDate ? el('span', { class: 'mer-chip', text: fmtDate(goal.targetDate) }) : null,
-        ]),
-      ]);
-      row.addEventListener('click', () => { state.selectedGoalId = state.selectedGoalId === goal.id ? null : goal.id; rerender(); });
-      area.append(row);
-    }
+    for (const bill of filtered) area.append(billRow(bill, ctx, onSelect));
   }
 
-  if (state.selectedGoalId) {
-    const goal = goals.find((g) => g.id === state.selectedGoalId);
-    if (goal) container.append(goalDetail(goal, ctx, rerender));
+  if (state.selectedBillId) {
+    const bill = bills.find((b) => b.id === state.selectedBillId);
+    if (bill) container.append(billDetailEditor(bill, ctx, rerender));
   }
 }
 
 // --- Subscriptions ---
 
-function subDetail(sub, ctx, rerender) {
+function subDetailEditor(sub, ctx, rerender) {
   const patch = (fields) => ctx.data.Subscriptions.update(sub.id, fields).then(rerender);
   const field = (labelText, inputEl) => el('label', { class: 'mer-field' }, [el('span', { text: labelText }), inputEl]);
 
   const nameInput = el('input', { type: 'text', value: sub.name || '', onchange: (e) => patch({ name: e.target.value }) });
   const amountInput = el('input', { type: 'number', step: '0.01', value: sub.amount ?? '', onchange: (e) => patch({ amount: Number(e.target.value) || 0 }) });
   const freqSelect = el('select', { onchange: (e) => patch({ billingFreq: e.target.value }) },
-    FREQS.map((f) => el('option', { value: f.value, text: f.label, selected: f.value === (sub.billingFreq || 'monthly') })));
+    SUB_FREQS.map((f) => el('option', { value: f.value, text: f.label, selected: f.value === (sub.billingFreq || 'monthly') })));
   const categoryInput = el('input', { type: 'text', value: sub.category || '', placeholder: 'streaming, software…', onchange: (e) => patch({ category: e.target.value }) });
   const renewalInput = el('input', { type: 'date', value: sub.renewalDate || '', onchange: (e) => patch({ renewalDate: e.target.value || null }) });
   const notesInput = el('textarea', { rows: '2', placeholder: 'Notes', onchange: (e) => patch({ notes: e.target.value }) }, [document.createTextNode(sub.notes || '')]);
@@ -262,7 +255,7 @@ function subDetail(sub, ctx, rerender) {
   ]);
 }
 
-async function renderSubscriptions(container, ctx, rerender) {
+async function renderSubscriptionsTab(container, ctx, rerender) {
   const subs = await ctx.data.Subscriptions.list();
   const categories = [...new Set(subs.map((s) => s.category).filter(Boolean))];
 
@@ -272,12 +265,11 @@ async function renderSubscriptions(container, ctx, rerender) {
       if (e.key !== 'Enter' || !e.target.value.trim()) return;
       await ctx.data.Subscriptions.create({ name: e.target.value.trim(), amount: 0, billingFreq: 'monthly', stillInUse: true });
       e.target.value = '';
-      rerender();
     },
   });
-  const categorySelect = el('select', { onchange: (e) => { state.categoryFilter = e.target.value; rerender(); } }, [
-    el('option', { value: 'all', text: 'All categories', selected: state.categoryFilter === 'all' }),
-    ...categories.map((c) => el('option', { value: c, text: c, selected: c === state.categoryFilter })),
+  const categorySelect = el('select', { onchange: (e) => { state.subCategoryFilter = e.target.value; rerender(); } }, [
+    el('option', { value: 'all', text: 'All categories', selected: state.subCategoryFilter === 'all' }),
+    ...categories.map((c) => el('option', { value: c, text: c, selected: c === state.subCategoryFilter })),
   ]);
   const cancelledToggle = el('label', { class: 'mer-checkbox-label' }, [
     el('input', { type: 'checkbox', checked: state.showCancelled, onchange: (e) => { state.showCancelled = e.target.checked; rerender(); } }),
@@ -286,7 +278,7 @@ async function renderSubscriptions(container, ctx, rerender) {
   container.append(el('div', { class: 'mer-toolbar' }, [quickAdd, categorySelect, cancelledToggle]));
 
   const filtered = subs
-    .filter((s) => state.categoryFilter === 'all' || s.category === state.categoryFilter)
+    .filter((s) => state.subCategoryFilter === 'all' || s.category === state.subCategoryFilter)
     .filter((s) => state.showCancelled || s.stillInUse !== false);
 
   const totalMonthly = filtered.filter((s) => s.stillInUse !== false).reduce((sum, s) => sum + monthlyEquivalent(s.amount, s.billingFreq), 0);
@@ -302,7 +294,7 @@ async function renderSubscriptions(container, ctx, rerender) {
         el('span', { class: sub.stillInUse === false ? 'mer-task-title is-done' : 'mer-task-title', text: sub.name || '(untitled)' }),
         el('div', { class: 'mer-task-meta' }, [
           el('span', { class: 'mer-chip', text: money(sub.amount) }),
-          el('span', { class: 'mer-chip', text: FREQS.find((f) => f.value === (sub.billingFreq || 'monthly'))?.label }),
+          el('span', { class: 'mer-chip', text: SUB_FREQS.find((f) => f.value === (sub.billingFreq || 'monthly'))?.label }),
           sub.category ? el('span', { class: 'mer-chip', text: sub.category }) : null,
           sub.stillInUse === false ? el('span', { class: 'mer-chip', text: 'Cancelled' }) : null,
         ]),
@@ -314,17 +306,57 @@ async function renderSubscriptions(container, ctx, rerender) {
 
   if (state.selectedSubId) {
     const sub = subs.find((s) => s.id === state.selectedSubId);
-    if (sub) container.append(subDetail(sub, ctx, rerender));
+    if (sub) container.append(subDetailEditor(sub, ctx, rerender));
   }
+}
+
+// --- Yearly spend: bill payments + annualized active subscriptions, combined by category ---
+
+async function renderSpendSummary(container, ctx) {
+  const [payments, bills, subs] = await Promise.all([ctx.data.BillPayments.list(), ctx.data.Bills.list(), ctx.data.Subscriptions.list()]);
+  const categoryById = new Map(bills.map((b) => [b.id, b.category || 'Uncategorized']));
+  const year = new Date().getFullYear().toString();
+
+  const totals = new Map();
+  for (const payment of payments) {
+    if (!payment.datePaid?.startsWith(year)) continue;
+    const category = categoryById.get(payment.billId) || 'Uncategorized';
+    totals.set(category, (totals.get(category) || 0) + Number(payment.amountPaid || 0));
+  }
+  for (const sub of subs) {
+    if (sub.stillInUse === false) continue;
+    const category = sub.category || 'Uncategorized';
+    totals.set(category, (totals.get(category) || 0) + monthlyEquivalent(sub.amount, sub.billingFreq) * 12);
+  }
+
+  if (!totals.size) {
+    container.append(el('p', { class: 'mer-muted', text: `No bill payments or active subscriptions for ${year} yet.` }));
+    return;
+  }
+
+  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const grandTotal = sorted.reduce((sum, [, v]) => sum + v, 0);
+  const list = el('div', { class: 'mer-people-list' });
+  for (const [category, total] of sorted) {
+    list.append(el('div', { class: 'mer-person-card' }, [
+      el('div', { class: 'mer-person-info' }, [el('div', { class: 'mer-person-name', text: category })]),
+      el('div', { text: money(total) }),
+    ]));
+  }
+  container.append(
+    el('h3', { text: `${year} spend: ${money(grandTotal)}` }),
+    el('p', { class: 'mer-muted', text: 'Combines logged bill payments with active subscriptions annualized at their current rate.' }),
+    list,
+  );
 }
 
 // --- Root ---
 
 function tabsBar(rerender) {
   return el('div', { class: 'mer-toggle-group' }, [
-    el('button', { type: 'button', class: state.tab === 'networth' ? 'is-active' : '', text: 'Net Worth', onclick: () => { state.tab = 'networth'; rerender(); } }),
-    el('button', { type: 'button', class: state.tab === 'goals' ? 'is-active' : '', text: 'Savings Goals', onclick: () => { state.tab = 'goals'; rerender(); } }),
+    el('button', { type: 'button', class: state.tab === 'bills' ? 'is-active' : '', text: 'Bills', onclick: () => { state.tab = 'bills'; rerender(); } }),
     el('button', { type: 'button', class: state.tab === 'subscriptions' ? 'is-active' : '', text: 'Subscriptions', onclick: () => { state.tab = 'subscriptions'; rerender(); } }),
+    el('button', { type: 'button', class: state.tab === 'spend' ? 'is-active' : '', text: 'Yearly Spend', onclick: () => { state.tab = 'spend'; rerender(); } }),
   ]);
 }
 
@@ -335,7 +367,7 @@ export async function renderFinance(canvas, ctx, rerender) {
   const area = el('div', { class: 'mer-task-list-area' });
   canvas.append(area);
 
-  if (state.tab === 'networth') await renderNetWorth(area, ctx, rerender);
-  else if (state.tab === 'goals') await renderGoals(area, ctx, rerender);
-  else await renderSubscriptions(area, ctx, rerender);
+  if (state.tab === 'bills') await renderBillsTab(area, ctx, rerender);
+  else if (state.tab === 'subscriptions') await renderSubscriptionsTab(area, ctx, rerender);
+  else await renderSpendSummary(area, ctx);
 }

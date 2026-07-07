@@ -11,7 +11,6 @@ import { renderSettings } from './views/settings.js';
 import { renderTasks } from './views/tasks.js';
 import { renderPlaces } from './views/places.js';
 import { renderLinks } from './views/links.js';
-import { renderBills } from './views/bills.js';
 import { renderEducation } from './views/education.js';
 import { renderBooks } from './views/books.js';
 import { renderRecipes } from './views/recipes.js';
@@ -65,7 +64,6 @@ const VIEWS = {
   tasks: renderTasks,
   places: renderPlaces,
   links: renderLinks,
-  bills: renderBills,
   education: renderEducation,
   books: renderBooks,
   recipes: renderRecipes,
