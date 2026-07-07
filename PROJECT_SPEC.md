@@ -103,6 +103,22 @@ lets the whole app be redecorated later without rebuilding it:
 - **"Surprise me"** — a Dashboard button offering one random nudge (a
   want-to-go place, a to-read book, an untried recipe, an open bucket-list
   goal) with a one-click jump to that module
+- **Chords / harmony study** — deliberately a *study* tool (diagrams,
+  theory, sound — no sequencing, tempo, or play-along; a real music-practice
+  app stays a separate future project). Six tabs: a chord Dictionary (any
+  root × 35 qualities, correctly spelled, with shell / Root-Shell-Pretty /
+  drop 2-3-2&4 / rootless Bill Evans A-B / Kenny Barron / "So What" quartal /
+  upper-structure voicings drawn on piano-keyboard and guitar-fretboard
+  diagrams, each playable); a full Barry Harris 6th-diminished analysis
+  (major/minor scales of chords harmonized into 8 playable positions, the
+  maj7→6 / m7→relative-6 / ø→m6 / dominant→"m6 on the 5th" translations,
+  and the shared-dim7 family of four dominants as a substitution wheel); a
+  key Calculator (diatonic chords, secondary dominants + tritone subs,
+  borrowed chords, reverse key lookup); an explorable Harmony Map with
+  reasons on every relationship and pinnable saved sketches; 17 theory
+  lessons; and an adjustable fully-synthesized sound engine (osc/FM/ADSR/EQ
+  with Piano, Rhodes EP, Organ, Pad presets plus saveable custom presets —
+  no samples, so nothing to license and it works offline).
 
 ### Next up 🔜
 - **Google Drive sync** — the two-device backbone. Blocked on you creating a
@@ -110,9 +126,6 @@ lets the whole app be redecorated later without rebuilding it:
   next real build task once that's ready.
 
 ### Still to build 📋
-- **Piano/guitar chord tool** — type a chord progression, get real voicings
-  for guitar or piano (melody-aware voicing comes in a later phase). Tier 2
-  work (chord-voicing logic) — needs a model switch before building.
 - **AI assistant modules** (Claude/ChatGPT/Gemini panels) + cross-LLM relay +
   **Telegram integration** — plumbing/UI can be built without your real API
   keys/bot token, but live testing needs them, and direct browser-to-API
@@ -161,11 +174,12 @@ Everything below came out of talking through what would actually feel
 ## 5. Rough order of what's left
 
 1. Google Drive sync (step 0: you create the Google OAuth Client ID)
-2. Piano/guitar chord tool (Tier 2)
-3. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
-4. Google Calendar sync (blocked on the same OAuth Client ID as #1), AI-written recap
-5. Additional interfaces (Vespera, LCARS)
-6. Sharebox companion app for your friend
+2. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
+3. Google Calendar sync (blocked on the same OAuth Client ID as #1), AI-written recap
+4. Additional interfaces (Vespera, LCARS)
+5. Sharebox companion app for your friend
+6. Someday: a standalone music-practice app (progressions, play-along,
+   melody-aware voicing) — deliberately out of LifeOS scope
 
 Nothing here is fixed in stone — the plan has already flexed a few times
 this week, and that's expected. This doc is meant to be a snapshot you can
