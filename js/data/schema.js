@@ -96,6 +96,18 @@ export const STORES = [
     { name: 'date', keyPath: 'date' },
   ] },
 
+  { name: 'habits', keyPath: 'id' },
+  { name: 'habitLogs', keyPath: 'id', indexes: [
+    { name: 'habitId', keyPath: 'habitId' },
+    { name: 'date', keyPath: 'date' },
+  ] },
+
+  { name: 'healthLogs', keyPath: 'id', indexes: [
+    { name: 'date', keyPath: 'date' },
+  ] },
+
+  { name: 'albums', keyPath: 'id' },
+
   // Binary assets (place/contact photos, bill/document PDFs, book covers, recipe photos).
   // `blob` holds a local offline-first copy; `driveFileId` is populated once the
   // sync layer uploads it. `relatedStore`/`relatedId` point back to the owning record.

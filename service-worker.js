@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v13';
+const CACHE_VERSION = 'lifeos-v14';
 const APP_SHELL = [
   './',
   './index.html',
@@ -29,6 +29,13 @@ const APP_SHELL = [
   './js/interfaces/default/views/finance.js',
   './js/interfaces/default/views/documents.js',
   './js/interfaces/default/views/contacts.js',
+  './js/interfaces/default/views/milestones.js',
+  './js/interfaces/default/views/search.js',
+  './js/interfaces/default/views/tools.js',
+  './js/interfaces/default/views/habits.js',
+  './js/interfaces/default/views/health.js',
+  './js/interfaces/default/views/photos.js',
+  './js/interfaces/default/views/japanese.js',
   './vendor/leaflet/leaflet.js',
   './vendor/leaflet/leaflet.css',
   './vendor/leaflet/images/marker-icon.png',

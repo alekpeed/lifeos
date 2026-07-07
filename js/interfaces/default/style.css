@@ -624,3 +624,50 @@
   letter-spacing: 0.06em;
   font-weight: 500;
 }
+
+/* --- Photos module --- */
+
+[data-interface='default'] .mer-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+[data-interface='default'] .mer-lightbox-img {
+  max-width: 85vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+[data-interface='default'] .mer-lightbox-close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: var(--text-xl);
+  cursor: pointer;
+}
+
+[data-interface='default'] .mer-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: var(--text-3xl);
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+[data-interface='default'] .mer-lightbox-prev { left: var(--space-md); }
+[data-interface='default'] .mer-lightbox-next { right: var(--space-md); }

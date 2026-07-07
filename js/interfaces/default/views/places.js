@@ -5,6 +5,7 @@ let state = {
   tab: 'visited', // visited | wantToGo | map | bucket
   categoryFilter: 'all',
   selectedPlaceId: null,
+  nearbyNudges: null, // null = not checked yet; [] = checked, nothing nearby; [...] = results
 };
 
 function starRating(value, onChange) {
@@ -308,6 +309,73 @@ async function renderBucketList(container, ctx, rerender) {
   for (const item of items) container.append(bucketRow(item, ctx, rerender));
 }
 
+// --- Geolocation nudges ---
+// Foreground/user-triggered only: a plain PWA (especially on iOS Safari)
+// can't reliably run passive background geofencing, so this is a manual
+// "check nearby" action rather than a silent notification.
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+const NEARBY_RADIUS_METERS = 1000;
+const STALE_REVISIT_DAYS = 90;
+
+function findNearbyNudges(places, lat, lng) {
+  const results = [];
+  for (const place of places) {
+    if (typeof place.lat !== 'number' || typeof place.lng !== 'number') continue;
+    const distance = haversineMeters(lat, lng, place.lat, place.lng);
+    if (distance > NEARBY_RADIUS_METERS) continue;
+
+    if (place.listType === 'wantToGo') {
+      results.push({ place, distance, reason: 'Want to go' });
+    } else if (place.listType === 'visited' && place.revisit) {
+      const lastVisit = (place.visitDates || []).sort().at(-1);
+      const daysSince = lastVisit ? (Date.now() - new Date(lastVisit).getTime()) / 86400000 : Infinity;
+      if (daysSince >= STALE_REVISIT_DAYS) results.push({ place, distance, reason: `Haven't been back in ${Math.round(daysSince)} days` });
+    }
+  }
+  return results.sort((a, b) => a.distance - b.distance);
+}
+
+function checkNearbyButton(ctx, rerender) {
+  return el('button', {
+    type: 'button', text: '📍 Check nearby places',
+    onclick: () => {
+      if (!navigator.geolocation) { alert('Geolocation is not available in this browser.'); return; }
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const places = await ctx.data.Places.list();
+          state.nearbyNudges = findNearbyNudges(places, pos.coords.latitude, pos.coords.longitude);
+          rerender();
+        },
+        (err) => alert(`Couldn't get location: ${err.message}`)
+      );
+    },
+  });
+}
+
+function nearbyBanner(rerender) {
+  if (state.nearbyNudges === null) return null;
+  if (!state.nearbyNudges.length) {
+    return el('p', { class: 'mer-muted', text: 'Nothing nearby right now.' });
+  }
+  return el('div', { class: 'mer-people-list' }, state.nearbyNudges.map(({ place, distance, reason }) =>
+    el('div', { class: 'mer-person-card' }, [
+      el('div', { class: 'mer-person-info' }, [
+        el('div', { class: 'mer-person-name', text: place.name || '(untitled)' }),
+        el('div', { class: 'mer-person-meta', text: `${reason} · ${Math.round(distance)}m away` }),
+      ]),
+      el('button', { type: 'button', class: 'mer-icon-btn', text: '×', onclick: () => { state.nearbyNudges = null; rerender(); } }),
+    ])
+  ));
+}
+
 // --- Toolbar / tabs ---
 
 function tabsBar(rerender) {
@@ -346,7 +414,13 @@ export async function renderPlaces(canvas, ctx, rerender) {
   canvas.append(el('div', { class: 'mer-toolbar' }, [
     tabsBar(rerender),
     state.tab !== 'map' && state.tab !== 'bucket' ? quickAddPlace(ctx, rerender) : null,
+    state.tab !== 'map' && state.tab !== 'bucket' ? checkNearbyButton(ctx, rerender) : null,
   ]));
+
+  if (state.tab !== 'map' && state.tab !== 'bucket') {
+    const banner = nearbyBanner(rerender);
+    if (banner) canvas.append(banner);
+  }
 
   const area = el('div', { class: 'mer-task-list-area' });
   canvas.append(area);

@@ -17,6 +17,13 @@ import { renderRecipes } from './views/recipes.js';
 import { renderFinance } from './views/finance.js';
 import { renderDocuments } from './views/documents.js';
 import { renderContacts } from './views/contacts.js';
+import { renderMilestones } from './views/milestones.js';
+import { renderSearch } from './views/search.js';
+import { renderTools } from './views/tools.js';
+import { renderHabits } from './views/habits.js';
+import { renderHealth } from './views/health.js';
+import { renderPhotos } from './views/photos.js';
+import { renderJapanese } from './views/japanese.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -72,6 +79,13 @@ const VIEWS = {
   finance: renderFinance,
   documents: renderDocuments,
   contacts: renderContacts,
+  milestones: renderMilestones,
+  search: renderSearch,
+  tools: renderTools,
+  habits: renderHabits,
+  health: renderHealth,
+  photos: renderPhotos,
+  japanese: renderJapanese,
 };
 
 // --- Interface contract implementation ---

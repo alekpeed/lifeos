@@ -78,6 +78,10 @@ export const Subscriptions = entities.subscriptions;
 export const Documents = entities.documents;
 export const Contacts = entities.contacts;
 export const Milestones = entities.milestones;
+export const Habits = entities.habits;
+export const HabitLogs = entities.habitLogs;
+export const HealthLogs = entities.healthLogs;
+export const Albums = entities.albums;
 export const Attachments = entities.attachments;
 
 // --- Attachments: binary assets (place photos, bill/document PDFs, ...) ---
@@ -176,6 +180,14 @@ const SETTING_DEFAULTS = {
   wordsPerPageDefault: 275,
   billDueSoonDays: 7,
   documentExpiryDays: 30,
+  // Manual/editable rate table (not a live feed) so the currency converter
+  // stays usable fully offline. Rates are "1 <currency> = N base units" with
+  // USD as the implicit base; edit them from the Tools module as needed.
+  currencyRates: { USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149, CAD: 1.36, AUD: 1.52 },
+  savedTimezones: [
+    { label: 'Tokyo', tz: 'Asia/Tokyo' },
+    { label: 'London', tz: 'Europe/London' },
+  ],
 };
 
 export const Settings = {
@@ -241,4 +253,156 @@ export async function getDueSoonFeed(days = 7, billDays = days, documentDays = d
 
   items.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
   return items;
+}
+
+// --- Milestones: year-in-review aggregation, pulled from every other module ---
+
+export async function getYearInReview(year) {
+  const y = String(year);
+  const [tasks, places, books, readingLogs, cookLogs, billPayments, documents, milestones, contacts, assignments, habitLogs, healthLogs] = await Promise.all([
+    Tasks.list(), Places.list(), Books.list(), ReadingLogs.list(), CookLogs.list(),
+    BillPayments.list(), Documents.list(), Milestones.list(), Contacts.list(), Assignments.list(),
+    HabitLogs.list(), HealthLogs.list(),
+  ]);
+
+  const tasksCompleted = tasks.filter((t) => t.status === 'done' && t.updatedAt?.startsWith(y)).length;
+  const assignmentsCompleted = assignments.filter((a) => a.status === 'done' && a.updatedAt?.startsWith(y)).length;
+
+  const visitsThisYear = places.flatMap((p) => (p.visitDates || []).filter((d) => d.startsWith(y)));
+  const placesVisitedCount = new Set(
+    places.filter((p) => (p.visitDates || []).some((d) => d.startsWith(y))).map((p) => p.id)
+  ).size;
+
+  const booksFinished = books.filter((b) => b.finishedDate?.startsWith(y)).length;
+  const pagesRead = readingLogs.filter((l) => l.date?.startsWith(y)).reduce((sum, l) => sum + (l.pagesRead || 0), 0);
+
+  const cookSessions = cookLogs.filter((l) => l.date?.startsWith(y));
+  const recipesCookedCount = new Set(cookSessions.map((l) => l.recipeId)).size;
+
+  const billsPaidTotal = billPayments.filter((p) => p.datePaid?.startsWith(y)).reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
+  const documentsAdded = documents.filter((d) => d.createdAt?.startsWith(y)).length;
+  const contactsAdded = contacts.filter((c) => c.createdAt?.startsWith(y)).length;
+  const milestonesThisYear = milestones.filter((m) => m.date?.startsWith(y)).sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  const habitLogsThisYear = habitLogs.filter((l) => l.date?.startsWith(y));
+  const healthLogsThisYear = healthLogs.filter((l) => l.date?.startsWith(y));
+  const avgSleepHours = healthLogsThisYear.length
+    ? healthLogsThisYear.reduce((sum, l) => sum + (Number(l.sleepHours) || 0), 0) / healthLogsThisYear.length
+    : null;
+
+  return {
+    year: y,
+    tasksCompleted,
+    assignmentsCompleted,
+    placesVisitedCount,
+    totalVisits: visitsThisYear.length,
+    booksFinished,
+    pagesRead,
+    recipesCookedCount,
+    cookSessions: cookSessions.length,
+    billsPaidTotal,
+    documentsAdded,
+    contactsAdded,
+    milestones: milestonesThisYear,
+    habitCheckIns: habitLogsThisYear.length,
+    avgSleepHours,
+    healthLogCount: healthLogsThisYear.length,
+  };
+}
+
+// --- Global search: one query across every module with a title-like field.
+// Returns { store, module, id, title } so a view can group by module and
+// navigate there on click (module list, not deep-linking to the exact
+// record -- each view keeps its own selection state internally).
+
+const SEARCH_FIELDS = {
+  tasks: (r) => r.title,
+  places: (r) => r.name,
+  links: (r) => r.title || r.url,
+  semesters: (r) => r.name,
+  courses: (r) => r.name,
+  assignments: (r) => r.title,
+  bills: (r) => r.name,
+  subscriptions: (r) => r.name,
+  books: (r) => [r.title, r.author].filter(Boolean).join(' '),
+  recipes: (r) => r.title,
+  documents: (r) => r.title,
+  contacts: (r) => [r.name, r.company].filter(Boolean).join(' '),
+  milestones: (r) => r.title,
+  habits: (r) => r.name,
+  japaneseDecks: (r) => r.name,
+  albums: (r) => r.name,
+};
+
+const SEARCH_MODULE_ROUTE = {
+  tasks: 'tasks', places: 'places', links: 'links', semesters: 'education', courses: 'education',
+  assignments: 'education', bills: 'finance', subscriptions: 'finance', books: 'books',
+  recipes: 'recipes', documents: 'documents', contacts: 'contacts', milestones: 'milestones',
+  habits: 'habits', japaneseDecks: 'japanese', albums: 'photos',
+};
+
+export async function globalSearch(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const storeNames = Object.keys(SEARCH_FIELDS);
+  const results = await Promise.all(storeNames.map(async (name) => {
+    const records = await db.getAll(name);
+    return records
+      .map((r) => ({ record: r, title: SEARCH_FIELDS[name](r) || '' }))
+      .filter(({ title }) => title.toLowerCase().includes(q))
+      .map(({ record, title }) => ({ store: name, module: SEARCH_MODULE_ROUTE[name], id: record.id, title: title || '(untitled)' }));
+  }));
+  return results.flat().slice(0, 200);
+}
+
+// --- Manual JSON export/import: a Drive-independent backup. Attachments'
+// Blob fields aren't JSON-serializable, so they're round-tripped through
+// data: URLs (readAsDataURL / fetch().blob()) rather than raw base64 math.
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function dataUrlToBlob(dataUrl) {
+  const response = await fetch(dataUrl);
+  return response.blob();
+}
+
+export async function exportAllData() {
+  const data = {};
+  for (const name of STORE_NAMES) {
+    if (name === 'attachments') continue;
+    data[name] = await db.getAll(name);
+  }
+  const attachments = await db.getAll('attachments');
+  data.attachments = await Promise.all(
+    attachments.map(async (a) => ({ ...a, blob: await blobToDataUrl(a.blob) }))
+  );
+  return { app: 'lifeos', exportedAt: nowIso(), version: 1, data };
+}
+
+// Wholesale-replaces every store's contents with the imported payload. The
+// caller should reload the page afterward -- in-memory view state and
+// cached attachment object URLs elsewhere in the app don't know the
+// underlying data just changed out from under them.
+export async function importAllData(payload) {
+  const data = payload?.data;
+  if (!data || typeof data !== 'object') throw new Error('Not a recognized Life OS export file');
+
+  for (const name of STORE_NAMES) {
+    if (!Array.isArray(data[name])) continue;
+    await db.clear(name);
+    for (const record of data[name]) {
+      if (name === 'attachments' && typeof record.blob === 'string') {
+        await db.put(name, { ...record, blob: await dataUrlToBlob(record.blob) });
+      } else {
+        await db.put(name, record);
+      }
+    }
+  }
 }

@@ -16,9 +16,13 @@ export const MODULES = [
   { id: 'documents', label: 'Documents', group: 'life' },
   { id: 'contacts', label: 'Contacts', group: 'life' },
   { id: 'milestones', label: 'Milestones', group: 'life' },
+  { id: 'photos', label: 'Photos', group: 'life' },
   { id: 'japanese', label: 'Japanese', group: 'study' },
   { id: 'chords', label: 'Chords', group: 'study' },
+  { id: 'habits', label: 'Habits', group: 'health' },
+  { id: 'health', label: 'Health', group: 'health' },
   { id: 'tools', label: 'Tools', group: 'utility' },
+  { id: 'search', label: 'Search', group: 'utility' },
   { id: 'settings', label: 'Settings', group: 'utility' },
 ];
 
@@ -26,6 +30,7 @@ export const MODULE_GROUPS = [
   { id: 'core', label: 'Core' },
   { id: 'life', label: 'Life' },
   { id: 'study', label: 'Study' },
+  { id: 'health', label: 'Health' },
   { id: 'utility', label: 'Utility' },
 ];
 
