@@ -36,13 +36,29 @@ let renderChain = Promise.resolve(); // serializes renders so concurrent trigger
 
 function buildNav() {
   const nav = el('nav', { class: 'mer-nav', 'aria-label': 'Modules' });
-  nav.append(el('div', { class: 'mer-brand', text: 'Life OS' }));
+  // The bar (brand + current-module label + hamburger toggle) is always
+  // visible. On desktop the toggle/label are simply hidden by CSS and the
+  // group list below renders inline via `display: contents`, so desktop's
+  // layout is byte-for-byte the same as before this was added. On mobile the
+  // group list collapses behind the toggle instead of the old horizontal
+  // scroll-strip of all ~19 modules.
+  const bar = el('div', { class: 'mer-nav-bar' }, [
+    el('div', { class: 'mer-brand', text: 'Life OS' }),
+    el('span', { class: 'mer-nav-current' }),
+    el('button', {
+      type: 'button', class: 'mer-nav-toggle', 'aria-label': 'Open menu', text: '☰',
+      onclick: () => nav.classList.toggle('is-expanded'),
+    }),
+  ]);
+  nav.append(bar);
+
+  const groups = el('div', { class: 'mer-nav-groups' });
   for (const group of ctx.moduleGroups) {
     const groupModules = ctx.modules.filter((m) => m.group === group.id);
     if (!groupModules.length) continue;
-    nav.append(el('div', { class: 'mer-nav-group', text: group.label }));
+    groups.append(el('div', { class: 'mer-nav-group', text: group.label }));
     for (const mod of groupModules) {
-      nav.append(
+      groups.append(
         el('a', {
           class: 'mer-nav-item',
           href: '#/' + mod.id,
@@ -52,6 +68,7 @@ function buildNav() {
       );
     }
   }
+  nav.append(groups);
   return nav;
 }
 
@@ -59,6 +76,12 @@ function markActiveNav(moduleId) {
   for (const item of els.nav.querySelectorAll('.mer-nav-item')) {
     item.classList.toggle('is-active', item.dataset.module === moduleId);
   }
+  const mod = ctx.modules.find((m) => m.id === moduleId);
+  const currentLabel = els.nav.querySelector('.mer-nav-current');
+  if (currentLabel) currentLabel.textContent = mod?.label || '';
+  // Collapse the mobile dropdown on every navigation (harmless on desktop,
+  // where the class is never added in the first place).
+  els.nav.classList.remove('is-expanded');
 }
 
 function renderPlaceholder(canvas, moduleId) {

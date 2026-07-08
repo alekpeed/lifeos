@@ -23,6 +23,23 @@
   color: var(--accent);
 }
 
+/* Desktop: the bar is just a wrapper around the brand, and .mer-nav-groups
+   uses `display: contents` so its children (group labels + items) lay out
+   directly in .mer-nav's flex column -- identical to before this existed. */
+[data-interface='default'] .mer-nav-bar {
+  display: flex;
+  align-items: center;
+}
+
+[data-interface='default'] .mer-nav-toggle,
+[data-interface='default'] .mer-nav-current {
+  display: none;
+}
+
+[data-interface='default'] .mer-nav-groups {
+  display: contents;
+}
+
 [data-interface='default'] .mer-nav-group {
   font-size: var(--text-sm);
   text-transform: uppercase;
@@ -118,41 +135,89 @@
   color: var(--color-danger);
 }
 
-/* Mobile: rail collapses to a horizontal scroll strip on top. */
+/* Mobile: a slim bar (brand + current module + hamburger) with a collapsible
+   dropdown menu underneath, instead of a horizontal scroll-strip of every
+   module. Opening it pushes the canvas down rather than overlaying it --
+   simpler than a modal/backdrop and avoids z-index/iOS-viewport edge cases. */
 @media (max-width: 44rem) {
   [data-interface='default'] .mer-root {
     grid-template-columns: 1fr;
   }
 
   [data-interface='default'] .mer-nav {
-    flex-direction: row;
-    align-items: center;
-    overflow-x: auto;
+    flex-direction: column;
+    align-items: stretch;
     border-right: none;
     border-bottom: 1px solid var(--color-border);
-    padding: 0 var(--space-sm);
+    padding: 0;
+  }
+
+  [data-interface='default'] .mer-nav-bar {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
   }
 
   [data-interface='default'] .mer-brand {
-    padding: var(--space-sm);
+    padding: 0;
     font-size: var(--text-lg);
   }
 
-  [data-interface='default'] .mer-nav-group {
+  [data-interface='default'] .mer-nav-current {
+    display: block;
+    flex: 1;
+    text-align: right;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-interface='default'] .mer-nav-toggle {
+    display: block;
+    background: var(--color-bg-overlay);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.35rem 0.65rem;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Collapsed by default; .is-expanded on .mer-nav reveals it. Capped and
+     internally scrollable so a long module list never pushes the canvas
+     arbitrarily far down. */
+  [data-interface='default'] .mer-nav-groups {
     display: none;
+    flex-direction: column;
+    max-height: 70vh;
+    overflow-y: auto;
+    border-top: 1px solid var(--color-border);
+  }
+
+  [data-interface='default'] .mer-nav.is-expanded .mer-nav-groups {
+    display: flex;
+  }
+
+  [data-interface='default'] .mer-nav-group {
+    display: block;
+    padding: var(--space-sm) var(--space-md) var(--space-xs);
   }
 
   [data-interface='default'] .mer-nav-item {
-    white-space: nowrap;
-    border-left: none;
-    border-bottom: 2px solid transparent;
+    padding: var(--space-sm) var(--space-md);
+    min-height: var(--row-height);
+    border-left: 2px solid transparent;
+    border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
   }
 
   [data-interface='default'] .mer-nav-item.is-active {
-    border-bottom-color: var(--accent);
-    background: none;
+    border-left-color: var(--accent);
+    background: var(--color-bg-overlay);
   }
 
   [data-interface='default'] .mer-canvas {
