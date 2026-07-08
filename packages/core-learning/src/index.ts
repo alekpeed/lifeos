@@ -19,3 +19,4 @@ export * from "./services/dashboard.js";
 export * from "./services/reviewCard.js";
 export * from "./services/content.js";
 export * from "./conversation/conversationRepo.js";
+export * from "./pronunciation/pronunciationRepo.js";

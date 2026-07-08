@@ -9,6 +9,7 @@ interface Props {
   onOpenLibrary: () => void;
   onOpenTutor: () => void;
   onOpenConversation: () => void;
+  onOpenPronunciation: () => void;
   onOpenSettings: () => void;
 }
 
@@ -19,6 +20,7 @@ export function Dashboard({
   onOpenLibrary,
   onOpenTutor,
   onOpenConversation,
+  onOpenPronunciation,
   onOpenSettings,
 }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -73,6 +75,9 @@ export function Dashboard({
         </button>
         <button type="button" onClick={onOpenConversation}>
           Conversation
+        </button>
+        <button type="button" onClick={onOpenPronunciation}>
+          Pronunciation
         </button>
         <button type="button" onClick={onOpenLibrary}>
           Library

@@ -10,9 +10,10 @@ import { Library } from "./screens/Library";
 import { Tutor } from "./screens/Tutor";
 import { Conversation } from "./screens/Conversation";
 import { Settings } from "./screens/Settings";
+import { Pronunciation } from "./screens/Pronunciation";
 import "./App.css";
 
-type View = "dashboard" | "review" | "library" | "tutor" | "conversation" | "settings";
+type View = "dashboard" | "review" | "library" | "tutor" | "conversation" | "settings" | "pronunciation";
 
 function App() {
   const [ready, setReady] = useState<{ repos: Repos; pack: LoadedPack } | null>(null);
@@ -85,6 +86,18 @@ function App() {
     );
   }
 
+  if (view === "pronunciation") {
+    return (
+      <Pronunciation
+        repos={ready.repos}
+        profile={profile}
+        pack={ready.pack}
+        onDone={goHome}
+        onOpenSettings={() => setView("settings")}
+      />
+    );
+  }
+
   if (view === "settings") {
     return <Settings repos={ready.repos} profile={profile} onSaved={setProfile} onDone={goHome} />;
   }
@@ -97,6 +110,7 @@ function App() {
       onOpenLibrary={() => setView("library")}
       onOpenTutor={() => setView("tutor")}
       onOpenConversation={() => setView("conversation")}
+      onOpenPronunciation={() => setView("pronunciation")}
       onOpenSettings={() => setView("settings")}
     />
   );

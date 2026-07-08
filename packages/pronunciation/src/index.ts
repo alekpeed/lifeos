@@ -15,3 +15,6 @@ export interface TTSProvider {
   readonly name: string;
   synthesize(text: string, voice: { languageCode: string }): Promise<Blob>;
 }
+
+export * from "./score.js";
+export * from "./providers/whisper.js";
