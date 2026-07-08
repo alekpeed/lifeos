@@ -12,3 +12,4 @@ export * from "./packs/importer.js";
 export * from "./packs/registry.js";
 export * from "./profile/profile.js";
 export * from "./featureflags/registry.js";
+export * from "./review/reviewRepo.js";
