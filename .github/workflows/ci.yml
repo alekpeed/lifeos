@@ -25,9 +25,23 @@ jobs:
       # `pnpm --filter @polyglotai/language-pack-sdk run validate ../../packs/pt-br`
       # and gating merge on its §10.1 content-volume report.
 
+  rust-tests:
+    name: Rust migration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux Tauri system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libgtk-3-dev patchelf
+      - name: cargo test
+        working-directory: apps/desktop-tauri/src-tauri
+        run: cargo test
+
   build-desktop:
     name: Build desktop app (${{ matrix.os }})
-    needs: lint-typecheck-test
+    needs: [lint-typecheck-test, rust-tests]
     strategy:
       fail-fast: false
       matrix:
