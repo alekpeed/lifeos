@@ -789,3 +789,85 @@
 [data-interface='default'] .mer-map-why { font-size: var(--text-sm); }
 
 [data-interface='default'] .mer-toolbar input.is-invalid { border-color: var(--color-danger); }
+
+/* --- Harmony graph (walkable radial map) --- */
+
+[data-interface='default'] .mer-hg {
+  width: 100%;
+  max-width: 860px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  user-select: none;
+}
+
+[data-interface='default'] .mer-hg-hint { max-width: 70ch; }
+
+[data-interface='default'] .mer-hg-sector {
+  fill: var(--color-text-faint);
+  font-size: 11px;
+  font-family: var(--font-ui);
+  letter-spacing: 0.14em;
+}
+
+[data-interface='default'] .mer-hg-edge { stroke-linecap: round; opacity: 0.55; }
+[data-interface='default'] .mer-hg-edge.is-dashed { stroke-dasharray: 5 5; }
+[data-interface='default'] .mer-hg-edge.mer-hg-resolution { stroke: #d9a441; }
+[data-interface='default'] .mer-hg-edge.mer-hg-motion { stroke: #4ba3a0; }
+[data-interface='default'] .mer-hg-edge.mer-hg-color { stroke: #a06ec9; }
+[data-interface='default'] .mer-hg-edge.mer-hg-approach { stroke: #6f8ecb; }
+[data-interface='default'] .mer-hg-edge.mer-hg-sub { stroke: #8b909a; }
+
+[data-interface='default'] .mer-hg-node { cursor: pointer; }
+[data-interface='default'] .mer-hg-node rect {
+  fill: var(--color-bg-raised);
+  stroke-width: 1.6;
+  transition: filter 0.1s ease;
+}
+[data-interface='default'] .mer-hg-node:hover rect,
+[data-interface='default'] .mer-hg-node:focus-visible rect { filter: brightness(1.35); stroke-width: 2.4; }
+[data-interface='default'] .mer-hg-node:focus-visible { outline: none; }
+[data-interface='default'] .mer-hg-node.mer-hg-resolution rect { stroke: #d9a441; }
+[data-interface='default'] .mer-hg-node.mer-hg-motion rect { stroke: #4ba3a0; }
+[data-interface='default'] .mer-hg-node.mer-hg-color rect { stroke: #a06ec9; }
+[data-interface='default'] .mer-hg-node.mer-hg-approach rect { stroke: #6f8ecb; }
+[data-interface='default'] .mer-hg-node.mer-hg-sub rect { stroke: #8b909a; }
+[data-interface='default'] .mer-hg-node.mer-hg-center rect {
+  fill: var(--color-bg-overlay);
+  stroke: var(--accent);
+  stroke-width: 2.4;
+}
+[data-interface='default'] .mer-hg-node.mer-hg-center { cursor: default; }
+
+[data-interface='default'] .mer-hg-symbol {
+  fill: var(--color-text);
+  font-size: 14px;
+  font-family: var(--font-display);
+}
+[data-interface='default'] .mer-hg-symbol.is-center { font-size: 17px; }
+[data-interface='default'] .mer-hg-numeral {
+  fill: var(--color-text-muted);
+  font-size: 10.5px;
+  font-family: var(--font-ui);
+}
+
+[data-interface='default'] .mer-hg-detail {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+[data-interface='default'] .mer-hg-detail h3 { margin: 0; font-family: var(--font-display); }
+
+[data-interface='default'] .mer-hg-why {
+  margin: 0;
+  max-width: 78ch;
+  line-height: var(--line-height-normal);
+}
+
+[data-interface='default'] .mer-hg-trail { align-items: center; }

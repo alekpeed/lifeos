@@ -1,17 +1,20 @@
 // Harmony study module: chord dictionary with jazz voicing families,
-// Barry Harris 6th-diminished analysis, a key calculator, an explorable
-// harmony map with pinnable sketches, theory lessons, and an adjustable
-// synth. Study tool by design — diagrams, theory, and sound; no
-// sequencing, tempo, or play-along.
+// Barry Harris 6th-diminished analysis, a key calculator, a walkable
+// harmony graph (radial map of where a chord can go, with voice-leading
+// "why" explanations), theory lessons, and an adjustable synth. Study tool
+// by design — diagrams, theory, and sound; no sequencing, tempo, or
+// play-along.
 
 import { el } from '../dom.js';
 import { parseNote, noteName } from '../../../theory/notes.js';
 import { QUALITIES, buildChord, parseChord, getQuality } from '../../../theory/chords.js';
 import { voicingsFor, rootShellPretty, guitarShape } from '../../../theory/voicings.js';
-import { diatonicChords, secondaryDominants, tritoneSub, borrowedChords, keysContaining, relatedChords } from '../../../theory/harmony.js';
+import { diatonicChords, secondaryDominants, tritoneSub, borrowedChords, keysContaining } from '../../../theory/harmony.js';
 import { barryAnalysis } from '../../../theory/barry.js';
 import { THEORY_LESSONS } from '../../../theory/lessons.js';
-import { playChord, FACTORY_PRESETS, PARAM_DEFS } from '../../../audio/synth.js';
+import { harmonyEdges, romanNumeral } from '../../../theory/graph.js';
+import { explainMove, voiceLeadMidis } from '../../../theory/voicelead.js';
+import { playChord, playSequence, FACTORY_PRESETS, PARAM_DEFS } from '../../../audio/synth.js';
 
 const ROOTS = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
 
@@ -23,8 +26,12 @@ let state = {
   calcKeyRoot: 'C',
   calcKeyMode: 'major',
   selectedLesson: null,
-  sketch: [], // [{ symbol, why }]
+  sketch: [], // [{ symbol, why }] — the walked trail; saved as a progression
   sketchName: '',
+  mapAdventurous: false,
+  mapKeyRoot: 'C',
+  mapKeyMode: 'none', // 'none' | 'major' | 'minor'
+  mapDetail: null, // { symbol, reason, catLabel, dir } — the inspected edge
   synthParams: null, // loaded from settings on first render
   synthPresetName: 'Piano',
 };
@@ -329,52 +336,220 @@ function renderCalculator(area, ctx, rerender) {
   }
 }
 
-// --- Harmony Map tab ---
+// --- Harmony Map tab: the walkable graph ---
+
+function closeMidis(chord) {
+  const v = voicingsFor(chord).find((x) => x.id === 'close');
+  if (v) return v.notes.map((n) => n.midi);
+  return chord.tones.map((t) => 48 + chord.root.pc + t.semitones);
+}
+
+// Audition a move with minimal-motion voice-leading: the second chord lands
+// on the nearest available tones instead of jumping to root position — so
+// what you HEAR is the same smoothness the explanation describes.
+async function playMove(ctx, fromChord, toChord) {
+  const params = await getSynthParams(ctx);
+  const src = closeMidis(fromChord);
+  const tgt = voiceLeadMidis(src, toChord);
+  try { playSequence([src, tgt], params, 0.95); } catch (err) { console.warn('synth unavailable:', err.message); }
+}
+
+async function playTrail(ctx, symbols) {
+  const chords = symbols.map((sym) => parseChord(sym)).filter(Boolean);
+  if (!chords.length) return;
+  const params = await getSynthParams(ctx);
+  const seq = [closeMidis(chords[0])];
+  for (let i = 1; i < chords.length; i++) seq.push(voiceLeadMidis(seq[i - 1], chords[i]));
+  try { playSequence(seq, params, 0.85); } catch (err) { console.warn('synth unavailable:', err.message); }
+}
+
+function mapKeyCtx() {
+  if (state.mapKeyMode === 'none') return null;
+  return { root: parseNote(state.mapKeyRoot), mode: state.mapKeyMode };
+}
+
+// Angular sectors for each edge category (degrees; 0° = east, +90° = south).
+const MAP_SECTORS = {
+  resolution: { a0: -82, a1: -30 },
+  motion:     { a0: -18, a1: 40 },
+  color:      { a0: 48, a1: 84 },
+  approach:   { a0: 110, a1: 172 },
+  sub:        { a0: 186, a1: 250 },
+};
+
+function graphSVG(chord, groups, keyCtx, onInspect) {
+  const CX = 390, CY = 300;
+  const svg = svgEl('svg', { viewBox: '0 0 780 600', class: 'mer-hg' });
+  const rad = (deg) => (deg * Math.PI) / 180;
+
+  // Sector headers.
+  for (const g of groups) {
+    const sec = MAP_SECTORS[g.id];
+    const mid = rad((sec.a0 + sec.a1) / 2);
+    svg.append(svgEl('text', {
+      x: CX + 278 * Math.cos(mid), y: CY + 278 * Math.sin(mid),
+      class: 'mer-hg-sector', 'text-anchor': 'middle',
+    }, [g.label.toUpperCase()]));
+  }
+
+  const nodes = [];
+  for (const g of groups) {
+    const sec = MAP_SECTORS[g.id];
+    g.edges.forEach((edge, i) => {
+      const n = g.edges.length;
+      const t = n === 1 ? 0.5 : i / (n - 1);
+      const angle = rad(sec.a0 + t * (sec.a1 - sec.a0));
+      const r = 170 + (i % 2) * 58;
+      nodes.push({ edge, g, x: CX + r * Math.cos(angle), y: CY + r * Math.sin(angle) });
+    });
+  }
+
+  // Edges first (under the nodes).
+  for (const { edge, g, x, y } of nodes) {
+    svg.append(svgEl('line', {
+      x1: CX, y1: CY, x2: x, y2: y,
+      class: `mer-hg-edge mer-hg-${g.id}${g.id === 'sub' ? ' is-dashed' : ''}`,
+      'stroke-width': edge.strength === 3 ? 3.2 : edge.strength === 2 ? 1.9 : 1.1,
+    }));
+  }
+
+  // Nodes.
+  for (const { edge, g, x, y } of nodes) {
+    const numeral = keyCtx ? romanNumeral(parseChord(edge.symbol), keyCtx) : null;
+    const w = Math.max(edge.symbol.length, numeral ? numeral.length : 0) * 8.5 + 20;
+    const h = numeral ? 40 : 27;
+    const node = svgEl('g', { class: `mer-hg-node mer-hg-${g.id}`, tabindex: '0', role: 'button' });
+    node.append(svgEl('rect', { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 13 }));
+    node.append(svgEl('text', { x, y: numeral ? y - 3 : y + 4.5, 'text-anchor': 'middle', class: 'mer-hg-symbol' }, [edge.symbol]));
+    if (numeral) node.append(svgEl('text', { x, y: y + 13, 'text-anchor': 'middle', class: 'mer-hg-numeral' }, [numeral]));
+    const inspect = () => onInspect(edge, g);
+    node.addEventListener('click', inspect);
+    node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inspect(); } });
+    svg.append(node);
+  }
+
+  // Center last, on top.
+  const cw = chord.symbol.length * 11 + 30;
+  const numeral = keyCtx ? romanNumeral(chord, keyCtx) : null;
+  const center = svgEl('g', { class: 'mer-hg-node mer-hg-center' });
+  center.append(svgEl('rect', { x: CX - cw / 2, y: CY - (numeral ? 26 : 20), width: cw, height: numeral ? 52 : 40, rx: 18 }));
+  center.append(svgEl('text', { x: CX, y: numeral ? CY - 2 : CY + 6, 'text-anchor': 'middle', class: 'mer-hg-symbol is-center' }, [chord.symbol]));
+  if (numeral) center.append(svgEl('text', { x: CX, y: CY + 16, 'text-anchor': 'middle', class: 'mer-hg-numeral' }, [numeral]));
+  svg.append(center);
+
+  return svg;
+}
+
+function mapDetailPanel(area, ctx, chord, rerender) {
+  const d = state.mapDetail;
+  const other = parseChord(d.symbol);
+  if (!other) { state.mapDetail = null; return; }
+  const [from, to] = d.dir === 'in' ? [other, chord] : [chord, other];
+  const { facts, prose } = explainMove(from, to);
+
+  const walk = () => {
+    if (!state.sketch.length) state.sketch.push({ symbol: chord.symbol, why: 'start' });
+    state.sketch.push({ symbol: d.symbol, why: d.reason });
+    setChordFromSymbol(d.symbol);
+    state.mapDetail = null;
+    rerender();
+  };
+
+  const panel = el('div', { class: 'mer-hg-detail' }, [
+    el('div', { class: 'mer-detail-header' }, [
+      el('h3', { text: d.dir === 'in' ? `${other.symbol} → ${chord.symbol}` : `${chord.symbol} ${d.dir === 'sub' ? '↔' : '→'} ${other.symbol}` }),
+      el('span', { class: 'mer-chip', text: d.catLabel }),
+      el('span', { class: 'mer-muted', text: d.reason }),
+    ]),
+    el('div', { class: 'mer-place-meta' }, [
+      el('span', { class: 'mer-chip', text: `${facts.commonTones.length} common tone${facts.commonTones.length === 1 ? '' : 's'}` }),
+      el('span', { class: 'mer-chip', text: `${facts.smoothness.total} semitones of travel` }),
+      el('span', { class: 'mer-chip', text: facts.bass.type.replace(/-/g, ' ') }),
+    ]),
+    ...prose.map((p) => el('p', { class: 'mer-hg-why', text: p })),
+    ...(facts.moves.length ? [el('div', { class: 'mer-place-meta' },
+      facts.moves.map((m) => el('span', {
+        class: 'mer-chip',
+        text: `${m.fromName} (${m.fromLabel}) → ${m.toName} (${m.toLabel}) · ${Math.abs(m.semis)} semi${Math.abs(m.semis) === 1 ? '' : 's'} ${m.semis > 0 ? '↑' : '↓'}`,
+      })))] : []),
+    el('div', { class: 'mer-toolbar' }, [
+      el('button', { type: 'button', class: 'mer-play-btn', text: '▶ Hear the move', onclick: () => playMove(ctx, from, to) }),
+      el('button', { type: 'button', text: `Walk to ${d.symbol} →`, onclick: walk }),
+      el('button', {
+        type: 'button', text: '📌 Pin without walking',
+        onclick: () => { state.sketch.push({ symbol: d.symbol, why: d.reason }); rerender(); },
+      }),
+      el('button', { type: 'button', class: 'mer-icon-btn', text: '×', title: 'Close', onclick: () => { state.mapDetail = null; rerender(); } }),
+    ]),
+  ]);
+  area.append(panel);
+}
 
 function renderMap(area, ctx, rerender) {
   area.append(chordPicker(ctx, rerender));
+
+  // Key context + adventurous controls.
+  const keySelect = el('select', { onchange: (e) => { state.mapKeyRoot = e.target.value; rerender(); } },
+    ROOTS.map((r) => el('option', { value: r, text: r, selected: r === state.mapKeyRoot })));
+  const modeSelect = el('select', { onchange: (e) => { state.mapKeyMode = e.target.value; rerender(); } }, [
+    el('option', { value: 'none', text: 'no key context', selected: state.mapKeyMode === 'none' }),
+    el('option', { value: 'major', text: 'major', selected: state.mapKeyMode === 'major' }),
+    el('option', { value: 'minor', text: 'minor', selected: state.mapKeyMode === 'minor' }),
+  ]);
+  const advBtn = el('button', {
+    type: 'button', class: state.mapAdventurous ? 'is-active' : '', text: '🧪 Adventurous',
+    title: 'Reveal color moves: chromatic mediants, modal borrowings, negative harmony',
+    onclick: () => { state.mapAdventurous = !state.mapAdventurous; rerender(); },
+  });
+  area.append(el('div', { class: 'mer-toolbar' }, [
+    el('span', { class: 'mer-muted', text: 'Analyze in:' }), modeSelect,
+    ...(state.mapKeyMode !== 'none' ? [keySelect] : []),
+    el('div', { class: 'mer-toggle-group' }, [advBtn]),
+  ]));
+
   const chord = currentChord();
   if (!chord) return;
+  const keyCtx = mapKeyCtx();
+  const groups = harmonyEdges(chord, { adventurous: state.mapAdventurous, keyCtx });
 
-  const center = el('div', { class: 'mer-map-center' }, [
-    el('h2', { text: chord.symbol }),
-    playBtn(ctx, (voicingsFor(chord).find((v) => v.id === 'close') || { notes: chord.tones.map((t, i) => ({ midi: 48 + chord.root.pc + t.semitones })) }).notes, '▶ hear'),
-    el('button', { type: 'button', text: '📌 Pin', onclick: () => { state.sketch.push({ symbol: chord.symbol, why: 'pinned' }); rerender(); } }),
-  ]);
-  area.append(center);
+  area.append(el('p', { class: 'mer-muted mer-hg-hint', text: 'Click any chord to see WHY the move sounds the way it does — then walk there and keep going. Thick lines are strong pulls; dashed lines are stand-ins, not motion.' }));
+  area.append(graphSVG(chord, groups, keyCtx, (edge, g) => {
+    state.mapDetail = { symbol: edge.symbol, reason: edge.reason, catLabel: g.label, dir: g.dir };
+    rerender();
+  }));
 
-  for (const group of relatedChords(chord)) {
-    area.append(el('div', { class: 'mer-subsection-label', text: group.label }));
-    const row = el('div', { class: 'mer-map-group' });
-    for (const item of group.items) {
-      row.append(el('div', { class: 'mer-map-item' }, [
-        el('button', {
-          type: 'button', class: 'mer-map-chip', text: item.symbol,
-          onclick: () => { setChordFromSymbol(item.symbol); rerender(); },
-        }),
-        el('button', {
-          type: 'button', class: 'mer-icon-btn', text: '📌', title: 'Pin to sketch',
-          onclick: () => { state.sketch.push({ symbol: item.symbol, why: item.why }); rerender(); },
-        }),
-        el('span', { class: 'mer-muted mer-map-why', text: item.why }),
-      ]));
-    }
-    area.append(row);
+  if (state.mapDetail) mapDetailPanel(area, ctx, chord, rerender);
+
+  // Diatonic quick-jumps when a key context is set.
+  if (keyCtx) {
+    area.append(el('div', { class: 'mer-subsection-label', text: `Diatonic in ${state.mapKeyRoot} ${state.mapKeyMode}` }));
+    area.append(el('div', { class: 'mer-place-meta' }, diatonicChords(keyCtx.root, keyCtx.mode).map((row) =>
+      el('button', {
+        type: 'button', class: 'mer-map-chip', text: `${row.numeral} · ${row.chord.symbol}`,
+        onclick: () => { setChordFromSymbol(row.chord.symbol); state.mapDetail = null; rerender(); },
+      }))));
   }
 
-  // Sketch: a saved trail of ideas — names and reasons, no tempo, no playback transport.
-  area.append(el('div', { class: 'mer-subsection-label', text: 'Sketch' }));
+  // Trail: the walked path — playable with voice-led motion, savable.
+  area.append(el('div', { class: 'mer-subsection-label', text: 'Trail' }));
   if (state.sketch.length) {
-    area.append(el('div', { class: 'mer-place-meta' }, state.sketch.map((s, i) =>
-      el('span', { class: 'mer-chip' }, [
+    area.append(el('div', { class: 'mer-place-meta mer-hg-trail' }, state.sketch.flatMap((s, i) => [
+      ...(i ? [el('span', { class: 'mer-muted', text: '→' })] : []),
+      el('span', { class: 'mer-chip', title: s.why }, [
         document.createTextNode(s.symbol + ' '),
         el('button', { type: 'button', class: 'mer-icon-btn', text: '×', onclick: () => { state.sketch.splice(i, 1); rerender(); } }),
-      ]))));
-    const nameInput = el('input', { type: 'text', placeholder: 'Sketch name', value: state.sketchName, onchange: (e) => { state.sketchName = e.target.value; } });
+      ]),
+    ])));
+    const nameInput = el('input', { type: 'text', placeholder: 'Trail name', value: state.sketchName, onchange: (e) => { state.sketchName = e.target.value; } });
     area.append(el('div', { class: 'mer-person-form' }, [
+      el('button', {
+        type: 'button', class: 'mer-play-btn', text: '▶ Hear the trail',
+        title: 'Plays the walked path with minimal-motion voice leading',
+        onclick: () => playTrail(ctx, state.sketch.map((s) => s.symbol)),
+      }),
       nameInput,
       el('button', {
-        type: 'button', text: 'Save sketch',
+        type: 'button', text: 'Save trail',
         onclick: async () => {
           if (!nameInput.value.trim()) return;
           await ctx.data.ChordProgressions.create({ name: nameInput.value.trim(), chords: state.sketch });
@@ -383,9 +558,10 @@ function renderMap(area, ctx, rerender) {
           rerender();
         },
       }),
+      el('button', { type: 'button', text: 'Clear', onclick: () => { state.sketch = []; rerender(); } }),
     ]));
   } else {
-    area.append(el('p', { class: 'mer-muted', text: 'Pin chords while you explore to hold onto an idea.' }));
+    area.append(el('p', { class: 'mer-muted', text: 'Walk the graph (or pin from the detail panel) and your path collects here — then hear it back with smooth voice leading, or save it.' }));
   }
 
   ctx.data.ChordProgressions.list().then((saved) => {
@@ -397,11 +573,12 @@ function renderMap(area, ctx, rerender) {
           el('div', { class: 'mer-person-name', text: sk.name }),
           el('div', { class: 'mer-person-meta', text: (sk.chords || []).map((c) => c.symbol).join(' → ') }),
         ]),
+        el('button', { type: 'button', class: 'mer-play-btn', text: '▶', title: 'Hear it (voice-led)', onclick: () => playTrail(ctx, (sk.chords || []).map((c) => c.symbol)) }),
         el('button', { type: 'button', text: 'Load', onclick: () => { state.sketch = [...(sk.chords || [])]; rerender(); } }),
         el('button', { type: 'button', class: 'mer-icon-btn', text: '×', onclick: async () => { await ctx.data.ChordProgressions.remove(sk.id); rerender(); } }),
       ]));
     }
-    area.append(el('div', { class: 'mer-subsection-label', text: 'Saved sketches' }), list);
+    area.append(el('div', { class: 'mer-subsection-label', text: 'Saved trails' }), list);
   });
 }
 

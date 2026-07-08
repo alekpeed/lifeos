@@ -114,11 +114,20 @@ lets the whole app be redecorated later without rebuilding it:
   maj7→6 / m7→relative-6 / ø→m6 / dominant→"m6 on the 5th" translations,
   and the shared-dim7 family of four dominants as a substitution wheel); a
   key Calculator (diatonic chords, secondary dominants + tritone subs,
-  borrowed chords, reverse key lookup); an explorable Harmony Map with
-  reasons on every relationship and pinnable saved sketches; 17 theory
-  lessons; and an adjustable fully-synthesized sound engine (osc/FM/ADSR/EQ
-  with Piano, Rhodes EP, Organ, Pad presets plus saveable custom presets —
-  no samples, so nothing to license and it works offline).
+  borrowed chords, reverse key lookup); a walkable Harmony Map — a radial
+  graph with the current chord at the hub and curated, strength-weighted
+  next-chord spokes (resolutions / continuations / approaches / stand-ins /
+  color moves behind an "Adventurous" toggle, incl. negative-harmony
+  mirrors), where clicking any chord explains WHY the move sounds the way
+  it does from the actual notes (common tones, half-step pulls, tritone
+  release, guide-tone threads, bass motion, total voice travel), plays the
+  move with minimal-motion voice leading so you hear the smoothness being
+  described, and lets you walk there and keep going — the walked trail is
+  playable and saves as a named progression; optional key context adds
+  roman numerals and diatonic quick-jumps; 17 theory lessons; and an
+  adjustable fully-synthesized sound engine (osc/FM/ADSR/EQ with Piano,
+  Rhodes EP, Organ, Pad presets plus saveable custom presets — no samples,
+  so nothing to license and it works offline).
 - **Google Drive sync** — the two-device backbone. Data reconciles between
   your devices through your own Drive (drive.file scope, visible LifeOS/
   folder — no company server). Each device owns one snapshot file and can't

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v19';
+const CACHE_VERSION = 'lifeos-v20';
 const APP_SHELL = [
   './',
   './index.html',
@@ -47,6 +47,8 @@ const APP_SHELL = [
   './js/theory/harmony.js',
   './js/theory/barry.js',
   './js/theory/lessons.js',
+  './js/theory/voicelead.js',
+  './js/theory/graph.js',
   './js/audio/synth.js',
   './vendor/leaflet/leaflet.js',
   './vendor/leaflet/leaflet.css',

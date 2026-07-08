@@ -118,7 +118,8 @@ function playVoice(midi, params, when, chordGainNode) {
 }
 
 // Play a set of MIDI notes as a chord (slight low-to-high roll).
-export function playChord(midiNotes, params) {
+// `atOffset` (seconds from now) lets playSequence schedule several chords.
+export function playChord(midiNotes, params, atOffset = 0) {
   const c = ensureContext();
   if (c.state === 'suspended') c.resume();
   eq.low.gain.value = params.eqLow;
@@ -129,8 +130,15 @@ export function playChord(midiNotes, params) {
   chordGain.gain.value = params.volume / Math.sqrt(Math.max(1, midiNotes.length));
   chordGain.connect(eqChainIn);
 
-  const now = c.currentTime + 0.02;
+  const now = c.currentTime + 0.02 + atOffset;
   [...midiNotes].sort((a, b) => a - b).forEach((midi, i) => {
     playVoice(midi, params, now + i * 0.022, chordGain);
   });
+}
+
+// Play several chords one after another — used by the harmony map's "hear
+// the move" / "hear the trail". A fixed gap, not a tempo: this stays a study
+// tool (audition a motion), not a sequencer.
+export function playSequence(midiChords, params, gapSeconds = 0.9) {
+  midiChords.forEach((midis, i) => playChord(midis, params, i * gapSeconds));
 }
