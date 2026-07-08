@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v28';
+const CACHE_VERSION = 'lifeos-v29';
 const APP_SHELL = [
   './',
   './index.html',
@@ -22,6 +22,7 @@ const APP_SHELL = [
   './js/interfaces/manifest.js',
   './js/interfaces/default/index.js',
   './js/interfaces/default/dom.js',
+  './js/interfaces/default/knob.js',
   './js/interfaces/default/leaflet-loader.js',
   './js/interfaces/default/style.css',
   './js/interfaces/default/views/dashboard.js',

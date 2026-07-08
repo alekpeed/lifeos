@@ -315,6 +315,11 @@ const SETTING_DEFAULTS = {
   // The name shown next to items you post in Sharebox (there are no accounts,
   // so each device sets its own). Empty until you set it.
   shareboxName: '',
+  // Synth Sound-tab control style ('auto' picks knobs on precise-pointer
+  // devices, detented sliders on touch) and panel skin (the classic-keyboard
+  // look applied to the panel + knobs).
+  synthControlStyle: 'auto',
+  synthPanelSkin: 'meridian',
   // Manual/editable rate table (not a live feed) so the currency converter
   // stays usable fully offline. Rates are "1 <currency> = N base units" with
   // USD as the implicit base; edit them from the Tools module as needed.

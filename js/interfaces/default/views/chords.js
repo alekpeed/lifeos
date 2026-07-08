@@ -6,6 +6,7 @@
 // play-along.
 
 import { el, todayStr, fmtDate } from '../dom.js';
+import { makeKnob, niceStep } from '../knob.js';
 import { parseNote, noteName, spellInterval } from '../../../theory/notes.js';
 import { QUALITIES, buildChord, parseChord, getQuality } from '../../../theory/chords.js';
 import { voicingsFor, rootShellPretty, guitarShape } from '../../../theory/voicings.js';
@@ -745,9 +746,78 @@ function renderLessons(area, ctx, rerender) {
 
 // --- Sound tab ---
 
+const SYNTH_SKINS = [
+  { id: 'meridian', label: 'Meridian' },
+  { id: 'rhodes', label: 'Rhodes' },
+  { id: 'wurlitzer', label: 'Wurlitzer' },
+  { id: 'nord', label: 'Nord' },
+  { id: 'moog', label: 'Moog' },
+];
+const CONTROL_STYLES = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'knob', label: 'Knobs' },
+  { id: 'slider', label: 'Sliders' },
+];
+
+function resolveControlStyle(setting) {
+  if (setting === 'knob' || setting === 'slider') return setting;
+  // Auto: knobs where there's a precise pointer (mouse/trackpad), detented
+  // sliders on touch (phone/tablet) where a knob-drag is fiddlier.
+  return window.matchMedia && window.matchMedia('(pointer: fine)').matches ? 'knob' : 'slider';
+}
+
+// One numeric synth parameter as either a knob or a detented, numerically
+// labeled slider. Both drive the same setParam callback.
+function paramControl(def, value, style, defaultValue, setParam) {
+  if (style === 'knob') {
+    return makeKnob({
+      min: def.min, max: def.max, step: def.step, value, defaultValue,
+      label: def.label, onInput: (v) => setParam(v),
+    });
+  }
+  // Slider: coarsen to a "nice" detent step so it clicks through distinct
+  // stops instead of feeling glassy-smooth; native range already commits
+  // discrete values and never drifts after release.
+  const step = niceStep(def.max - def.min, def.step);
+  const readout = el('span', { class: 'mer-slider-readout' });
+  const decimals = String(step).includes('.') ? String(step).split('.')[1].length : 0;
+  const show = (v) => { readout.textContent = decimals ? Number(v).toFixed(decimals) : String(v); };
+  show(value);
+  const input = el('input', {
+    type: 'range', class: 'mer-detent-slider', min: def.min, max: def.max, step, value,
+    oninput: (e) => { const v = Number(e.target.value); show(v); setParam(v); },
+    ondblclick: (e) => { if (defaultValue != null) { e.target.value = defaultValue; show(defaultValue); setParam(defaultValue); } },
+  });
+  return el('div', { class: 'mer-slider-field' }, [
+    el('div', { class: 'mer-slider-top' }, [el('span', { class: 'mer-knob-label', text: def.label }), readout]),
+    input,
+    el('div', { class: 'mer-slider-ends' }, [
+      el('span', { text: String(def.min) }), el('span', { text: String(def.max) }),
+    ]),
+  ]);
+}
+
 async function renderSound(area, ctx, rerender) {
   const params = await getSynthParams(ctx);
   const customPresets = (await ctx.data.Settings.get('synthPresets')) || [];
+  const skin = await ctx.data.Settings.get('synthPanelSkin');
+  const controlSetting = await ctx.data.Settings.get('synthControlStyle');
+  const style = resolveControlStyle(controlSetting);
+
+  const panel = el('div', { class: `mer-synth-panel skin-${skin}` });
+  area.append(panel);
+
+  // Look (skin) + Controls (knob/slider) selectors.
+  const skinSelect = el('select', {
+    onchange: async (e) => { await ctx.data.Settings.set('synthPanelSkin', e.target.value); rerender(); },
+  }, SYNTH_SKINS.map((s) => el('option', { value: s.id, text: s.label, selected: s.id === skin })));
+  const styleSelect = el('select', {
+    onchange: async (e) => { await ctx.data.Settings.set('synthControlStyle', e.target.value); rerender(); },
+  }, CONTROL_STYLES.map((s) => el('option', { value: s.id, text: s.label, selected: s.id === controlSetting })));
+  panel.append(el('div', { class: 'mer-synth-bar' }, [
+    el('label', { class: 'mer-setting' }, [el('span', { text: 'Look' }), skinSelect]),
+    el('label', { class: 'mer-setting' }, [el('span', { text: 'Controls' }), styleSelect]),
+  ]));
 
   const applyPreset = async (name, preset) => {
     state.synthParams = { ...preset, name };
@@ -766,43 +836,37 @@ async function renderSound(area, ctx, rerender) {
       onclick: () => applyPreset(p.name, p.params),
     })),
   ]);
-  area.append(el('div', { class: 'mer-subsection-label', text: 'Presets' }), presetRow);
+  panel.append(el('div', { class: 'mer-subsection-label', text: 'Presets' }), presetRow);
 
   const testChord = buildChord(parseNote('C'), 'maj9');
   const testNotes = voicingsFor(testChord).find((v) => v.id === 'rootlessA')?.notes || [];
-  area.append(el('p', {}, [el('button', {
+  panel.append(el('p', {}, [el('button', {
     type: 'button', class: 'mer-play-btn', text: '▶ Test sound (Cmaj9)',
     onclick: () => play(ctx, testNotes.map((n) => n.midi)),
   })]));
 
-  area.append(el('div', { class: 'mer-subsection-label', text: 'Shape your own' }));
-  const grid = el('div', { class: 'mer-field-grid' });
+  panel.append(el('div', { class: 'mer-subsection-label', text: 'Shape your own' }));
+  // Double-click a control to snap it back toward the Piano baseline.
+  const grid = el('div', { class: style === 'knob' ? 'mer-knob-grid' : 'mer-field-grid' });
   for (const def of PARAM_DEFS) {
-    let input;
+    const setParam = async (v) => {
+      state.synthParams[def.key] = v;
+      state.synthPresetName = 'Custom';
+      await ctx.data.Settings.set('synthParams', state.synthParams);
+    };
     if (def.type === 'select') {
-      input = el('select', {
-        onchange: async (e) => {
-          state.synthParams[def.key] = e.target.value;
-          state.synthPresetName = 'Custom';
-          await ctx.data.Settings.set('synthParams', state.synthParams);
-        },
+      const input = el('select', {
+        onchange: (e) => setParam(e.target.value),
       }, def.options.map((o) => el('option', { value: o, text: o, selected: o === params[def.key] })));
+      grid.append(el('label', { class: 'mer-field' }, [el('span', { text: def.label }), input]));
     } else {
-      input = el('input', {
-        type: 'range', min: def.min, max: def.max, step: def.step, value: params[def.key],
-        oninput: async (e) => {
-          state.synthParams[def.key] = Number(e.target.value);
-          state.synthPresetName = 'Custom';
-          await ctx.data.Settings.set('synthParams', state.synthParams);
-        },
-      });
+      grid.append(paramControl(def, params[def.key], style, FACTORY_PRESETS.piano[def.key], setParam));
     }
-    grid.append(el('label', { class: 'mer-field' }, [el('span', { text: def.label }), input]));
   }
-  area.append(grid);
+  panel.append(grid);
 
   const nameInput = el('input', { type: 'text', placeholder: 'Preset name' });
-  area.append(el('div', { class: 'mer-person-form' }, [
+  panel.append(el('div', { class: 'mer-person-form' }, [
     nameInput,
     el('button', {
       type: 'button', text: 'Save as preset',
