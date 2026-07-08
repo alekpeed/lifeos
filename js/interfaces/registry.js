@@ -6,7 +6,7 @@
 //
 //   {
 //     id:          'default',                          // unique, stable
-//     name:        'Meridian',                         // shown in pickers
+//     name:        'Equator',                           // shown in pickers
 //     description: 'Calm rail-and-canvas daily driver',
 //     stylesheet:  'js/interfaces/default/style.css',  // or null
 //

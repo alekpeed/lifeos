@@ -19,7 +19,7 @@ lets the whole app be redecorated later without rebuilding it:
 - Your data lives on your device first; Drive sync is a backup/relay between
   your two devices, not a requirement to use the app
 - Multiple complete interfaces to choose from — not just color themes, but
-  genuinely different layouts. The first one ("Meridian," a calm sidebar +
+  genuinely different layouts. The first one ("Equator," a calm sidebar +
   content layout) is built. A structurally different mode and an LCARS
   (Star-Trek-inspired) mode are still to come — see Section 3.
 - Light/dark mode, a few accent color choices, and a compact/comfortable

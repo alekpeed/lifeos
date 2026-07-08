@@ -7,7 +7,7 @@
 //
 // Colors come from CSS custom properties set by the active panel skin
 // (--knob-face / --knob-ring / --knob-indicator / --knob-tick), so one knob
-// component reskins into Rhodes / Wurlitzer / Nord / Moog / Meridian looks
+// component reskins into Rhodes / Wurlitzer / Nord / Moog / Equator looks
 // without any JS change.
 
 import { el } from './dom.js';

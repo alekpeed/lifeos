@@ -1,4 +1,4 @@
-// "Meridian" — the default interface. A calm rail-and-canvas daily driver.
+// "Equator" — the default interface. A calm rail-and-canvas daily driver.
 // Interface-contract plumbing (mount/renderRoute/unmount, ctx-only data
 // access, reactive re-render via ctx.events) lives here; each module's
 // actual view lives in views/*.js so this file stays a router, not a
@@ -156,7 +156,7 @@ function scheduleRerender() {
 
 registerInterface({
   id: 'default',
-  name: 'Meridian',
+  name: 'Equator',
   description: 'Calm rail-and-canvas layout — the reliable daily driver.',
   stylesheet: 'js/interfaces/default/style.css',
 

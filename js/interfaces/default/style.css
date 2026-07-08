@@ -1,4 +1,4 @@
-/* Meridian (default interface). Scoped under [data-interface="default"] so
+/* Equator (default interface). Scoped under [data-interface="default"] so
    its rules can never leak into another interface. Uses only shared tokens. */
 
 [data-interface='default'] .mer-root {
@@ -1186,7 +1186,7 @@
 /* --- Synth Sound panel: knobs, detented sliders, and classic skins --- */
 
 [data-interface='default'] .mer-synth-panel {
-  /* Skin variables; overridden per-skin below. Meridian (default) reuses the
+  /* Skin variables; overridden per-skin below. Equator (default) reuses the
      app's own tokens so it looks native. */
   --panel-bg: var(--color-bg-raised);
   --panel-ink: var(--color-text);

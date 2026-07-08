@@ -1,6 +1,6 @@
 # Vespera — Spatial Interface Plan
 
-A second full interface (alongside Meridian) built around the concept
+A second full interface (alongside Equator) built around the concept
 ChatGPT drafted: LifeOS as a place — the orbital station **Vespera** — rather
 than a dashboard. Full source concept in
 `LifeOS_Vespera_Spatial_Architecture_v3.md` (as uploaded). This doc is the

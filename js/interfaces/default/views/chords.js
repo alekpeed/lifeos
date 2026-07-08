@@ -747,7 +747,7 @@ function renderLessons(area, ctx, rerender) {
 // --- Sound tab ---
 
 const SYNTH_SKINS = [
-  { id: 'meridian', label: 'Meridian' },
+  { id: 'meridian', label: 'Equator' },
   { id: 'rhodes', label: 'Rhodes' },
   { id: 'wurlitzer', label: 'Wurlitzer' },
   { id: 'nord', label: 'Nord' },
