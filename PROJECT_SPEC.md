@@ -124,7 +124,15 @@ lets the whole app be redecorated later without rebuilding it:
   move with minimal-motion voice leading so you hear the smoothness being
   described, and lets you walk there and keep going — the walked trail is
   playable and saves as a named progression; optional key context adds
-  roman numerals and diatonic quick-jumps; 17 theory lessons; and an
+  roman numerals and diatonic quick-jumps; nodes are color-coded by chord
+  quality (major/minor/dominant/dim/aug — an Illustrated-Harmony-style
+  read of "what kind of chord" at a glance, kept separate from the line
+  colors that mean "relationship to the center"); an Atlas mode zooms out
+  to the whole territory — a circle-of-fifths wheel with the relative-minor
+  ring, your key's six-chord wedge highlighted, plus the three diminished
+  "engines" (every dominant's dim7 core with its four minor-third-family
+  substitutes), all clickable back into the walkable map; 17 theory
+  lessons; and an
   adjustable fully-synthesized sound engine (osc/FM/ADSR/EQ with Piano,
   Rhodes EP, Organ, Pad presets plus saveable custom presets — no samples,
   so nothing to license and it works offline).

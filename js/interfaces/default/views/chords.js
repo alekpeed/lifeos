@@ -6,13 +6,13 @@
 // play-along.
 
 import { el } from '../dom.js';
-import { parseNote, noteName } from '../../../theory/notes.js';
+import { parseNote, noteName, spellInterval } from '../../../theory/notes.js';
 import { QUALITIES, buildChord, parseChord, getQuality } from '../../../theory/chords.js';
 import { voicingsFor, rootShellPretty, guitarShape } from '../../../theory/voicings.js';
 import { diatonicChords, secondaryDominants, tritoneSub, borrowedChords, keysContaining } from '../../../theory/harmony.js';
 import { barryAnalysis } from '../../../theory/barry.js';
 import { THEORY_LESSONS } from '../../../theory/lessons.js';
-import { harmonyEdges, romanNumeral } from '../../../theory/graph.js';
+import { harmonyEdges, romanNumeral, qualityFamily } from '../../../theory/graph.js';
 import { explainMove, voiceLeadMidis } from '../../../theory/voicelead.js';
 import { playChord, playSequence, FACTORY_PRESETS, PARAM_DEFS } from '../../../audio/synth.js';
 
@@ -31,6 +31,7 @@ let state = {
   mapAdventurous: false,
   mapKeyRoot: 'C',
   mapKeyMode: 'none', // 'none' | 'major' | 'minor'
+  mapView: 'walk', // 'walk' (hub graph) | 'atlas' (circle of fifths + dim engines)
   mapDetail: null, // { symbol, reason, catLabel, dir } — the inspected edge
   synthParams: null, // loaded from settings on first render
   synthPresetName: 'Piano',
@@ -415,10 +416,11 @@ function graphSVG(chord, groups, keyCtx, onInspect) {
 
   // Nodes.
   for (const { edge, g, x, y } of nodes) {
-    const numeral = keyCtx ? romanNumeral(parseChord(edge.symbol), keyCtx) : null;
+    const edgeChord = parseChord(edge.symbol);
+    const numeral = keyCtx ? romanNumeral(edgeChord, keyCtx) : null;
     const w = Math.max(edge.symbol.length, numeral ? numeral.length : 0) * 8.5 + 20;
     const h = numeral ? 40 : 27;
-    const node = svgEl('g', { class: `mer-hg-node mer-hg-${g.id}`, tabindex: '0', role: 'button' });
+    const node = svgEl('g', { class: `mer-hg-node mer-hg-${g.id} mer-hq-${qualityFamily(edgeChord)}`, tabindex: '0', role: 'button' });
     node.append(svgEl('rect', { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 13 }));
     node.append(svgEl('text', { x, y: numeral ? y - 3 : y + 4.5, 'text-anchor': 'middle', class: 'mer-hg-symbol' }, [edge.symbol]));
     if (numeral) node.append(svgEl('text', { x, y: y + 13, 'text-anchor': 'middle', class: 'mer-hg-numeral' }, [numeral]));
@@ -431,13 +433,127 @@ function graphSVG(chord, groups, keyCtx, onInspect) {
   // Center last, on top.
   const cw = chord.symbol.length * 11 + 30;
   const numeral = keyCtx ? romanNumeral(chord, keyCtx) : null;
-  const center = svgEl('g', { class: 'mer-hg-node mer-hg-center' });
+  const center = svgEl('g', { class: `mer-hg-node mer-hg-center mer-hq-${qualityFamily(chord)}` });
   center.append(svgEl('rect', { x: CX - cw / 2, y: CY - (numeral ? 26 : 20), width: cw, height: numeral ? 52 : 40, rx: 18 }));
   center.append(svgEl('text', { x: CX, y: numeral ? CY - 2 : CY + 6, 'text-anchor': 'middle', class: 'mer-hg-symbol is-center' }, [chord.symbol]));
   if (numeral) center.append(svgEl('text', { x: CX, y: CY + 16, 'text-anchor': 'middle', class: 'mer-hg-numeral' }, [numeral]));
   svg.append(center);
 
   return svg;
+}
+
+// Chord-quality color legend (Illustrated-Harmony-style: fill = what kind of
+// chord; line color = its relationship to the center; thickness = pull).
+function qualityLegend() {
+  const items = [['major', 'Major'], ['minor', 'Minor'], ['dominant', 'Dominant / sus'], ['diminished', 'Dim / ø'], ['augmented', 'Augmented']];
+  return el('div', { class: 'mer-place-meta mer-hg-legend' },
+    items.map(([fam, label]) => el('span', { class: 'mer-hg-legend-item' }, [
+      el('span', { class: `mer-hq-dot mer-hq-${fam}` }),
+      el('span', { class: 'mer-muted', text: label }),
+    ])));
+}
+
+// --- Atlas view: the whole territory at once (vs. the walkable hub) ---
+
+const FIFTHS = ['C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'D♭', 'A♭', 'E♭', 'B♭', 'F'];
+
+// The three diminished "engines": every dominant 7th in existence belongs to
+// exactly one of three dim7 cores (its 7♭9 upper structure). Four dominants
+// per core, a minor third apart — Barry Harris's substitution wheels.
+const DIM_ENGINES = [
+  { core: 'C°7', doms: ['B7', 'D7', 'F7', 'A♭7'] },
+  { core: 'C♯°7', doms: ['C7', 'E♭7', 'F♯7', 'A7'] },
+  { core: 'D°7', doms: ['D♭7', 'E7', 'G7', 'B♭7'] },
+];
+
+function atlasSVG(chord, keyCtx, onPick) {
+  const CX = 390, CY = 262, OUTER = 200, INNER = 130;
+  const svg = svgEl('svg', { viewBox: '0 0 780 530', class: 'mer-hg mer-atlas' });
+  const rad = (deg) => (deg * Math.PI) / 180;
+
+  // Which wedge is diatonic? The key's six wheel-triads sit at tonic ± one
+  // slot (IV I V outside, ii vi iii inside). Minor keys share their relative
+  // major's wedge.
+  let diatonicIdx = null;
+  if (keyCtx) {
+    const majPc = keyCtx.mode === 'major' ? keyCtx.root.pc : (keyCtx.root.pc + 3) % 12;
+    const idx = FIFTHS.findIndex((n) => parseNote(n).pc === majPc);
+    diatonicIdx = new Set([(idx + 11) % 12, idx, (idx + 1) % 12]);
+  }
+  const fam = qualityFamily(chord);
+
+  svg.append(svgEl('text', { x: CX, y: CY - 8, 'text-anchor': 'middle', class: 'mer-hg-sector' }, ['CIRCLE OF']));
+  svg.append(svgEl('text', { x: CX, y: CY + 10, 'text-anchor': 'middle', class: 'mer-hg-sector' }, ['FIFTHS']));
+
+  FIFTHS.forEach((name, i) => {
+    const angle = rad(-90 + i * 30);
+    const root = parseNote(name);
+    const relMinor = noteName(spellInterval(root, 6, 9)); // relative minor: spelled 6th degree
+
+    for (const ring of [
+      { symbol: name, r: OUTER, size: 24, family: 'major', pc: root.pc, isMinor: false },
+      { symbol: relMinor + 'm', r: INNER, size: 19, family: 'minor', pc: (root.pc + 9) % 12, isMinor: true },
+    ]) {
+      const x = CX + ring.r * Math.cos(angle), y = CY + ring.r * Math.sin(angle);
+      const classes = ['mer-atlas-node', `mer-hq-${ring.family}`];
+      if (diatonicIdx && diatonicIdx.has(i)) classes.push('is-diatonic');
+      const here = (ring.isMinor ? fam === 'minor' : fam === 'major') && chord.root.pc === ring.pc;
+      if (here) classes.push('is-here');
+      const node = svgEl('g', { class: classes.join(' '), tabindex: '0', role: 'button' });
+      node.append(svgEl('circle', { cx: x, cy: y, r: ring.size }));
+      node.append(svgEl('text', { x, y: y + 4.5, 'text-anchor': 'middle', class: 'mer-hg-symbol' }, [ring.symbol]));
+      const pick = () => onPick(ring.symbol);
+      node.addEventListener('click', pick);
+      node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+      svg.append(node);
+    }
+  });
+
+  return svg;
+}
+
+function dimEnginesSVG(chord, onPick) {
+  const svg = svgEl('svg', { viewBox: '0 0 780 210', class: 'mer-hg mer-atlas' });
+  const centers = [140, 390, 640];
+  DIM_ENGINES.forEach((engine, e) => {
+    const cx = centers[e], cy = 102;
+    // spokes + four dominants at the diagonals
+    engine.doms.forEach((dom, i) => {
+      const angle = ((i * 90 + 45) * Math.PI) / 180;
+      const x = cx + 68 * Math.cos(angle), y = cy + 68 * Math.sin(angle);
+      svg.append(svgEl('line', { x1: cx, y1: cy, x2: x, y2: y, class: 'mer-hg-edge mer-hg-sub is-dashed', 'stroke-width': 1.4 }));
+      const isHere = chord.quality.cat === 'dom' && parseChord(dom)?.root.pc === chord.root.pc;
+      const node = svgEl('g', { class: `mer-atlas-node mer-hq-dominant${isHere ? ' is-here' : ''}`, tabindex: '0', role: 'button' });
+      node.append(svgEl('circle', { cx: x, cy: y, r: 21 }));
+      node.append(svgEl('text', { x, y: y + 4.5, 'text-anchor': 'middle', class: 'mer-hg-symbol' }, [dom]));
+      node.addEventListener('click', () => onPick(dom));
+      svg.append(node);
+    });
+    const core = svgEl('g', { class: 'mer-atlas-node mer-hq-diminished', tabindex: '0', role: 'button' });
+    core.append(svgEl('circle', { cx, cy, r: 25 }));
+    core.append(svgEl('text', { x: cx, y: cy + 4.5, 'text-anchor': 'middle', class: 'mer-hg-symbol' }, [engine.core]));
+    core.addEventListener('click', () => onPick(engine.core));
+    svg.append(core);
+  });
+  return svg;
+}
+
+function renderAtlas(area, ctx, rerender, chord, keyCtx) {
+  const pick = (symbol) => {
+    if (!setChordFromSymbol(symbol)) return;
+    state.mapView = 'walk';
+    state.mapDetail = null;
+    rerender();
+  };
+
+  area.append(el('p', { class: 'mer-muted mer-hg-hint', text: 'The whole territory at once. Neighbors on the wheel share six of seven notes — the closer, the more related. Inner ring: relative minors (same notes, darker home). Click any chord to zoom into its walkable map.' + (keyCtx ? ' Highlighted wedge: the six wheel-chords of your key.' : '') }));
+  area.append(atlasSVG(chord, keyCtx, pick));
+
+  area.append(el('div', { class: 'mer-subsection-label', text: 'The three diminished engines' }));
+  area.append(el('p', { class: 'mer-muted mer-hg-hint', text: 'Every dominant 7th in existence belongs to exactly one of these three dim7 cores (its 7♭9 upper structure). The four dominants around each core are a minor third apart and can substitute for each other — Barry Harris\'s substitution wheels.' }));
+  area.append(dimEnginesSVG(chord, pick));
+
+  area.append(qualityLegend());
 }
 
 function mapDetailPanel(area, ctx, chord, rerender) {
@@ -501,33 +617,44 @@ function renderMap(area, ctx, rerender) {
     title: 'Reveal color moves: chromatic mediants, modal borrowings, negative harmony',
     onclick: () => { state.mapAdventurous = !state.mapAdventurous; rerender(); },
   });
+  const viewToggle = el('div', { class: 'mer-toggle-group' }, [
+    el('button', { type: 'button', class: state.mapView === 'walk' ? 'is-active' : '', text: '🧭 Walk', onclick: () => { state.mapView = 'walk'; rerender(); } }),
+    el('button', { type: 'button', class: state.mapView === 'atlas' ? 'is-active' : '', text: '🗺️ Atlas', onclick: () => { state.mapView = 'atlas'; state.mapDetail = null; rerender(); } }),
+  ]);
   area.append(el('div', { class: 'mer-toolbar' }, [
+    viewToggle,
     el('span', { class: 'mer-muted', text: 'Analyze in:' }), modeSelect,
     ...(state.mapKeyMode !== 'none' ? [keySelect] : []),
-    el('div', { class: 'mer-toggle-group' }, [advBtn]),
+    ...(state.mapView === 'walk' ? [el('div', { class: 'mer-toggle-group' }, [advBtn])] : []),
   ]));
 
   const chord = currentChord();
   if (!chord) return;
   const keyCtx = mapKeyCtx();
-  const groups = harmonyEdges(chord, { adventurous: state.mapAdventurous, keyCtx });
 
-  area.append(el('p', { class: 'mer-muted mer-hg-hint', text: 'Click any chord to see WHY the move sounds the way it does — then walk there and keep going. Thick lines are strong pulls; dashed lines are stand-ins, not motion.' }));
-  area.append(graphSVG(chord, groups, keyCtx, (edge, g) => {
-    state.mapDetail = { symbol: edge.symbol, reason: edge.reason, catLabel: g.label, dir: g.dir };
-    rerender();
-  }));
+  if (state.mapView === 'atlas') {
+    renderAtlas(area, ctx, rerender, chord, keyCtx);
+  } else {
+    const groups = harmonyEdges(chord, { adventurous: state.mapAdventurous, keyCtx });
 
-  if (state.mapDetail) mapDetailPanel(area, ctx, chord, rerender);
+    area.append(el('p', { class: 'mer-muted mer-hg-hint', text: 'Click any chord to see WHY the move sounds the way it does — then walk there and keep going. Fill color = kind of chord; line color = its relationship to the center; thick lines are strong pulls; dashed lines are stand-ins, not motion.' }));
+    area.append(graphSVG(chord, groups, keyCtx, (edge, g) => {
+      state.mapDetail = { symbol: edge.symbol, reason: edge.reason, catLabel: g.label, dir: g.dir };
+      rerender();
+    }));
+    area.append(qualityLegend());
 
-  // Diatonic quick-jumps when a key context is set.
-  if (keyCtx) {
-    area.append(el('div', { class: 'mer-subsection-label', text: `Diatonic in ${state.mapKeyRoot} ${state.mapKeyMode}` }));
-    area.append(el('div', { class: 'mer-place-meta' }, diatonicChords(keyCtx.root, keyCtx.mode).map((row) =>
-      el('button', {
-        type: 'button', class: 'mer-map-chip', text: `${row.numeral} · ${row.chord.symbol}`,
-        onclick: () => { setChordFromSymbol(row.chord.symbol); state.mapDetail = null; rerender(); },
-      }))));
+    if (state.mapDetail) mapDetailPanel(area, ctx, chord, rerender);
+
+    // Diatonic quick-jumps when a key context is set.
+    if (keyCtx) {
+      area.append(el('div', { class: 'mer-subsection-label', text: `Diatonic in ${state.mapKeyRoot} ${state.mapKeyMode}` }));
+      area.append(el('div', { class: 'mer-place-meta' }, diatonicChords(keyCtx.root, keyCtx.mode).map((row) =>
+        el('button', {
+          type: 'button', class: 'mer-map-chip', text: `${row.numeral} · ${row.chord.symbol}`,
+          onclick: () => { setChordFromSymbol(row.chord.symbol); state.mapDetail = null; rerender(); },
+        }))));
+    }
   }
 
   // Trail: the walked path — playable with voice-led motion, savable.

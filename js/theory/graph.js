@@ -16,6 +16,19 @@ import { diatonicChords } from './harmony.js';
 const MAJ_FAMILY = new Set(['maj7', '6', 'triad-maj']);
 const MIN_FAMILY = new Set(['m7', 'triad-min', 'm6', 'mMaj7']);
 
+// Chord-quality family, for Illustrated-Harmony-style color coding: the node's
+// fill answers "what kind of chord is this?" independent of its relationship
+// to the current center (which stays on the connecting line).
+export function qualityFamily(chord) {
+  const cat = chord.quality.cat;
+  if (MAJ_FAMILY.has(cat)) return 'major';
+  if (MIN_FAMILY.has(cat)) return 'minor';
+  if (cat === 'dom' || cat === 'sus') return 'dominant';
+  if (cat === 'dim' || cat === 'dim7' || cat === 'm7b5') return 'diminished';
+  if (cat === 'aug') return 'augmented';
+  return 'other';
+}
+
 export const EDGE_CATEGORIES = [
   { id: 'resolution', label: 'Resolves to',   dir: 'out' },
   { id: 'motion',     label: 'Moves on to',   dir: 'out' },

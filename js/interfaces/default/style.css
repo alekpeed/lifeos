@@ -871,3 +871,57 @@
 }
 
 [data-interface='default'] .mer-hg-trail { align-items: center; }
+
+/* --- Chord-quality color coding (fill = kind of chord) + atlas view --- */
+
+[data-interface='default'] .mer-hg-node.mer-hq-major rect,
+[data-interface='default'] .mer-atlas-node.mer-hq-major circle { fill: rgba(224, 122, 154, 0.16); }
+[data-interface='default'] .mer-hg-node.mer-hq-minor rect,
+[data-interface='default'] .mer-atlas-node.mer-hq-minor circle { fill: rgba(100, 168, 220, 0.16); }
+[data-interface='default'] .mer-hg-node.mer-hq-dominant rect,
+[data-interface='default'] .mer-atlas-node.mer-hq-dominant circle { fill: rgba(227, 192, 75, 0.15); }
+[data-interface='default'] .mer-hg-node.mer-hq-diminished rect,
+[data-interface='default'] .mer-atlas-node.mer-hq-diminished circle { fill: rgba(181, 138, 224, 0.17); }
+[data-interface='default'] .mer-hg-node.mer-hq-augmented rect,
+[data-interface='default'] .mer-atlas-node.mer-hq-augmented circle { fill: rgba(95, 191, 122, 0.16); }
+
+[data-interface='default'] .mer-atlas-node { cursor: pointer; }
+[data-interface='default'] .mer-atlas-node circle {
+  stroke-width: 1.6;
+  transition: filter 0.1s ease;
+}
+[data-interface='default'] .mer-atlas-node.mer-hq-major circle { stroke: #e07a9a; }
+[data-interface='default'] .mer-atlas-node.mer-hq-minor circle { stroke: #64a8dc; }
+[data-interface='default'] .mer-atlas-node.mer-hq-dominant circle { stroke: #e3c04b; }
+[data-interface='default'] .mer-atlas-node.mer-hq-diminished circle { stroke: #b58ae0; }
+[data-interface='default'] .mer-atlas-node.mer-hq-augmented circle { stroke: #5fbf7a; }
+[data-interface='default'] .mer-atlas-node:hover circle,
+[data-interface='default'] .mer-atlas-node:focus-visible circle { filter: brightness(1.35); stroke-width: 2.6; }
+[data-interface='default'] .mer-atlas-node:focus-visible { outline: none; }
+
+[data-interface='default'] .mer-atlas-node.is-diatonic circle {
+  stroke-width: 3;
+  filter: saturate(1.4) brightness(1.3);
+}
+[data-interface='default'] .mer-atlas-node.is-here circle {
+  stroke: var(--accent);
+  stroke-width: 3.4;
+}
+
+[data-interface='default'] .mer-hg-legend { align-items: center; }
+[data-interface='default'] .mer-hg-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+[data-interface='default'] .mer-hq-dot {
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: 50%;
+  display: inline-block;
+}
+[data-interface='default'] .mer-hq-dot.mer-hq-major { background: #e07a9a; }
+[data-interface='default'] .mer-hq-dot.mer-hq-minor { background: #64a8dc; }
+[data-interface='default'] .mer-hq-dot.mer-hq-dominant { background: #e3c04b; }
+[data-interface='default'] .mer-hq-dot.mer-hq-diminished { background: #b58ae0; }
+[data-interface='default'] .mer-hq-dot.mer-hq-augmented { background: #5fbf7a; }
