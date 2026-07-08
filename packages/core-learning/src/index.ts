@@ -18,3 +18,4 @@ export * from "./services/onboarding.js";
 export * from "./services/dashboard.js";
 export * from "./services/reviewCard.js";
 export * from "./services/content.js";
+export * from "./conversation/conversationRepo.js";

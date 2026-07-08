@@ -1,4 +1,5 @@
 import {
+  AiPromptTemplateSchema,
   DialogueSchema,
   GrammarItemSchema,
   LessonSchema,
@@ -6,6 +7,7 @@ import {
   PronunciationRuleSchema,
   RealSpeechItemSchema,
   VocabularyItemSchema,
+  type AiPromptTemplate,
   type Dialogue,
   type GrammarItem,
   type Lesson,
@@ -30,6 +32,9 @@ export interface ParsedPackData {
   dialogues: Dialogue[];
   pronunciation: PronunciationRule[];
   lessons: Lesson[];
+  /** Pack-authored AI prompt templates (spec §11). Kept in memory, not imported into the DB —
+   * the orchestrator reads them straight off the loaded pack. */
+  aiPrompts: AiPromptTemplate[];
 }
 
 export interface ParseResult {
@@ -71,6 +76,7 @@ export async function parsePack(reader: PackFileReader): Promise<ParseResult> {
     dialogues: [],
     pronunciation: [],
     lessons: [],
+    aiPrompts: [],
   };
 
   const loadCategory = async <T>(
@@ -107,6 +113,7 @@ export async function parsePack(reader: PackFileReader): Promise<ParseResult> {
   await loadCategory(contents.pronunciation, PronunciationRuleSchema, data.pronunciation);
   await loadCategory(contents.lessons, LessonSchema, data.lessons);
   await loadCategory(contents.assessments, LessonSchema, data.lessons);
+  await loadCategory(contents.aiPrompts, AiPromptTemplateSchema, data.aiPrompts);
 
   return { data, errors };
 }
@@ -128,6 +135,7 @@ export function semanticErrors(data: ParsedPackData): string[] {
   checkDuplicates(data.dialogues, "dialogue");
   checkDuplicates(data.pronunciation, "pronunciation");
   checkDuplicates(data.lessons, "lesson");
+  checkDuplicates(data.aiPrompts, "ai-prompt");
 
   const vocabKeys = new Set(data.vocabulary.map((v) => v.key));
   const dialogueKeys = new Set(data.dialogues.map((d) => d.key));

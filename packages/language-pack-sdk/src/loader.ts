@@ -46,5 +46,6 @@ export function mergePacks(base: LoadedPack, child: LoadedPack): LoadedPack {
     dialogues: mergeByKey(base.dialogues, child.dialogues),
     pronunciation: mergeByKey(base.pronunciation, child.pronunciation),
     lessons: mergeByKey(base.lessons, child.lessons),
+    aiPrompts: mergeByKey(base.aiPrompts, child.aiPrompts),
   };
 }

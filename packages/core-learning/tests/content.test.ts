@@ -34,6 +34,7 @@ function packWithSlang(): LoadedPack {
     dialogues: [],
     pronunciation: [],
     lessons: [],
+    aiPrompts: [],
   };
 }
 

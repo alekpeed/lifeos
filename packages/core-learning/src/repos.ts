@@ -1,4 +1,5 @@
 import { FsrsScheduler } from "@polyglotai/spaced-repetition";
+import { ConversationRepo } from "./conversation/conversationRepo.js";
 import type { Database } from "./db/database.js";
 import { FeatureFlagRegistry } from "./featureflags/registry.js";
 import { PackRegistry } from "./packs/registry.js";
@@ -12,6 +13,7 @@ export interface Repos {
   flags: FeatureFlagRegistry;
   packs: PackRegistry;
   reviews: ReviewRepo;
+  conversations: ConversationRepo;
 }
 
 /**
@@ -27,5 +29,6 @@ export function createRepos(db: Database, clock: () => Date = () => new Date()):
     flags: new FeatureFlagRegistry(db, iso),
     packs: new PackRegistry(db),
     reviews: new ReviewRepo(db, new FsrsScheduler(), clock),
+    conversations: new ConversationRepo(db, iso),
   };
 }

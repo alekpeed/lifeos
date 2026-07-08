@@ -7,9 +7,20 @@ interface Props {
   profile: LearnerProfile;
   onStartReview: () => void;
   onOpenLibrary: () => void;
+  onOpenTutor: () => void;
+  onOpenConversation: () => void;
+  onOpenSettings: () => void;
 }
 
-export function Dashboard({ repos, profile, onStartReview, onOpenLibrary }: Props) {
+export function Dashboard({
+  repos,
+  profile,
+  onStartReview,
+  onOpenLibrary,
+  onOpenTutor,
+  onOpenConversation,
+  onOpenSettings,
+}: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,9 +67,20 @@ export function Dashboard({ repos, profile, onStartReview, onOpenLibrary }: Prop
         </div>
       </section>
 
-      <button type="button" className="link" onClick={onOpenLibrary}>
-        Browse library
-      </button>
+      <nav className="dash-nav">
+        <button type="button" onClick={onOpenTutor}>
+          AI Tutor
+        </button>
+        <button type="button" onClick={onOpenConversation}>
+          Conversation
+        </button>
+        <button type="button" onClick={onOpenLibrary}>
+          Library
+        </button>
+        <button type="button" onClick={onOpenSettings}>
+          Settings
+        </button>
+      </nav>
     </main>
   );
 }

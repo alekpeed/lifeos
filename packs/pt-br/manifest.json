@@ -23,6 +23,7 @@
     "pronunciation": ["pronunciation/rules.json"],
     "dialogues": ["dialogues/general.json"],
     "lessons": ["lessons/a1.json"],
-    "assessments": ["assessments/placement.json"]
+    "assessments": ["assessments/placement.json"],
+    "aiPrompts": ["ai-prompts/tutor.json"]
   }
 }

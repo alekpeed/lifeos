@@ -24,7 +24,7 @@ function pack(vocab: VocabularyItem[]): LoadedPack {
     featureFlags: {},
     contents: {},
   };
-  return { manifest, vocabulary: vocab, grammar: [], realSpeech: [], dialogues: [], pronunciation: [], lessons: [] };
+  return { manifest, vocabulary: vocab, grammar: [], realSpeech: [], dialogues: [], pronunciation: [], lessons: [], aiPrompts: [] };
 }
 
 function vocab(key: string): VocabularyItem {
