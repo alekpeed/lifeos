@@ -223,6 +223,21 @@
   [data-interface='default'] .mer-canvas {
     padding: var(--space-md);
   }
+
+  /* Practical fix, not a redesign: module-level tab rows (Chords'
+     Dictionary/Barry Harris/..., Books' Reading/To Read/..., etc.) were
+     clipped off-screen with no way to reach the hidden ones. Let them
+     scroll horizontally instead -- no visual polish (no fade/arrows), just
+     reachable. */
+  [data-interface='default'] .mer-toggle-group {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-interface='default'] .mer-toggle-group button {
+    flex-shrink: 0;
+  }
 }
 
 /* --- Tasks module --- */
