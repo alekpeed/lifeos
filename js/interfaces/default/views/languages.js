@@ -10,6 +10,7 @@ let state = {
   studyIndex: 0,
   showAnswer: false,
   selectedLessonId: null,
+  showAddLessonForm: false,
 };
 
 // Starter content keyed by language code -- the format any future pack can
@@ -30,7 +31,7 @@ const STARTER_LESSONS = {
   ja: [
     {
       topic: 'Sentence Structure', title: 'Basic sentence structure',
-      body: 'Japanese word order is Subject-Object-Verb (SOV), not Subject-Verb-Object like English -- the verb comes last.\n\nThe topic of a sentence is marked with the particle は (pronounced "wa" here, not "ha"). です (desu) is a polite copula, roughly "is/am/are," and typically ends the sentence.',
+      body: 'Japanese word order is Subject-Object-Verb (SOV), not Subject-Verb-Object like English — the verb comes last.\n\nThe topic of a sentence is marked with the particle は (pronounced "wa" here, not "ha"). です (desu) is a polite copula, roughly "is/am/are," and typically ends the sentence.',
       examples: [
         { text: 'これは本です。', translation: 'This is a book.' },
         { text: '私は学生です。', translation: 'As for me, I am a student.' },
@@ -56,11 +57,11 @@ const STARTER_LESSONS = {
     },
     {
       topic: 'Adjectives', title: 'い-adjectives vs. な-adjectives',
-      body: 'い-adjectives end in い (高い, おいしい) and conjugate directly: 高くない ("not expensive"), 高かった ("was expensive").\n\nな-adjectives (静か, 好き) need な when directly modifying a noun (静かな部屋 = "quiet room") and otherwise behave like nouns with だ/です.\n\nWatch for いい ("good") -- it\'s irregular. Its negative/past forms come from the older form よい: よくない, よかった (not いくない).',
+      body: 'い-adjectives end in い (高い, おいしい) and conjugate directly: 高くない ("not expensive"), 高かった ("was expensive").\n\nな-adjectives (静か, 好き) need な when directly modifying a noun (静かな部屋 = "quiet room") and otherwise behave like nouns with だ/です.\n\nWatch for いい ("good") — it\'s irregular. Its negative/past forms come from the older form よい: よくない, よかった (not いくない).',
       examples: [
         { text: '高い本', translation: 'expensive book (い-adjective)' },
         { text: '静かな部屋', translation: 'quiet room (な-adjective)' },
-        { text: 'よくないです。', translation: '(it) is not good -- いい is irregular' },
+        { text: 'よくないです。', translation: '(it) is not good — いい is irregular' },
       ],
     },
   ],
@@ -294,11 +295,9 @@ async function renderDecksTab(container, ctx, rerender, pack) {
 // --- Lessons ---
 
 function exampleRow(example) {
-  return el('div', { class: 'mer-person-card' }, [
-    el('div', { class: 'mer-person-info' }, [
-      el('div', { class: 'mer-person-name', text: example.text }),
-      el('div', { class: 'mer-person-meta', text: example.translation }),
-    ]),
+  return el('div', { class: 'mer-lesson-example' }, [
+    el('div', { class: 'mer-lesson-example-text', text: example.text }),
+    el('div', { class: 'mer-lesson-example-translation', text: example.translation }),
   ]);
 }
 
@@ -309,9 +308,9 @@ function lessonDetail(lesson, ctx, rerender) {
       el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.selectedLessonId = null; rerender(); } }),
     ]),
     el('p', { class: 'mer-muted', text: lesson.topic }),
-    el('p', {}, lesson.body.split('\n\n').map((para) => el('span', { text: para + ' ' }))),
+    ...lesson.body.split('\n\n').map((para) => el('p', { class: 'mer-lesson-para', text: para })),
     lesson.examples?.length ? el('div', { class: 'mer-subsection-label', text: 'Examples' }) : null,
-    lesson.examples?.length ? el('div', { class: 'mer-people-list' }, lesson.examples.map(exampleRow)) : null,
+    lesson.examples?.length ? el('div', { class: 'mer-lesson-examples' }, lesson.examples.map(exampleRow)) : null,
     el('button', {
       type: 'button', class: 'mer-danger-btn', text: 'Delete lesson',
       onclick: async () => { await ctx.data.LanguageLessons.remove(lesson.id); state.selectedLessonId = null; rerender(); },
@@ -371,18 +370,24 @@ async function renderLessonsTab(container, ctx, rerender, pack) {
     for (const [topic, group] of byTopic) {
       area.append(el('div', { class: 'mer-group-label', text: topic }));
       for (const lesson of group) {
-        const row = el('div', { class: 'mer-task-row' }, [el('span', { class: 'mer-task-title', text: lesson.title })]);
+        const row = el('div', { class: lesson.id === state.selectedLessonId ? 'mer-task-row is-active' : 'mer-task-row' }, [el('span', { class: 'mer-task-title', text: lesson.title })]);
         row.addEventListener('click', () => { state.selectedLessonId = state.selectedLessonId === lesson.id ? null : lesson.id; rerender(); });
         area.append(row);
       }
     }
   }
 
-  area.append(el('div', { class: 'mer-subsection-label', text: 'Add a lesson' }), newLessonForm(pack, ctx, rerender));
-
+  // The lesson you clicked opens directly under the list, not after the
+  // add-lesson form -- that form stays tucked away until asked for.
   if (state.selectedLessonId) {
     const lesson = lessons.find((l) => l.id === state.selectedLessonId);
-    if (lesson) container.append(lessonDetail(lesson, ctx, rerender));
+    if (lesson) area.append(lessonDetail(lesson, ctx, rerender));
+  }
+
+  if (state.showAddLessonForm) {
+    area.append(el('div', { class: 'mer-subsection-label', text: 'Add a lesson' }), newLessonForm(pack, ctx, rerender));
+  } else {
+    area.append(el('button', { type: 'button', text: '+ Add a lesson', onclick: () => { state.showAddLessonForm = true; rerender(); } }));
   }
 }
 

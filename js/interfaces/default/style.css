@@ -1065,3 +1065,40 @@
 [data-interface='default'] .mer-urg-urgent { color: var(--color-danger); border: 1px solid var(--color-danger); }
 [data-interface='default'] .mer-urg-soon { color: var(--color-warning); border: 1px solid var(--color-warning); }
 [data-interface='default'] .mer-urg-normal { color: var(--color-text-faint); }
+
+/* --- Language lessons: readable paragraphs + a real example style --- */
+
+[data-interface='default'] .mer-task-row.is-active {
+  background: var(--color-bg-overlay);
+  border-left: 2px solid var(--accent);
+  padding-left: calc(var(--space-sm) - 2px);
+}
+
+[data-interface='default'] .mer-lesson-para {
+  max-width: 68ch;
+  line-height: var(--line-height-normal);
+  margin: 0 0 var(--space-sm);
+}
+
+[data-interface='default'] .mer-lesson-examples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+[data-interface='default'] .mer-lesson-example {
+  background: var(--color-bg-overlay);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+[data-interface='default'] .mer-lesson-example-text {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+[data-interface='default'] .mer-lesson-example-translation {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin-top: 0.2rem;
+}
