@@ -5,7 +5,7 @@
 // by design — diagrams, theory, and sound; no sequencing, tempo, or
 // play-along.
 
-import { el } from '../dom.js';
+import { el, todayStr, fmtDate } from '../dom.js';
 import { parseNote, noteName, spellInterval } from '../../../theory/notes.js';
 import { QUALITIES, buildChord, parseChord, getQuality } from '../../../theory/chords.js';
 import { voicingsFor, rootShellPretty, guitarShape } from '../../../theory/voicings.js';
@@ -14,6 +14,7 @@ import { barryAnalysis } from '../../../theory/barry.js';
 import { THEORY_LESSONS } from '../../../theory/lessons.js';
 import { harmonyEdges, romanNumeral, qualityFamily } from '../../../theory/graph.js';
 import { explainMove, voiceLeadMidis } from '../../../theory/voicelead.js';
+import { conceptById, makeQuestion, gradeSkill, buildSession, skillSummary } from '../../../theory/drills.js';
 import { playChord, playSequence, FACTORY_PRESETS, PARAM_DEFS } from '../../../audio/synth.js';
 
 const ROOTS = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
@@ -35,6 +36,7 @@ let state = {
   mapDetail: null, // { symbol, reason, catLabel, dir } — the inspected edge
   synthParams: null, // loaded from settings on first render
   synthPresetName: 'Piano',
+  drill: null, // active session: { questions, index, showAnswer, goodCount }
 };
 
 function currentChord() {
@@ -824,6 +826,161 @@ async function renderSound(area, ctx, rerender) {
   ]));
 }
 
+// --- Practice tab: adaptive drills with spaced repetition ---
+
+function computeDrillStreak(dates) {
+  const days = new Set(dates);
+  let streak = 0;
+  const cursor = new Date(todayStr() + 'T00:00:00');
+  if (!days.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1);
+  while (days.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+async function loadSkillsById(ctx) {
+  const all = await ctx.data.ChordSkills.list();
+  return Object.fromEntries(all.map((s) => [s.id, s]));
+}
+
+function todaysSessionIds(skillsById) {
+  // A brand-new user gets a fuller introductory session; after that, new
+  // concepts trickle in 3 per day alongside reviews.
+  const newLimit = Object.keys(skillsById).length ? 3 : 8;
+  return buildSession(skillsById, { size: 14, today: todayStr(), newLimit });
+}
+
+// The printable sheet: prompts up top (with space to work), answer key at the
+// bottom. Printed via the browser's own print-to-PDF — @media print CSS hides
+// the app and shows only this.
+function printPracticeSheet(sessionIds) {
+  const questions = sessionIds.map((cid) => makeQuestion(cid)).filter(Boolean);
+  const kindLabel = { spell: 'Spell these chords', name: 'Name these chords', voicing: 'Identify these voicings' };
+  const byKind = new Map();
+  questions.forEach((q, i) => {
+    if (!byKind.has(q.kind)) byKind.set(q.kind, []);
+    byKind.get(q.kind).push({ ...q, n: i + 1 });
+  });
+
+  const promptText = (q) => {
+    if (q.kind === 'spell') return q.prompt;
+    if (q.kind === 'name') return `${q.noteNames.join(' – ')}`;
+    // voicing: notes low→high, labels withheld (they'd give it away)
+    return `${q.prompt.replace('Which voicing of ', '').replace(' is this?', '')}, played as ${q.preNotes.map((n) => n.name).join(' – ')} (low to high)`;
+  };
+
+  const sheet = el('div', { class: 'mer-print-sheet' }, [
+    el('h1', { text: `Chord practice — ${fmtDate(todayStr())}` }),
+    ...[...byKind.entries()].flatMap(([kind, qs]) => [
+      el('h2', { text: kindLabel[kind] }),
+      el('ol', {}, qs.map((q) => el('li', {}, [
+        el('span', { text: promptText(q) }),
+        el('span', { class: 'mer-print-blank' }),
+      ]))),
+    ]),
+    el('h2', { class: 'mer-print-key-title', text: 'Answer key' }),
+    el('ol', { class: 'mer-print-key' }, questions.map((q) => el('li', { text: q.answer }))),
+  ]);
+  document.body.append(sheet);
+  const cleanup = () => sheet.remove();
+  window.addEventListener('afterprint', cleanup, { once: true });
+  window.print();
+  setTimeout(cleanup, 2000); // fallback if afterprint never fires
+}
+
+function renderDrillCard(area, ctx, rerender) {
+  const drill = state.drill;
+  const q = drill.questions[drill.index];
+
+  if (!q) {
+    area.append(el('div', { class: 'mer-task-detail' }, [
+      el('h2', { text: 'Session complete!' }),
+      el('p', {}, [el('strong', { text: `${drill.goodCount} of ${drill.questions.length} solid.` })]),
+      el('p', { class: 'mer-muted', text: 'Misses come back tomorrow; solid answers wait longer. Come back daily and the routine reshapes itself around what needs work.' }),
+      el('button', { type: 'button', text: '← Back to practice', onclick: () => { state.drill = null; rerender(); } }),
+    ]));
+    return;
+  }
+
+  const grade = async (g) => {
+    const existing = await ctx.data.ChordSkills.get(q.conceptId);
+    const next = gradeSkill(existing || {}, g, todayStr());
+    if (existing) await ctx.data.ChordSkills.update(q.conceptId, next);
+    else await ctx.data.ChordSkills.create({ id: q.conceptId, ...next });
+    await ctx.data.ChordDrillLogs.create({ conceptId: q.conceptId, date: todayStr(), grade: g });
+    if (g !== 'again') drill.goodCount++;
+    drill.index++;
+    drill.showAnswer = false;
+    rerender();
+  };
+
+  const card = el('div', { class: 'mer-task-detail' }, [
+    el('p', { class: 'mer-muted', text: `Question ${drill.index + 1} of ${drill.questions.length} · ${conceptById(q.conceptId)?.label || ''}` }),
+    el('h2', { text: q.prompt }),
+    q.noteNames ? el('div', { class: 'mer-place-meta' }, q.noteNames.map((n) => el('span', { class: 'mer-chip', text: n }))) : null,
+    q.preNotes ? diagramFor(q.preNotes) : null,
+    el('p', {}, [el('button', { type: 'button', class: 'mer-play-btn', text: '▶ Hear it', onclick: () => play(ctx, q.play) })]),
+    state.drill.showAnswer
+      ? el('div', {}, [
+        el('p', {}, [el('strong', { text: q.answer }), el('span', { class: 'mer-muted', text: q.answerDetail ? `  ${q.answerDetail}` : '' })]),
+        q.postNotes ? diagramFor(q.postNotes) : null,
+        el('p', { class: 'mer-muted', text: 'How did you do? (Be honest — the routine adapts to this.)' }),
+        el('div', { class: 'mer-toggle-group' }, [
+          el('button', { type: 'button', text: 'Missed it', onclick: () => grade('again') }),
+          el('button', { type: 'button', text: 'Got it', onclick: () => grade('good') }),
+          el('button', { type: 'button', text: 'Instant', onclick: () => grade('easy') }),
+        ]),
+      ])
+      : el('button', { type: 'button', text: 'Show answer', onclick: () => { state.drill.showAnswer = true; rerender(); } }),
+  ]);
+  area.append(card);
+}
+
+async function renderPractice(area, ctx, rerender) {
+  if (state.drill) { renderDrillCard(area, ctx, rerender); return; }
+
+  const [skillsById, logs] = await Promise.all([
+    loadSkillsById(ctx),
+    ctx.data.ChordDrillLogs.list(),
+  ]);
+  const summary = skillSummary(skillsById);
+  const streak = computeDrillStreak(logs.map((l) => l.date));
+  const sessionIds = todaysSessionIds(skillsById);
+
+  if (summary.totals.attempts) {
+    area.append(el('p', {}, [el('strong', { text: `🔥 ${streak}-day practice streak · ${summary.totals.attempts} drills · ${Math.round((summary.totals.correct / summary.totals.attempts) * 100)}% overall` })]));
+  } else {
+    area.append(el('p', { class: 'mer-muted', text: 'Quick self-graded drills — spell chords, recognize them by ear and eye, identify voicings. The app tracks what you miss and rebuilds tomorrow\'s routine around it, spaced-repetition style. First session introduces the basics.' }));
+  }
+
+  area.append(el('div', { class: 'mer-subsection-label', text: `Today's routine (${sessionIds.length})` }));
+  area.append(el('div', { class: 'mer-place-meta' }, sessionIds.map((cid) =>
+    el('span', { class: 'mer-chip', text: conceptById(cid)?.label || cid }))));
+  area.append(el('div', { class: 'mer-toolbar' }, [
+    el('button', {
+      type: 'button', class: 'mer-play-btn', text: `▶ Start session (${sessionIds.length})`,
+      onclick: () => {
+        state.drill = { questions: sessionIds.map((cid) => makeQuestion(cid)), index: 0, showAnswer: false, goodCount: 0 };
+        rerender();
+      },
+    }),
+    el('button', { type: 'button', text: '🖨️ Print practice sheet', title: 'Print or save as PDF via your browser', onclick: () => printPracticeSheet(sessionIds) }),
+  ]));
+
+  if (summary.weak.length) {
+    area.append(el('div', { class: 'mer-subsection-label', text: 'Needs work' }));
+    area.append(el('div', { class: 'mer-place-meta' }, summary.weak.map((w) =>
+      el('span', { class: 'mer-chip is-overdue', text: `${w.label} · ${Math.round(w.acc * 100)}%` }))));
+  }
+  if (summary.strong.length) {
+    area.append(el('div', { class: 'mer-subsection-label', text: 'Solid' }));
+    area.append(el('div', { class: 'mer-place-meta' }, summary.strong.map((s) =>
+      el('span', { class: 'mer-chip', text: `${s.label} · ${Math.round(s.acc * 100)}%` }))));
+  }
+}
+
 // --- Root ---
 
 const TABS = [
@@ -832,6 +989,7 @@ const TABS = [
   ['calculator', 'Calculator'],
   ['map', 'Harmony Map'],
   ['lessons', 'Lessons'],
+  ['practice', 'Practice'],
   ['sound', 'Sound'],
 ];
 
@@ -852,5 +1010,6 @@ export async function renderChords(canvas, ctx, rerender) {
   else if (state.tab === 'calculator') renderCalculator(area, ctx, rerender);
   else if (state.tab === 'map') renderMap(area, ctx, rerender);
   else if (state.tab === 'lessons') renderLessons(area, ctx, rerender);
+  else if (state.tab === 'practice') await renderPractice(area, ctx, rerender);
   else await renderSound(area, ctx, rerender);
 }

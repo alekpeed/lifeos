@@ -105,7 +105,7 @@ lets the whole app be redecorated later without rebuilding it:
   goal) with a one-click jump to that module
 - **Chords / harmony study** — deliberately a *study* tool (diagrams,
   theory, sound — no sequencing, tempo, or play-along; a real music-practice
-  app stays a separate future project). Six tabs: a chord Dictionary (any
+  app stays a separate future project). Seven tabs: a chord Dictionary (any
   root × 35 qualities, correctly spelled, with shell / Root-Shell-Pretty /
   drop 2-3-2&4 / rootless Bill Evans A-B / Kenny Barron / "So What" quartal /
   upper-structure voicings drawn on piano-keyboard and guitar-fretboard
@@ -132,7 +132,13 @@ lets the whole app be redecorated later without rebuilding it:
   ring, your key's six-chord wedge highlighted, plus the three diminished
   "engines" (every dominant's dim7 core with its four minor-third-family
   substitutes), all clickable back into the walkable map; 17 theory
-  lessons; and an
+  lessons; a Practice tab — self-graded spaced-repetition drills (spell a
+  chord, name it by its notes, identify a voicing from its diagram, each
+  playable) that track how well you know each concept (chord-quality family
+  or voicing type) and rebuild each day's routine around your weak spots,
+  Again/Good/Easy scheduling like the Languages flashcards, with a "needs
+  work / solid" readout and a printable practice sheet (browser print-to-PDF,
+  prompts up top and an answer key at the bottom — no new library); and an
   adjustable fully-synthesized sound engine (osc/FM/ADSR/EQ with Piano,
   Rhodes EP, Organ, Pad presets plus saveable custom presets — no samples,
   so nothing to license and it works offline).

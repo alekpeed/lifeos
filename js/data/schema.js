@@ -8,11 +8,12 @@
 // last-write-wins comparisons have something to read from day one.
 
 export const DB_NAME = 'lifeos';
-// v2 adds the `_tombstones` store for Drive sync (records deletions so they
+// v2 added the `_tombstones` store for Drive sync (records deletions so they
 // propagate between devices instead of resurrecting from the other device's
-// snapshot). runUpgrade in db.js creates any store that doesn't yet exist,
-// so this bump is non-destructive for existing data.
-export const DB_VERSION = 2;
+// snapshot). v3 adds `chordSkills`/`chordDrillLogs` for the chord practice
+// drills. runUpgrade in db.js creates any store that doesn't yet exist, so
+// these bumps are non-destructive for existing data.
+export const DB_VERSION = 3;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -91,6 +92,16 @@ export const STORES = [
   ] },
 
   { name: 'chordProgressions', keyPath: 'id' },
+
+  // Chord practice drills. `chordSkills` is keyed by CONCEPT id (e.g.
+  // 'spell:maj7', 'voicing:drop2') — one record per trackable skill, holding
+  // SRS state (interval/dueDate) and accuracy counters (attempts/correct).
+  // `chordDrillLogs` is the append-only history of every graded answer.
+  { name: 'chordSkills', keyPath: 'id' },
+  { name: 'chordDrillLogs', keyPath: 'id', indexes: [
+    { name: 'date', keyPath: 'date' },
+    { name: 'conceptId', keyPath: 'conceptId' },
+  ] },
 
   { name: 'financeSnapshots', keyPath: 'id', indexes: [
     { name: 'date', keyPath: 'date' },
