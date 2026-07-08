@@ -18,6 +18,15 @@ const URGENCY = [
 const URGENCY_RANK = { urgent: 0, soon: 1, normal: 2 };
 const KIND_ICON = { link: '🔗', note: '📝', file: '📎' };
 
+// A bare "espn.com" with no scheme is a valid <a href> — browsers resolve it
+// as a RELATIVE link against the current page instead of an external site.
+// Default to https:// whenever no scheme is present.
+function normalizeUrl(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed || /^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 function fmtWhen(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -85,7 +94,7 @@ function addForm(ctx, name, rerender) {
       type: 'button', text: 'Share link',
       onclick: async () => {
         if (!urlIn.value.trim()) return;
-        await ctx.data.ShareboxItems.create({ kind: 'link', url: urlIn.value.trim(), title: titleIn.value.trim(), urgency: state.urgency, postedBy });
+        await ctx.data.ShareboxItems.create({ kind: 'link', url: normalizeUrl(urlIn.value), title: titleIn.value.trim(), urgency: state.urgency, postedBy });
         rerender();
       },
     }));
@@ -124,7 +133,8 @@ function itemCard(item, files, ctx, rerender) {
 
   let bodyEl;
   if (item.kind === 'link') {
-    bodyEl = el('a', { href: item.url, target: '_blank', rel: 'noopener', text: item.title || item.url });
+    // Defensive: fixes links saved before normalizeUrl() existed too.
+    bodyEl = el('a', { href: normalizeUrl(item.url), target: '_blank', rel: 'noopener', text: item.title || item.url });
   } else if (item.kind === 'note') {
     bodyEl = el('div', { class: 'mer-person-name', text: item.body || '' });
   } else {
