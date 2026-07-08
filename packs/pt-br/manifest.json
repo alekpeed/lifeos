@@ -3,7 +3,7 @@
   "id": "pt-br",
   "name": "Brazilian Portuguese",
   "languageCode": "pt-BR",
-  "packVersion": "0.1.0",
+  "packVersion": "0.2.0",
   "basePack": null,
   "authors": ["PolyglotAI"],
   "license": "proprietary",
@@ -15,7 +15,7 @@
   "cefrRange": ["A1", "A2"],
   "featureFlags": { "slang": true, "profanity": true },
   "contents": {
-    "vocabulary": ["vocabulary/a1.json"],
+    "vocabulary": ["vocabulary/a1.json", "vocabulary/a2.json"],
     "phrases": ["phrases/core.json"],
     "grammar": ["grammar/core.json"],
     "slang": ["slang/general.json"],
