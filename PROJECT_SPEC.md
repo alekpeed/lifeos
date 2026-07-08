@@ -41,7 +41,15 @@ lets the whole app be redecorated later without rebuilding it:
   GPA, % complete + time spent per assignment, a time-invested-vs-grade view,
   course notes and key dates
 - **Books** — currently reading / to read / finished, reading streaks, pages
-  and estimated word counts, genre breakdown, author tracking, ratings/notes
+  and estimated word counts, genre breakdown, author tracking, ratings/notes.
+  Also a real **library**: attach the actual book file (EPUB / PDF / text) to
+  a book and read it right in the app — a built-in EPUB reader (chapters,
+  table of contents, font sizing, day/night, resumes where you left off,
+  images and the book's own styling preserved, all offline via a tiny
+  vendored unzip lib), PDFs in the browser's native viewer, and plain text
+  inline; every file also downloads. Plus a **Shelf** view: your books as
+  colored spines standing on shelves, grouped by status, taller for longer
+  books — click a spine to open it
 - **Recipes** — ingredients with scalable servings, steps, a "made it" cook
   log, grocery list generator
 - **Finance** (formerly "Bills") — Bills tab (recurring or one-time, amount/

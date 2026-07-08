@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v22';
+const CACHE_VERSION = 'lifeos-v23';
 const APP_SHELL = [
   './',
   './index.html',
@@ -29,6 +29,7 @@ const APP_SHELL = [
   './js/interfaces/default/views/links.js',
   './js/interfaces/default/views/education.js',
   './js/interfaces/default/views/books.js',
+  './js/interfaces/default/views/reader.js',
   './js/interfaces/default/views/recipes.js',
   './js/interfaces/default/views/finance.js',
   './js/interfaces/default/views/documents.js',
@@ -51,6 +52,8 @@ const APP_SHELL = [
   './js/theory/graph.js',
   './js/theory/drills.js',
   './js/audio/synth.js',
+  './js/reader/epub.js',
+  './vendor/fflate/fflate.module.js',
   './vendor/leaflet/leaflet.js',
   './vendor/leaflet/leaflet.css',
   './vendor/leaflet/images/marker-icon.png',

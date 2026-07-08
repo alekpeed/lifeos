@@ -1,4 +1,5 @@
 import { el, fmtDate, todayStr } from '../dom.js';
+import { openReader, readerCanOpen } from './reader.js';
 
 const STATUSES = [
   { value: 'to_read', label: 'To Read' },
@@ -7,9 +8,29 @@ const STATUSES = [
 ];
 
 let state = {
-  tab: 'reading', // reading | to_read | finished | stats
+  tab: 'reading', // reading | to_read | finished | shelf | stats
   selectedId: null,
 };
+
+// Covers are image attachments; book files (EPUB/PDF/TXT) are everything else.
+// This is how one Book record holds both without a schema change.
+const isCover = (a) => (a.mimeType || '').startsWith('image/');
+const fileIcon = (a) => {
+  const n = (a.filename || '').toLowerCase();
+  if (a.mimeType === 'application/epub+zip' || n.endsWith('.epub')) return '📗';
+  if (a.mimeType === 'application/pdf' || n.endsWith('.pdf')) return '📕';
+  if ((a.mimeType || '').startsWith('text/') || /\.(txt|md)$/.test(n)) return '📄';
+  return '📎';
+};
+
+function downloadAttachment(att) {
+  const url = URL.createObjectURL(att.blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = att.filename || 'book-file';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 function starRating(value, onChange) {
   const row = el('div', { class: 'mer-stars' });
@@ -89,9 +110,52 @@ function readingLogSection(book, logs, ctx, rerender) {
   return el('div', {}, [list, el('div', { class: 'mer-person-form' }, [pagesInput, logBtn])]);
 }
 
+// --- Book files (EPUB / PDF / TXT) ---
+
+function filesSection(book, files, ctx, rerender) {
+  const list = el('div', { class: 'mer-people-list' });
+  for (const f of files) {
+    const canRead = readerCanOpen(f);
+    list.append(el('div', { class: 'mer-person-card' }, [
+      el('div', { class: 'mer-person-info' }, [
+        el('div', { class: 'mer-person-name', text: `${fileIcon(f)} ${f.filename || '(file)'}` }),
+        el('div', { class: 'mer-person-meta', text: f.mimeType || 'file' }),
+      ]),
+      canRead ? el('button', {
+        type: 'button', class: 'mer-play-btn', text: 'Read',
+        onclick: () => openReader(f, ctx, {
+          startChapter: book.readingLocation?.attachmentId === f.id ? (book.readingLocation.chapter || 0) : 0,
+          onLocation: (ch) => ctx.data.Books.update(book.id, { readingLocation: { attachmentId: f.id, chapter: ch } }),
+        }),
+      }) : null,
+      el('button', { type: 'button', text: 'Download', onclick: () => downloadAttachment(f) }),
+      el('button', {
+        type: 'button', class: 'mer-icon-btn', text: '×', title: 'Remove file',
+        onclick: async () => { if (confirm('Remove this file from the book?')) { await ctx.data.Attachments.remove(f.id); rerender(); } },
+      }),
+    ]));
+  }
+
+  const addLabel = el('label', { class: 'mer-photo-add mer-file-add' }, [
+    el('span', { text: '+ Add book file (EPUB / PDF / text)' }),
+    el('input', {
+      type: 'file', accept: '.epub,.pdf,.txt,.md,application/epub+zip,application/pdf,text/plain',
+      onchange: async (e) => {
+        const file = e.target.files[0];
+        if (file) await ctx.data.createAttachment(file, 'books', book.id);
+        rerender();
+      },
+    }),
+  ]);
+
+  return el('div', {}, [files.length ? list : el('p', { class: 'mer-muted', text: 'No files yet — add an EPUB, PDF, or text file to read it right here.' }), addLabel]);
+}
+
 // --- Detail editor ---
 
-function detailEditor(book, cover, logs, ctx, rerender, wordsPerPage) {
+function detailEditor(book, attachments, logs, ctx, rerender, wordsPerPage) {
+  const cover = attachments.find(isCover);
+  const files = attachments.filter((a) => !isCover(a));
   const patch = (fields) => ctx.data.Books.update(book.id, fields).then(rerender);
   const field = (labelText, inputEl) => el('label', { class: 'mer-field' }, [el('span', { text: labelText }), inputEl]);
 
@@ -138,6 +202,8 @@ function detailEditor(book, cover, logs, ctx, rerender, wordsPerPage) {
       ? el('p', { class: 'mer-muted', text: `Est. ${words.toLocaleString()} words total · ~${wordsReadSoFar.toLocaleString()} read so far` })
       : null,
     field('Notes', notesInput),
+    el('div', { class: 'mer-subsection-label', text: 'Files' }),
+    filesSection(book, files, ctx, rerender),
     el('div', { class: 'mer-subsection-label', text: 'Cover' }),
     coverPlaceholder,
     el('div', { class: 'mer-subsection-label', text: 'Reading log' }),
@@ -234,12 +300,54 @@ async function renderStats(container, ctx, books, wordsPerPage) {
 // --- Toolbar ---
 
 function tabsBar(rerender) {
+  const tab = (id, label) => el('button', {
+    type: 'button', class: state.tab === id ? 'is-active' : '', text: label,
+    onclick: () => { state.tab = id; rerender(); },
+  });
   return el('div', { class: 'mer-toggle-group' }, [
-    el('button', { type: 'button', class: state.tab === 'reading' ? 'is-active' : '', text: 'Reading', onclick: () => { state.tab = 'reading'; rerender(); } }),
-    el('button', { type: 'button', class: state.tab === 'to_read' ? 'is-active' : '', text: 'To Read', onclick: () => { state.tab = 'to_read'; rerender(); } }),
-    el('button', { type: 'button', class: state.tab === 'finished' ? 'is-active' : '', text: 'Finished', onclick: () => { state.tab = 'finished'; rerender(); } }),
-    el('button', { type: 'button', class: state.tab === 'stats' ? 'is-active' : '', text: 'Stats', onclick: () => { state.tab = 'stats'; rerender(); } }),
+    tab('reading', 'Reading'), tab('to_read', 'To Read'), tab('finished', 'Finished'),
+    tab('shelf', 'Shelf'), tab('stats', 'Stats'),
   ]);
+}
+
+// --- Bookshelf: books as spines standing on shelves, grouped by status. ---
+
+function hueFromString(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+}
+
+function bookSpine(book, onSelect) {
+  // Taller spine = longer book (clamped); color keyed to genre or title.
+  const pages = book.totalPages || 0;
+  const height = Math.max(130, Math.min(230, 130 + pages / 6));
+  const hue = hueFromString(book.genre || book.author || book.title || 'book');
+  const spine = el('div', {
+    class: 'mer-spine',
+    style: `height:${Math.round(height)}px; --spine-h:${hue};`,
+    title: `${book.title || '(untitled)'}${book.author ? ' — ' + book.author : ''}`,
+  }, [
+    el('div', { class: 'mer-spine-title', text: book.title || '(untitled)' }),
+    book.author ? el('div', { class: 'mer-spine-author', text: book.author }) : null,
+  ]);
+  spine.addEventListener('click', () => onSelect(book.id));
+  return spine;
+}
+
+function renderShelf(area, books, onSelect) {
+  if (!books.length) {
+    area.append(el('p', { class: 'mer-muted', text: 'No books yet — add some and they’ll line up on the shelf.' }));
+    return;
+  }
+  for (const status of STATUSES) {
+    const shelfBooks = books.filter((b) => (b.status || 'to_read') === status.value);
+    if (!shelfBooks.length) continue;
+    area.append(el('div', { class: 'mer-subsection-label', text: status.label }));
+    const shelf = el('div', { class: 'mer-shelf' },
+      shelfBooks.map((b) => bookSpine(b, onSelect)));
+    area.append(el('div', { class: 'mer-shelf-wrap' }, [shelf]));
+  }
 }
 
 export async function renderBooks(canvas, ctx, rerender) {
@@ -250,7 +358,8 @@ export async function renderBooks(canvas, ctx, rerender) {
 
   const row = el('div', { class: 'mer-toolbar' }, [tabsBar(rerender)]);
 
-  if (state.tab !== 'stats') {
+  const isStatusTab = ['reading', 'to_read', 'finished'].includes(state.tab);
+  if (isStatusTab) {
     const quickAdd = el('input', {
       type: 'text', class: 'mer-quick-add', placeholder: '+ New book — type a title and press Enter',
       onkeydown: async (e) => {
@@ -266,31 +375,35 @@ export async function renderBooks(canvas, ctx, rerender) {
   const area = el('div', { class: 'mer-task-list-area' });
   canvas.append(area);
 
+  const onSelect = (id) => { state.selectedId = state.selectedId === id ? null : id; rerender(); };
+
   if (state.tab === 'stats') {
     await renderStats(area, ctx, books, wordsPerPage);
     return;
   }
 
-  const filtered = books.filter((b) => (b.status || 'to_read') === state.tab);
-  const onSelect = (id) => { state.selectedId = state.selectedId === id ? null : id; rerender(); };
-
-  if (!filtered.length) {
-    area.append(el('p', { class: 'mer-muted', text: 'No books here yet.' }));
+  if (state.tab === 'shelf') {
+    renderShelf(area, books, onSelect);
   } else {
-    const grid = el('div', { class: 'mer-place-grid' });
-    area.append(grid);
-    const covers = await Promise.all(filtered.map((b) => ctx.data.getAttachmentsFor('books', b.id)));
-    filtered.forEach((book, i) => grid.append(bookCard(book, covers[i][0], ctx, onSelect)));
+    const filtered = books.filter((b) => (b.status || 'to_read') === state.tab);
+    if (!filtered.length) {
+      area.append(el('p', { class: 'mer-muted', text: 'No books here yet.' }));
+    } else {
+      const grid = el('div', { class: 'mer-place-grid' });
+      area.append(grid);
+      const attsList = await Promise.all(filtered.map((b) => ctx.data.getAttachmentsFor('books', b.id)));
+      filtered.forEach((book, i) => grid.append(bookCard(book, attsList[i].find(isCover), ctx, onSelect)));
+    }
   }
 
   if (state.selectedId) {
     const book = books.find((b) => b.id === state.selectedId);
     if (book) {
-      const [cover, logs] = await Promise.all([
-        ctx.data.getAttachmentsFor('books', book.id).then((a) => a[0]),
+      const [attachments, logs] = await Promise.all([
+        ctx.data.getAttachmentsFor('books', book.id),
         ctx.data.ReadingLogs.byIndex('bookId', book.id),
       ]);
-      canvas.append(detailEditor(book, cover, logs, ctx, rerender, wordsPerPage));
+      canvas.append(detailEditor(book, attachments, logs, ctx, rerender, wordsPerPage));
     }
   }
 }
