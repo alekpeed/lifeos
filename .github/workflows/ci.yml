@@ -21,9 +21,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r typecheck
       - run: pnpm -r test
-      # TODO: once packs/pt-br is authored (plan §6), add a step here validating it via
-      # `pnpm --filter @polyglotai/language-pack-sdk run validate ../../packs/pt-br`
-      # and gating merge on its §10.1 content-volume report.
+      - name: Validate pt-br pack (schema, cross-refs, §10.1 volume targets)
+        run: pnpm --filter @polyglotai/language-pack-sdk run validate ../../packs/pt-br
 
   rust-tests:
     name: Rust migration tests

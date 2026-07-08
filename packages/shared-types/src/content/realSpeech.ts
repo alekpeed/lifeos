@@ -17,7 +17,7 @@ export const RealSpeechItemSchema = z.object({
   natural: z.string().optional(),
   register: RegisterSchema,
   severity: SeveritySchema,
-  region: z.string().optional(),
+  region: z.string().nullable().optional(), // null = explicitly nationwide, not "unspecified"
   whoUses: z.string().optional(),
   usageContext: z.string().optional(),
   learnerShouldUse: LearnerShouldUseSchema,

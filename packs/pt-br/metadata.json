@@ -1,5 +1,7 @@
 {
-  "description": "Brazilian Portuguese seed pack. This is a SMALL initial slice used to exercise the app end-to-end (import, review, libraries). It does NOT yet meet the §10.1 MVP Seed Pack Target volumes (300 vocab / 75 phrases / 25 grammar / 25 dialogues / 20 slang-register / 20 pronunciation drills / 10 listening / 10 writing / 10 assessments / 5 roleplay); expanding to those counts is tracked as a separate content-authoring task, authored by Claude and reviewed by the owner.",
-  "coverage": "A1 everyday basics, a taste of register (formal você vs informal, one profanity item recognize-only), SP/RJ slang tags.",
-  "status": "seed-partial"
+  "description": "Brazilian Portuguese language pack for adult real-world learning. Meets the §10.1 MVP Seed Pack Target in full: 300 vocabulary, 75 core phrases, 25 grammar points, 25 dialogues, 20 slang/register items, 20 pronunciation drills, 10 listening exercises, 10 writing prompts, 10 assessments, 5 roleplay scenarios.",
+  "coverage": "A1-A2 everyday + adult real-world speech: courtesy through profanity (severity 1-7, with recognize-only/avoid guidance), formal/informal register contrast (você/tu/o senhor, a gente), spoken-Brazilian reality (contractions, ir+infinitive future, pronoun fronting), SP vs RJ regional variation, and pronunciation features with no clean English analog (nasal vowels, r/rr, de/ti palatalization, open/closed e-o metaphony).",
+  "status": "tier-1-complete",
+  "reviewStatus": "authored-by-claude-pending-native-review",
+  "editorialNotes": "Identity-based slurs (racial, homophobic, ableist) were deliberately EXCLUDED from the profanity set pending explicit owner review of framing before any inclusion, even as recognize-only. See NATIVE_REVIEW.md for the full list of items flagged by the authoring agents for a native speaker's sign-off."
 }
