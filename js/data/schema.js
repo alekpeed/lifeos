@@ -11,9 +11,11 @@ export const DB_NAME = 'lifeos';
 // v2 added the `_tombstones` store for Drive sync (records deletions so they
 // propagate between devices instead of resurrecting from the other device's
 // snapshot). v3 adds `chordSkills`/`chordDrillLogs` for the chord practice
-// drills. runUpgrade in db.js creates any store that doesn't yet exist, so
-// these bumps are non-destructive for existing data.
-export const DB_VERSION = 3;
+// drills. v4 adds the Sharebox stores (`shareboxItems`, `shareboxFiles`,
+// `_shareboxTombstones`) for the shared-with-a-friend space. runUpgrade in
+// db.js creates any store that doesn't yet exist, so these bumps are
+// non-destructive for existing data.
+export const DB_VERSION = 4;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -148,6 +150,21 @@ export const STORES = [
   // deletion is uniquely addressable across stores. Never surfaced in the
   // UI; travels in each device's snapshot so deletes propagate.
   { name: '_tombstones', keyPath: 'key' },
+
+  // Sharebox: a small space shared with a friend through a Drive folder you
+  // both pick (separate from your private LifeOS/ sync — nothing here touches
+  // your other modules). Items are links/notes/files with an urgency flag and
+  // a "postedBy" name. File binaries live in `shareboxFiles` (kept out of the
+  // generic attachments store so personal sync never uploads shared files to
+  // your private Drive). Deletions log to a SEPARATE tombstone store because
+  // personal sync clears/rewrites `_tombstones` on every run.
+  { name: 'shareboxItems', keyPath: 'id', indexes: [
+    { name: 'urgency', keyPath: 'urgency' },
+  ] },
+  { name: 'shareboxFiles', keyPath: 'id', indexes: [
+    { name: 'itemId', keyPath: 'itemId' },
+  ] },
+  { name: '_shareboxTombstones', keyPath: 'key' },
 ];
 
 export const STORE_NAMES = STORES.map((s) => s.name);

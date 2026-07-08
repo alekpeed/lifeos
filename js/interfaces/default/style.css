@@ -1057,3 +1057,11 @@
   writing-mode: vertical-rl; font-size: 0.62rem; opacity: 0.75; margin-top: 0.3rem;
   white-space: nowrap; overflow: hidden; max-height: 5.5rem;
 }
+
+/* --- Sharebox --- */
+
+[data-interface='default'] .mer-sharebox-item { align-items: center; gap: var(--space-sm); }
+[data-interface='default'] .mer-sharebox-icon { font-size: 1.2rem; flex: 0 0 auto; }
+[data-interface='default'] .mer-urg-urgent { color: var(--color-danger); border: 1px solid var(--color-danger); }
+[data-interface='default'] .mer-urg-soon { color: var(--color-warning); border: 1px solid var(--color-warning); }
+[data-interface='default'] .mer-urg-normal { color: var(--color-text-faint); }

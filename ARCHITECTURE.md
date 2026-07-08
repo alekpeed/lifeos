@@ -120,3 +120,26 @@ scopes" on that one call even though event operations work fine with it alone.
 - **Reads through `db.*` directly** (not `api.js`), avoiding a circular import
   and keeping the boundary clean; its metadata (`calendarId`,
   `calendarLastSyncedAt`, `calendarEnabled`) lives in device-local `settings`.
+
+### Sharebox — shared-with-a-friend space
+`sharebox-sync.js` + `picker.js` + `gapi.js` + `sync-config.js`; api:
+`connectSharebox`, `syncShareboxNow`, `disconnectSharebox`, `getShareboxState`.
+Scope `drive.file` (same token as Drive sync).
+
+- **Same engine, different folder.** It literally reuses `mergeState()` from
+  `sync.js` (now parameterized by store list) — per-device snapshot files,
+  last-write-wins, tombstones — but in a folder you and a friend both select
+  via the **Google Picker**. drive.file can't see a folder the app didn't
+  create; picking it through the Picker is what grants access. The Picker
+  needs a browser API key (`GOOGLE_API_KEY`, restricted to the Picker API and
+  the app's domain — not a secret).
+- **Walled off from personal data.** Its stores (`shareboxItems`,
+  `shareboxFiles`) are excluded from personal sync's `SYNC_STORES`, so shared
+  items never touch your private LifeOS/ folder, and file binaries live in
+  `shareboxFiles` rather than the generic `attachments` store (which personal
+  sync uploads). Deletes log to a **separate** `_shareboxTombstones` store
+  because personal sync clears/rewrites `_tombstones` every run.
+- **Disconnect keeps the token** (it's shared with Drive sync — forgetting it
+  would break that); it only clears the folder link. Item deletes cascade to
+  their files; there are no accounts, so each device sets its own display name
+  (`shareboxName`) stamped onto items as `postedBy`.

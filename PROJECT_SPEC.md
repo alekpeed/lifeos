@@ -176,6 +176,19 @@ lets the whole app be redecorated later without rebuilding it:
   core and full IO path are tested; the one unverifiable-without-you piece is
   the live Calendar consent grant (same as Drive was — you approve a Calendar
   permission the first time you connect).
+- **Sharebox** — a small space shared with one friend: links, notes, and
+  files, each with an urgency flag (normal / soon / urgent) and a "posted by"
+  name (no accounts — each device sets its own). It syncs through a Google
+  Drive folder you both pick via the Google Picker, using the same proven
+  engine as Drive sync (per-device snapshots, last-write-wins, tombstones for
+  deletes) — just pointed at the shared folder. Kept completely walled off
+  from the rest of your data: separate stores, its own tombstone log, and file
+  binaries that never enter your private Drive. Add things anytime (they live
+  locally first) and they reconcile with your friend's copy on sync. The
+  engine and full IO path are tested against a fake Picker + Drive; the live
+  pieces you verify are the one-time Picker folder-grant (you did the Picker
+  API key + shared the "Sharebox" folder) and your friend doing the same on
+  her end.
 
 ### Still to build 📋
 - **AI assistant modules** (Claude/ChatGPT/Gemini panels) + cross-LLM relay +
@@ -184,7 +197,6 @@ lets the whole app be redecorated later without rebuilding it:
   calls may hit CORS restrictions that won't be known until tested live.
   Treat as "needs a follow-up session with you present," not a solo build.
 - **AI-written yearly recap** — needs a working AI module first (see above)
-- **A friend-sharing "Sharebox"** — see Section 4
 
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you
@@ -212,9 +224,10 @@ Everything below came out of talking through what would actually feel
   than browser push notifications, especially on iPhone). Chosen deliberately
   over WhatsApp/Google Messages/iMessage, which don't have a clean, personal,
   automatable API.
-- **A friend-sharing "Sharebox"** — a small module inside Life OS for you,
-  plus a separate lightweight companion app for a friend, both reading/writing
-  the same shared Google Drive folder (links, notes, urgency flags, files)
+- **Sharebox** — the in-app module is now BUILT (see Built ✅ above); the
+  remaining idea is a separate *lightweight companion app* for a friend who
+  doesn't run full Life OS, reading/writing the same shared folder — plus a
+  possible friend-mesh version (several friends, pairwise shared folders).
 - **AI-written yearly recap** — once an AI module can read your data, have it
   draft the actual recap narrative, not just tally up numbers (the recap's
   numbers-driven aggregation already exists in Milestones)
@@ -224,7 +237,7 @@ Everything below came out of talking through what would actually feel
 1. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
 2. AI-written recap (needs an AI module first)
 3. Additional interfaces (Vespera, LCARS)
-4. Sharebox companion app for your friend
+4. Sharebox companion app / friend-mesh (the in-app Sharebox itself is built)
 5. Someday: a standalone music-practice app (progressions, play-along,
    melody-aware voicing) — deliberately out of LifeOS scope
 

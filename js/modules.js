@@ -17,6 +17,7 @@ export const MODULES = [
   { id: 'contacts', label: 'Contacts', group: 'life' },
   { id: 'milestones', label: 'Milestones', group: 'life' },
   { id: 'photos', label: 'Photos', group: 'life' },
+  { id: 'sharebox', label: 'Sharebox', group: 'life' },
   { id: 'languages', label: 'Languages', group: 'study' },
   { id: 'chords', label: 'Chords', group: 'study' },
   { id: 'habits', label: 'Habits', group: 'health' },

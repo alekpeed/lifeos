@@ -33,6 +33,23 @@ export const CALENDAR_SCOPES = `${CALENDAR_SCOPE} ${CALENDAR_LIST_SCOPE}`;
 
 export const GIS_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 
+// Sharebox (the shared-with-a-friend space) reuses the drive.file scope. The
+// friend's shared folder isn't created by this app, so drive.file can't see it
+// on its own — but selecting it through the Google Picker grants per-folder
+// access under drive.file. That's the whole reason the Picker is needed.
+//
+// The Picker needs a browser API key (unlike the OAuth flow). It's NOT a
+// secret — API keys are designed for client-side use — and this one is
+// restricted (in the Cloud console) to the Picker API and this app's domain.
+export const GOOGLE_API_KEY = 'AIzaSyC7OemO_wVe-ovBgADFM5hVdNwJ83Lzl9g';
+export const PICKER_API_URL = 'https://apis.google.com/js/api.js';
+
+// Per-device Sharebox snapshot files + attachment binaries, kept in the SHARED
+// folder (not the user's private LifeOS/ folder). Named distinctly so a shared
+// folder that happens to hold other things stays uncluttered and findable.
+export const SHAREBOX_SNAPSHOT_PREFIX = 'sharebox-snapshot-';
+export const SHAREBOX_ATTACHMENT_PREFIX = 'sharebox-att-';
+
 // The visible folder in the user's Drive where all app data lives.
 export const DRIVE_FOLDER_NAME = 'LifeOS';
 

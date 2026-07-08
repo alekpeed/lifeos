@@ -25,6 +25,7 @@ import { renderHealth } from './views/health.js';
 import { renderPhotos } from './views/photos.js';
 import { renderLanguages } from './views/languages.js';
 import { renderChords } from './views/chords.js';
+import { renderSharebox } from './views/sharebox.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -88,6 +89,7 @@ const VIEWS = {
   photos: renderPhotos,
   languages: renderLanguages,
   chords: renderChords,
+  sharebox: renderSharebox,
 };
 
 // --- Interface contract implementation ---

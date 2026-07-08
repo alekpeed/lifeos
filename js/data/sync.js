@@ -25,8 +25,13 @@ import {
 } from './sync-config.js';
 
 // Everything except plain key-value settings (device-local preferences with
-// no per-key timestamps to merge) and the tombstone log (travels separately).
-const SYNC_STORES = STORE_NAMES.filter((n) => n !== 'settings' && n !== '_tombstones');
+// no per-key timestamps to merge), the tombstone logs (travel separately), and
+// the Sharebox stores (synced through the SHARED folder by sharebox-sync.js,
+// never through the user's private LifeOS/ folder).
+const SHAREBOX_STORES = ['shareboxItems', 'shareboxFiles', '_shareboxTombstones'];
+const SYNC_STORES = STORE_NAMES.filter(
+  (n) => n !== 'settings' && n !== '_tombstones' && !SHAREBOX_STORES.includes(n)
+);
 
 let inFlight = null; // serializes concurrent sync() calls
 
@@ -48,8 +53,10 @@ async function getDeviceId() {
 // --- pure merge (no IO, unit-testable) ---
 // localStores: { store: [records] }; localTombstones: [tomb];
 // remoteSnapshots: [{ stores: {store:[records]}, tombstones:[tomb] }]
+// storeNames: which stores to reconcile (defaults to the personal-sync set;
+//   sharebox-sync.js passes its own store list to reuse this exact core).
 // Returns { live: {store: [records]}, tombstones: [tomb], driveDeletes: [id] }
-export function mergeState(localStores, localTombstones, remoteSnapshots) {
+export function mergeState(localStores, localTombstones, remoteSnapshots, storeNames = SYNC_STORES) {
   // 1. Fold all tombstones: keep the latest deletedAt per key, and remember
   //    any driveFileId ever seen for it.
   const tombMap = new Map(); // key -> { key, store, id, deletedAt, driveFileId }
@@ -75,9 +82,9 @@ export function mergeState(localStores, localTombstones, remoteSnapshots) {
     return a;
   };
   const recMaps = {}; // store -> Map(id -> record)
-  for (const store of SYNC_STORES) recMaps[store] = new Map();
+  for (const store of storeNames) recMaps[store] = new Map();
   const foldRecords = (stores) => {
-    for (const store of SYNC_STORES) {
+    for (const store of storeNames) {
       for (const rec of stores[store] || []) {
         const m = recMaps[store];
         const prev = m.get(rec.id);
@@ -93,7 +100,7 @@ export function mergeState(localStores, localTombstones, remoteSnapshots) {
   //    AFTER a delete (edit-wins-if-later) correctly resurrects the record.
   const live = {};
   const driveDeletes = [];
-  for (const store of SYNC_STORES) {
+  for (const store of storeNames) {
     live[store] = [];
     for (const rec of recMaps[store].values()) {
       const tomb = tombMap.get(`${store}:${rec.id}`);

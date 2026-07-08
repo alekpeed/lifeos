@@ -17,6 +17,10 @@ export { connectDrive, syncNow, disconnectDrive, getSyncState } from './sync.js'
 // surface. Independent of Drive sync — either can be used without the other.
 export { connectCalendar, syncCalendarNow, disconnectCalendar, getCalendarState } from './calendar.js';
 
+// Sharebox: a space shared with a friend through a Drive folder you both pick.
+// Synced separately from personal data through that shared folder.
+export { connectSharebox, syncShareboxNow, disconnectSharebox, getShareboxState } from './sharebox-sync.js';
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -95,6 +99,43 @@ export const LanguageLessons = entities.languageLessons;
 export const ChordProgressions = entities.chordProgressions;
 export const ChordSkills = entities.chordSkills;
 export const ChordDrillLogs = entities.chordDrillLogs;
+export const ShareboxItems = entities.shareboxItems;
+export const ShareboxFiles = entities.shareboxFiles;
+
+// Sharebox deletes log to their OWN tombstone store (personal sync clears
+// `_tombstones` on every run, which would wipe shared-space deletions). The
+// generic entity remove would write to `_tombstones`, so both are overridden.
+async function recordShareboxTombstone(store, id, extra = {}) {
+  await db.put('_shareboxTombstones', { key: `${store}:${id}`, store, id, deletedAt: nowIso(), ...extra });
+}
+
+ShareboxFiles.remove = async (id) => {
+  const existing = await db.get('shareboxFiles', id);
+  await db.remove('shareboxFiles', id);
+  await recordShareboxTombstone('shareboxFiles', id, existing?.driveFileId ? { driveFileId: existing.driveFileId } : {});
+  events.emit('shareboxFiles', { action: 'remove', id });
+};
+
+ShareboxItems.remove = async (id) => {
+  // Cascade: removing an item removes its attached files (and their tombstones).
+  const files = await db.getAllByIndex('shareboxFiles', 'itemId', id);
+  for (const f of files) await ShareboxFiles.remove(f.id);
+  await db.remove('shareboxItems', id);
+  await recordShareboxTombstone('shareboxItems', id);
+  events.emit('shareboxItems', { action: 'remove', id });
+};
+
+export async function createShareboxFile(file, itemId) {
+  return ShareboxFiles.create({ itemId, filename: file.name, mimeType: file.type, blob: file, driveFileId: null });
+}
+
+export async function getShareboxFilesFor(itemId) {
+  return db.getAllByIndex('shareboxFiles', 'itemId', itemId);
+}
+
+export function shareboxFileUrl(file) {
+  return file?.blob ? URL.createObjectURL(file.blob) : null;
+}
 export const FinanceSnapshots = entities.financeSnapshots;
 export const SavingsGoals = entities.savingsGoals;
 export const Subscriptions = entities.subscriptions;
@@ -271,6 +312,9 @@ const SETTING_DEFAULTS = {
   // How far ahead (days) due items are mirrored into Google Calendar. Read by
   // the Calendar sync engine; overdue-but-open items are always included too.
   calendarHorizonDays: 90,
+  // The name shown next to items you post in Sharebox (there are no accounts,
+  // so each device sets its own). Empty until you set it.
+  shareboxName: '',
   // Manual/editable rate table (not a live feed) so the currency converter
   // stays usable fully offline. Rates are "1 <currency> = N base units" with
   // USD as the implicit base; edit them from the Tools module as needed.

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v23';
+const CACHE_VERSION = 'lifeos-v24';
 const APP_SHELL = [
   './',
   './index.html',
@@ -16,6 +16,8 @@ const APP_SHELL = [
   './js/data/sync-config.js',
   './js/data/gapi.js',
   './js/data/calendar.js',
+  './js/data/sharebox-sync.js',
+  './js/data/picker.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
   './js/interfaces/default/index.js',
@@ -42,6 +44,7 @@ const APP_SHELL = [
   './js/interfaces/default/views/photos.js',
   './js/interfaces/default/views/languages.js',
   './js/interfaces/default/views/chords.js',
+  './js/interfaces/default/views/sharebox.js',
   './js/theory/notes.js',
   './js/theory/chords.js',
   './js/theory/voicings.js',
