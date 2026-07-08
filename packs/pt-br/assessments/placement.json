@@ -10,7 +10,154 @@
       "steps": [
         { "type": "quiz", "prompt": "Translate: 'I want a glass of water.'", "answer": "Quero um copo de água." },
         { "type": "quiz", "prompt": "Choose ser or estar: 'Eu ___ cansado.' (tired)", "answer": "estou" },
-        { "type": "quiz", "prompt": "What does 'Quanto custa?' mean?", "answer": "How much does it cost?" }
+        { "type": "quiz", "prompt": "What does 'Quanto custa?' mean?", "answer": "How much does it cost?" },
+        { "type": "quiz", "prompt": "A hotel receptionist greets you with 'Boa tarde, tudo bem?'. Is 'E aí, beleza?' a matching reply?", "answer": "No — the receptionist is polite-formal; reply in kind: 'Boa tarde, tudo bem, obrigado.'" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a1-verbs",
+    "lessonType": "assessment",
+    "title": "Placement: present tense basics (A1)",
+    "cefr": "A1",
+    "sequence": 2,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Conjugate: 'Eu ___ português um pouco.' (falar)", "answer": "falo" },
+        { "type": "quiz", "prompt": "Conjugate: 'Ela ___ pão todo dia.' (comer)", "answer": "come" },
+        { "type": "quiz", "prompt": "Translate: 'We drink coffee at home today.'", "answer": "A gente bebe café em casa hoje. (or: Nós bebemos café em casa hoje.)" },
+        { "type": "quiz", "prompt": "Ser or estar: 'Meu amigo ___ na rua agora.' (location, right now)", "answer": "está" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a1-phrases",
+    "lessonType": "assessment",
+    "title": "Placement: survival phrases (A1)",
+    "cefr": "A1",
+    "sequence": 3,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "You didn't understand what someone said. What do you say?", "answer": "Não entendi. Pode repetir, por favor?" },
+        { "type": "quiz", "prompt": "How do you get a stranger's attention politely before asking a question?", "answer": "Com licença..." },
+        { "type": "quiz", "prompt": "Translate: 'Please, a coffee with milk. Thank you!'", "answer": "Por favor, um café com leite. Obrigado! (or Obrigada!)" },
+        { "type": "quiz", "prompt": "Which thanks fits paying a street vendor you just haggled with: 'Valeu!' or 'Agradeço imensamente'?", "answer": "'Valeu!' — casual settings take casual thanks; 'Agradeço imensamente' would sound comically stiff." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a1a2-past",
+    "lessonType": "assessment",
+    "title": "Placement: perfeito vs. imperfeito (A1-A2)",
+    "cefr": "A2",
+    "sequence": 4,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Perfeito or imperfeito? 'Ontem eu ___ (comer) pão na padaria.' (one completed event)", "answer": "comi — completed past event takes the perfeito." },
+        { "type": "quiz", "prompt": "Perfeito or imperfeito? 'Quando eu era criança, eu ___ (beber) leite todo dia.' (habit)", "answer": "bebia — repeated/habitual past takes the imperfeito." },
+        { "type": "quiz", "prompt": "Translate: 'I was talking with a friend when you called.'", "answer": "Eu estava falando com um amigo quando você ligou. (imperfeito background + perfeito interruption)" },
+        { "type": "quiz", "prompt": "Why 'A festa foi ótima' but 'A festa era na casa dele'?", "answer": "'foi' (perfeito) sums up the finished event; 'era' (imperfeito) describes setting/circumstance." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a1a2-contractions",
+    "lessonType": "assessment",
+    "title": "Placement: contractions (A1-A2)",
+    "cefr": "A2",
+    "sequence": 5,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Contract: 'em + a' → ? 'Moro ___ rua principal.'", "answer": "na (Moro na rua principal.)" },
+        { "type": "quiz", "prompt": "Contract: 'de + o' → ? 'Sou ___ Rio.'", "answer": "do (Sou do Rio.)" },
+        { "type": "quiz", "prompt": "Fill in: 'Vou ___ praia ___ sábado.' (a + a; em + o)", "answer": "Vou à praia no sábado. (a+a = à with crase; em+o = no)" },
+        { "type": "quiz", "prompt": "What do 'pelo' and 'pela' contract?", "answer": "por + o = pelo, por + a = pela (e.g. Obrigado pela ajuda)." },
+        { "type": "quiz", "prompt": "Spot the error: 'Gosto de o café de a padaria.'", "answer": "Contractions are mandatory: 'Gosto do café da padaria.'" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a1a2-questions",
+    "lessonType": "assessment",
+    "title": "Placement: forming questions (A1-A2)",
+    "cefr": "A2",
+    "sequence": 6,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Turn into a yes/no question (spoken Brazilian style): 'Você fala inglês.'", "answer": "Você fala inglês? — same word order, rising intonation; no inversion needed." },
+        { "type": "quiz", "prompt": "Ask where someone is from, informally.", "answer": "De onde você é?" },
+        { "type": "quiz", "prompt": "What does 'que' add in 'O que que você quer?' compared to 'O que você quer?'", "answer": "Nothing grammatical — the doubled 'que' ('o que que') is a common colloquial spoken pattern; both mean 'What do you want?'." },
+        { "type": "quiz", "prompt": "Ask a taxi driver formally how long the trip takes.", "answer": "Quanto tempo demora a viagem, senhor? / O senhor sabe quanto tempo demora?" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a1a2-register",
+    "lessonType": "assessment",
+    "title": "Placement: register choice (A1-A2)",
+    "cefr": "A2",
+    "sequence": 7,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Your boss greets you with 'E aí'. Is 'E aí, mano' a safe reply?", "answer": "No — a boss can go casual downward, but 'mano' from you compounds the informality; a safe reply is 'Oi, tudo bem?' matching friendliness without slang." },
+        { "type": "quiz", "prompt": "Pick the right request to a police officer: 'Me dá teu nome aí' or 'O senhor pode me informar seu nome, por favor?'", "answer": "'O senhor pode me informar seu nome, por favor?' — authority figures get 'o senhor' plus indirect requests." },
+        { "type": "quiz", "prompt": "Texting a close friend, which fits: 'Prezado amigo, venho por meio desta...' or 'Fala! Bora sair sábado?'", "answer": "'Fala! Bora sair sábado?' — letter-formal openings in a text read as a joke." },
+        { "type": "quiz", "prompt": "In a job interview, how do you say 'I really want this job' without sounding too casual?", "answer": "'Tenho muito interesse na vaga' — not 'Tô muito afim dessa vaga', which is dating/casual register." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a2-agente",
+    "lessonType": "assessment",
+    "title": "Placement: 'a gente' agreement (A2)",
+    "cefr": "A2",
+    "sequence": 8,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Fill in: 'A gente ___ (falar) português em casa.'", "answer": "fala — 'a gente' means 'we' but takes the third-person singular verb." },
+        { "type": "quiz", "prompt": "Spot the error: 'A gente vamos ao bar hoje.'", "answer": "'A gente vai ao bar hoje.' — mixing 'a gente' with the nós-form 'vamos' is a common learner (and stigmatized colloquial) error." },
+        { "type": "quiz", "prompt": "Rewrite with 'a gente': 'Nós comemos pão e bebemos café.'", "answer": "A gente come pão e bebe café." },
+        { "type": "quiz", "prompt": "Register: is 'a gente' acceptable in a job interview, or must you use 'nós'?", "answer": "'A gente' is fine in spoken Brazilian even in interviews; 'nós' sounds more formal/written. Avoid 'a gente' only in formal writing." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a2-pronouns",
+    "lessonType": "assessment",
+    "title": "Placement: spoken-BR object pronouns (A2)",
+    "cefr": "A2",
+    "sequence": 9,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "How does spoken Brazilian usually say 'I saw him yesterday'?", "answer": "'Eu vi ele ontem.' — spoken BR uses subject pronouns as objects; textbook 'Eu o vi' sounds bookish in speech." },
+        { "type": "quiz", "prompt": "Say 'I'll call you later' the way a Brazilian friend would text it.", "answer": "'Te ligo mais tarde.' — 'te' before the verb, even sentence-initial, is standard spoken BR." },
+        { "type": "quiz", "prompt": "'Me passa a água?' — what is notable about the word order for a European Portuguese learner?", "answer": "The pronoun comes before the verb ('me passa'), including at the start of a sentence — normal in Brazil, avoided in Portugal." },
+        { "type": "quiz", "prompt": "Register: in a formal cover letter, would you write 'Eu conheci ele na empresa'?", "answer": "No — formal writing prefers 'Eu o conheci na empresa'; 'conheci ele' is speech/informal writing only." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a2-ficar-future",
+    "lessonType": "assessment",
+    "title": "Placement: ficar senses & ir + infinitive (A2)",
+    "cefr": "A2",
+    "sequence": 10,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What does 'ficar' mean in each: 'A casa fica na rua principal' / 'Fiquei cansado' / 'Vou ficar em casa hoje'?", "answer": "1. is located; 2. became/got (change of state); 3. stay/remain." },
+        { "type": "quiz", "prompt": "Bonus sense: what does 'ficar com alguém' mean among young Brazilians?", "answer": "To hook up / casually make out or see someone — 'Fiquei com ela na festa' is not about staying somewhere." },
+        { "type": "quiz", "prompt": "Make it future the spoken-BR way: 'Eu como em casa.' → tomorrow", "answer": "'Vou comer em casa amanhã.' — ir + infinitive is the everyday future; 'comerei' is rare in speech." },
+        { "type": "quiz", "prompt": "Translate: 'We're going to talk with the landlord next week.'", "answer": "A gente vai falar com o dono do apartamento semana que vem." },
+        { "type": "quiz", "prompt": "Register: your boss asks when the report will be ready. 'Vou terminar hoje' or 'Terminarei hoje' — which do Brazilians actually say?", "answer": "'Vou terminar hoje' — ir + infinitive is normal even in professional speech; the simple future is mostly written." }
       ]
     }
   }

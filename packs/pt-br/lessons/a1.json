@@ -10,7 +10,8 @@
       "steps": [
         { "type": "teach", "vocabRefs": ["phrase.oi-tudo-bem", "phrase.por-favor", "vocab.obrigado"] },
         { "type": "quiz", "prompt": "Translate: 'Hi, how are you?'", "answer": "Oi, tudo bem?" },
-        { "type": "quiz", "prompt": "How does a man say 'thank you'?", "answer": "obrigado" }
+        { "type": "quiz", "prompt": "How does a man say 'thank you'?", "answer": "obrigado" },
+        { "type": "quiz", "prompt": "You need to squeeze past someone on a crowded bus. What do you say?", "answer": "Com licença." }
       ]
     }
   },
@@ -25,7 +26,8 @@
     "body": {
       "steps": [
         { "type": "quiz", "prompt": "What does Ana order?", "answer": "a coffee with milk (um café com leite)" },
-        { "type": "quiz", "prompt": "How much does it cost?", "answer": "six reais (seis reais)" }
+        { "type": "quiz", "prompt": "How much does it cost?", "answer": "six reais (seis reais)" },
+        { "type": "quiz", "prompt": "Does the customer speak formally or informally to the barista?", "answer": "Informally but politely — 'você' plus 'por favor', typical for a café in Brazil." }
       ]
     }
   },
@@ -38,7 +40,8 @@
     "sequence": 3,
     "body": {
       "steps": [
-        { "type": "quiz", "prompt": "Write two sentences: say your name and where you are from (use 'sou de...').", "answer": "e.g. Oi, eu sou o Alek. Sou dos Estados Unidos." }
+        { "type": "quiz", "prompt": "Write two sentences: say your name and where you are from (use 'sou de...').", "answer": "e.g. Oi, eu sou o Alek. Sou dos Estados Unidos." },
+        { "type": "quiz", "prompt": "Add one more sentence: say where you live now (use 'moro em...').", "answer": "e.g. Agora moro em São Paulo." }
       ]
     }
   },
@@ -52,7 +55,471 @@
     "dialogueRef": "dialogue.making-friends",
     "body": {
       "steps": [
-        { "type": "quiz", "prompt": "Greet someone informally and ask where they're from.", "answer": "E aí, tudo bem? De onde você é?" }
+        { "type": "quiz", "prompt": "Greet someone informally and ask where they're from.", "answer": "E aí, tudo bem? De onde você é?" },
+        { "type": "quiz", "prompt": "They ask what you do. Say you work with computers and ask about them.", "answer": "Trabalho com computadores. E você, o que você faz?" },
+        { "type": "quiz", "prompt": "Wrap up: say it was nice to meet them and suggest exchanging numbers.", "answer": "Foi um prazer te conhecer! Vamos trocar número?" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.food-drink-basics",
+    "lessonType": "vocabulary",
+    "title": "Food & drink survival kit",
+    "cefr": "A1",
+    "sequence": 5,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "teach", "vocabRefs": ["vocab.agua", "vocab.cafe", "vocab.leite", "vocab.pao", "vocab.comer", "vocab.beber"] },
+        { "type": "quiz", "prompt": "Translate: 'I want to drink water.'", "answer": "Quero beber água." },
+        { "type": "quiz", "prompt": "Ask for a coffee and bread, politely.", "answer": "Um café e um pão, por favor." },
+        { "type": "quiz", "prompt": "What is the verb for 'to eat'?", "answer": "comer" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.ser-vs-estar",
+    "lessonType": "grammar",
+    "title": "Ser vs. estar: who you are vs. how you are",
+    "cefr": "A1",
+    "sequence": 6,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Ser or estar? 'Eu ___ americano.' (permanent identity)", "answer": "sou (ser for identity/origin: Eu sou americano.)" },
+        { "type": "quiz", "prompt": "Ser or estar? 'O café ___ quente.' (right now)", "answer": "está (estar for temporary states: O café está quente.)" },
+        { "type": "quiz", "prompt": "Ser or estar? 'A casa ___ na rua principal.' (location of a building)", "answer": "é or fica — Brazilians usually say 'A casa fica na rua principal'; 'está' is for movable things." },
+        { "type": "quiz", "prompt": "Translate: 'My friend is tired today.'", "answer": "Meu amigo está cansado hoje." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.present-tense-verbs",
+    "lessonType": "grammar",
+    "title": "Present tense: falar, comer, beber",
+    "cefr": "A1",
+    "sequence": 7,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "teach", "vocabRefs": ["vocab.falar", "vocab.comer", "vocab.beber", "vocab.hoje"] },
+        { "type": "quiz", "prompt": "Conjugate: 'Eu ___ português.' (falar)", "answer": "falo (Eu falo português.)" },
+        { "type": "quiz", "prompt": "Conjugate: 'Você ___ pão de manhã?' (comer)", "answer": "come (Você come pão de manhã?)" },
+        { "type": "quiz", "prompt": "Translate: 'We drink coffee today.' (use 'a gente' like Brazilians do)", "answer": "A gente bebe café hoje. (a gente takes the third-person singular verb)" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.survival-translation",
+    "lessonType": "translation_drill",
+    "title": "Survival phrases translation drill",
+    "cefr": "A1",
+    "sequence": 8,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "teach", "vocabRefs": ["phrase.quanto-custa", "phrase.nao-entendi", "phrase.com-licenca"] },
+        { "type": "quiz", "prompt": "Translate: 'How much does it cost?'", "answer": "Quanto custa?" },
+        { "type": "quiz", "prompt": "Translate: 'I didn't understand. Can you speak slower, please?'", "answer": "Não entendi. Pode falar mais devagar, por favor?" },
+        { "type": "quiz", "prompt": "Translate: 'Excuse me, where is the street?'", "answer": "Com licença, onde fica a rua?" },
+        { "type": "quiz", "prompt": "Translate: 'Water, please. Thank you!'", "answer": "Água, por favor. Obrigado! (or Obrigada!)" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.hotel-checkin-listening",
+    "lessonType": "listening_exercise",
+    "title": "Hotel check-in (listening)",
+    "cefr": "A1",
+    "sequence": 9,
+    "dialogueRef": "dialogue.hotel-checkin",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What does the receptionist ask the guest for first?", "answer": "The reservation name and a document (nome da reserva e um documento)." },
+        { "type": "quiz", "prompt": "Is the receptionist formal or informal? What tells you?", "answer": "Formal — uses 'o senhor / a senhora' and full polite phrases, standard in hotel service." },
+        { "type": "quiz", "prompt": "What key information should you listen for at check-in?", "answer": "The room number, the floor, and what time breakfast (café da manhã) is served." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.taxi-uber-listening",
+    "lessonType": "listening_exercise",
+    "title": "In the Uber (listening)",
+    "cefr": "A1",
+    "sequence": 10,
+    "dialogueRef": "dialogue.taxi-uber",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "How does the driver confirm the passenger's identity?", "answer": "By asking the name on the app ('Você é o/a...?') before starting the ride." },
+        { "type": "quiz", "prompt": "Is the small talk in the car formal or informal?", "answer": "Informal — drivers usually chat with 'você', 'e aí', and casual questions about where you're from." },
+        { "type": "quiz", "prompt": "What phrase asks the driver to stop just ahead?", "answer": "Pode parar aqui na frente, por favor." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.weekend-plans-writing",
+    "lessonType": "writing_prompt",
+    "title": "Text a friend: weekend plans",
+    "cefr": "A1",
+    "sequence": 11,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Text a friend to make plans for Saturday: greet them, suggest an activity, and propose a time.", "answer": "e.g. Oi! Tudo bem? Vamos na praia sábado? Podemos sair às 10h. Topa?" },
+        { "type": "quiz", "prompt": "Your friend says yes. Reply confirming and say you'll bring water and snacks.", "answer": "e.g. Fechado! Eu levo água e uns lanches. Até sábado!" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.sick-day-writing",
+    "lessonType": "writing_prompt",
+    "title": "Sick-day message to your boss",
+    "cefr": "A2",
+    "sequence": 12,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Write a short, professional message to your boss: you woke up sick, you can't come in today, and you'll send the doctor's note.", "answer": "e.g. Bom dia! Acordei doente hoje e não vou conseguir ir ao trabalho. Vou ao médico e mando o atestado. Peço desculpas pelo transtorno." },
+        { "type": "quiz", "prompt": "Register check: would 'E aí chefe, tô mal, não vou' be appropriate? Rewrite it if not.", "answer": "No — too casual for a boss. Better: 'Bom dia. Não estou me sentindo bem e não poderei ir hoje.'" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.restaurant-dialogue-analysis",
+    "lessonType": "dialogue_analysis",
+    "title": "Anatomy of a restaurant dinner",
+    "cefr": "A2",
+    "sequence": 13,
+    "dialogueRef": "dialogue.restaurant-dinner",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "The waiter says 'Pois não?'. Does that mean 'well, no'? What is its function here?", "answer": "No — 'Pois não?' is a polite service phrase meaning 'How can I help you?'" },
+        { "type": "quiz", "prompt": "Find the phrase used to ask for the bill and explain the word choice.", "answer": "'A conta, por favor.' — 'conta' is the bill; short noun + por favor is the standard polite request." },
+        { "type": "quiz", "prompt": "Diners use 'a gente' instead of 'nós'. What does this signal about register?", "answer": "It's the normal spoken-Brazilian 'we' — relaxed but not rude; it takes a singular verb (a gente quer)." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.street-directions-listening",
+    "lessonType": "listening_exercise",
+    "title": "Asking for directions (listening)",
+    "cefr": "A1",
+    "sequence": 14,
+    "dialogueRef": "dialogue.street-directions",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "How does the speaker politely stop a stranger on the street?", "answer": "Com licença... — the standard opener before asking a stranger anything." },
+        { "type": "quiz", "prompt": "What direction words should you catch in the reply?", "answer": "direita (right), esquerda (left), reto/direto (straight), quadra (block), esquina (corner)." },
+        { "type": "quiz", "prompt": "The listener didn't catch everything. What can they say?", "answer": "Desculpa, não entendi. Pode repetir, por favor?" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.neighborhood-writing",
+    "lessonType": "writing_prompt",
+    "title": "Describe your neighborhood",
+    "cefr": "A1",
+    "sequence": 15,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Write 3-4 sentences describing your neighborhood: where your house is, what is on your street, and one thing you like.", "answer": "e.g. Moro em um bairro tranquilo. Minha casa fica em uma rua pequena. Na minha rua tem uma padaria e um café. Gosto do bairro porque tem muitos amigos perto." },
+        { "type": "quiz", "prompt": "Add a sentence with 'perto de' or 'longe de' to say what's near or far.", "answer": "e.g. Minha casa fica perto do mercado, mas longe da praia." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.greeting-register-slang",
+    "lessonType": "slang_breakdown",
+    "title": "Which greeting where? Register judgment",
+    "cefr": "A2",
+    "sequence": 16,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "You walk into a job interview. Which greeting fits: 'E aí, beleza?' or 'Bom dia, tudo bem?'", "answer": "'Bom dia, tudo bem?' — 'E aí, beleza?' is for friends and bars, not interviews." },
+        { "type": "quiz", "prompt": "A friend of a friend greets you at a bar with 'E aí!'. Give a matching casual reply.", "answer": "E aí, tudo certo? / Opa, beleza?" },
+        { "type": "quiz", "prompt": "Rank from most formal to most casual: 'Oi, tudo bem?', 'Boa tarde, como vai?', 'Fala, mano!'", "answer": "1. Boa tarde, como vai? (formal) 2. Oi, tudo bem? (neutral) 3. Fala, mano! (very casual, friends only)" },
+        { "type": "quiz", "prompt": "When is 'o senhor / a senhora' the safe choice instead of 'você'?", "answer": "With older people, authority figures (police, doctors, interviewers), and formal service — switch to 'você' only if they invite it." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.pharmacy-listening",
+    "lessonType": "listening_exercise",
+    "title": "At the pharmacy (listening)",
+    "cefr": "A1",
+    "sequence": 17,
+    "dialogueRef": "dialogue.pharmacy",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What symptom does the customer describe?", "answer": "A headache / feeling unwell (dor de cabeça; 'não estou me sentindo bem')." },
+        { "type": "quiz", "prompt": "What does the pharmacist ask before recommending something?", "answer": "Whether the customer has allergies or is taking other medicine (alergia? toma algum remédio?)." },
+        { "type": "quiz", "prompt": "How does the customer ask about dosage?", "answer": "Como eu tomo? / Quantas vezes por dia?" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.pharmacist-writing",
+    "lessonType": "writing_prompt",
+    "title": "Ask a pharmacist for advice",
+    "cefr": "A1",
+    "sequence": 18,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Write what you'd say to a pharmacist: greet them, say you have a sore throat since yesterday, and ask what they recommend.", "answer": "e.g. Boa tarde. Estou com dor de garganta desde ontem. O que o senhor recomenda?" },
+        { "type": "quiz", "prompt": "Follow up: ask how many times per day to take it and how much it costs.", "answer": "e.g. Quantas vezes por dia eu tomo? E quanto custa?" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.market-negotiation-roleplay",
+    "lessonType": "roleplay",
+    "title": "Haggling at the street market",
+    "cefr": "A2",
+    "sequence": 19,
+    "dialogueRef": "dialogue.negotiating-market",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Ask the vendor how much the mangoes cost.", "answer": "Quanto custa a manga? / Quanto tá o quilo da manga?" },
+        { "type": "quiz", "prompt": "The price is 12 reais. Counter-offer politely: say it's a bit expensive and offer 10.", "answer": "Tá um pouco caro... Faz por dez? / Se eu levar dois quilos, faz dez?" },
+        { "type": "quiz", "prompt": "Close the deal and thank the vendor casually.", "answer": "Fechado! Valeu, obrigado!" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.bank-account-listening",
+    "lessonType": "listening_exercise",
+    "title": "Opening a bank account (listening)",
+    "cefr": "A2",
+    "sequence": 20,
+    "dialogueRef": "dialogue.bank-account",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What documents does the bank clerk ask for?", "answer": "CPF, an ID document, and proof of address (comprovante de residência)." },
+        { "type": "quiz", "prompt": "Is the clerk formal or informal with the customer?", "answer": "Formal — 'o senhor / a senhora' and full sentences, standard for banks." },
+        { "type": "quiz", "prompt": "The customer doesn't understand a banking term. What do they say?", "answer": "Desculpa, não entendi. O que significa isso?" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.delivery-changes-writing",
+    "lessonType": "writing_prompt",
+    "title": "Change your delivery order",
+    "cefr": "A1",
+    "sequence": 21,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Message the restaurant on the delivery app: your order came wrong — you asked for no onion, and you want the juice swapped for water.", "answer": "e.g. Oi, boa noite! Meu pedido veio errado: pedi sem cebola. E pode trocar o suco por uma água, por favor?" },
+        { "type": "quiz", "prompt": "They apologize and offer to redeliver. Accept and give your address landmark.", "answer": "e.g. Tudo bem, obrigado! O endereço é o mesmo, perto da padaria da rua principal." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.gym-signup-listening",
+    "lessonType": "listening_exercise",
+    "title": "Signing up at the gym (listening)",
+    "cefr": "A2",
+    "sequence": 22,
+    "dialogueRef": "dialogue.gym-signup",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What two plan options does the attendant present?", "answer": "A monthly plan (plano mensal) and a cheaper annual plan (plano anual) with a commitment (fidelidade)." },
+        { "type": "quiz", "prompt": "What does the customer negotiate?", "answer": "Waiving the enrollment fee (taxa de matrícula) / a discount for paying upfront." },
+        { "type": "quiz", "prompt": "Is the attendant's tone formal or informal? Why does that fit?", "answer": "Friendly-informal ('você', upbeat sales talk) — gyms in Brazil use casual, persuasive register." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.decline-invite-writing",
+    "lessonType": "writing_prompt",
+    "title": "Decline an invitation politely",
+    "cefr": "A2",
+    "sequence": 23,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "A colleague invites you to a barbecue Sunday, but you can't go. Decline warmly: thank them, give a brief reason, and suggest another time.", "answer": "e.g. Poxa, obrigado pelo convite! Infelizmente não vou poder — já tenho um compromisso no domingo. Vamos marcar outro dia? Fica pra próxima!" },
+        { "type": "quiz", "prompt": "What softeners make a refusal sound friendly in Brazilian Portuguese?", "answer": "'Poxa', 'infelizmente', 'que pena', and always 'fica pra próxima' — a flat 'não posso' alone sounds cold." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.everyday-slang",
+    "lessonType": "slang_breakdown",
+    "title": "Valeu, beleza, cara: everyday slang and where it's safe",
+    "cefr": "A2",
+    "sequence": 24,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What does 'valeu' mean and where can you use it?", "answer": "Casual 'thanks' — fine with friends, drivers, vendors; in a formal email or with your boss's boss, use 'obrigado/obrigada'." },
+        { "type": "quiz", "prompt": "'Beleza?' as a greeting and 'beleza' as an answer — what do they each mean?", "answer": "As a greeting: 'all good?'. As a reply: 'okay / deal'. Both casual — don't open a job interview with 'Beleza?'." },
+        { "type": "quiz", "prompt": "Your bank manager helped you. Which is the safe thanks: 'Valeu, mano!' or 'Muito obrigado pela ajuda'?", "answer": "'Muito obrigado pela ajuda' — 'mano' is for close friends and reads disrespectful in formal service settings." },
+        { "type": "quiz", "prompt": "What does 'cara' mean in 'Esse cara é meu amigo'?", "answer": "'Guy/dude' — informal but common; as a direct address ('Cara, ...') it's friends-only." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.customer-service-listening",
+    "lessonType": "listening_exercise",
+    "title": "Customer service call (listening)",
+    "cefr": "A2",
+    "sequence": 25,
+    "dialogueRef": "dialogue.customer-service",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What problem does the customer report?", "answer": "A wrong charge / a service that stopped working (uma cobrança errada; o serviço parou de funcionar)." },
+        { "type": "quiz", "prompt": "What does the attendant ask for to locate the account?", "answer": "CPF or the customer/order number (número do pedido, número do cliente)." },
+        { "type": "quiz", "prompt": "How does the customer stay polite while insisting on a resolution?", "answer": "Uses 'por favor', 'eu entendo, mas...' and asks for a protocol number (número de protocolo) — firm but courteous." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.landlord-complaint-writing",
+    "lessonType": "writing_prompt",
+    "title": "Polite complaint to your landlord",
+    "cefr": "A2",
+    "sequence": 26,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Write a polite message to your landlord: the kitchen sink has been leaking for a week, and you'd like a repair scheduled this week.", "answer": "e.g. Boa tarde, tudo bem? Estou escrevendo porque a pia da cozinha está vazando há uma semana. O senhor poderia agendar um reparo ainda esta semana, por favor? Fico no aguardo. Obrigado!" },
+        { "type": "quiz", "prompt": "Which closing fits a landlord message: 'Falou, até!' or 'Fico no aguardo, obrigado'?", "answer": "'Fico no aguardo, obrigado' — polite-neutral; 'Falou' is buddies-only slang." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.bar-meeting-roleplay",
+    "lessonType": "roleplay",
+    "title": "Striking up conversation at a bar",
+    "cefr": "A2",
+    "sequence": 27,
+    "dialogueRef": "dialogue.bar-meeting",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Open casually: comment on the music or the place and introduce yourself.", "answer": "e.g. E aí, curtindo o som? Eu sou o Alek, prazer." },
+        { "type": "quiz", "prompt": "Offer to buy them a drink without being pushy.", "answer": "Posso te pagar uma bebida? O que você tá bebendo?" },
+        { "type": "quiz", "prompt": "They mention loving live music. React and keep the conversation going.", "answer": "Sério? Eu também! Você conhece algum lugar bom com música ao vivo por aqui?" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.dating-app-writing",
+    "lessonType": "writing_prompt",
+    "title": "Dating-app opener",
+    "cefr": "A2",
+    "sequence": 28,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Write a friendly, specific opener for a match whose profile shows they love cooking and the beach — reference the profile and ask a question.", "answer": "e.g. Oi! Vi que você adora cozinhar — qual é o teu prato favorito de fazer? Eu tô aprendendo, mas por enquanto só faço café bem. haha" },
+        { "type": "quiz", "prompt": "They reply well. Suggest meeting for a coffee, keeping it low-pressure.", "answer": "e.g. Adorei conversar contigo! Topa tomar um café qualquer dia dessa semana? Conheço um lugar ótimo." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.first-date-roleplay",
+    "lessonType": "roleplay",
+    "title": "First date conversation",
+    "cefr": "A2",
+    "sequence": 29,
+    "dialogueRef": "dialogue.first-date",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Your date arrives. Greet them warmly and say they look great.", "answer": "Oi! Que bom te ver. Você tá ótima! (or: Você tá ótimo!)" },
+        { "type": "quiz", "prompt": "Ask about their week and what they like to do on weekends.", "answer": "Como foi tua semana? O que você gosta de fazer no fim de semana?" },
+        { "type": "quiz", "prompt": "End the date suggesting you'd like to see them again.", "answer": "Adorei a noite. Vamos repetir? Me manda mensagem quando chegar em casa." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.airport-immigration-listening",
+    "lessonType": "listening_exercise",
+    "title": "Airport immigration (listening)",
+    "cefr": "A2",
+    "sequence": 30,
+    "dialogueRef": "dialogue.airport-immigration",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What three questions does the immigration officer ask?", "answer": "Purpose of the trip (motivo da viagem), length of stay (quanto tempo vai ficar), and where the traveler will stay (onde vai ficar)." },
+        { "type": "quiz", "prompt": "Should the traveler answer with 'o senhor/a senhora' or 'você'? Why?", "answer": "'O senhor / a senhora' — immigration officers are authority figures; formal register is the safe choice." },
+        { "type": "quiz", "prompt": "The traveler didn't understand a question. What's the right move?", "answer": "Say 'Desculpa, não entendi. Pode repetir mais devagar, por favor?' — never guess an answer at immigration." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.last-weekend-writing",
+    "lessonType": "writing_prompt",
+    "title": "What did you do last weekend? (perfeito practice)",
+    "cefr": "A2",
+    "sequence": 31,
+    "dialogueRef": null,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Write 4 sentences about last weekend using the pretérito perfeito: where you went, what you ate, who you saw, and what you did at home.", "answer": "e.g. No sábado fui à praia com amigos. Comemos peixe em um restaurante na rua da praia. No domingo vi minha amiga Ana e a gente falou por horas. À noite fiquei em casa e bebi um café." },
+        { "type": "quiz", "prompt": "Convert to perfeito: 'Eu como pão' → last Saturday; 'Eu falo com meu amigo' → yesterday.", "answer": "No sábado eu comi pão. Ontem eu falei com meu amigo." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.job-interview-roleplay",
+    "lessonType": "roleplay",
+    "title": "Job interview",
+    "cefr": "A2",
+    "sequence": 32,
+    "dialogueRef": "dialogue.job-interview",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Greet the interviewer formally and thank them for the opportunity.", "answer": "Bom dia! Muito prazer. Obrigado pela oportunidade de estar aqui." },
+        { "type": "quiz", "prompt": "They ask 'Fale um pouco sobre você.' Give a 2-sentence professional self-intro.", "answer": "Eu sou desenvolvedor e trabalho com tecnologia há cinco anos. Gosto de resolver problemas e de trabalhar em equipe." },
+        { "type": "quiz", "prompt": "Ask one good question at the end and close politely.", "answer": "Como é o dia a dia da equipe? ... Muito obrigado pelo seu tempo, foi um prazer." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.futebol-watch-listening",
+    "lessonType": "listening_exercise",
+    "title": "Watching the game (listening)",
+    "cefr": "A2",
+    "sequence": 33,
+    "dialogueRef": "dialogue.futebol-watch",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "How do the friends react when their team scores?", "answer": "They shout 'Gol!' / 'É gol!' and celebrate ('Aí sim!', 'Golaço!')." },
+        { "type": "quiz", "prompt": "Is the language formal or informal? Name two markers.", "answer": "Very informal — slang like 'cara', 'mano', 'tá', dropped syllables, and exclamations throughout." },
+        { "type": "quiz", "prompt": "What does someone say to complain about the referee?", "answer": "Something like 'Esse juiz tá de brincadeira!' — the referee (juiz/árbitro) is always fair game for complaints." }
       ]
     }
   }

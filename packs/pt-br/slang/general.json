@@ -44,5 +44,181 @@
     "learnerShouldUse": "recognize-only",
     "saferAlternatives": ["passar vergonha"],
     "examples": [{ "text": "Esqueci o nome dela na frente de todo mundo, paguei o maior mico.", "translation": "I forgot her name in front of everyone — so embarrassing." }]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.valeu",
+    "kind": "slang",
+    "phrase": "valeu",
+    "literal": "it was worth (it)",
+    "natural": "thanks / cheers / see ya",
+    "register": "informal",
+    "severity": 1,
+    "region": null,
+    "whoUses": "everyone under retirement age, nationwide; the default casual thank-you",
+    "usageContext": "casual thanks, and often a sign-off when leaving or ending a call ('valeu, falou!')",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["obrigado", "obrigada"],
+    "warningNotes": null,
+    "examples": [
+      { "text": "Valeu pela carona, mano!", "translation": "Thanks for the ride, bro!" },
+      { "text": "Tenho que ir. Valeu, até amanhã!", "translation": "I have to go. Cheers, see you tomorrow!" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.cara",
+    "kind": "slang",
+    "phrase": "cara",
+    "literal": "face",
+    "natural": "guy / dude",
+    "register": "informal",
+    "severity": 1,
+    "region": null,
+    "whoUses": "everyone informally, all ages, nationwide",
+    "usageContext": "two uses: as a noun for 'guy' ('esse cara' = 'that guy') and as a vocative 'dude' at the start of a sentence ('Cara, você não vai acreditar…'). Note 'cara' is grammatically feminine ('o cara' for the person, but 'a cara' = the face)",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["homem", "sujeito", "amigo"],
+    "warningNotes": null,
+    "examples": [
+      { "text": "Quem é aquele cara ali?", "translation": "Who's that guy over there?" },
+      { "text": "Cara, que dia longo!", "translation": "Dude, what a long day!" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.massa",
+    "kind": "slang",
+    "phrase": "massa",
+    "literal": "dough / mass",
+    "natural": "cool / awesome",
+    "register": "regional",
+    "severity": 1,
+    "region": "NE",
+    "whoUses": "strongly associated with the Northeast (Recife, Salvador, Fortaleza), all ages; understood everywhere",
+    "usageContext": "praising anything — a party, a song, a plan ('que massa!'); saying it marks you as NE-flavored, which lands warmly",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["legal", "muito bom"],
+    "warningNotes": null,
+    "examples": [
+      { "text": "O show ontem foi massa demais!", "translation": "The show yesterday was really awesome!" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.da-hora",
+    "kind": "slang",
+    "phrase": "da hora",
+    "literal": "of the hour",
+    "natural": "cool / great",
+    "register": "regional",
+    "severity": 1,
+    "region": "SP",
+    "whoUses": "paulistanos of all ages; a São Paulo shibboleth the way 'maneiro' is for Rio",
+    "usageContext": "praising things or people ('um rolê da hora', 'ele é da hora' = he's a good guy)",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["legal", "muito bom"],
+    "warningNotes": null,
+    "examples": [
+      { "text": "Achei um bar da hora perto da Paulista.", "translation": "I found a really cool bar near Paulista Avenue." }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.maneiro",
+    "kind": "slang",
+    "phrase": "maneiro",
+    "literal": "manageable / handy",
+    "natural": "cool / nice",
+    "register": "regional",
+    "severity": 1,
+    "region": "RJ",
+    "whoUses": "cariocas of all ages; instantly marks Rio de Janeiro speech, though understood nationwide",
+    "usageContext": "praising anything ('que maneiro!'); agrees in gender: 'uma praia maneira'",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["legal", "bacana"],
+    "warningNotes": null,
+    "examples": [
+      { "text": "Esse filme é maneiro demais, você tem que ver.", "translation": "This movie is so cool, you have to see it." }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.role",
+    "kind": "slang",
+    "phrase": "rolê",
+    "literal": "a spin / a roll (from 'rolar', to roll)",
+    "natural": "an outing / a hang / going out with friends",
+    "register": "informal",
+    "severity": 2,
+    "region": null,
+    "whoUses": "teens through thirty-somethings nationwide; core youth vocabulary, also spelled 'rolé'",
+    "usageContext": "making plans: 'dar um rolê' = to go out / cruise around; 'bora pro rolê?' = coming out tonight?; 'rolê aleatório' = a random adventure (internet-famous phrase)",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["passeio", "sair"],
+    "warningNotes": null,
+    "examples": [
+      { "text": "Vamos dar um rolê na praia depois do almoço?", "translation": "Want to go hang out at the beach after lunch?" },
+      { "text": "O rolê de ontem foi da hora.", "translation": "Last night's outing was great." }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.grana",
+    "kind": "slang",
+    "phrase": "grana",
+    "literal": "(from Italian slang 'grana', originally 'grain')",
+    "natural": "money / cash / dough",
+    "register": "informal",
+    "severity": 2,
+    "region": null,
+    "whoUses": "everyone in informal speech, nationwide, all ages",
+    "usageContext": "any casual talk about money: 'tô sem grana' = I'm broke; 'uma grana boa' = good money. Fine with friends and coworkers you're casual with; use 'dinheiro' in formal or business writing",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["dinheiro"],
+    "warningNotes": null,
+    "examples": [
+      { "text": "Não vou sair hoje, tô sem grana até sexta.", "translation": "I'm not going out today, I'm out of cash until Friday." }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.ne",
+    "kind": "slang",
+    "phrase": "né",
+    "literal": "contraction of 'não é' (isn't it)",
+    "natural": "right? / y'know? (tag question and filler)",
+    "register": "informal",
+    "severity": 1,
+    "region": null,
+    "whoUses": "literally everyone, every region, every age — one of the most frequent words in spoken Brazilian Portuguese",
+    "usageContext": "tacked onto the end of statements to seek agreement ('Tá calor, né?') or sprinkled mid-sentence as a filler; also a standalone reply meaning 'right?!'. Fine in speech at any informality level; avoid only in formal writing",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["não é?", "não acha?"],
+    "warningNotes": null,
+    "examples": [
+      { "text": "Esse trânsito de São Paulo é impossível, né?", "translation": "This São Paulo traffic is impossible, right?" },
+      { "text": "— Ele chegou atrasado de novo. — Né?!", "translation": "— He showed up late again. — Right?!" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "idiom.ficar-com-alguem",
+    "kind": "idiom",
+    "phrase": "ficar com alguém",
+    "literal": "to stay with someone",
+    "natural": "to hook up with someone — make out, casually, with no commitment implied",
+    "register": "flirtatious",
+    "severity": 3,
+    "region": null,
+    "whoUses": "teens and adults in dating contexts, nationwide; the standard word for pre-relationship romance",
+    "usageContext": "parties, dating apps, gossip: 'ficamos ontem' = we made out last night. 'Ficar' usually means kissing, not necessarily sex — context decides. The stages are: ficar → 'ficante' (casual thing) → namorar (official relationship). Asking 'quer ficar comigo?' is a direct come-on",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["beijar", "sair com alguém"],
+    "warningNotes": "Not rude, but unambiguously romantic/physical — don't confuse it with plain 'ficar' (to stay). Saying 'fiquei com ela' announces you made out with her, so mind who you say it to.",
+    "examples": [
+      { "text": "Eles ficaram na festa, mas não estão namorando.", "translation": "They hooked up at the party, but they're not dating." },
+      { "text": "Ela é minha ficante, nada sério ainda.", "translation": "She's my casual thing, nothing serious yet." }
+    ]
   }
 ]

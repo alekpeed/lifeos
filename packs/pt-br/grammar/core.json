@@ -4,48 +4,1409 @@
     "key": "grammar.ser-estar",
     "title": "ser vs estar (to be)",
     "cefr": "A1",
-    "explanationMd": "Portuguese has two verbs for 'to be'. **ser** is for permanent/defining traits (identity, origin, time). **estar** is for temporary states (location, mood, current condition).",
+    "explanationMd": "Portuguese has two verbs for 'to be'. **ser** is for permanent/defining traits (identity, origin, profession, time). **estar** is for temporary states (location of people, mood, current condition). The intuition that unlocks it: ser answers *what something is*, estar answers *how or where it is right now*. Brazilians exploit the contrast for meaning — *ela é linda* (she's a beautiful person) vs *ela está linda* (she looks great today). In fast speech **estar** gets clipped: *tô*, *tá*, *tamos*, *tão* — you will hear *tô cansado* far more often than *estou cansado*, and using the clipped forms yourself is normal, not sloppy.",
     "examples": [
-      { "text": "Eu sou brasileiro.", "translation": "I am Brazilian. (identity → ser)" },
-      { "text": "Eu estou cansado.", "translation": "I am tired. (temporary → estar)" }
+      {
+        "text": "Eu sou brasileiro.",
+        "translation": "I am Brazilian. (identity → ser)"
+      },
+      {
+        "text": "Eu estou cansado.",
+        "translation": "I am tired. (temporary → estar)"
+      },
+      {
+        "text": "Tô em casa.",
+        "translation": "I'm at home. (spoken clipped estar)"
+      },
+      {
+        "text": "O café tá quente.",
+        "translation": "The coffee is hot. (current condition → estar)"
+      }
     ],
     "commonErrors": [
-      { "wrong": "Eu sou cansado.", "right": "Eu estou cansado.", "note": "Tiredness is temporary → estar." }
+      {
+        "wrong": "Eu sou cansado.",
+        "right": "Eu estou cansado.",
+        "note": "Tiredness is temporary → estar."
+      },
+      {
+        "wrong": "Onde é você?",
+        "right": "Onde você está?",
+        "note": "Location of a person → estar."
+      }
     ],
     "drills": [
-      { "prompt": "___ (ser/estar) na casa? (location)", "answer": "estar" }
+      {
+        "prompt": "___ (ser/estar) na casa? (location)",
+        "answer": "estar"
+      },
+      {
+        "prompt": "Say 'the coffee is cold' the way Brazilians do (clipped).",
+        "answer": "O café tá frio."
+      },
+      {
+        "prompt": "'She is a doctor' — ser or estar?",
+        "answer": "ser (Ela é médica.)"
+      }
     ],
-    "relatedVocabulary": ["vocab.casa"]
+    "relatedVocabulary": [
+      "vocab.casa",
+      "vocab.cafe"
+    ]
   },
   {
     "schemaVersion": 1,
     "key": "grammar.present-ar",
     "title": "Present tense — regular -ar verbs",
     "cefr": "A1",
-    "explanationMd": "Regular **-ar** verbs (like *falar*) take the endings -o, -a, -amos, -am in the present.",
+    "explanationMd": "Regular **-ar** verbs (like *falar*) take the endings -o, -a, -amos, -am in the present. That is the whole paradigm you need for spoken Brazil: because *você*, *ele/ela* and *a gente* all use the same third-person singular form, everyday speech really runs on just three forms — *falo*, *fala*, *falam* (plus *falamos* if you say *nós*). The Brazilian present also covers English's present continuous in many contexts (*trabalho no centro* = 'I work / I'm working downtown') and even the near future with a time word: *falo com ele amanhã* — 'I'll talk to him tomorrow'.",
     "examples": [
-      { "text": "Eu falo, você fala, nós falamos, eles falam.", "translation": "I speak, you speak, we speak, they speak." }
+      {
+        "text": "Eu falo, você fala, nós falamos, eles falam.",
+        "translation": "I speak, you speak, we speak, they speak."
+      },
+      {
+        "text": "A gente fala português em casa.",
+        "translation": "We speak Portuguese at home. (a gente + singular verb)"
+      },
+      {
+        "text": "Te ligo amanhã.",
+        "translation": "I'll call you tomorrow. (present used for near future)"
+      }
     ],
     "commonErrors": [
-      { "wrong": "Eu fala", "right": "Eu falo", "note": "1st person singular ends in -o." }
+      {
+        "wrong": "Eu fala",
+        "right": "Eu falo",
+        "note": "1st person singular ends in -o."
+      },
+      {
+        "wrong": "Você falas",
+        "right": "Você fala",
+        "note": "Você takes the third-person form, never -s."
+      }
     ],
     "drills": [
-      { "prompt": "Conjugate 'falar' for 'nós'.", "answer": "falamos" }
+      {
+        "prompt": "Conjugate 'falar' for 'nós'.",
+        "answer": "falamos"
+      },
+      {
+        "prompt": "Conjugate 'morar' (to live) for 'você'.",
+        "answer": "mora"
+      },
+      {
+        "prompt": "Say 'they work' using 'trabalhar'.",
+        "answer": "eles trabalham"
+      }
     ],
-    "relatedVocabulary": ["vocab.falar"]
+    "relatedVocabulary": [
+      "vocab.falar",
+      "vocab.casa"
+    ]
   },
   {
     "schemaVersion": 1,
     "key": "grammar.voce-tu",
-    "title": "você vs tu (you)",
+    "title": "você vs tu vs o senhor (you)",
     "cefr": "A2",
-    "explanationMd": "Most of Brazil uses **você** for 'you' (with third-person verb forms). Some regions (e.g. the South, parts of the Northeast) use **tu**. *O senhor / a senhora* is the formal, respectful address.",
+    "explanationMd": "Most of Brazil uses **você** for 'you', and it takes third-person verb forms — so learning você costs you nothing extra: it conjugates like *ele/ela*. Some regions (the South, Rio, much of the North and Northeast) use **tu**, but crucially most tu-speakers pair it with the third-person verb anyway: *tu fala*, *tu vai* — textbook *tu falas* sounds bookish or specifically gaúcho/maranhense. **O senhor / a senhora** is the respectful form for elders, clients, police, or anyone you'd call 'sir/ma'am'; using it with a peer sounds distant, but skipping it with a 70-year-old can sound rude. In texting, você shrinks to **vc** or even just **cê** in speech: *cê vai?*",
     "examples": [
-      { "text": "Você fala inglês?", "translation": "Do you speak English? (neutral, standard BR)" },
-      { "text": "O senhor precisa de ajuda?", "translation": "Do you need help, sir? (formal)" }
+      {
+        "text": "Você fala inglês?",
+        "translation": "Do you speak English? (neutral, standard BR)"
+      },
+      {
+        "text": "O senhor precisa de ajuda?",
+        "translation": "Do you need help, sir? (formal)"
+      },
+      {
+        "text": "Tu vai lá hoje?",
+        "translation": "Are you going there today? (regional tu + 3rd-person verb, very common)"
+      },
+      {
+        "text": "Cê quer café?",
+        "translation": "You want coffee? (spoken reduction of você)"
+      }
     ],
-    "commonErrors": [],
-    "drills": [],
-    "relatedVocabulary": ["vocab.falar"]
+    "commonErrors": [
+      {
+        "wrong": "Você falas inglês?",
+        "right": "Você fala inglês?",
+        "note": "Você always takes third-person forms."
+      },
+      {
+        "wrong": "Calling an elderly stranger 'você'",
+        "right": "o senhor / a senhora",
+        "note": "Use the formal form with elders and in service situations until invited otherwise."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Ask a hotel receptionist's elderly guest if he needs water, politely.",
+        "answer": "O senhor quer água?"
+      },
+      {
+        "prompt": "How do most Brazilian tu-speakers actually say 'you speak'?",
+        "answer": "tu fala"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.falar",
+      "vocab.agua",
+      "vocab.cafe",
+      "vocab.hoje"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.articles-gender",
+    "title": "Articles and gender (o/a, um/uma)",
+    "cefr": "A1",
+    "explanationMd": "Every Portuguese noun is masculine or feminine, and the article carries that information: **o/a** (the), **um/uma** (a/an). The -o = masculine, -a = feminine pattern covers most nouns, but memorize the article *with* the noun because the exceptions are frequent words: *o dia* (day), *o problema*, *o mapa* are masculine; *a mão* (hand), *a foto* are feminine. Unlike English, Brazilians use the definite article before possessives and often before people's names: *o meu carro*, *a Maria chegou* — dropping it there sounds foreign, not cleaner. Gender errors rarely block understanding, but they are the single loudest 'gringo marker', so drill article + noun as one chunk.",
+    "examples": [
+      {
+        "text": "o pão, a água, um café, uma casa",
+        "translation": "the bread, the water, a coffee, a house"
+      },
+      {
+        "text": "O problema é o dia da viagem.",
+        "translation": "The problem is the day of the trip. (both masculine despite -a / looking odd)"
+      },
+      {
+        "text": "A Ana é a minha amiga.",
+        "translation": "Ana is my friend. (article before name and possessive — standard spoken BR)"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "a problema",
+        "right": "o problema",
+        "note": "Greek-origin -ma nouns are masculine: o problema, o sistema, o cinema."
+      },
+      {
+        "wrong": "Meu casa",
+        "right": "Minha casa",
+        "note": "Possessives agree with the noun's gender: casa is feminine."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Add the definite article: ___ leite",
+        "answer": "o leite"
+      },
+      {
+        "prompt": "Add the indefinite article: ___ água",
+        "answer": "uma água"
+      },
+      {
+        "prompt": "'the day' — o or a?",
+        "answer": "o dia"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.pao",
+      "vocab.agua",
+      "vocab.cafe",
+      "vocab.casa",
+      "vocab.leite"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.plural-formation",
+    "title": "Plural formation",
+    "cefr": "A1",
+    "explanationMd": "The default plural is add **-s** (*casa → casas*). Words ending in -r or -z add **-es** (*mulher → mulheres*), -m becomes **-ns** (*homem → homens*), and **-ão** splits three ways: usually **-ões** (*coração → corações*), sometimes **-ães** (*pão → pães*), rarely just **-ãos** (*mão → mãos*) — learn those case by case. Here is the spoken-Brazil reality: in casual speech many people mark the plural only on the article and drop it on the noun — *os amigo*, *as casa*. Understand it when you hear it, but produce the full agreement yourself (*os amigos*); the reduced form is heavily stigmatized in writing and formal contexts.",
+    "examples": [
+      {
+        "text": "a casa → as casas; o amigo → os amigos",
+        "translation": "the house → the houses; the friend → the friends"
+      },
+      {
+        "text": "o pão → os pães",
+        "translation": "the bread (loaf) → the breads (loaves)"
+      },
+      {
+        "text": "o homem → os homens; a mulher → as mulheres",
+        "translation": "the man → the men; the woman → the women"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "os pãos",
+        "right": "os pães",
+        "note": "pão belongs to the -ão → -ães group."
+      },
+      {
+        "wrong": "os homems",
+        "right": "os homens",
+        "note": "Final -m becomes -ns in the plural."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Pluralize: a rua",
+        "answer": "as ruas"
+      },
+      {
+        "prompt": "Pluralize: o coração",
+        "answer": "os corações"
+      },
+      {
+        "prompt": "Pluralize: o pão",
+        "answer": "os pães"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.pao",
+      "vocab.casa",
+      "vocab.rua",
+      "vocab.amigo"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.present-er-ir",
+    "title": "Present tense — regular -er and -ir verbs",
+    "cefr": "A1",
+    "explanationMd": "Regular **-er** verbs (*comer*) take -o, -e, -emos, -em; regular **-ir** verbs (*abrir*) take -o, -e, -imos, -em. Notice the two families differ only in the *nós* form (-emos vs -imos) — everything you actually use daily with você/ele/a gente is identical, so treat them as one pattern with a footnote. As with -ar verbs, spoken Brazil leans on three forms: *como, come, comem*. Watch out for first-person stem changes in some common -ir verbs even when the rest is regular: *dormir → eu durmo*, *subir → eu subo* (regular) but *pedir → eu peço*.",
+    "examples": [
+      {
+        "text": "Eu como pão, ela come pão, eles comem pão.",
+        "translation": "I eat bread, she eats bread, they eat bread."
+      },
+      {
+        "text": "Você bebe café todo dia?",
+        "translation": "Do you drink coffee every day?"
+      },
+      {
+        "text": "A gente abre a loja às nove.",
+        "translation": "We open the store at nine."
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Eu come",
+        "right": "Eu como",
+        "note": "1st person singular ends in -o for all three conjugations."
+      },
+      {
+        "wrong": "Nós comimos (present)",
+        "right": "Nós comemos",
+        "note": "-er verbs take -emos; comimos is the past tense."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Conjugate 'beber' for 'eles'.",
+        "answer": "bebem"
+      },
+      {
+        "prompt": "Conjugate 'abrir' for 'nós'.",
+        "answer": "abrimos"
+      },
+      {
+        "prompt": "Say 'she eats at home'.",
+        "answer": "Ela come em casa."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.comer",
+      "vocab.beber",
+      "vocab.pao",
+      "vocab.cafe"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.irregular-present",
+    "title": "Key irregular verbs: ter, ir, fazer, poder, querer",
+    "cefr": "A1",
+    "explanationMd": "Five irregulars carry a huge share of daily conversation, so memorize them as whole words, not rules: **ter** (tenho, tem, temos, têm), **ir** (vou, vai, vamos, vão), **fazer** (faço, faz, fazemos, fazem), **poder** (posso, pode, podemos, podem), **querer** (quero, quer, queremos, querem). They punch above their weight because Brazilians build other structures on them: *ter* doubles as 'there is' (*tem café?*), *ir* builds the spoken future (*vou fazer*), *poder* and *querer* chain directly onto infinitives (*posso pagar?*, *quero comer*). Note *tem* vs *têm* differ only in writing — they sound identical, so in speech context does the work.",
+    "examples": [
+      {
+        "text": "Tenho dois amigos em São Paulo.",
+        "translation": "I have two friends in São Paulo."
+      },
+      {
+        "text": "Ela faz café toda manhã.",
+        "translation": "She makes coffee every morning."
+      },
+      {
+        "text": "Posso beber essa água?",
+        "translation": "Can I drink this water?"
+      },
+      {
+        "text": "Quero pão, por favor.",
+        "translation": "I want bread, please."
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Eu teno / eu ter",
+        "right": "Eu tenho",
+        "note": "ter is irregular: tenho, not a regular -er form."
+      },
+      {
+        "wrong": "Ela quere",
+        "right": "Ela quer",
+        "note": "querer drops the -e in third person singular."
+      },
+      {
+        "wrong": "Eu fazo",
+        "right": "Eu faço",
+        "note": "fazer: first person is faço, with ç."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Conjugate 'ir' for 'nós'.",
+        "answer": "vamos"
+      },
+      {
+        "prompt": "Say 'I can speak' (poder + falar).",
+        "answer": "Posso falar."
+      },
+      {
+        "prompt": "Conjugate 'ter' for 'você'.",
+        "answer": "tem"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.amigo",
+      "vocab.cafe",
+      "vocab.agua",
+      "vocab.pao"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.estar-gerund",
+    "title": "estar + gerund (tô fazendo)",
+    "cefr": "A1",
+    "explanationMd": "Brazil's present continuous is **estar + -ndo**: *estou falando* (I'm speaking), *está comendo* (he's eating). Form the gerund by swapping the infinitive's -r for **-ndo**: falar → falando, comer → comendo, abrir → abrindo — no exceptions worth learning at this level. This is a genuinely Brazilian trait: European Portuguese says *estou a falar* instead, so the -ndo form instantly marks you as Brazil-oriented. In real speech estar is clipped, giving the extremely common *tô fazendo*, *tá chovendo*, *tão chegando*. Use it for actions in progress right now or current ongoing phases (*tô estudando português* — I'm studying Portuguese these days).",
+    "examples": [
+      {
+        "text": "Tô comendo agora, te ligo depois.",
+        "translation": "I'm eating right now, I'll call you later."
+      },
+      {
+        "text": "Ela tá falando com a mãe.",
+        "translation": "She's talking with her mom."
+      },
+      {
+        "text": "Estamos morando na mesma rua.",
+        "translation": "We're living on the same street."
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Estou a falar",
+        "right": "Estou falando",
+        "note": "'estar a + infinitive' is European Portuguese; Brazil uses the -ndo gerund."
+      },
+      {
+        "wrong": "Tô come agora",
+        "right": "Tô comendo agora",
+        "note": "The main verb must be in the -ndo form after estar."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'I'm drinking coffee' casually (clipped estar).",
+        "answer": "Tô bebendo café."
+      },
+      {
+        "prompt": "Gerund of 'abrir'?",
+        "answer": "abrindo"
+      },
+      {
+        "prompt": "Say 'it's raining' the spoken way.",
+        "answer": "Tá chovendo."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.comer",
+      "vocab.beber",
+      "vocab.cafe",
+      "vocab.rua"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.ir-future",
+    "title": "ir + infinitive — the future Brazilians actually speak",
+    "cefr": "A1",
+    "explanationMd": "Forget the conjugated future tense (*falarei*, *comerá*) for speaking — Brazilians almost never say it; it survives mainly in news writing, contracts, and horoscopes. The spoken future is **ir (conjugated) + infinitive**: *vou falar* (I'll speak), *vai chover* (it's going to rain), *vamos comer* (we're going to eat). One quirk: for 'going to go', Brazilians just say **vou** — *vou lá amanhã*, not *vou ir lá*. Since you already know vou/vai/vamos/vão, you now have the entire future tense for free. Add a time word (*amanhã*, *depois*, *hoje à noite*) and you're done.",
+    "examples": [
+      {
+        "text": "Vou falar com ele hoje.",
+        "translation": "I'm going to talk to him today."
+      },
+      {
+        "text": "A gente vai comer fora amanhã.",
+        "translation": "We're going to eat out tomorrow."
+      },
+      {
+        "text": "Vou lá depois.",
+        "translation": "I'll go there later. (not 'vou ir')"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Falarei com ele.",
+        "right": "Vou falar com ele.",
+        "note": "The -rei future sounds stiff/written; use ir + infinitive in speech."
+      },
+      {
+        "wrong": "Vou ir na festa.",
+        "right": "Vou na festa.",
+        "note": "For 'going to go', ir alone carries the future — though you WILL hear 'vou ir' colloquially, avoid it."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'she is going to drink water'.",
+        "answer": "Ela vai beber água."
+      },
+      {
+        "prompt": "Say 'we're going to speak Portuguese' (nós).",
+        "answer": "Nós vamos falar português."
+      },
+      {
+        "prompt": "Say 'I'll go to the house tomorrow' (no double ir).",
+        "answer": "Vou na casa amanhã."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.falar",
+      "vocab.comer",
+      "vocab.beber",
+      "vocab.hoje"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.negation",
+    "title": "Negation — não before the verb (and não... não)",
+    "cefr": "A1",
+    "explanationMd": "Basic negation is simple: put **não** directly before the verb — *não falo*, *não quero*. Nothing comes between them except object pronouns (*não te vi*). Spoken Brazil then adds two twists. First, the double negative **não... não** for emphasis or soft refusal: *não quero, não* — completely standard in speech, never wrong-sounding. Second, in fast informal speech the *first* não can disappear, leaving only the final one: *quero não* — very common in the Northeast. Also note negative answers: Brazilians rarely answer yes/no questions with a bare *sim*; they echo the verb — *Você fala inglês? Falo. / Não falo, não.*",
+    "examples": [
+      {
+        "text": "Não bebo café à noite.",
+        "translation": "I don't drink coffee at night."
+      },
+      {
+        "text": "Não quero, não.",
+        "translation": "I don't want to. (soft, natural refusal)"
+      },
+      {
+        "text": "— Você come carne? — Como. / — Não como, não.",
+        "translation": "— Do you eat meat? — I do. / — No, I don't. (echoing the verb instead of sim/não)"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Eu falo não português. (wrong placement)",
+        "right": "Eu não falo português.",
+        "note": "não goes immediately before the verb."
+      },
+      {
+        "wrong": "Answering just 'Sim.' to every question",
+        "right": "Echo the verb: 'Falo.' / 'Quero.'",
+        "note": "Verb-echo answers are the natural Brazilian yes."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Negate: 'Eu como pão.'",
+        "answer": "Eu não como pão."
+      },
+      {
+        "prompt": "Refuse softly, the spoken-BR way: 'I don't want to.'",
+        "answer": "Não quero, não."
+      },
+      {
+        "prompt": "Answer 'Você bebe café?' affirmatively the natural way.",
+        "answer": "Bebo."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.beber",
+      "vocab.comer",
+      "vocab.cafe",
+      "vocab.pao"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.questions",
+    "title": "Question formation — intonation and question words",
+    "cefr": "A1",
+    "explanationMd": "This is the easiest part of Portuguese: there is no word-order change and no auxiliary like English 'do'. A yes/no question is just the statement with rising intonation: *Você fala inglês?* Question words go up front and the order still doesn't flip: **o que** (what), **quem** (who), **onde** (where), **quando** (when), **por que** (why), **como** (how), **quanto** (how much/many), **qual** (which). Two spoken-Brazil habits to recognize: tacking **é que** after the question word (*onde é que você mora?* — pure emphasis, no meaning change) and echoing the question word at the end with 'o quê?' style stress (*você quer o quê?*). Rhetorical tag: *né?* (= não é?) turns anything into 'right?'.",
+    "examples": [
+      {
+        "text": "Você bebe café?",
+        "translation": "Do you drink coffee? (statement + rising intonation)"
+      },
+      {
+        "text": "Onde você mora?",
+        "translation": "Where do you live? (no inversion)"
+      },
+      {
+        "text": "Por que é que ele não veio?",
+        "translation": "Why didn't he come? (emphatic 'é que')"
+      },
+      {
+        "text": "Você é o amigo do João, né?",
+        "translation": "You're João's friend, right?"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Fala você inglês?",
+        "right": "Você fala inglês?",
+        "note": "No subject-verb inversion in Portuguese questions."
+      },
+      {
+        "wrong": "Onde mora você?",
+        "right": "Onde você mora?",
+        "note": "Keep normal word order after the question word."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Turn 'Você quer água.' into a question.",
+        "answer": "Você quer água?"
+      },
+      {
+        "prompt": "Ask 'where is the street?'",
+        "answer": "Onde fica a rua? (or: Onde é a rua?)"
+      },
+      {
+        "prompt": "Add the Brazilian tag 'right?' to 'Você fala português'.",
+        "answer": "Você fala português, né?"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.falar",
+      "vocab.beber",
+      "vocab.agua",
+      "vocab.rua",
+      "vocab.amigo"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.contractions",
+    "title": "Contractions: no/na, do/da, num/numa, pra/pro",
+    "cefr": "A1",
+    "explanationMd": "Prepositions fuse with articles, and these fusions are mandatory, not optional style: **em + o/a = no/na** (in the), **de + o/a = do/da** (of/from the), **a + o/a = ao/à** (to the), **em + um/uma = num/numa** (in a). Saying *em a casa* is simply wrong. Then there's the all-spoken star: **para** reduces to **pra**, and fuses further to **pro/pra** (para o / para a) — *vou pro trabalho*, *isso é pra você*. You will hear *pra* in virtually every Brazilian sentence; full *para* in speech sounds like reading aloud. Write *para* in formal text, say *pra* everywhere else. Plurals work the same: nos/nas, dos/das, uns → nuns, etc.",
+    "examples": [
+      {
+        "text": "O leite tá na geladeira.",
+        "translation": "The milk is in the fridge. (em + a = na)"
+      },
+      {
+        "text": "Ele é do Rio.",
+        "translation": "He's from Rio. (de + o = do)"
+      },
+      {
+        "text": "Vou pro trabalho a pé.",
+        "translation": "I go to work on foot. (para o = pro)"
+      },
+      {
+        "text": "Moro numa rua tranquila.",
+        "translation": "I live on a quiet street. (em + uma = numa)"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "em a casa",
+        "right": "na casa",
+        "note": "em + article must contract: no/na/num/numa."
+      },
+      {
+        "wrong": "de o amigo",
+        "right": "do amigo",
+        "note": "de + o contracts to do."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Contract: em + a rua",
+        "answer": "na rua"
+      },
+      {
+        "prompt": "Contract: de + a casa",
+        "answer": "da casa"
+      },
+      {
+        "prompt": "Say 'this is for you' the spoken way.",
+        "answer": "Isso é pra você."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.casa",
+      "vocab.rua",
+      "vocab.leite",
+      "vocab.amigo"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.possessives",
+    "title": "Possessives: meu/minha, seu/sua, dele/dela",
+    "cefr": "A1",
+    "explanationMd": "Possessives agree with the thing owned, not the owner: **meu/minha** (my), **seu/sua** (your), **nosso/nossa** (our). Here's the trap: textbook *seu* also means 'his/her', but since você took over the third-person forms, *seu carro* is ambiguous — your car or his car? Brazilians resolved it decisively: in speech **seu/sua = your (você's)**, and 'his/her' is expressed with **dele/dela** placed *after* the noun: *o carro dele* (his car), *a casa dela* (her house). Use dele/dela and you'll never be misunderstood. Also remember spoken BR normally keeps the article before possessives: *o meu amigo*, *a minha casa*.",
+    "examples": [
+      {
+        "text": "A minha casa fica perto.",
+        "translation": "My house is nearby."
+      },
+      {
+        "text": "O carro dele tá na rua.",
+        "translation": "His car is on the street. (dele = unambiguous 'his')"
+      },
+      {
+        "text": "Seu café tá esfriando.",
+        "translation": "Your coffee is getting cold. (seu = your in spoken BR)"
+      },
+      {
+        "text": "A amiga dela mora aqui.",
+        "translation": "Her friend lives here."
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "meu casa",
+        "right": "minha casa",
+        "note": "Agree with the possessed noun: casa is feminine."
+      },
+      {
+        "wrong": "Using 'seu' to mean 'his' in conversation",
+        "right": "o ... dele",
+        "note": "In spoken BR 'seu' will be heard as 'your'; say 'dele/dela' for his/her."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'her house' unambiguously.",
+        "answer": "a casa dela"
+      },
+      {
+        "prompt": "Say 'my friend (male)' with the article, spoken style.",
+        "answer": "o meu amigo"
+      },
+      {
+        "prompt": "'your water' (talking to você)",
+        "answer": "sua água"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.casa",
+      "vocab.amigo",
+      "vocab.rua",
+      "vocab.cafe",
+      "vocab.agua"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.demonstratives",
+    "title": "Demonstratives: esse, este, aquele",
+    "cefr": "A2",
+    "explanationMd": "The textbook system is three-way: **este** (near me), **esse** (near you), **aquele** (far from both), each with feminine (-a) and neutral (isto/isso/aquilo) forms. Spoken Brazil collapsed it to two: **esse** covers both 'this' and 'that near you' — *este* survives mostly in writing and set phrases. So in conversation you need only **esse/essa/isso** (this/that here-ish) vs **aquele/aquela/aquilo** (that over there). The neutral forms isso/aquilo are for unnamed things and ideas: *o que é isso?* (what's that?), *isso!* (exactly!/that's it! — a hugely common affirmation). Combine with contractions: *nesse*, *nessa*, *naquele*, *disso*, *daquilo*.",
+    "examples": [
+      {
+        "text": "Esse pão tá fresquinho.",
+        "translation": "This bread is nice and fresh. (spoken 'esse' where books say 'este')"
+      },
+      {
+        "text": "Aquela casa é do meu amigo.",
+        "translation": "That house (over there) is my friend's."
+      },
+      {
+        "text": "O que é isso?",
+        "translation": "What is that/this? (neutral isso for unnamed things)"
+      },
+      {
+        "text": "— Então a gente se vê amanhã? — Isso!",
+        "translation": "— So we'll see each other tomorrow? — Exactly!"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Insisting on 'este' in conversation",
+        "right": "esse",
+        "note": "Not an error, but 'este' sounds written/formal; spoken BR uses esse for near things."
+      },
+      {
+        "wrong": "esse aqui vs aquele confusion: using 'esse' for something far away",
+        "right": "aquele",
+        "note": "Distance still matters: far = aquele/aquela/aquilo."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'this coffee is good' the spoken way.",
+        "answer": "Esse café é bom."
+      },
+      {
+        "prompt": "Say 'that street (far away)'.",
+        "answer": "aquela rua"
+      },
+      {
+        "prompt": "Ask 'what is that?' about an unknown object.",
+        "answer": "O que é isso?"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.pao",
+      "vocab.cafe",
+      "vocab.casa",
+      "vocab.rua"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.object-pronouns",
+    "title": "Object pronouns in spoken Brazil (me/te fronting, o/a avoidance)",
+    "cefr": "A2",
+    "explanationMd": "This is where spoken Brazil breaks hardest with the textbook. First, placement: Brazilians put **me/te/se/nos** *before* the verb, even to start a sentence — *te amo*, *me ajuda*, *me passa o sal* — whereas European grammar demands *amo-te*. Nobody in Brazil says *amo-te* in conversation. Second, the third-person clitics **o/a** ('him/her/it') are practically dead in speech: instead Brazilians repeat the noun, use **ele/ela** after the verb (*eu vi ela ontem* — technically 'wrong', universally said), or just drop the object entirely when it's obvious (*— Comprou o pão? — Comprei.*). Learn to recognize o/a/lo/la in writing, but don't build your speech on them.",
+    "examples": [
+      {
+        "text": "Te amo.",
+        "translation": "I love you. (pronoun fronted — standard spoken BR)"
+      },
+      {
+        "text": "Me ajuda com isso?",
+        "translation": "Help me with this? (starting with 'me' is normal in Brazil)"
+      },
+      {
+        "text": "Eu vi ela na rua hoje.",
+        "translation": "I saw her on the street today. (spoken; written norm would be 'eu a vi')"
+      },
+      {
+        "text": "— Você bebeu o café? — Bebi.",
+        "translation": "— Did you drink the coffee? — I did. (object simply dropped)"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Amo-te. (in conversation)",
+        "right": "Te amo.",
+        "note": "Verb-attached pronouns sound European/literary; Brazilians front them."
+      },
+      {
+        "wrong": "Eu o vi ontem. (in conversation)",
+        "right": "Eu vi ele ontem.",
+        "note": "Fine in writing, stiff in speech — spoken BR uses ele/ela as object or drops it."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'call me tomorrow' the Brazilian way.",
+        "answer": "Me liga amanhã."
+      },
+      {
+        "prompt": "Say 'I saw her today' the spoken way.",
+        "answer": "Eu vi ela hoje."
+      },
+      {
+        "prompt": "Answer '— Comeu o pão?' the natural way (yes).",
+        "answer": "Comi."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.rua",
+      "vocab.hoje",
+      "vocab.cafe",
+      "vocab.pao"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.gostar-de",
+    "title": "gostar de — liking things and doing things",
+    "cefr": "A1",
+    "explanationMd": "**Gostar** always takes **de** before its object — no exceptions: *gosto de café*, *gosto de você*. With verbs, use de + infinitive: *gosto de comer fora* (I like eating out). The 'de' contracts with articles and pronouns: *gosto do pão daqui*, *gosto dele*. English speakers drop the de constantly; Brazilians will still understand you, but it's a persistent error worth killing early. In fast speech *de* often reduces to a 'dji' sound (*gosto dji café*) — that's pronunciation, not a different word. For 'would like' (polite wanting), Brazilians usually say **queria**: *queria um café* — literally imperfect of querer, functioning as 'I'd like'.",
+    "examples": [
+      {
+        "text": "Gosto de café sem leite.",
+        "translation": "I like coffee without milk."
+      },
+      {
+        "text": "Ela gosta de falar de comida.",
+        "translation": "She likes talking about food."
+      },
+      {
+        "text": "Você gosta dele?",
+        "translation": "Do you like him? (de + ele = dele)"
+      },
+      {
+        "text": "Queria um pão, por favor.",
+        "translation": "I'd like a bread roll, please."
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Gosto café.",
+        "right": "Gosto de café.",
+        "note": "gostar always needs de."
+      },
+      {
+        "wrong": "Gosto de o pão",
+        "right": "Gosto do pão",
+        "note": "de + o contracts to do."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'I like drinking water'.",
+        "answer": "Gosto de beber água."
+      },
+      {
+        "prompt": "Say 'she likes the house'.",
+        "answer": "Ela gosta da casa."
+      },
+      {
+        "prompt": "Order politely: 'I'd like a coffee.'",
+        "answer": "Queria um café."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.cafe",
+      "vocab.leite",
+      "vocab.pao",
+      "vocab.beber",
+      "vocab.agua"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.preterito-perfeito",
+    "title": "Pretérito perfeito — regular past (-ar/-er/-ir)",
+    "cefr": "A2",
+    "explanationMd": "The perfeito is the workhorse past: completed actions, one-time events, 'what happened'. Regular endings — **-ar**: falei, falou, falamos, falaram; **-er**: comi, comeu, comemos, comeram; **-ir**: abri, abriu, abrimos, abriram. Good news: -er and -ir are identical in the past. Two things matter for real usage. First, the perfeito also covers English's present perfect: *já comi* = 'I've already eaten' — Portuguese does NOT use its compound tense for this. Second, note *falamos* is both 'we speak' and 'we spoke'; context (or a time word like *ontem*) disambiguates, and Brazilians don't even notice the ambiguity.",
+    "examples": [
+      {
+        "text": "Falei com ela ontem.",
+        "translation": "I spoke with her yesterday."
+      },
+      {
+        "text": "Você comeu o pão todo?",
+        "translation": "Did you eat all the bread?"
+      },
+      {
+        "text": "Já bebi meu café hoje.",
+        "translation": "I've already had my coffee today. (perfeito = English present perfect)"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Eu tenho comido o pão. (for 'I ate/I've eaten the bread')",
+        "right": "Eu comi o pão.",
+        "note": "Don't calque English 'have eaten'; the simple perfeito covers it. ('Tenho comido' means a repeated recent habit.)"
+      },
+      {
+        "wrong": "Eu falou",
+        "right": "Eu falei",
+        "note": "-ei for eu, -ou for você/ele."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Past of 'beber' for 'eu'.",
+        "answer": "bebi"
+      },
+      {
+        "prompt": "Say 'she spoke with the friend yesterday'.",
+        "answer": "Ela falou com o amigo ontem."
+      },
+      {
+        "prompt": "Say 'I've already eaten' (Brazilian way).",
+        "answer": "Já comi."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.falar",
+      "vocab.comer",
+      "vocab.beber",
+      "vocab.pao",
+      "vocab.hoje"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.irregular-perfeito",
+    "title": "Irregular past: fui, fiz, tive, disse, pude, quis",
+    "cefr": "A2",
+    "explanationMd": "The most-used verbs have irregular pasts, and they're unavoidable in any story about your day: **ser/ir share the same forms** (fui, foi, fomos, foram — context tells you 'was' vs 'went'), **fazer** → fiz, fez, fizemos, fizeram; **ter** → tive, teve, tivemos, tiveram; **dizer** → disse, disse, dissemos, disseram; **poder** → pude, pôde, pudemos, puderam; **querer** → quis, quis, quisemos, quiseram; **estar** → estive, esteve. Don't try to derive these — chunk-memorize the eu and você/ele forms first, since those carry most conversations. The ser/ir merger surprises learners but never confuses Brazilians: *fui ao Rio* (I went), *fui professor* (I was).",
+    "examples": [
+      {
+        "text": "Ontem eu fui na casa dela.",
+        "translation": "Yesterday I went to her house. (ir → fui)"
+      },
+      {
+        "text": "A festa foi ótima.",
+        "translation": "The party was great. (ser → foi — same form as 'went')"
+      },
+      {
+        "text": "Fiz café pra todo mundo.",
+        "translation": "I made coffee for everyone."
+      },
+      {
+        "text": "Ele disse que não teve tempo.",
+        "translation": "He said he didn't have time."
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Eu fazi / eu fazei",
+        "right": "Eu fiz",
+        "note": "fazer is irregular in the past: fiz, fez."
+      },
+      {
+        "wrong": "Eu tivi",
+        "right": "Eu tive",
+        "note": "ter → tive, teve."
+      },
+      {
+        "wrong": "Ele dizeu",
+        "right": "Ele disse",
+        "note": "dizer → disse (same form for eu and ele)."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Past of 'ir' for 'eu'.",
+        "answer": "fui"
+      },
+      {
+        "prompt": "Say 'she made bread today'.",
+        "answer": "Ela fez pão hoje."
+      },
+      {
+        "prompt": "Past of 'ter' for 'ele'.",
+        "answer": "teve"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.casa",
+      "vocab.cafe",
+      "vocab.pao",
+      "vocab.hoje"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.imperfeito",
+    "title": "Imperfeito vs perfeito — background vs event",
+    "cefr": "A2",
+    "explanationMd": "The imperfeito paints the background; the perfeito reports the event. **Imperfeito** = habits ('used to'), ongoing states, descriptions, and 'was doing': -ar verbs take -ava (falava, falávamos), -er/-ir take -ia (comia, abria). Only four irregulars matter: ser (era), ter (tinha), ir (ia), vir (vinha). The classic combo: *eu **estava** comendo quando ela **chegou*** — background (imperfeito) interrupted by event (perfeito). Two very Brazilian uses to know: **tinha** replaces 'havia' for 'there was/were' in speech (*tinha muita gente*), and the imperfeito works as a polite conditional: *queria um café* (I'd like), *podia me ajudar?* (could you help me?) — far more common in speech than the true conditional.",
+    "examples": [
+      {
+        "text": "Quando eu era criança, morava numa rua pequena.",
+        "translation": "When I was a kid, I lived (used to live) on a small street."
+      },
+      {
+        "text": "Eu tava bebendo café quando você ligou.",
+        "translation": "I was drinking coffee when you called. (imperfeito background + perfeito event)"
+      },
+      {
+        "text": "Tinha muita gente na festa.",
+        "translation": "There were a lot of people at the party. (spoken 'there was' in the past)"
+      },
+      {
+        "text": "Ela sempre comia pão de manhã.",
+        "translation": "She always used to eat bread in the morning."
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Quando eu fui criança...",
+        "right": "Quando eu era criança...",
+        "note": "Age/description in the past is background → imperfeito."
+      },
+      {
+        "wrong": "Eu bebi café quando você ligou (meaning 'was drinking')",
+        "right": "Eu estava/tava bebendo café quando você ligou.",
+        "note": "Interrupted ongoing action → imperfeito (or estava + gerund)."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Imperfeito of 'falar' for 'ela'.",
+        "answer": "falava"
+      },
+      {
+        "prompt": "Say 'there was water in the house' (spoken).",
+        "answer": "Tinha água na casa."
+      },
+      {
+        "prompt": "'I used to drink milk every day.'",
+        "answer": "Eu bebia leite todo dia."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.rua",
+      "vocab.cafe",
+      "vocab.pao",
+      "vocab.leite",
+      "vocab.agua",
+      "vocab.casa"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.a-gente",
+    "title": "a gente = we (with singular verb)",
+    "cefr": "A2",
+    "explanationMd": "In everyday Brazil, 'we' is usually **a gente**, not *nós* — and it takes the **third-person singular** verb, exactly like você: *a gente fala*, *a gente vai*, *a gente foi*. Literally 'the people', it grammaticalized into a pronoun; *nós* isn't wrong, just more formal or emphatic, and it drags along the -mos endings you then have to conjugate. Big payoff for learners: a gente lets you talk about 'us' using forms you already know. Watch agreement traps: the verb is singular even though the meaning is plural (*a gente foi*, never *a gente fomos* — though you'll hear that 'error' from natives), and adjectives agree with the speakers' reality: *a gente tava cansado/cansada*.",
+    "examples": [
+      {
+        "text": "A gente mora na mesma rua.",
+        "translation": "We live on the same street."
+      },
+      {
+        "text": "A gente vai comer fora hoje.",
+        "translation": "We're going to eat out today."
+      },
+      {
+        "text": "Ontem a gente falou sobre isso.",
+        "translation": "Yesterday we talked about that."
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "A gente falamos",
+        "right": "A gente fala",
+        "note": "a gente takes the singular verb form (like você)."
+      },
+      {
+        "wrong": "A gente somos amigos",
+        "right": "A gente é amigo. / Nós somos amigos.",
+        "note": "Keep verb singular with a gente; switch to nós if you want -mos forms."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'we drink coffee every day' with 'a gente'.",
+        "answer": "A gente bebe café todo dia."
+      },
+      {
+        "prompt": "Say 'we went to the house' with 'a gente'.",
+        "answer": "A gente foi na casa."
+      },
+      {
+        "prompt": "Conjugation rule: a gente takes which verb form?",
+        "answer": "third-person singular (same as você/ele)"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.rua",
+      "vocab.comer",
+      "vocab.beber",
+      "vocab.cafe",
+      "vocab.casa",
+      "vocab.hoje",
+      "vocab.amigo"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.ficar",
+    "title": "ficar — the swiss-army verb",
+    "cefr": "A2",
+    "explanationMd": "**Ficar** is one of the highest-value verbs in Brazilian Portuguese because it does at least four jobs. (1) Permanent location of places — where estar handles people, ficar handles buildings: *a casa fica na rua principal*. (2) 'To stay/remain': *fiquei em casa hoje*. (3) 'To become/get' with emotions and states — the default way to express change: *fiquei feliz* (I got happy), *ela ficou brava* (she got mad), *ficou pronto* (it's done/got ready). (4) The famously Brazilian social meaning: *ficar com alguém* = to hook up/make out with someone, no commitment implied — essential cultural vocabulary, and yes, *ficante* is the person you're casually seeing. When in doubt about 'get/become', reach for ficar.",
+    "examples": [
+      {
+        "text": "A padaria fica perto da minha casa.",
+        "translation": "The bakery is (located) near my house."
+      },
+      {
+        "text": "Fiquei em casa o dia todo.",
+        "translation": "I stayed home all day."
+      },
+      {
+        "text": "Ela ficou muito feliz com a notícia.",
+        "translation": "She got really happy about the news."
+      },
+      {
+        "text": "Eles ficaram na festa.",
+        "translation": "They hooked up at the party. (context makes the meaning; can also just mean 'they stayed')"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "A casa está na rua principal. (for a permanent location)",
+        "right": "A casa fica na rua principal.",
+        "note": "Not wrong, but ficar is the natural verb for where places are."
+      },
+      {
+        "wrong": "Eu tornei-me feliz.",
+        "right": "Eu fiquei feliz.",
+        "note": "'tornar-se' is formal/written; spoken change-of-state is ficar."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'the house is on this street' (permanent location).",
+        "answer": "A casa fica nessa rua."
+      },
+      {
+        "prompt": "Say 'I got tired'.",
+        "answer": "Fiquei cansado. (or cansada)"
+      },
+      {
+        "prompt": "Say 'I stayed home today'.",
+        "answer": "Fiquei em casa hoje."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.casa",
+      "vocab.rua",
+      "vocab.hoje"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.tem-ha",
+    "title": "tem = there is/are (spoken) vs há (written)",
+    "cefr": "A1",
+    "explanationMd": "To say 'there is / there are', spoken Brazil uses **tem** — the same verb as 'to have', always in the singular: *tem café?* (is there coffee?), *tem duas padarias na rua* (there are two bakeries on the street). The textbook form **há** is real but lives in writing, news, and formal speech; leading with *há* in a bar sounds like a butler. In the past, spoken 'there was/were' is **tinha** (*tinha muita gente*) or *teve* for events (*teve festa ontem* — there was a party). One shared rule: existential tem/há never pluralizes — *tem muitas casas*, never *têm muitas casas*. Bonus: há also means 'ago' in writing (*há dois anos*), which speech replaces with... *tem*: *tem dois anos que moro aqui*.",
+    "examples": [
+      {
+        "text": "Tem pão fresco hoje?",
+        "translation": "Is there fresh bread today?"
+      },
+      {
+        "text": "Tem duas farmácias nessa rua.",
+        "translation": "There are two pharmacies on this street. (tem stays singular)"
+      },
+      {
+        "text": "Tinha muita gente na casa dela.",
+        "translation": "There were a lot of people at her house."
+      },
+      {
+        "text": "Há vagas.",
+        "translation": "Vacancies available. (há survives in signs and formal writing)"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Têm muitas casas na rua.",
+        "right": "Tem muitas casas na rua.",
+        "note": "Existential tem is always singular, whatever follows it."
+      },
+      {
+        "wrong": "Há café? (in casual speech)",
+        "right": "Tem café?",
+        "note": "Grammatically fine but socially off — speech uses tem."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Ask 'is there milk?' the spoken way.",
+        "answer": "Tem leite?"
+      },
+      {
+        "prompt": "Say 'there was a party yesterday'.",
+        "answer": "Teve festa ontem."
+      },
+      {
+        "prompt": "'There are many friends here' — spoken.",
+        "answer": "Tem muitos amigos aqui."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.cafe",
+      "vocab.pao",
+      "vocab.leite",
+      "vocab.rua",
+      "vocab.casa",
+      "vocab.hoje",
+      "vocab.amigo"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.comparatives",
+    "title": "Comparatives and superlatives (mais que, o mais, melhor/pior)",
+    "cefr": "A2",
+    "explanationMd": "Comparison is refreshingly regular: **mais ... (do) que** = more/-er than (*mais barato que*), **menos ... (do) que** = less than, **tão ... quanto** = as ... as. In speech *do que* and *que* are interchangeable; *que* alone is more common. The superlative just adds the article: **o/a mais ...** — *o café mais barato da cidade* (note: 'in the city' becomes **de/da**, not em). Four irregulars to memorize because their 'mais' versions are wrong: **melhor** (better, never *mais bom*), **pior** (worse), **maior** (bigger, never *mais grande*), **menor** (smaller). Everyday intensifier bonus: the absolute superlative -íssimo (*caríssimo* — super expensive) is common and slightly dramatic, which is exactly how Brazilians like it.",
+    "examples": [
+      {
+        "text": "O ônibus é mais barato que o táxi.",
+        "translation": "The bus is cheaper than the taxi."
+      },
+      {
+        "text": "Esse é o melhor pão da cidade.",
+        "translation": "This is the best bread in the city. ('in' → da)"
+      },
+      {
+        "text": "Minha casa é menor que a sua.",
+        "translation": "My house is smaller than yours."
+      },
+      {
+        "text": "O café daqui é bom demais.",
+        "translation": "The coffee here is really good. ('demais' = spoken intensifier)"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "mais bom",
+        "right": "melhor",
+        "note": "bom/mau have irregular comparatives: melhor/pior."
+      },
+      {
+        "wrong": "mais grande",
+        "right": "maior",
+        "note": "grande → maior. (But 'mais pequeno' is accepted alongside menor.)"
+      },
+      {
+        "wrong": "o melhor restaurante na cidade",
+        "right": "o melhor restaurante da cidade",
+        "note": "After a superlative, 'in' is expressed with de."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'water is cheaper than coffee'.",
+        "answer": "Água é mais barata que café."
+      },
+      {
+        "prompt": "'better' in Portuguese?",
+        "answer": "melhor"
+      },
+      {
+        "prompt": "Say 'the biggest house on the street'.",
+        "answer": "a maior casa da rua"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.agua",
+      "vocab.cafe",
+      "vocab.pao",
+      "vocab.casa",
+      "vocab.rua"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.adverbs-frequency",
+    "title": "Adverbs of frequency and time — what to say and where to put it",
+    "cefr": "A2",
+    "explanationMd": "The core set: **sempre** (always), **nunca** (never), **às vezes** (sometimes), **geralmente/normalmente** (usually), **todo dia** (every day), **de vez em quando** (once in a while), plus time anchors **hoje, ontem, amanhã, agora, já, ainda**. Placement is loose — Portuguese is far more flexible than English — but the natural defaults are: sempre/nunca right before the verb (*eu sempre como pão*, *ela nunca bebe café*) and time expressions at the start or end of the sentence (*hoje eu vou lá / eu vou lá hoje*). Note that **nunca** before the verb needs no não (*nunca fui*), but after the verb it does (*não fui nunca*). Spoken favorites: **direto** (all the time — *ele viaja direto*) and **vivo/vive + gerund** (*ela vive reclamando* — she's always complaining).",
+    "examples": [
+      {
+        "text": "Eu sempre bebo café de manhã.",
+        "translation": "I always drink coffee in the morning."
+      },
+      {
+        "text": "Ela nunca come pão à noite.",
+        "translation": "She never eats bread at night."
+      },
+      {
+        "text": "Hoje a gente vai na casa do meu amigo.",
+        "translation": "Today we're going to my friend's house."
+      },
+      {
+        "text": "Ele fala disso direto.",
+        "translation": "He talks about that all the time. (spoken 'direto')"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "Eu bebo sempre nunca café. (double frequency)",
+        "right": "Eu nunca bebo café.",
+        "note": "Pick one frequency adverb; nunca before the verb replaces não."
+      },
+      {
+        "wrong": "Nunca não fui lá.",
+        "right": "Nunca fui lá.",
+        "note": "Pre-verbal nunca doesn't take não."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Say 'I always speak Portuguese at home'.",
+        "answer": "Eu sempre falo português em casa."
+      },
+      {
+        "prompt": "Say 'she never drinks milk'.",
+        "answer": "Ela nunca bebe leite."
+      },
+      {
+        "prompt": "Say 'today I'm going to eat out'.",
+        "answer": "Hoje eu vou comer fora."
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.hoje",
+      "vocab.cafe",
+      "vocab.pao",
+      "vocab.leite",
+      "vocab.casa",
+      "vocab.amigo"
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.diminutives",
+    "title": "Diminutives -inho/-zinho — small words, big social force",
+    "cefr": "A2",
+    "explanationMd": "The diminutive is grammatically simple — add **-inho/-inha** (words ending in unstressed -o/-a: *café → cafezinho*? no: *carro → carrinho*, *casa → casinha*) or **-zinho/-zinha** (words ending in stressed vowels, nasals, or consonants: *café → cafezinho*, *pão → pãozinho*, *mãe → mãezinha*). But its real function is social, and Brazilians deploy it constantly: it softens requests (*só um minutinho* — just a tiny minute), signals affection (*amorzinho*), makes offers warmer (*aceita um cafezinho?* — the national hospitality ritual), downplays (*um probleminha* — a little problem, often a big one), and intensifies with time words (*rapidinho* = really quick, *agorinha* = right now, *pertinho* = super close). It also attaches to adjectives and adverbs, not just nouns: *bonitinho*, *devagarinho*. Reading the diminutive is reading Brazilian social temperature — irony included: *joguinho* said flatly about a bad match is pure sarcasm.",
+    "examples": [
+      {
+        "text": "Aceita um cafezinho?",
+        "translation": "Would you like a little coffee? (the classic Brazilian offer)"
+      },
+      {
+        "text": "Espera um minutinho, tá?",
+        "translation": "Wait just a sec, ok? (softened request)"
+      },
+      {
+        "text": "Moro pertinho daqui, chego rapidinho.",
+        "translation": "I live really close by, I'll be there in no time. (intensifying, not literally 'small')"
+      },
+      {
+        "text": "Compra um pãozinho pra mim?",
+        "translation": "Will you buy me a bread roll? (pão → pãozinho, warm and standard)"
+      }
+    ],
+    "commonErrors": [
+      {
+        "wrong": "cafeinho",
+        "right": "cafezinho",
+        "note": "Stressed final vowel → use -zinho."
+      },
+      {
+        "wrong": "Treating 'rapidinho' as 'a little bit fast'",
+        "right": "rapidinho = really fast / right away",
+        "note": "With time/degree words the diminutive intensifies rather than diminishes."
+      }
+    ],
+    "drills": [
+      {
+        "prompt": "Diminutive of 'casa'?",
+        "answer": "casinha"
+      },
+      {
+        "prompt": "Diminutive of 'pão'?",
+        "answer": "pãozinho"
+      },
+      {
+        "prompt": "Offer someone a coffee the warm Brazilian way.",
+        "answer": "Aceita um cafezinho?"
+      }
+    ],
+    "relatedVocabulary": [
+      "vocab.cafe",
+      "vocab.pao",
+      "vocab.casa"
+    ]
   }
 ]

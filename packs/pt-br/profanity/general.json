@@ -29,5 +29,127 @@
     "saferAlternatives": ["droga", "caramba"],
     "warningNotes": "Vulgar but common. Understand it; avoid using it with strangers, elders, or in professional/formal contexts.",
     "examples": [{ "text": "Que merda, perdi o ônibus.", "translation": "Crap, I missed the bus." }]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "profanity.porra",
+    "kind": "profanity",
+    "phrase": "porra",
+    "literal": "cum / semen (archaically: a club, cudgel)",
+    "natural": "two lives: (1) an all-purpose interjection of frustration or emphasis — 'damn it / fuck' ('Porra, de novo?!'); (2) the vulgar noun for semen. Also a filler noun: 'que porra é essa?' = 'what the fuck is this?', 'nenhuma porra' = 'not a damn thing'",
+    "register": "obscene",
+    "severity": 5,
+    "region": null,
+    "whoUses": "extremely widespread in relaxed male and mixed-company speech, all regions and classes; one of the most-heard words on any Brazilian street or football broadcast",
+    "usageContext": "venting among friends, emphasis in heated informal talk. You will hear it constantly; frequency does not make it safe — its literal meaning is semen and everyone knows it",
+    "learnerShouldUse": "recognize-only",
+    "saferAlternatives": ["caramba", "caraca", "droga", "poxa"],
+    "warningNotes": "Essential for comprehension, risky to produce. From a foreigner it can land as either charmingly fluent or crass, and you can't control which. Never at work, never with elders, never with people you've just met, and never directed at a person ('sua porra' is a fight). If you must vent, 'poxa' is the sanctioned minced version of exactly this word.",
+    "examples": [
+      { "text": "Porra, esqueci a carteira em casa!", "translation": "Fuck, I left my wallet at home!" },
+      { "text": "Que porra é essa no meio da rua?", "translation": "What the fuck is that in the middle of the street?" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "profanity.caralho",
+    "kind": "profanity",
+    "phrase": "caralho",
+    "literal": "dick / cock",
+    "natural": "as a bare interjection: shock or awe — 'holy shit!' ('Caralho, olha o tamanho da onda!'). As an intensifier: 'pra caralho' = 'as fuck / a shitload' ('bom pra caralho' = good as fuck). Directed at someone ('vai pro caralho') it becomes 'go to hell', an open insult",
+    "register": "obscene",
+    "severity": 5,
+    "region": null,
+    "whoUses": "very common in informal speech across regions, classes, and genders, especially under strong emotion",
+    "usageContext": "genuine shock, admiration, anger among friends. The interjection and the 'pra caralho' intensifier are heard everywhere; the directed forms are hostile",
+    "learnerShouldUse": "recognize-only",
+    "saferAlternatives": ["caraca", "nossa", "caramba", "demais (instead of 'pra caralho')"],
+    "warningNotes": "The interjection is common but unmistakably obscene — think 'fuck!' not 'damn!'. Fine to understand, unwise to deploy until you can read a room in Portuguese. Aimed at a person ('vai pro caralho', 'seu caralho') it is aggression and invites escalation. Career-limiting in any professional setting.",
+    "examples": [
+      { "text": "Caralho! Você viu aquilo?", "translation": "Holy shit! Did you see that?" },
+      { "text": "Esse churrasco tá bom pra caralho.", "translation": "This barbecue is good as fuck." }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "profanity.foda",
+    "kind": "profanity",
+    "phrase": "foda / foda-se / que foda",
+    "literal": "a fuck / fuck itself",
+    "natural": "a family of uses: adjective 'foda' can be strikingly POSITIVE — 'muito foda' = 'badass, amazing' ('esse show foi muito foda') — or mean 'really hard / rough' ('a prova tava foda'; 'foda' alone as a reply = 'that sucks / brutal'). 'Foda-se' = 'fuck it / who cares', or aimed at someone, 'fuck you'. 'Que foda' swings positive or negative with tone",
+    "register": "vulgar",
+    "severity": 5,
+    "region": null,
+    "whoUses": "under-forties everywhere, both genders; the positive 'muito foda' is core praise vocabulary in music, gaming, and startup circles",
+    "usageContext": "praising something impressive, lamenting something difficult, or dismissing something ('foda-se'). The positive use surprises learners: calling your friend's project 'foda' is a compliment",
+    "learnerShouldUse": "recognize-only",
+    "saferAlternatives": ["incrível", "demais (positive)", "difícil / complicado (negative)", "tanto faz (instead of foda-se)"],
+    "warningNotes": "You must learn the positive meaning or you'll misread compliments — but all forms derive from 'foder' (to fuck) and stay vulgar. 'Foda-se' said flatly is dismissive-rude; said at someone it's 'fuck you' and can start a fight. None of this family is workplace-safe, even the admiring 'muito foda'.",
+    "examples": [
+      { "text": "Cara, o show de ontem foi muito foda!", "translation": "Dude, yesterday's concert was fucking amazing!" },
+      { "text": "A mudança no calor de janeiro? Foda.", "translation": "Moving house in January heat? Brutal." },
+      { "text": "Ah, foda-se, eu vou de qualquer jeito.", "translation": "Ah, fuck it, I'm going anyway." }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "profanity.puta",
+    "kind": "profanity",
+    "phrase": "puta",
+    "literal": "whore",
+    "natural": "three distinct uses with very different weight: (1) the interjection 'puta que pariu' ('the whore who gave birth') = 'fucking hell', pure frustration; (2) a prefixed intensifier — 'puta trânsito' = 'a hell of a traffic jam', 'puta frio' = 'freezing cold', 'estar puto/puta (da vida)' = 'to be furious'; (3) the bare noun for a woman = 'whore', a degrading, targeted insult",
+    "register": "obscene",
+    "severity": 6,
+    "region": null,
+    "whoUses": "interjection and intensifier: very common across informal Brazil; the noun as insult: used in fights and abuse — that use marks the speaker as aggressive",
+    "usageContext": "you will hear 'puta que pariu' and 'puta [noun]' daily in relaxed company; the direct insult you'll hear in conflicts, traffic rage, and misogynist abuse",
+    "learnerShouldUse": "avoid",
+    "saferAlternatives": ["poxa / puxa (instead of the interjection)", "que raiva", "um baita [noun] (intensifier: 'um baita trânsito')"],
+    "warningNotes": "Rated for its worst use: calling a woman 'puta' is a degrading, misogynistic insult that can end friendships, provoke violence, and legally qualify as criminal injúria in Brazil. The interjection and intensifier are milder in practice, but as a learner you don't yet control register finely enough to keep the uses apart under pressure — recognize all three, produce none. Note the trap: 'estar puto' (to be angry) is common and much softer than 'ser uma puta'.",
+    "examples": [
+      { "text": "Puta que pariu, o pneu furou de novo!", "translation": "Fucking hell, the tire went flat again!" },
+      { "text": "Tava um puta calor no Rio ontem.", "translation": "It was insanely hot in Rio yesterday." },
+      { "text": "Ele ficou puto quando viu a multa.", "translation": "He was furious when he saw the fine." }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "profanity.filho-da-puta",
+    "kind": "profanity",
+    "phrase": "filho da puta",
+    "literal": "son of the whore",
+    "natural": "son of a bitch — a direct, targeted insult; abbreviated 'fdp' in writing/online. Rarely, among very close male friends, used with a grin as rough praise ('esse filho da puta é um gênio')",
+    "register": "hostile",
+    "severity": 6,
+    "region": null,
+    "whoUses": "people in genuine conflict — traffic altercations, fights, furious rants about politicians and referees; the joking use is strictly intra-group",
+    "usageContext": "aimed at a person who wronged the speaker, present or not ('aquele filho da puta me enganou'). Insults the target's mother, which in Brazil, as in most cultures, is the express lane to a physical fight",
+    "learnerShouldUse": "avoid",
+    "saferAlternatives": ["idiota", "babaca", "sem-vergonha"],
+    "warningNotes": "This is a fight-starter, full stop. Said to someone's face it invites physical retaliation, and it can qualify as criminal injúria under Brazilian law. The affectionate use exists but is a native-speakers-only tightrope — a learner attempting it will not be read as playful. Recognize it (you'll hear it in every traffic jam and football match), never produce it.",
+    "examples": [
+      { "text": "Aquele filho da puta vendeu o carro sabendo do defeito.", "translation": "That son of a bitch sold the car knowing about the defect." },
+      { "text": "O fdp furou a fila e ainda riu.", "translation": "The SOB cut the line and even laughed." }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "profanity.vai-tomar-no-cu",
+    "kind": "taboo",
+    "phrase": "vai tomar no cu",
+    "literal": "go take it in the ass",
+    "natural": "fuck off / go fuck yourself — the harshest common dismissal in Brazilian Portuguese; abbreviated 'vtnc' or 'tnc' online; 'tomar no cu' also describes a situation going terribly ('tomamos no cu no jogo' = 'we got destroyed in the game')",
+    "register": "hostile",
+    "severity": 7,
+    "region": null,
+    "whoUses": "people at the end of their rope: real fights, online rage, road rage; also shouted at referees from the safety of the stands",
+    "usageContext": "terminal-stage arguments. Saying this to someone means the conversation is over and you accept whatever comes next. Online, 'vtnc' is thrown around more loosely but is still the maximum-strength dismissal",
+    "learnerShouldUse": "avoid",
+    "saferAlternatives": ["me deixa em paz", "sai daqui", "vai catar coquinho (humorous 'get lost')"],
+    "warningNotes": "Top of the aggression scale. Both obscene and homophobically tinged in its imagery, it is a declaration of contempt — expect a shove, a punch, or a security guard, and it can constitute criminal injúria. There is no context where a learner should say this. You need to recognize it instantly, though: hearing it directed at you means leave the situation. Also learn the passive idiom 'tomar no cu' (to get screwed/crushed) so you don't misparse sports talk.",
+    "examples": [
+      { "text": "Vai tomar no cu, você me sacaneou pela última vez!", "translation": "Go fuck yourself, you screwed me over for the last time!" },
+      { "text": "vtnc kkkk não acredito que você fez isso", "translation": "gtfo lmao I can't believe you did that (loose online use)" }
+    ]
   }
 ]
