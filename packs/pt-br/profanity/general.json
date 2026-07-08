@@ -1,0 +1,33 @@
+[
+  {
+    "schemaVersion": 1,
+    "key": "profanity.caramba",
+    "kind": "profanity",
+    "phrase": "caramba",
+    "literal": "(minced oath, no literal meaning)",
+    "natural": "damn / geez (mild)",
+    "register": "informal",
+    "severity": 2,
+    "whoUses": "everyone; very mild",
+    "usageContext": "surprise or mild frustration; safe in most casual settings",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["nossa", "puxa"],
+    "examples": [{ "text": "Caramba, que trânsito!", "translation": "Damn, what traffic!" }]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "profanity.merda",
+    "kind": "profanity",
+    "phrase": "merda",
+    "literal": "shit",
+    "natural": "shit / crap",
+    "register": "vulgar",
+    "severity": 4,
+    "whoUses": "common in informal speech among friends; not for formal or professional settings",
+    "usageContext": "frustration or emphasis; comparable to English 'shit'",
+    "learnerShouldUse": "recognize-only",
+    "saferAlternatives": ["droga", "caramba"],
+    "warningNotes": "Vulgar but common. Understand it; avoid using it with strangers, elders, or in professional/formal contexts.",
+    "examples": [{ "text": "Que merda, perdi o ônibus.", "translation": "Crap, I missed the bus." }]
+  }
+]

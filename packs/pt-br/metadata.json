@@ -1,0 +1,5 @@
+{
+  "description": "Brazilian Portuguese seed pack. This is a SMALL initial slice used to exercise the app end-to-end (import, review, libraries). It does NOT yet meet the §10.1 MVP Seed Pack Target volumes (300 vocab / 75 phrases / 25 grammar / 25 dialogues / 20 slang-register / 20 pronunciation drills / 10 listening / 10 writing / 10 assessments / 5 roleplay); expanding to those counts is tracked as a separate content-authoring task, authored by Claude and reviewed by the owner.",
+  "coverage": "A1 everyday basics, a taste of register (formal você vs informal, one profanity item recognize-only), SP/RJ slang tags.",
+  "status": "seed-partial"
+}

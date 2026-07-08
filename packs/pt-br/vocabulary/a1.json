@@ -1,0 +1,14 @@
+[
+  { "schemaVersion": 1, "key": "vocab.agua", "entryType": "word", "lemma": "água", "translation": "water", "partOfSpeech": "noun", "cefr": "A1", "ipa": "ˈa.gwɐ", "gender": "f", "register": "neutral", "tags": ["food-drink"], "examples": [{ "text": "Quero um copo de água.", "translation": "I want a glass of water." }] },
+  { "schemaVersion": 1, "key": "vocab.cafe", "entryType": "word", "lemma": "café", "translation": "coffee", "partOfSpeech": "noun", "cefr": "A1", "gender": "m", "register": "neutral", "tags": ["food-drink"], "examples": [{ "text": "Um café, por favor.", "translation": "A coffee, please." }] },
+  { "schemaVersion": 1, "key": "vocab.pao", "entryType": "word", "lemma": "pão", "translation": "bread", "partOfSpeech": "noun", "cefr": "A1", "ipa": "pɐ̃w̃", "gender": "m", "register": "neutral", "tags": ["food-drink"] },
+  { "schemaVersion": 1, "key": "vocab.leite", "entryType": "word", "lemma": "leite", "translation": "milk", "partOfSpeech": "noun", "cefr": "A1", "gender": "m", "register": "neutral", "tags": ["food-drink"] },
+  { "schemaVersion": 1, "key": "vocab.casa", "entryType": "word", "lemma": "casa", "translation": "house / home", "partOfSpeech": "noun", "cefr": "A1", "gender": "f", "register": "neutral", "tags": ["home"] },
+  { "schemaVersion": 1, "key": "vocab.rua", "entryType": "word", "lemma": "rua", "translation": "street", "partOfSpeech": "noun", "cefr": "A1", "gender": "f", "register": "neutral", "tags": ["city"] },
+  { "schemaVersion": 1, "key": "vocab.amigo", "entryType": "word", "lemma": "amigo", "translation": "friend", "partOfSpeech": "noun", "cefr": "A1", "gender": "m", "register": "neutral", "tags": ["people"] },
+  { "schemaVersion": 1, "key": "vocab.falar", "entryType": "word", "lemma": "falar", "translation": "to speak", "partOfSpeech": "verb", "cefr": "A1", "register": "neutral", "tags": ["verb"], "examples": [{ "text": "Eu falo português.", "translation": "I speak Portuguese." }] },
+  { "schemaVersion": 1, "key": "vocab.comer", "entryType": "word", "lemma": "comer", "translation": "to eat", "partOfSpeech": "verb", "cefr": "A1", "register": "neutral", "tags": ["verb"] },
+  { "schemaVersion": 1, "key": "vocab.beber", "entryType": "word", "lemma": "beber", "translation": "to drink", "partOfSpeech": "verb", "cefr": "A1", "register": "neutral", "tags": ["verb"] },
+  { "schemaVersion": 1, "key": "vocab.hoje", "entryType": "word", "lemma": "hoje", "translation": "today", "partOfSpeech": "adverb", "cefr": "A1", "register": "neutral", "tags": ["time"] },
+  { "schemaVersion": 1, "key": "vocab.obrigado", "entryType": "word", "lemma": "obrigado", "translation": "thank you (said by a man)", "partOfSpeech": "interjection", "cefr": "A1", "register": "neutral", "tags": ["courtesy"], "pronunciationNotes": "Women say 'obrigada'; the ending agrees with the speaker's gender." }
+]

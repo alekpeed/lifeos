@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { NodeFsPackReader, validatePack } from "../src/index.js";
+import { validatePack } from "../src/index.js";
+import { NodeFsPackReader } from "../src/nodeReader.js";
 
 async function main() {
   const root = process.argv[2];

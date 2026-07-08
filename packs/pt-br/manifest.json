@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "pt-br",
+  "name": "Brazilian Portuguese",
+  "languageCode": "pt-BR",
+  "packVersion": "0.1.0",
+  "basePack": null,
+  "authors": ["PolyglotAI"],
+  "license": "proprietary",
+  "dialects": [
+    { "id": "pt-BR-SP", "name": "São Paulo" },
+    { "id": "pt-BR-RJ", "name": "Rio de Janeiro (Carioca)" }
+  ],
+  "defaultDialect": "pt-BR-SP",
+  "cefrRange": ["A1", "A2"],
+  "featureFlags": { "slang": true, "profanity": true },
+  "contents": {
+    "vocabulary": ["vocabulary/a1.json"],
+    "phrases": ["phrases/core.json"],
+    "grammar": ["grammar/core.json"],
+    "slang": ["slang/general.json"],
+    "profanity": ["profanity/general.json"],
+    "pronunciation": ["pronunciation/rules.json"],
+    "dialogues": ["dialogues/general.json"],
+    "lessons": ["lessons/a1.json"],
+    "assessments": ["assessments/placement.json"]
+  }
+}

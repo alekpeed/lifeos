@@ -1,0 +1,51 @@
+[
+  {
+    "schemaVersion": 1,
+    "key": "grammar.ser-estar",
+    "title": "ser vs estar (to be)",
+    "cefr": "A1",
+    "explanationMd": "Portuguese has two verbs for 'to be'. **ser** is for permanent/defining traits (identity, origin, time). **estar** is for temporary states (location, mood, current condition).",
+    "examples": [
+      { "text": "Eu sou brasileiro.", "translation": "I am Brazilian. (identity → ser)" },
+      { "text": "Eu estou cansado.", "translation": "I am tired. (temporary → estar)" }
+    ],
+    "commonErrors": [
+      { "wrong": "Eu sou cansado.", "right": "Eu estou cansado.", "note": "Tiredness is temporary → estar." }
+    ],
+    "drills": [
+      { "prompt": "___ (ser/estar) na casa? (location)", "answer": "estar" }
+    ],
+    "relatedVocabulary": ["vocab.casa"]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.present-ar",
+    "title": "Present tense — regular -ar verbs",
+    "cefr": "A1",
+    "explanationMd": "Regular **-ar** verbs (like *falar*) take the endings -o, -a, -amos, -am in the present.",
+    "examples": [
+      { "text": "Eu falo, você fala, nós falamos, eles falam.", "translation": "I speak, you speak, we speak, they speak." }
+    ],
+    "commonErrors": [
+      { "wrong": "Eu fala", "right": "Eu falo", "note": "1st person singular ends in -o." }
+    ],
+    "drills": [
+      { "prompt": "Conjugate 'falar' for 'nós'.", "answer": "falamos" }
+    ],
+    "relatedVocabulary": ["vocab.falar"]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "grammar.voce-tu",
+    "title": "você vs tu (you)",
+    "cefr": "A2",
+    "explanationMd": "Most of Brazil uses **você** for 'you' (with third-person verb forms). Some regions (e.g. the South, parts of the Northeast) use **tu**. *O senhor / a senhora* is the formal, respectful address.",
+    "examples": [
+      { "text": "Você fala inglês?", "translation": "Do you speak English? (neutral, standard BR)" },
+      { "text": "O senhor precisa de ajuda?", "translation": "Do you need help, sir? (formal)" }
+    ],
+    "commonErrors": [],
+    "drills": [],
+    "relatedVocabulary": ["vocab.falar"]
+  }
+]

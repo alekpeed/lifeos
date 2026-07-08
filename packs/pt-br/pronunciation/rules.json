@@ -1,0 +1,26 @@
+[
+  {
+    "schemaVersion": 1,
+    "key": "pron.nasal-ao",
+    "grapheme": "ão",
+    "ipa": "ɐ̃w̃",
+    "description": "Nasal diphthong with no clean English equivalent. Start toward 'ow' but let the sound resonate through the nose. Found in many plurals (pão → pães, but coração, não).",
+    "minimalPairs": [{ "a": "pão", "b": "pau", "note": "nasal 'bread' vs oral 'stick'" }]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.r-inicial",
+    "grapheme": "r (initial) / rr",
+    "ipa": "h",
+    "description": "Word-initial 'r' and double 'rr' are pronounced like an English 'h' (or a raspy back-of-throat sound) in most of Brazil. 'Rio' sounds like 'Hee-oo'.",
+    "minimalPairs": [{ "a": "carro", "b": "caro", "note": "'car' (strong rr = h) vs 'expensive' (soft tap r)" }]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.de-ti",
+    "grapheme": "de / ti",
+    "ipa": "dʒi / tʃi",
+    "description": "Before an 'i' sound (and often final unstressed -e), 'd' and 't' palatalize: 'de' → 'jee', 'ti' → 'chee'. 'cidade' ends like 'jee'.",
+    "minimalPairs": [{ "a": "tia", "b": "tinha", "note": "'aunt' (chee-a) — note the palatalized t" }]
+  }
+]

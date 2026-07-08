@@ -114,3 +114,127 @@ button {
     background-color: #0f0f0f69;
   }
 }
+
+/* ---- PolyglotAI screens ---- */
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  gap: 1rem;
+}
+
+.subtitle {
+  color: #666;
+  margin-top: -0.25rem;
+}
+
+.error {
+  color: #c0392b;
+}
+
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+  max-width: 380px;
+  margin: 1rem auto 0;
+}
+
+.onboarding label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 500;
+}
+
+.onboarding input,
+.onboarding select {
+  padding: 0.6em 0.8em;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1em;
+}
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1.5rem;
+  background: rgba(127, 127, 127, 0.05);
+}
+
+.due-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.due-count {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.stat {
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.stat-n {
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-right: 0.35rem;
+}
+
+.review-card {
+  min-height: 8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.review-front {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.review-back {
+  font-size: 1.5rem;
+}
+
+.review-note {
+  color: #a15c00;
+  font-size: 0.9rem;
+}
+
+.grades {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.progress {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+button.link {
+  background: none;
+  box-shadow: none;
+  border: none;
+  color: #646cff;
+  margin-top: 1rem;
+}

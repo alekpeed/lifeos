@@ -1,0 +1,7 @@
+[
+  { "schemaVersion": 1, "key": "phrase.oi-tudo-bem", "entryType": "phrase", "lemma": "Oi, tudo bem?", "translation": "Hi, how are you?", "cefr": "A1", "register": "informal", "tags": ["greeting"], "examples": [{ "text": "Oi, tudo bem? — Tudo, e você?", "translation": "Hi, how are you? — Good, and you?" }] },
+  { "schemaVersion": 1, "key": "phrase.por-favor", "entryType": "phrase", "lemma": "por favor", "translation": "please", "cefr": "A1", "register": "neutral", "tags": ["courtesy"] },
+  { "schemaVersion": 1, "key": "phrase.com-licenca", "entryType": "phrase", "lemma": "com licença", "translation": "excuse me (to pass / get attention)", "cefr": "A1", "register": "formal", "tags": ["courtesy"] },
+  { "schemaVersion": 1, "key": "phrase.quanto-custa", "entryType": "phrase", "lemma": "Quanto custa?", "translation": "How much does it cost?", "cefr": "A1", "register": "neutral", "tags": ["shopping"] },
+  { "schemaVersion": 1, "key": "phrase.nao-entendi", "entryType": "phrase", "lemma": "Não entendi.", "translation": "I didn't understand.", "cefr": "A1", "register": "neutral", "tags": ["clarification"] }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "schemaVersion": 1,
+    "key": "assessment.placement.a1",
+    "lessonType": "assessment",
+    "title": "Quick placement check (A1)",
+    "cefr": "A1",
+    "sequence": 1,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Translate: 'I want a glass of water.'", "answer": "Quero um copo de água." },
+        { "type": "quiz", "prompt": "Choose ser or estar: 'Eu ___ cansado.' (tired)", "answer": "estou" },
+        { "type": "quiz", "prompt": "What does 'Quanto custa?' mean?", "answer": "How much does it cost?" }
+      ]
+    }
+  }
+]

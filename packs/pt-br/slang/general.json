@@ -1,0 +1,48 @@
+[
+  {
+    "schemaVersion": 1,
+    "key": "slang.mano",
+    "kind": "slang",
+    "phrase": "mano",
+    "literal": "brother",
+    "natural": "dude / bro",
+    "register": "informal",
+    "severity": 1,
+    "region": "SP",
+    "whoUses": "young people, especially in São Paulo",
+    "usageContext": "casual address among friends",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["amigo", "cara"],
+    "examples": [{ "text": "E aí, mano?", "translation": "What's up, bro?" }]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "slang.beleza",
+    "kind": "slang",
+    "phrase": "beleza",
+    "literal": "beauty",
+    "natural": "cool / all good / deal",
+    "register": "informal",
+    "severity": 1,
+    "whoUses": "everyone informally",
+    "usageContext": "agreement or greeting; 'tudo beleza?' = 'all good?'",
+    "learnerShouldUse": "use",
+    "saferAlternatives": ["tudo bem", "ok"],
+    "examples": [{ "text": "Amanhã às 8? Beleza!", "translation": "Tomorrow at 8? Cool!" }]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "idiom.pagar-mico",
+    "kind": "idiom",
+    "phrase": "pagar mico",
+    "literal": "to pay a monkey",
+    "natural": "to embarrass oneself / make a fool of yourself",
+    "register": "informal",
+    "severity": 1,
+    "whoUses": "everyone informally",
+    "usageContext": "describing an embarrassing moment",
+    "learnerShouldUse": "recognize-only",
+    "saferAlternatives": ["passar vergonha"],
+    "examples": [{ "text": "Esqueci o nome dela na frente de todo mundo, paguei o maior mico.", "translation": "I forgot her name in front of everyone — so embarrassing." }]
+  }
+]

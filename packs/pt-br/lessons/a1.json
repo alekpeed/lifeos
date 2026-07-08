@@ -1,0 +1,59 @@
+[
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.greetings",
+    "lessonType": "vocabulary",
+    "title": "Greetings & courtesy",
+    "cefr": "A1",
+    "sequence": 1,
+    "body": {
+      "steps": [
+        { "type": "teach", "vocabRefs": ["phrase.oi-tudo-bem", "phrase.por-favor", "vocab.obrigado"] },
+        { "type": "quiz", "prompt": "Translate: 'Hi, how are you?'", "answer": "Oi, tudo bem?" },
+        { "type": "quiz", "prompt": "How does a man say 'thank you'?", "answer": "obrigado" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.cafe-listening",
+    "lessonType": "listening_exercise",
+    "title": "At the café (listening)",
+    "cefr": "A1",
+    "sequence": 2,
+    "dialogueRef": "dialogue.cafe-order",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "What does Ana order?", "answer": "a coffee with milk (um café com leite)" },
+        { "type": "quiz", "prompt": "How much does it cost?", "answer": "six reais (seis reais)" }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.intro-writing",
+    "lessonType": "writing_prompt",
+    "title": "Introduce yourself",
+    "cefr": "A1",
+    "sequence": 3,
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Write two sentences: say your name and where you are from (use 'sou de...').", "answer": "e.g. Oi, eu sou o Alek. Sou dos Estados Unidos." }
+      ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "key": "lesson.a1.making-friends-roleplay",
+    "lessonType": "roleplay",
+    "title": "Making a friend at a bar",
+    "cefr": "A2",
+    "sequence": 4,
+    "dialogueRef": "dialogue.making-friends",
+    "body": {
+      "steps": [
+        { "type": "quiz", "prompt": "Greet someone informally and ask where they're from.", "answer": "E aí, tudo bem? De onde você é?" }
+      ]
+    }
+  }
+]

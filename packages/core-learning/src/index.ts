@@ -13,3 +13,7 @@ export * from "./packs/registry.js";
 export * from "./profile/profile.js";
 export * from "./featureflags/registry.js";
 export * from "./review/reviewRepo.js";
+export * from "./repos.js";
+export * from "./services/onboarding.js";
+export * from "./services/dashboard.js";
+export * from "./services/reviewCard.js";

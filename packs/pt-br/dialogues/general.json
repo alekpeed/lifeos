@@ -1,0 +1,56 @@
+[
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.cafe-order",
+    "scenario": "café",
+    "speakers": [
+      { "id": "customer", "name": "Ana", "role": "customer" },
+      { "id": "barista", "name": "Léo", "role": "barista" }
+    ],
+    "targetLevel": "A1",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "customer", "text": "Oi, um café com leite, por favor." },
+      { "speakerId": "barista", "text": "Claro! Pra viagem ou pra tomar aqui?" },
+      { "speakerId": "customer", "text": "Pra tomar aqui. Quanto custa?" },
+      { "speakerId": "barista", "text": "Seis reais. Beleza?" }
+    ],
+    "translation": [
+      { "speakerId": "customer", "text": "Hi, a coffee with milk, please." },
+      { "speakerId": "barista", "text": "Sure! To go or to have here?" },
+      { "speakerId": "customer", "text": "To have here. How much is it?" },
+      { "speakerId": "barista", "text": "Six reais. Cool?" }
+    ],
+    "keyVocabulary": ["vocab.cafe", "vocab.leite", "phrase.por-favor", "phrase.quanto-custa"],
+    "grammarNotes": "'pra' is the spoken contraction of 'para' (to/for).",
+    "slangRegisterNotes": "'Beleza?' here means 'OK?/cool?' — friendly, informal."
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.making-friends",
+    "scenario": "making friends",
+    "speakers": [
+      { "id": "a", "name": "Bruno" },
+      { "id": "b", "name": "Carla" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "a", "text": "E aí, mano, tudo bem?" },
+      { "speakerId": "b", "text": "Tudo, e você? De onde você é?" },
+      { "speakerId": "a", "text": "Sou de São Paulo. E você fala inglês?" },
+      { "speakerId": "b", "text": "Um pouco. Ainda estou aprendendo." }
+    ],
+    "translation": [
+      { "speakerId": "a", "text": "Hey, bro, all good?" },
+      { "speakerId": "b", "text": "Yeah, and you? Where are you from?" },
+      { "speakerId": "a", "text": "I'm from São Paulo. And do you speak English?" },
+      { "speakerId": "b", "text": "A little. I'm still learning." }
+    ],
+    "keyVocabulary": ["phrase.oi-tudo-bem", "vocab.falar"],
+    "grammarNotes": "'Sou de...' (ser) for origin; 'estou aprendendo' (estar) for an ongoing action.",
+    "slangRegisterNotes": "'E aí, mano' is casual SP greeting; too informal for a job interview."
+  }
+]
