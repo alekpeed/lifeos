@@ -4,8 +4,11 @@
     "key": "pron.nasal-ao",
     "grapheme": "ão",
     "ipa": "ɐ̃w̃",
-    "description": "Nasal diphthong with no clean English equivalent. Start toward 'ow' but let the sound resonate through the nose. Found in many plurals (pão → pães, but coração, não).",
-    "minimalPairs": [{ "a": "pão", "b": "pau", "note": "nasal 'bread' vs oral 'stick'" }]
+    "description": "Nasal diphthong with no clean English equivalent. Start toward 'ow' but let the sound resonate through the nose. Found in many plurals (pão → pães, but coração, não). Contrast it with plain oral vowels: 'não' (nasal diphthong) vs 'no' (plain [nu]).",
+    "minimalPairs": [
+      { "a": "pão", "b": "pau", "note": "nasal 'bread' vs oral 'stick'" },
+      { "a": "não", "b": "no", "note": "nasal diphthong 'no/not' vs plain [nu] 'in the'" }
+    ]
   },
   {
     "schemaVersion": 1,
@@ -20,7 +23,193 @@
     "key": "pron.de-ti",
     "grapheme": "de / ti",
     "ipa": "dʒi / tʃi",
-    "description": "Before an 'i' sound (and often final unstressed -e), 'd' and 't' palatalize: 'de' → 'jee', 'ti' → 'chee'. 'cidade' ends like 'jee'.",
-    "minimalPairs": [{ "a": "tia", "b": "tinha", "note": "'aunt' (chee-a) — note the palatalized t" }]
+    "description": "Before an 'i' sound (and often final unstressed -e), 'd' and 't' palatalize: 'de' → 'jee', 'ti' → 'chee'. 'cidade' ends like 'jee'. This happens word-internally too, not just at edges: 'existe' → 'eh-ZEES-chee', 'departamento' → 'jee-par-ta-MEN-tu', 'noite' → 'NOY-chee'.",
+    "minimalPairs": [
+      { "a": "tia", "b": "tinha", "note": "'aunt' (chee-a) — note the palatalized t" },
+      { "a": "parte", "b": "parti", "note": "'part' [ˈpaʁtʃi] vs 'I left' [paʁˈtʃi] — both end in [tʃi]; only the stress differs" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.nasal-a",
+    "grapheme": "ã",
+    "ipa": "ɐ̃",
+    "description": "A single nasal vowel, not a diphthong: say 'uh' while letting air escape through the nose, as if a faint 'ng' were fused into the vowel — but never actually pronounce an 'n' or 'g'. The tilde is the nasality switch: 'lã' (wool) is nasal, 'lá' (there) is oral. Also the sound in 'maçã', 'irmã', 'amanhã'.",
+    "minimalPairs": [
+      { "a": "lã", "b": "lá", "note": "'wool' (nasal) vs 'there' (oral)" },
+      { "a": "fã", "b": "fá", "note": "'fan (admirer)' (nasal) vs 'the musical note fa' (oral)" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.nasal-oe",
+    "grapheme": "õe",
+    "ipa": "õj̃",
+    "description": "Nasal diphthong: a nasal 'o' gliding into a nasal 'y' — roughly 'oyng' without ever closing into a real 'ng'. Appears in 'põe' (puts) and, crucially, in the plural of most -ão words: limão → limões, coração → corações, opinião → opiniões.",
+    "minimalPairs": [
+      { "a": "limões", "b": "limão", "note": "plural õe vs singular ão — the two big nasal diphthongs contrasted" },
+      { "a": "põe", "b": "pó", "note": "'puts' (nasal diphthong) vs 'dust' (plain open o)" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.nasal-em",
+    "grapheme": "em / ém (word-final)",
+    "ipa": "ẽj̃",
+    "description": "Word-final -em/-ém is not 'em' as in English — it's a nasal diphthong: a nasal 'e' gliding into a nasal 'y', so 'bem' sounds close to 'baying' said through the nose, never with a hard m. Same in 'também', 'ninguém', 'trem', 'cem'. Word-internally before a consonant (tempo, sempre) the vowel is nasal but there's no glide.",
+    "minimalPairs": [
+      { "a": "sem", "b": "sei", "note": "'without' (nasal diphthong) vs 'I know' (oral diphthong) — same shape, nasality flipped; 'cem' (hundred) sounds identical to 'sem'" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.reducao-final",
+    "grapheme": "-o / -e (final, unstressed)",
+    "ipa": "u / i",
+    "description": "Unstressed final vowels reduce: final -o is pronounced [u] ('carro' = 'KA-hu', 'obrigado' = 'obri-GA-du') and final -e is pronounced [i] ('cidade' = 'si-DA-ji', 'nome' = 'NO-mi'). This is universal in Brazil and is what triggers the d/t palatalization in words like 'cidade' and 'noite'. Spelling keeps o and e; speech says u and i.",
+    "minimalPairs": [
+      { "a": "mato", "b": "matou", "note": "'bush / I kill' [ˈmatu] vs 'killed' [maˈtow] — final unstressed -o = [u]; stressed -ou keeps the diphthong" },
+      { "a": "se", "b": "si", "note": "become homophones [si] in normal speech" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.e-aberto-fechado",
+    "grapheme": "é / ê (stressed e)",
+    "ipa": "ɛ / e",
+    "description": "Stressed 'e' has two heights: open é [ɛ] as in English 'set' ('pé', 'café', 'ela') and closed ê [e] like the vowel in 'say' but without the glide ('você', 'mesa', 'ele'). Written accents disambiguate when present: acute (é) = open, circumflex (ê) = closed. Unaccented words you simply have to learn: 'ele' has closed e, 'ela' has open e.",
+    "minimalPairs": [
+      { "a": "sede", "b": "sede", "note": "same spelling: [ˈsedʒi] 'thirst' (closed) vs [ˈsɛdʒi] 'headquarters' (open)" },
+      { "a": "seca", "b": "seca", "note": "noun 'drought' (closed ê sound) vs verb 'dries' (open é sound) — same letters, different vowel height" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.o-aberto-fechado",
+    "grapheme": "ó / ô (stressed o)",
+    "ipa": "ɔ / o",
+    "description": "Stressed 'o' also has two heights: open ó [ɔ] as in 'law' ('avó', 'só', 'nossa') and closed ô [o] as in 'go' without the glide ('avô', 'ovo', 'todo'). Acute = open, circumflex = closed. Gender and number can flip it: 'ovo' (egg, closed) vs 'ovos' (eggs, open first o) — a famous irregularity called metaphony.",
+    "minimalPairs": [
+      { "a": "avó", "b": "avô", "note": "the classic: 'grandmother' (open ɔ) vs 'grandfather' (closed o)" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.lh",
+    "grapheme": "lh",
+    "ipa": "ʎ",
+    "description": "A palatal L: like the 'lli' in 'million' said quickly, tongue body pressed against the hard palate. In 'filho', 'mulher', 'trabalhar', 'olho'. Many Brazilians relax it toward a plain 'y' glide in fast speech ('mulher' ≈ 'mu-YER'), so train your ear for both — but produce the [ʎ] version.",
+    "minimalPairs": [
+      { "a": "telha", "b": "teia", "note": "'roof tile' (lh) vs 'web' (plain y-glide)" },
+      { "a": "velha", "b": "veia", "note": "'old woman' (lh) vs 'vein' — in fast relaxed speech these can merge; careful speech keeps them apart" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.nh",
+    "grapheme": "nh",
+    "ipa": "ɲ",
+    "description": "A palatal N, like the 'ny' in 'canyon': 'banho', 'sonho', 'amanhã', 'senhora'. In Brazilian Portuguese it's usually realized as a nasal glide [j̃] that also nasalizes the vowel before it — 'banho' sounds like 'BAH-yoo' said through the nose rather than a crisp 'BAN-yo'.",
+    "minimalPairs": [
+      { "a": "vinha", "b": "via", "note": "'vineyard / used to come' (nh) vs 'saw / route' (no nasal)" },
+      { "a": "sonho", "b": "sono", "note": "'dream' (palatal nh) vs 'sleep' (plain n)" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.s-intervocalico",
+    "grapheme": "s (between vowels)",
+    "ipa": "z",
+    "description": "A single 's' between vowels is voiced [z]: 'casa' = 'KA-za', 'mesa' = 'ME-za', 'brasileiro' = 'bra-zi-LEY-ru'. To get an actual [s] sound between vowels, Portuguese spells it 'ss' ('assar') or 'ç' ('caça'). Getting this wrong is a classic tell: saying 'CA-sa' with [s] sounds like 'caça' (hunt).",
+    "minimalPairs": [
+      { "a": "casa", "b": "caça", "note": "'house' [z] vs 'hunt' [s]" },
+      { "a": "asa", "b": "assa", "note": "'wing' [z] vs 'roasts' [s]" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.x-inicial",
+    "grapheme": "x (word-initial)",
+    "ipa": "ʃ",
+    "description": "Word-initial 'x' is always 'sh': 'xícara' (cup) = 'SHEE-ka-ra', 'xarope' = 'sha-RO-pi', 'Xuxa' = 'SHOO-sha'. ('ch' spells the same sound: 'chá', 'chuva'.) Elsewhere x is unpredictable — [ʃ] in 'caixa', [z] in 'exame', [ks] in 'táxi', [s] in 'próximo' — and must be learned per word.",
+    "minimalPairs": [
+      { "a": "queixo", "b": "queijo", "note": "'chin' (x = ʃ, 'sh') vs 'cheese' (j = ʒ, voiced) — the unvoiced/voiced pair" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.c-cedilha",
+    "grapheme": "ç",
+    "ipa": "s",
+    "description": "The cedilla makes c sound as [s] before a, o, u — where a plain c would be [k]: 'praça', 'açúcar', 'almoço', 'coração'. It is never a 'ch' or 'ts' sound, and it never appears before e or i (plain c is already [s] there: 'cedo', 'cidade').",
+    "minimalPairs": [
+      { "a": "roça", "b": "rosa", "note": "'countryside/small farm' [s] vs 'rose' [z]" },
+      { "a": "maça", "b": "massa", "note": "'mace' and 'dough' — homophones: ç and ss spell the same [s]" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.j-ge-gi",
+    "grapheme": "j / ge / gi",
+    "ipa": "ʒ",
+    "description": "Portuguese j — and g before e or i — is the 's' of English 'measure' [ʒ], never the English 'j' [dʒ]: 'janela' = 'zha-NE-la', 'gente' = 'ZHEN-chi', 'girafa' = 'zhi-RA-fa', 'hoje' = 'O-zhi'. Saying 'Rio de Janeiro' with an English j is one of the most audible gringo markers.",
+    "minimalPairs": [
+      { "a": "manjar", "b": "manchar", "note": "'delicacy / to get (slang)' [ʒ] vs 'to stain' [ʃ] — voiced vs unvoiced" },
+      { "a": "jato", "b": "chato", "note": "'jet' [ʒ] vs 'annoying/boring' [ʃ]" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.l-final",
+    "grapheme": "l (syllable-final)",
+    "ipa": "w",
+    "description": "At the end of a syllable, 'l' becomes a 'w' glide in Brazilian Portuguese: 'Brasil' = 'bra-ZEEW', 'legal' = 'le-GAW', 'sol' = 'sow', 'alto' = 'AW-tu'. There is no dark L as in English 'ball'. This merges some spellings completely: 'mal' (badly) and 'mau' (bad) are perfect homophones.",
+    "minimalPairs": [
+      { "a": "mal", "b": "mau", "note": "perfect homophones in Brazil — both [maw]; only spelling and grammar distinguish them" },
+      { "a": "alto", "b": "auto", "note": "'tall' and 'auto-' — also homophones: [ˈawtu]" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.r-coda",
+    "grapheme": "r (syllable-final / coda)",
+    "ipa": "h ~ χ ~ ɾ ~ ɹ (regional)",
+    "description": "Syllable-final r is the great regional divider. Rio: a strong raspy [χ/h] — 'porta' ≈ 'POH-hta', 'mar' ≈ 'mah'. São Paulo city: a light tap [ɾ]. Interior SP/Paraná ('caipira' accent): an English-like retroflex [ɹ] — 'porta' with an American r. Everywhere, infinitive-final r is usually just dropped in relaxed speech: 'falar' → 'falá', 'comer' → 'comê'.",
+    "minimalPairs": [
+      { "a": "falar", "b": "fala", "note": "'to speak' vs 'speaks' — with the final r dropped, only the stressed final vs penultimate syllable distinguishes them in fast speech" },
+      { "a": "mar", "b": "má", "note": "'sea' vs 'bad (fem.)' — near-merger in Rio speech where the coda r weakens" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.rr-vs-r",
+    "grapheme": "rr vs r (between vowels)",
+    "ipa": "h vs ɾ",
+    "description": "Between vowels the two r's contrast and change word meaning. Single 'r' is a quick tap [ɾ], exactly the tt/dd in American 'butter'/'ladder'. Double 'rr' is the strong h-like sound. English speakers' instinct to say a full American r for single 'r' is wrong on both counts — drill the tap until 'moro' and 'morro' are effortless to keep apart.",
+    "minimalPairs": [
+      { "a": "morro", "b": "moro", "note": "'hill' (strong rr) vs 'I live' (tap)" },
+      { "a": "forro", "b": "foro", "note": "'lining/ceiling' (strong rr) vs 'forum/venue' (tap)" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.ei-reducao",
+    "grapheme": "ei (in everyday speech)",
+    "ipa": "e",
+    "description": "In relaxed Brazilian speech the diphthong 'ei' commonly smooths to plain [e], especially before j, x, and r sounds: 'beijo' → 'bejo', 'cadeira' → 'cadera', 'primeiro' → 'primero', 'peixe' → 'pexe'. Careful speech keeps the glide. You should recognize the reduced forms instantly — they're what you'll actually hear — and either pronunciation from you is fine.",
+    "minimalPairs": [
+      { "a": "feira", "b": "fera", "note": "'street market' vs 'beast' — reduced 'feira' can sound very close to 'fera'; context disambiguates" }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "key": "pron.acento-tonico",
+    "grapheme": "written accents (´ ˆ ~) and stress",
+    "ipa": "ˈ (stress placement)",
+    "description": "Default stress: words ending in a/e/o (plus -s, -m) stress the second-to-last syllable ('caSA', 'faLAM'); words ending in r, l, z, i, u, or a diphthong stress the last ('faLAR', 'aQUI', 'paPEL'). Any written accent overrides the default and marks the stressed syllable — and its shape tells vowel quality too: acute (á/é/ó) = open, circumflex (â/ê/ô) = closed. Misplaced stress changes words outright.",
+    "minimalPairs": [
+      { "a": "sábia", "b": "sabiá", "note": "'wise woman' (SÁ-bia) vs 'song-thrush' (sa-bi-Á) — same letters, accent moves the stress" },
+      { "a": "sabia", "b": "sabiá", "note": "'knew' (sa-BI-a, default rule) vs 'thrush' — the famous minimal triple with 'sábia'" }
+    ]
   }
 ]

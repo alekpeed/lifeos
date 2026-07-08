@@ -52,5 +52,915 @@
     "keyVocabulary": ["phrase.oi-tudo-bem", "vocab.falar"],
     "grammarNotes": "'Sou de...' (ser) for origin; 'estou aprendendo' (estar) for an ongoing action.",
     "slangRegisterNotes": "'E aí, mano' is casual SP greeting; too informal for a job interview."
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.hotel-checkin",
+    "scenario": "hotel check-in",
+    "speakers": [
+      { "id": "rec", "name": "Patrícia", "role": "receptionist" },
+      { "id": "guest", "name": "Daniel", "role": "guest" }
+    ],
+    "targetLevel": "A1",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "rec", "text": "Boa noite! Bem-vindo ao Hotel Paulista. O senhor tem reserva?" },
+      { "speakerId": "guest", "text": "Boa noite. Tenho, sim. Em nome de Daniel Costa." },
+      { "speakerId": "rec", "text": "Um momento, por favor... Achei. Um quarto para duas noites, certo?" },
+      { "speakerId": "guest", "text": "Isso. Tem café da manhã incluído?" },
+      { "speakerId": "rec", "text": "Tem, sim, das sete às dez. O senhor pode me mostrar um documento, por favor?" },
+      { "speakerId": "guest", "text": "Claro, aqui está o meu passaporte." },
+      { "speakerId": "rec", "text": "Perfeito. Aqui está a chave, quarto 305. O elevador fica ali." },
+      { "speakerId": "guest", "text": "Obrigado. Ah, tem wi-fi?" },
+      { "speakerId": "rec", "text": "Tem, a senha está no cartão. Boa estadia!" }
+    ],
+    "translation": [
+      { "speakerId": "rec", "text": "Good evening! Welcome to Hotel Paulista. Do you have a reservation, sir?" },
+      { "speakerId": "guest", "text": "Good evening. Yes, I do. Under Daniel Costa." },
+      { "speakerId": "rec", "text": "One moment, please... Found it. A room for two nights, correct?" },
+      { "speakerId": "guest", "text": "That's right. Is breakfast included?" },
+      { "speakerId": "rec", "text": "Yes, from seven to ten. Could you show me an ID, please?" },
+      { "speakerId": "guest", "text": "Of course, here's my passport." },
+      { "speakerId": "rec", "text": "Perfect. Here's the key, room 305. The elevator is over there." },
+      { "speakerId": "guest", "text": "Thank you. Oh, is there wi-fi?" },
+      { "speakerId": "rec", "text": "There is, the password is on the card. Enjoy your stay!" }
+    ],
+    "keyVocabulary": ["phrase.por-favor", "vocab.obrigado", "vocab.cafe"],
+    "grammarNotes": "'Tem' works both as 'there is/are' (Tem wi-fi?) and as 'to have' (O senhor tem reserva?) — spoken Brazilian prefers 'tem' over 'há'.",
+    "slangRegisterNotes": "The receptionist uses 'o senhor' with third-person verbs — the standard respectful address in service situations; answering 'Tem, sim' echoes the verb instead of just saying 'sim'.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.bar-meeting",
+    "scenario": "meeting a friend at a bar",
+    "speakers": [
+      { "id": "rafa", "name": "Rafael" },
+      { "id": "thi", "name": "Thiago" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "rafa", "text": "E aí, mano! Chegou cedo, hein?" },
+      { "speakerId": "thi", "text": "Pô, saí do trabalho e vim direto. Que rolê bom esse bar, hein?" },
+      { "speakerId": "rafa", "text": "Massa, né? Vem cá, o que cê vai beber?" },
+      { "speakerId": "thi", "text": "Uma cerveja bem gelada. Hoje eu mereço." },
+      { "speakerId": "rafa", "text": "Duas, por favor! Então, como tá o trabalho novo?" },
+      { "speakerId": "thi", "text": "Tá puxado, mas tô curtindo. E você, ainda naquele projeto?" },
+      { "speakerId": "rafa", "text": "Ainda. Mas hoje a gente não fala de trabalho, beleza?" },
+      { "speakerId": "thi", "text": "Fechou. Saúde!" }
+    ],
+    "translation": [
+      { "speakerId": "rafa", "text": "Hey, man! You're early, huh?" },
+      { "speakerId": "thi", "text": "Man, I left work and came straight here. This bar is a great spot, huh?" },
+      { "speakerId": "rafa", "text": "Awesome, right? So, what are you drinking?" },
+      { "speakerId": "thi", "text": "An ice-cold beer. I've earned it today." },
+      { "speakerId": "rafa", "text": "Two, please! So, how's the new job?" },
+      { "speakerId": "thi", "text": "It's intense, but I'm enjoying it. And you, still on that project?" },
+      { "speakerId": "rafa", "text": "Still. But today we're not talking about work, deal?" },
+      { "speakerId": "thi", "text": "Deal. Cheers!" }
+    ],
+    "keyVocabulary": ["vocab.beber", "vocab.hoje", "vocab.falar", "phrase.por-favor"],
+    "grammarNotes": "'A gente' + third-person singular verb ('a gente não fala') is the everyday spoken way to say 'we'; 'tô' and 'tá' are the spoken forms of 'estou' and 'está'.",
+    "slangRegisterNotes": "'E aí, mano', 'pô', 'massa', 'rolê' and 'fechou' are mild, friendly SP slang (severity ≤3) — normal among male friends at a bar, out of place with strangers or at work.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.first-date",
+    "scenario": "first date at a wine bar",
+    "speakers": [
+      { "id": "lucas", "name": "Lucas" },
+      { "id": "fer", "name": "Fernanda" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "lucas", "text": "Oi! Fernanda, né? Já achei que você não vinha mais." },
+      { "speakerId": "fer", "text": "Oi! Desculpa o atraso, o trânsito tava horrível." },
+      { "speakerId": "lucas", "text": "Relaxa. Você tá muito bonita, aliás." },
+      { "speakerId": "fer", "text": "Obrigada! Você também não tá nada mal." },
+      { "speakerId": "lucas", "text": "Esse lugar tem um vinho ótimo. Quer dividir uma garrafa?" },
+      { "speakerId": "fer", "text": "Quero, sim. Mas já vou avisando: eu falo demais quando bebo vinho." },
+      { "speakerId": "lucas", "text": "Perfeito, eu adoro ouvir. Então me conta, o que você faz da vida?" },
+      { "speakerId": "fer", "text": "Trabalho com design. E você? No app dizia 'engenheiro que cozinha'." },
+      { "speakerId": "lucas", "text": "É verdade. Um dia eu cozinho pra você — se essa noite correr bem." },
+      { "speakerId": "fer", "text": "Olha a confiança! Gostei." }
+    ],
+    "translation": [
+      { "speakerId": "lucas", "text": "Hi! Fernanda, right? I was starting to think you weren't coming." },
+      { "speakerId": "fer", "text": "Hi! Sorry I'm late, traffic was awful." },
+      { "speakerId": "lucas", "text": "No worries. You look really beautiful, by the way." },
+      { "speakerId": "fer", "text": "Thank you! You're not looking bad yourself." },
+      { "speakerId": "lucas", "text": "This place has a great wine. Want to split a bottle?" },
+      { "speakerId": "fer", "text": "Sure. But fair warning: I talk too much when I drink wine." },
+      { "speakerId": "lucas", "text": "Perfect, I love listening. So tell me, what do you do for a living?" },
+      { "speakerId": "fer", "text": "I work in design. And you? Your profile said 'engineer who cooks'." },
+      { "speakerId": "lucas", "text": "It's true. One day I'll cook for you — if tonight goes well." },
+      { "speakerId": "fer", "text": "Look at that confidence! I like it." }
+    ],
+    "keyVocabulary": ["vocab.obrigado", "vocab.falar"],
+    "grammarNotes": "'Quer + infinitive' ('Quer dividir...?') is the natural way to make an invitation; answers repeat the verb: 'Quero, sim.'",
+    "slangRegisterNotes": "Direct but light compliments ('você tá muito bonita') are normal Brazilian date talk; 'olha a confiança' is playful teasing that signals interest rather than offense.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.job-interview",
+    "scenario": "job interview",
+    "speakers": [
+      { "id": "sandra", "name": "Sandra", "role": "interviewer" },
+      { "id": "pedro", "name": "Pedro", "role": "candidate" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "sandra", "text": "Bom dia, Pedro. Pode se sentar, por favor." },
+      { "speakerId": "pedro", "text": "Bom dia, Sandra. Muito obrigado pela oportunidade." },
+      { "speakerId": "sandra", "text": "O senhor pode me falar um pouco sobre a sua experiência?" },
+      { "speakerId": "pedro", "text": "Claro. Trabalhei cinco anos com vendas, dois deles como coordenador." },
+      { "speakerId": "sandra", "text": "E por que o senhor quer trabalhar aqui conosco?" },
+      { "speakerId": "pedro", "text": "Admiro a empresa e acredito que posso crescer aqui." },
+      { "speakerId": "sandra", "text": "Qual é a sua pretensão salarial?" },
+      { "speakerId": "pedro", "text": "Desculpe, não entendi a pergunta. A senhora pode repetir?" },
+      { "speakerId": "sandra", "text": "Claro: quanto o senhor espera ganhar por mês?" },
+      { "speakerId": "pedro", "text": "Ah, entendi. Algo em torno de cinco mil reais." },
+      { "speakerId": "sandra", "text": "Perfeito. Entraremos em contato até sexta-feira." },
+      { "speakerId": "pedro", "text": "Obrigado pela atenção. Tenha um bom dia." }
+    ],
+    "translation": [
+      { "speakerId": "sandra", "text": "Good morning, Pedro. Please have a seat." },
+      { "speakerId": "pedro", "text": "Good morning, Sandra. Thank you very much for the opportunity." },
+      { "speakerId": "sandra", "text": "Could you tell me a little about your experience?" },
+      { "speakerId": "pedro", "text": "Of course. I worked five years in sales, two of them as a coordinator." },
+      { "speakerId": "sandra", "text": "And why do you want to work here with us?" },
+      { "speakerId": "pedro", "text": "I admire the company and I believe I can grow here." },
+      { "speakerId": "sandra", "text": "What are your salary expectations?" },
+      { "speakerId": "pedro", "text": "Sorry, I didn't understand the question. Could you repeat it?" },
+      { "speakerId": "sandra", "text": "Of course: how much do you expect to earn per month?" },
+      { "speakerId": "pedro", "text": "Ah, I see. Something around five thousand reais." },
+      { "speakerId": "sandra", "text": "Perfect. We'll be in touch by Friday." },
+      { "speakerId": "pedro", "text": "Thank you for your time. Have a good day." }
+    ],
+    "keyVocabulary": ["phrase.por-favor", "vocab.obrigado", "phrase.nao-entendi", "vocab.falar"],
+    "grammarNotes": "'O senhor / a senhora' takes third-person verbs ('o senhor quer', 'a senhora pode'); note the formal future 'entraremos em contato' typical of professional speech.",
+    "slangRegisterNotes": "Zero slang here on purpose: full sentences, 'desculpe' instead of 'desculpa', and asking for repetition politely ('não entendi, pode repetir?') is a safe, respected move in interviews.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.apartment-rental",
+    "scenario": "viewing an apartment for rent",
+    "speakers": [
+      { "id": "camila", "name": "Camila", "role": "prospective tenant" },
+      { "id": "rob", "name": "Roberto", "role": "real estate agent" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "camila", "text": "Boa tarde. Vi o anúncio do apartamento na rua Augusta. Ainda está disponível?" },
+      { "speakerId": "rob", "text": "Boa tarde! Está, sim. A senhora gostaria de visitar?" },
+      { "speakerId": "camila", "text": "Gostaria. Quanto é o aluguel?" },
+      { "speakerId": "rob", "text": "Dois mil e quinhentos, mais condomínio de seiscentos." },
+      { "speakerId": "camila", "text": "E o condomínio inclui água?" },
+      { "speakerId": "rob", "text": "Inclui água e gás. Luz é separada." },
+      { "speakerId": "camila", "text": "Aceita animais? Eu tenho um gato." },
+      { "speakerId": "rob", "text": "Aceita, sim, sem problema. Posso agendar a visita para amanhã às dez?" },
+      { "speakerId": "camila", "text": "Pode. Preciso levar algum documento?" },
+      { "speakerId": "rob", "text": "Por enquanto não. Depois pedimos comprovante de renda e fiador." }
+    ],
+    "translation": [
+      { "speakerId": "camila", "text": "Good afternoon. I saw the listing for the apartment on Rua Augusta. Is it still available?" },
+      { "speakerId": "rob", "text": "Good afternoon! Yes, it is. Would you like to visit it?" },
+      { "speakerId": "camila", "text": "I would. How much is the rent?" },
+      { "speakerId": "rob", "text": "Two thousand five hundred, plus a six-hundred condo fee." },
+      { "speakerId": "camila", "text": "And does the condo fee include water?" },
+      { "speakerId": "rob", "text": "It includes water and gas. Electricity is separate." },
+      { "speakerId": "camila", "text": "Do you accept pets? I have a cat." },
+      { "speakerId": "rob", "text": "Yes, no problem. Can I schedule the visit for tomorrow at ten?" },
+      { "speakerId": "camila", "text": "You can. Do I need to bring any documents?" },
+      { "speakerId": "rob", "text": "Not for now. Later we'll ask for proof of income and a guarantor." }
+    ],
+    "keyVocabulary": ["vocab.agua", "vocab.rua"],
+    "grammarNotes": "The conditional 'gostaria de' softens requests ('A senhora gostaria de visitar?' / 'Gostaria.'); answers echo the verb: 'Está, sim', 'Inclui', 'Pode'.",
+    "slangRegisterNotes": "Business-formal but warm: the agent uses 'a senhora', and rental vocabulary (aluguel, condomínio, fiador, comprovante de renda) is essential real-world Brazil-specific bureaucracy.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.doctor-visit",
+    "scenario": "doctor's appointment",
+    "speakers": [
+      { "id": "dr", "name": "Henrique", "role": "doctor" },
+      { "id": "pac", "name": "Luísa", "role": "patient" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "dr", "text": "Boa tarde, dona Luísa. Pode entrar. O que a senhora está sentindo?" },
+      { "speakerId": "pac", "text": "Boa tarde, doutor. Estou com dor de garganta há três dias, e um pouco de febre." },
+      { "speakerId": "dr", "text": "A senhora está tomando algum remédio?" },
+      { "speakerId": "pac", "text": "Só paracetamol, mas não está resolvendo." },
+      { "speakerId": "dr", "text": "Deixe-me examinar... Abra a boca, por favor. Hum, está bem inflamada." },
+      { "speakerId": "pac", "text": "É grave, doutor?" },
+      { "speakerId": "dr", "text": "Não, é uma infecção comum. Vou receitar um antibiótico por sete dias." },
+      { "speakerId": "pac", "text": "Posso trabalhar normalmente?" },
+      { "speakerId": "dr", "text": "Pode, mas beba bastante água e evite bebida gelada." },
+      { "speakerId": "pac", "text": "Está bem. Obrigada, doutor." }
+    ],
+    "translation": [
+      { "speakerId": "dr", "text": "Good afternoon, Ms. Luísa. Come in. What are you feeling?" },
+      { "speakerId": "pac", "text": "Good afternoon, doctor. I've had a sore throat for three days, and a slight fever." },
+      { "speakerId": "dr", "text": "Are you taking any medicine?" },
+      { "speakerId": "pac", "text": "Just paracetamol, but it's not helping." },
+      { "speakerId": "dr", "text": "Let me examine you... Open your mouth, please. Hmm, it's quite inflamed." },
+      { "speakerId": "pac", "text": "Is it serious, doctor?" },
+      { "speakerId": "dr", "text": "No, it's a common infection. I'll prescribe an antibiotic for seven days." },
+      { "speakerId": "pac", "text": "Can I work normally?" },
+      { "speakerId": "dr", "text": "You can, but drink plenty of water and avoid cold drinks." },
+      { "speakerId": "pac", "text": "All right. Thank you, doctor." }
+    ],
+    "keyVocabulary": ["phrase.por-favor", "vocab.agua", "vocab.obrigado"],
+    "grammarNotes": "'Estar com' expresses current symptoms ('estou com dor de garganta'); note formal imperatives 'abra' and 'beba' from the doctor.",
+    "slangRegisterNotes": "Address forms carry respect both ways: the doctor says 'dona Luísa' and 'a senhora', the patient answers with 'doutor' — the expected register in Brazilian medical settings.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.police-stop",
+    "scenario": "traffic police checkpoint",
+    "speakers": [
+      { "id": "pol", "name": "Souza", "role": "police officer" },
+      { "id": "mot", "name": "André", "role": "driver" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "pol", "text": "Boa noite. Blitz da Polícia Militar. Documento do veículo e habilitação, por favor." },
+      { "speakerId": "mot", "text": "Boa noite, senhor. Claro, só um momento. Estão aqui no porta-luvas." },
+      { "speakerId": "pol", "text": "Pode pegar devagar. O senhor bebeu alguma coisa hoje?" },
+      { "speakerId": "mot", "text": "Não, senhor. Estou voltando do trabalho." },
+      { "speakerId": "pol", "text": "Vou pedir para o senhor fazer o teste do bafômetro. É rápido." },
+      { "speakerId": "mot", "text": "Sem problema. Assopro aqui?" },
+      { "speakerId": "pol", "text": "Isso, sopre forte até o apito. Tudo certo. Pode abrir o porta-malas?" },
+      { "speakerId": "mot", "text": "Claro, pode olhar." },
+      { "speakerId": "pol", "text": "Tudo em ordem. Obrigado pela colaboração. Boa viagem." },
+      { "speakerId": "mot", "text": "Obrigado, senhor. Boa noite." }
+    ],
+    "translation": [
+      { "speakerId": "pol", "text": "Good evening. Military Police checkpoint. Vehicle registration and driver's license, please." },
+      { "speakerId": "mot", "text": "Good evening, officer. Of course, just a moment. They're here in the glove compartment." },
+      { "speakerId": "pol", "text": "Take them out slowly. Have you had anything to drink today?" },
+      { "speakerId": "mot", "text": "No, officer. I'm coming back from work." },
+      { "speakerId": "pol", "text": "I'm going to ask you to take the breathalyzer test. It's quick." },
+      { "speakerId": "mot", "text": "No problem. Do I blow here?" },
+      { "speakerId": "pol", "text": "That's it, blow hard until the beep. All clear. Can you open the trunk?" },
+      { "speakerId": "mot", "text": "Of course, go ahead and look." },
+      { "speakerId": "pol", "text": "Everything's in order. Thank you for your cooperation. Safe travels." },
+      { "speakerId": "mot", "text": "Thank you, officer. Good night." }
+    ],
+    "keyVocabulary": ["phrase.por-favor", "vocab.obrigado", "vocab.hoje"],
+    "grammarNotes": "'Pode + infinitive' works as both permission and polite instruction ('Pode pegar devagar', 'Pode abrir o porta-malas?'); answer with 'Claro' or 'Sem problema'.",
+    "slangRegisterNotes": "Models calm, formal compliance: address the officer as 'senhor', announce movements before reaching for documents, and keep answers short and cooperative — the safe register at a Brazilian blitz.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.customer-service",
+    "scenario": "phone call to internet provider support",
+    "speakers": [
+      { "id": "aten", "name": "Vanessa", "role": "support agent" },
+      { "id": "cli", "name": "Jorge", "role": "customer" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "aten", "text": "Central de atendimento, Vanessa falando. Em que posso ajudar?" },
+      { "speakerId": "cli", "text": "Boa tarde, Vanessa. Minha internet está sem funcionar desde ontem." },
+      { "speakerId": "aten", "text": "Sinto muito pelo transtorno, senhor. Pode me informar o seu CPF, por favor?" },
+      { "speakerId": "cli", "text": "Claro: cento e vinte e três, quatrocentos e cinquenta e seis..." },
+      { "speakerId": "aten", "text": "Obrigada. Estou verificando... O senhor já tentou reiniciar o modem?" },
+      { "speakerId": "cli", "text": "Já tentei três vezes. Desculpa, mas eu já fiz tudo isso ontem no chat." },
+      { "speakerId": "aten", "text": "Entendo, senhor. Vou abrir um chamado técnico. A visita seria amanhã, entre nove e meio-dia." },
+      { "speakerId": "cli", "text": "Amanhã de manhã está ótimo. E eu vou pagar por um serviço que não funciona?" },
+      { "speakerId": "aten", "text": "Não se preocupe: os dias sem sinal serão descontados da fatura." },
+      { "speakerId": "cli", "text": "Perfeito. Obrigado, Vanessa." }
+    ],
+    "translation": [
+      { "speakerId": "aten", "text": "Customer service, Vanessa speaking. How can I help you?" },
+      { "speakerId": "cli", "text": "Good afternoon, Vanessa. My internet has been down since yesterday." },
+      { "speakerId": "aten", "text": "I'm sorry for the inconvenience, sir. Could you give me your CPF number, please?" },
+      { "speakerId": "cli", "text": "Sure: one twenty-three, four fifty-six..." },
+      { "speakerId": "aten", "text": "Thank you. I'm checking... Have you already tried restarting the modem?" },
+      { "speakerId": "cli", "text": "I've tried three times. Sorry, but I already did all that yesterday on the chat." },
+      { "speakerId": "aten", "text": "I understand, sir. I'll open a technical ticket. The visit would be tomorrow, between nine and noon." },
+      { "speakerId": "cli", "text": "Tomorrow morning is great. And am I going to pay for a service that doesn't work?" },
+      { "speakerId": "aten", "text": "Don't worry: the days without signal will be deducted from your bill." },
+      { "speakerId": "cli", "text": "Perfect. Thank you, Vanessa." }
+    ],
+    "keyVocabulary": ["vocab.obrigado", "phrase.por-favor"],
+    "grammarNotes": "'Já' + perfect past marks 'already done' ('Já tentei três vezes'); the conditional 'seria' ('a visita seria amanhã') softens scheduling proposals.",
+    "slangRegisterNotes": "Models controlled frustration: the customer pushes back firmly ('vou pagar por um serviço que não funciona?') without ever getting rude, while the agent keeps scripted courtesy ('sinto muito pelo transtorno').",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.flirting-party",
+    "scenario": "flirting at a house party",
+    "speakers": [
+      { "id": "gab", "name": "Gabriel" },
+      { "id": "bia", "name": "Bianca" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-RJ",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "gab", "text": "Oi! Desculpa te interromper, mas eu te vi daqui e achei você muito bonita." },
+      { "speakerId": "bia", "text": "Ah, obrigada! Direto assim, hein?" },
+      { "speakerId": "gab", "text": "Melhor do que ficar só olhando, né? Posso te pagar uma bebida?" },
+      { "speakerId": "bia", "text": "Pode, sim. Um gin tônica, valeu." },
+      { "speakerId": "gab", "text": "Fechou. Cê é daqui do Rio?" },
+      { "speakerId": "bia", "text": "Sou de Niterói. E você, carioca da gema?" },
+      { "speakerId": "gab", "text": "Total. Tá curtindo a festa?" },
+      { "speakerId": "bia", "text": "Tô, mas hoje eu vim com as minhas amigas, então não vou sumir daqui, tá?" },
+      { "speakerId": "gab", "text": "Tranquilo, sem pressão. Me passa teu insta, quem sabe a gente marca alguma coisa?" },
+      { "speakerId": "bia", "text": "Isso pode. Anota aí." }
+    ],
+    "translation": [
+      { "speakerId": "gab", "text": "Hi! Sorry to interrupt, but I saw you from over there and thought you were really pretty." },
+      { "speakerId": "bia", "text": "Oh, thanks! Straight to the point, huh?" },
+      { "speakerId": "gab", "text": "Better than just staring, right? Can I buy you a drink?" },
+      { "speakerId": "bia", "text": "You can. A gin and tonic, thanks." },
+      { "speakerId": "gab", "text": "Done. Are you from Rio?" },
+      { "speakerId": "bia", "text": "I'm from Niterói. And you, born-and-raised carioca?" },
+      { "speakerId": "gab", "text": "Totally. Enjoying the party?" },
+      { "speakerId": "bia", "text": "I am, but tonight I came with my girlfriends, so I'm not going to disappear from here, okay?" },
+      { "speakerId": "gab", "text": "Cool, no pressure. Give me your Instagram, maybe we can set something up?" },
+      { "speakerId": "bia", "text": "That works. Write it down." }
+    ],
+    "keyVocabulary": ["vocab.obrigado", "vocab.hoje"],
+    "grammarNotes": "'Posso te pagar uma bebida?' shows the object pronoun 'te' placed before the verb — the default in spoken Brazilian; 'cê' is the clipped spoken 'você'.",
+    "slangRegisterNotes": "Carioca-flavored flirting: 'valeu' (thanks), 'fechou', 'carioca da gema' and 'teu' (RJ freely mixes tu/teu with você). Bianca models a graceful boundary — accepting the drink and the follow-up while clearly setting limits ('não vou sumir daqui, tá?').",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.texting-friend",
+    "scenario": "WhatsApp texting between friends",
+    "speakers": [
+      { "id": "duda", "name": "Duda" },
+      { "id": "vini", "name": "Vinícius" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "duda", "text": "oii, td bem? sumido vc hein kkk" },
+      { "speakerId": "vini", "text": "oi!! desculpa, semana corrida demais. mas tô vivo" },
+      { "speakerId": "duda", "text": "q bom kkk bora tomar um café amanhã?" },
+      { "speakerId": "vini", "text": "bora! aquele lugar perto da sua casa?" },
+      { "speakerId": "duda", "text": "isso, o q abre cedo. 10h tá bom pra vc?" },
+      { "speakerId": "vini", "text": "fechado. e dps vc me conta a fofoca do trabalho, quero saber TUDO" },
+      { "speakerId": "duda", "text": "kkkkk pode deixar. até amanhã!" },
+      { "speakerId": "vini", "text": "até! bjs" }
+    ],
+    "translation": [
+      { "speakerId": "duda", "text": "hiii, all good? you've been MIA huh lol" },
+      { "speakerId": "vini", "text": "hi!! sorry, crazy busy week. but I'm alive" },
+      { "speakerId": "duda", "text": "good lol wanna grab a coffee tomorrow?" },
+      { "speakerId": "vini", "text": "let's do it! that place near your house?" },
+      { "speakerId": "duda", "text": "yeah, the one that opens early. does 10 work for you?" },
+      { "speakerId": "vini", "text": "deal. and then you tell me the work gossip, I want to know EVERYTHING" },
+      { "speakerId": "duda", "text": "hahaha you got it. see you tomorrow!" },
+      { "speakerId": "vini", "text": "see ya! kisses" }
+    ],
+    "keyVocabulary": ["vocab.cafe", "vocab.casa"],
+    "grammarNotes": "'Bora' (from 'vamos embora') works as a one-word invitation and acceptance; text Portuguese drops capitals and squeezes words: vc = você, td = tudo, q = que, dps = depois.",
+    "slangRegisterNotes": "'kkk' is Brazilian textual laughter (the more k's, the harder the laugh) and 'bjs' (beijos) is a standard warm sign-off between friends — neither is flirtatious by itself.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.negotiating-market",
+    "scenario": "bargaining at a street market (feira)",
+    "speakers": [
+      { "id": "ze", "name": "José", "role": "fruit vendor" },
+      { "id": "mari", "name": "Marina", "role": "shopper" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-RJ",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "ze", "text": "Pode chegar, freguesa! Manga doce, abacaxi, tudo fresquinho!" },
+      { "speakerId": "mari", "text": "Oi, seu Zé. Quanto custa o quilo da manga?" },
+      { "speakerId": "ze", "text": "Pra você, oito reais, minha filha." },
+      { "speakerId": "mari", "text": "Oito? Tá caro, hein. Ali na outra barraca tava seis." },
+      { "speakerId": "ze", "text": "Mas a minha é palmer, é outra qualidade! Faço por sete." },
+      { "speakerId": "mari", "text": "Faz assim: levo dois quilos, você faz por doze?" },
+      { "speakerId": "ze", "text": "Pô, você me aperta... Fechado, doze pelos dois quilos." },
+      { "speakerId": "mari", "text": "E joga uma laranja de brinde, vai?" },
+      { "speakerId": "ze", "text": "Essa freguesa é boa! Toma, duas laranjas. Volta sempre!" },
+      { "speakerId": "mari", "text": "Obrigada, seu Zé!" }
+    ],
+    "translation": [
+      { "speakerId": "ze", "text": "Come on over, ma'am! Sweet mangoes, pineapple, everything fresh!" },
+      { "speakerId": "mari", "text": "Hi, Mr. Zé. How much is a kilo of mango?" },
+      { "speakerId": "ze", "text": "For you, eight reais, my dear." },
+      { "speakerId": "mari", "text": "Eight? That's pricey, huh. Over at the other stall it was six." },
+      { "speakerId": "ze", "text": "But mine are palmer mangoes, a whole other quality! I'll do seven." },
+      { "speakerId": "mari", "text": "How about this: I take two kilos, you do it for twelve?" },
+      { "speakerId": "ze", "text": "Man, you drive a hard bargain... Deal, twelve for the two kilos." },
+      { "speakerId": "mari", "text": "And throw in an orange for free, come on?" },
+      { "speakerId": "ze", "text": "Now that's a good customer! Here, two oranges. Come back soon!" },
+      { "speakerId": "mari", "text": "Thanks, Mr. Zé!" }
+    ],
+    "keyVocabulary": ["phrase.quanto-custa", "vocab.obrigado"],
+    "grammarNotes": "'Fazer por + price' is the bargaining verb ('faço por sete', 'faz por doze?'); 'tava' is the spoken form of 'estava'.",
+    "slangRegisterNotes": "Feira culture: vendors use warm endearments ('freguesa', 'minha filha') and haggling plus asking for a 'brinde' (freebie) is expected, friendly ritual — not rudeness. 'Seu Zé' = 'senhor' worn down into a folksy title.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.nightlife-club",
+    "scenario": "night out at a club in Rio",
+    "speakers": [
+      { "id": "caio", "name": "Caio" },
+      { "id": "lari", "name": "Larissa" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-RJ",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "caio", "text": "Aí, Larissa! Que bom que cê veio! O rolê tá bombando!" },
+      { "speakerId": "lari", "text": "Falei que vinha! Esse DJ é muito maneiro, mermão." },
+      { "speakerId": "caio", "text": "Melhor set do Rio, tô te falando. Quer beber alguma coisa?" },
+      { "speakerId": "lari", "text": "Quero! Vamos no bar, mas segura minha mão que tá lotado." },
+      { "speakerId": "caio", "text": "Cola aqui. Moço, dois caipivodka, por favor!" },
+      { "speakerId": "lari", "text": "Depois vamos pra pista, quero dançar até o fim." },
+      { "speakerId": "caio", "text": "Fechou! Ah, o pessoal vai pra um after depois. Cola com a gente." },
+      { "speakerId": "lari", "text": "Vou ver, hein, amanhã eu trabalho cedo." },
+      { "speakerId": "caio", "text": "Relaxa, amanhã é problema do futuro." }
+    ],
+    "translation": [
+      { "speakerId": "caio", "text": "Hey, Larissa! So glad you came! This party is popping!" },
+      { "speakerId": "lari", "text": "I told you I'd come! This DJ is so cool, dude." },
+      { "speakerId": "caio", "text": "Best set in Rio, I'm telling you. Want something to drink?" },
+      { "speakerId": "lari", "text": "Yes! Let's go to the bar, but hold my hand, it's packed." },
+      { "speakerId": "caio", "text": "Stick with me. Hey, two caipivodkas, please!" },
+      { "speakerId": "lari", "text": "Then let's hit the dance floor, I want to dance till the end." },
+      { "speakerId": "caio", "text": "Deal! Oh, the crew is going to an afterparty later. Come with us." },
+      { "speakerId": "lari", "text": "We'll see, huh, I work early tomorrow." },
+      { "speakerId": "caio", "text": "Relax, tomorrow is a problem for future you." }
+    ],
+    "keyVocabulary": ["vocab.beber", "vocab.falar", "phrase.por-favor"],
+    "grammarNotes": "Spoken commands with 'que': 'segura minha mão que tá lotado' (hold my hand because it's packed); 'vamos no bar' — spoken Brazilian uses 'ir no/na' where the textbook says 'ir ao/à'.",
+    "slangRegisterNotes": "Carioca club register: 'mermão' (RJ's version of 'mano'), 'maneiro' (cool), 'rolê tá bombando', 'cola aqui/cola com a gente' (come along). All mild slang (severity ≤3), typical of Rio nightlife.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.airport-immigration",
+    "scenario": "passport control at Guarulhos airport",
+    "speakers": [
+      { "id": "agente", "name": "Mauro", "role": "immigration officer" },
+      { "id": "viaj", "name": "Sofia", "role": "traveler" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "agente", "text": "Boa noite. Passaporte, por favor." },
+      { "speakerId": "viaj", "text": "Boa noite. Aqui está." },
+      { "speakerId": "agente", "text": "Qual é o motivo da sua viagem ao Brasil?" },
+      { "speakerId": "viaj", "text": "Turismo. Vou ficar três semanas." },
+      { "speakerId": "agente", "text": "Onde a senhora vai ficar hospedada?" },
+      { "speakerId": "viaj", "text": "Desculpe, não entendi. Pode falar mais devagar, por favor?" },
+      { "speakerId": "agente", "text": "Claro. Onde a senhora vai ficar? Hotel? Casa de amigos?" },
+      { "speakerId": "viaj", "text": "Ah, sim. Na casa de uma amiga, em São Paulo." },
+      { "speakerId": "agente", "text": "A senhora tem passagem de volta?" },
+      { "speakerId": "viaj", "text": "Tenho, sim. Está aqui no celular." },
+      { "speakerId": "agente", "text": "Perfeito. Bem-vinda ao Brasil." },
+      { "speakerId": "viaj", "text": "Obrigada!" }
+    ],
+    "translation": [
+      { "speakerId": "agente", "text": "Good evening. Passport, please." },
+      { "speakerId": "viaj", "text": "Good evening. Here it is." },
+      { "speakerId": "agente", "text": "What is the purpose of your trip to Brazil?" },
+      { "speakerId": "viaj", "text": "Tourism. I'm staying three weeks." },
+      { "speakerId": "agente", "text": "Where will you be staying?" },
+      { "speakerId": "viaj", "text": "Sorry, I didn't understand. Could you speak more slowly, please?" },
+      { "speakerId": "agente", "text": "Of course. Where will you stay? A hotel? A friend's house?" },
+      { "speakerId": "viaj", "text": "Ah, yes. At a friend's house, in São Paulo." },
+      { "speakerId": "agente", "text": "Do you have a return ticket?" },
+      { "speakerId": "viaj", "text": "Yes, I do. It's here on my phone." },
+      { "speakerId": "agente", "text": "Perfect. Welcome to Brazil." },
+      { "speakerId": "viaj", "text": "Thank you!" }
+    ],
+    "keyVocabulary": ["phrase.por-favor", "phrase.nao-entendi", "vocab.casa", "vocab.amigo", "vocab.falar", "vocab.obrigado"],
+    "grammarNotes": "'Ir + infinitive' for the near future ('vou ficar três semanas'); 'não entendi, pode falar mais devagar?' is the essential repair phrase — the officer naturally simplifies in response.",
+    "slangRegisterNotes": "Institutional formality: clipped official questions, 'a senhora', no small talk. Asking someone to slow down is completely acceptable here and treated as routine.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.taxi-uber",
+    "scenario": "Uber ride across town",
+    "speakers": [
+      { "id": "mot", "name": "Nando", "role": "driver" },
+      { "id": "pas", "name": "Rita", "role": "passenger" }
+    ],
+    "targetLevel": "A1",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "mot", "text": "Oi, tudo bem? Rita?" },
+      { "speakerId": "pas", "text": "Oi! Sou eu, sim." },
+      { "speakerId": "mot", "text": "Indo pra rua Oscar Freire, né?" },
+      { "speakerId": "pas", "text": "Isso. Pode ir pela avenida, por favor? É mais rápido." },
+      { "speakerId": "mot", "text": "Pode deixar. Quer ar-condicionado?" },
+      { "speakerId": "pas", "text": "Quero, sim, obrigada. Tá calor hoje, né?" },
+      { "speakerId": "mot", "text": "Demais! Pronto, chegamos. É aqui na esquina?" },
+      { "speakerId": "pas", "text": "É aqui mesmo. Obrigada, boa noite!" },
+      { "speakerId": "mot", "text": "Boa noite! Cinco estrelas, hein?" }
+    ],
+    "translation": [
+      { "speakerId": "mot", "text": "Hi, how's it going? Rita?" },
+      { "speakerId": "pas", "text": "Hi! Yes, that's me." },
+      { "speakerId": "mot", "text": "Going to Rua Oscar Freire, right?" },
+      { "speakerId": "pas", "text": "That's it. Can you take the avenue, please? It's faster." },
+      { "speakerId": "mot", "text": "You got it. Want the air conditioning on?" },
+      { "speakerId": "pas", "text": "Yes, please, thanks. It's hot today, huh?" },
+      { "speakerId": "mot", "text": "So hot! Here we are. Is it here on the corner?" },
+      { "speakerId": "pas", "text": "Right here. Thanks, good night!" },
+      { "speakerId": "mot", "text": "Good night! Five stars, huh?" }
+    ],
+    "keyVocabulary": ["phrase.oi-tudo-bem", "phrase.por-favor", "vocab.obrigado", "vocab.rua", "vocab.hoje"],
+    "grammarNotes": "The tag 'né?' (from 'não é?') turns statements into friendly confirmations; 'pra' = 'para a'.",
+    "slangRegisterNotes": "Uber small talk is warm but low-stakes: 'pode deixar' (consider it done) and the half-joking 'cinco estrelas, hein?' are stock driver phrases.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.restaurant-dinner",
+    "scenario": "dinner at a restaurant",
+    "speakers": [
+      { "id": "gar", "name": "Igor", "role": "waiter" },
+      { "id": "cli", "name": "Paula", "role": "customer" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "gar", "text": "Boa noite! Mesa pra dois?" },
+      { "speakerId": "cli", "text": "Isso, por favor. Pode ser aquela perto da janela?" },
+      { "speakerId": "gar", "text": "Claro. Aqui está o cardápio. Vão querer alguma entrada?" },
+      { "speakerId": "cli", "text": "A gente quer dividir uma porção de pão de alho. E pra beber, uma água com gás e um suco de laranja." },
+      { "speakerId": "gar", "text": "Perfeito. E o prato principal?" },
+      { "speakerId": "cli", "text": "O que você recomenda? É a nossa primeira vez aqui." },
+      { "speakerId": "gar", "text": "A picanha é o carro-chefe da casa. Sai bem pra duas pessoas." },
+      { "speakerId": "cli", "text": "Fechou, uma picanha ao ponto, então." },
+      { "speakerId": "gar", "text": "Ótima escolha. Já trago as bebidas." },
+      { "speakerId": "cli", "text": "Obrigada! Ah, e depois quero ver o menu de sobremesas." }
+    ],
+    "translation": [
+      { "speakerId": "gar", "text": "Good evening! Table for two?" },
+      { "speakerId": "cli", "text": "Yes, please. Could we have that one by the window?" },
+      { "speakerId": "gar", "text": "Of course. Here's the menu. Will you want a starter?" },
+      { "speakerId": "cli", "text": "We'd like to split an order of garlic bread. And to drink, a sparkling water and an orange juice." },
+      { "speakerId": "gar", "text": "Perfect. And the main course?" },
+      { "speakerId": "cli", "text": "What do you recommend? It's our first time here." },
+      { "speakerId": "gar", "text": "The picanha is the house specialty. It's plenty for two people." },
+      { "speakerId": "cli", "text": "Deal, one picanha medium, then." },
+      { "speakerId": "gar", "text": "Great choice. I'll bring the drinks right away." },
+      { "speakerId": "cli", "text": "Thanks! Oh, and later I want to see the dessert menu." }
+    ],
+    "keyVocabulary": ["phrase.por-favor", "vocab.pao", "vocab.agua", "vocab.beber", "vocab.obrigado"],
+    "grammarNotes": "'Pode ser...?' is the go-to structure for polite requests and choices ('Pode ser aquela perto da janela?'); ordering uses 'quero/a gente quer' + item.",
+    "slangRegisterNotes": "Restaurant register is polite-casual: 'fechou' seals the order informally, and 'carro-chefe da casa' (house specialty, literally 'flagship') is common waiter talk.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.pharmacy",
+    "scenario": "buying medicine at a pharmacy",
+    "speakers": [
+      { "id": "farm", "name": "Renata", "role": "pharmacist" },
+      { "id": "cli", "name": "Tomás", "role": "customer" }
+    ],
+    "targetLevel": "A1",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "farm", "text": "Boa tarde! Posso ajudar?" },
+      { "speakerId": "cli", "text": "Boa tarde. Estou com dor de cabeça. Tem algum remédio?" },
+      { "speakerId": "farm", "text": "Tem, sim. Dipirona ou paracetamol?" },
+      { "speakerId": "cli", "text": "Desculpa, não entendi. Qual é mais forte?" },
+      { "speakerId": "farm", "text": "Os dois são parecidos. A dipirona é essa aqui." },
+      { "speakerId": "cli", "text": "Tá bom, vou levar. Quanto custa?" },
+      { "speakerId": "farm", "text": "Sete reais. Mais alguma coisa?" },
+      { "speakerId": "cli", "text": "Uma água também, por favor. Quero tomar o remédio agora." },
+      { "speakerId": "farm", "text": "Claro. São dez reais no total." },
+      { "speakerId": "cli", "text": "Obrigado!" }
+    ],
+    "translation": [
+      { "speakerId": "farm", "text": "Good afternoon! Can I help you?" },
+      { "speakerId": "cli", "text": "Good afternoon. I have a headache. Do you have any medicine?" },
+      { "speakerId": "farm", "text": "Yes, we do. Dipyrone or paracetamol?" },
+      { "speakerId": "cli", "text": "Sorry, I didn't understand. Which one is stronger?" },
+      { "speakerId": "farm", "text": "They're similar. The dipyrone is this one here." },
+      { "speakerId": "cli", "text": "Okay, I'll take it. How much is it?" },
+      { "speakerId": "farm", "text": "Seven reais. Anything else?" },
+      { "speakerId": "cli", "text": "A water too, please. I want to take the medicine now." },
+      { "speakerId": "farm", "text": "Sure. That's ten reais total." },
+      { "speakerId": "cli", "text": "Thank you!" }
+    ],
+    "keyVocabulary": ["phrase.nao-entendi", "phrase.quanto-custa", "vocab.agua", "phrase.por-favor", "vocab.obrigado"],
+    "grammarNotes": "'Estar com + noun' for how you feel ('estou com dor de cabeça'); note 'tomar remédio' — Portuguese 'takes' medicine with the same verb as drinking.",
+    "slangRegisterNotes": "Neutral-polite service register: 'desculpa, não entendi' plus a clarifying question is the natural repair move; dipirona is an everyday Brazilian painkiller worth recognizing by name.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.bank-account",
+    "scenario": "opening a bank account",
+    "speakers": [
+      { "id": "ger", "name": "Ricardo", "role": "bank clerk" },
+      { "id": "cli", "name": "Helena", "role": "customer" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "ger", "text": "Bom dia. Em que posso ajudar a senhora?" },
+      { "speakerId": "cli", "text": "Bom dia. Eu gostaria de abrir uma conta corrente." },
+      { "speakerId": "ger", "text": "Pois não. A senhora trouxe RG e CPF?" },
+      { "speakerId": "cli", "text": "Trouxe, sim. Também preciso de comprovante de residência?" },
+      { "speakerId": "ger", "text": "Precisa. Pode ser uma conta de luz no seu nome." },
+      { "speakerId": "cli", "text": "Está aqui. A conta tem tarifa mensal?" },
+      { "speakerId": "ger", "text": "Temos uma opção digital sem tarifa. A senhora prefere essa?" },
+      { "speakerId": "cli", "text": "Prefiro, sim. E o cartão chega em quanto tempo?" },
+      { "speakerId": "ger", "text": "Em até dez dias úteis, no seu endereço." },
+      { "speakerId": "cli", "text": "Perfeito. Muito obrigada." },
+      { "speakerId": "ger", "text": "Eu que agradeço. Qualquer dúvida, estamos à disposição." }
+    ],
+    "translation": [
+      { "speakerId": "ger", "text": "Good morning. How can I help you, ma'am?" },
+      { "speakerId": "cli", "text": "Good morning. I'd like to open a checking account." },
+      { "speakerId": "ger", "text": "Certainly. Did you bring your ID and CPF?" },
+      { "speakerId": "cli", "text": "I did. Do I also need proof of address?" },
+      { "speakerId": "ger", "text": "You do. An electricity bill in your name works." },
+      { "speakerId": "cli", "text": "Here it is. Does the account have a monthly fee?" },
+      { "speakerId": "ger", "text": "We have a digital option with no fee. Would you prefer that one?" },
+      { "speakerId": "cli", "text": "I would. And how long does the card take to arrive?" },
+      { "speakerId": "ger", "text": "Up to ten business days, at your address." },
+      { "speakerId": "cli", "text": "Perfect. Thank you very much." },
+      { "speakerId": "ger", "text": "Thank you. If you have any questions, we're at your service." }
+    ],
+    "keyVocabulary": ["vocab.obrigado"],
+    "grammarNotes": "'Gostaria de + infinitive' is the polite conditional for requests; short verb-echo answers carry the conversation: 'Trouxe, sim', 'Precisa', 'Prefiro, sim'.",
+    "slangRegisterNotes": "'Pois não' confusingly means 'certainly / how can I help' — it is service-counter politeness, not a refusal; 'eu que agradeço' is the formal 'no, thank YOU'.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.gym-signup",
+    "scenario": "signing up at a gym",
+    "speakers": [
+      { "id": "aten", "name": "Felipe", "role": "gym attendant" },
+      { "id": "cli", "name": "Aline", "role": "new member" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "aten", "text": "E aí, bem-vinda! Primeira vez aqui na academia?" },
+      { "speakerId": "cli", "text": "Oi! É, sim. Queria saber os planos de vocês." },
+      { "speakerId": "aten", "text": "Temos o mensal por cento e vinte, e o anual, que sai por noventa por mês." },
+      { "speakerId": "cli", "text": "E o anual tem multa se eu cancelar?" },
+      { "speakerId": "aten", "text": "Tem, sim, mas é proporcional. Quer fazer uma aula experimental hoje?" },
+      { "speakerId": "cli", "text": "Quero! Vim preparada, tô com a roupa de treino na mochila." },
+      { "speakerId": "aten", "text": "Boa! O vestiário fica ali. Cê prefere musculação ou aula em grupo?" },
+      { "speakerId": "cli", "text": "Musculação. Mas confesso que tô bem fora de forma." },
+      { "speakerId": "aten", "text": "Relaxa, todo mundo começa assim. Bora lá que eu te mostro os aparelhos." },
+      { "speakerId": "cli", "text": "Bora!" }
+    ],
+    "translation": [
+      { "speakerId": "aten", "text": "Hey, welcome! First time here at the gym?" },
+      { "speakerId": "cli", "text": "Hi! Yeah, it is. I wanted to know about your plans." },
+      { "speakerId": "aten", "text": "We have the monthly at one twenty, and the annual, which comes out to ninety a month." },
+      { "speakerId": "cli", "text": "And does the annual have a penalty if I cancel?" },
+      { "speakerId": "aten", "text": "It does, but it's prorated. Want to do a trial class today?" },
+      { "speakerId": "cli", "text": "Yes! I came prepared, I've got workout clothes in my backpack." },
+      { "speakerId": "aten", "text": "Nice! The locker room is over there. Do you prefer weights or group classes?" },
+      { "speakerId": "cli", "text": "Weights. But I confess I'm pretty out of shape." },
+      { "speakerId": "aten", "text": "Relax, everybody starts like that. Let's go, I'll show you the machines." },
+      { "speakerId": "cli", "text": "Let's go!" }
+    ],
+    "keyVocabulary": ["vocab.hoje"],
+    "grammarNotes": "'Queria' (imperfect of querer) softens a request in speech, like English 'I wanted to ask...'; 'sai por noventa' uses 'sair por' for 'comes out to (a price)'.",
+    "slangRegisterNotes": "Friendly sales register: 'e aí', 'cê', 'relaxa' and 'bora' keep it upbeat and casual — typical of gyms, where formality would feel cold.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.hair-salon",
+    "scenario": "haircut and highlights at a salon",
+    "speakers": [
+      { "id": "cab", "name": "Jaqueline", "role": "hairdresser" },
+      { "id": "cli", "name": "Isabela", "role": "client" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-RJ",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "cab", "text": "Oi, linda! Senta aqui. O que a gente vai fazer hoje?" },
+      { "speakerId": "cli", "text": "Oi! Quero cortar uns quatro dedos e fazer umas luzes." },
+      { "speakerId": "cab", "text": "Boa! Teu cabelo tá bem comprido mesmo. Luzes bem clarinhas?" },
+      { "speakerId": "cli", "text": "Não muito, quero um loiro natural, sabe? Nada muito artificial." },
+      { "speakerId": "cab", "text": "Entendi, um iluminado. Vai ficar lindo em você." },
+      { "speakerId": "cli", "text": "E dá pra fazer tudo hoje? Tenho um casamento no sábado." },
+      { "speakerId": "cab", "text": "Dá, sim, mas vai levar umas três horas. Tá com pressa?" },
+      { "speakerId": "cli", "text": "Não, tô de folga. Aproveita e faz uma escova também." },
+      { "speakerId": "cab", "text": "Fechou! Quer um cafezinho enquanto espera?" },
+      { "speakerId": "cli", "text": "Aceito, obrigada!" }
+    ],
+    "translation": [
+      { "speakerId": "cab", "text": "Hi, gorgeous! Sit here. What are we doing today?" },
+      { "speakerId": "cli", "text": "Hi! I want to cut about four fingers off and do some highlights." },
+      { "speakerId": "cab", "text": "Nice! Your hair really is long. Very light highlights?" },
+      { "speakerId": "cli", "text": "Not too light, I want a natural blonde, you know? Nothing too artificial." },
+      { "speakerId": "cab", "text": "Got it, a sun-kissed look. It's going to look gorgeous on you." },
+      { "speakerId": "cli", "text": "And can you do it all today? I have a wedding on Saturday." },
+      { "speakerId": "cab", "text": "We can, but it'll take about three hours. Are you in a hurry?" },
+      { "speakerId": "cli", "text": "No, I'm off today. While you're at it, do a blowout too." },
+      { "speakerId": "cab", "text": "Deal! Want a little coffee while you wait?" },
+      { "speakerId": "cli", "text": "Yes, please, thanks!" }
+    ],
+    "keyVocabulary": ["vocab.hoje", "vocab.cafe", "vocab.obrigado"],
+    "grammarNotes": "'Dá pra + infinitive' is the everyday way to ask if something is possible ('Dá pra fazer tudo hoje?' / 'Dá, sim'); 'uns/umas' before numbers means 'about'.",
+    "slangRegisterNotes": "Salon warmth: 'linda' as a friendly address (not flirtation), the carioca 'teu', and the diminutives 'clarinhas' and 'cafezinho' that soften everything in Brazilian small talk.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.workplace-disagreement",
+    "scenario": "disagreeing with the boss about a deadline",
+    "speakers": [
+      { "id": "chefe", "name": "Cláudio", "role": "manager" },
+      { "id": "func", "name": "Beatriz", "role": "employee" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "formal",
+    "transcript": [
+      { "speakerId": "chefe", "text": "Beatriz, decidi que vamos lançar o projeto na sexta-feira." },
+      { "speakerId": "func", "text": "Entendi, Cláudio. Posso ser sincera? Acho o prazo arriscado." },
+      { "speakerId": "chefe", "text": "Por quê? A equipe já trabalhou bastante nisso." },
+      { "speakerId": "func", "text": "Trabalhou, sim, mas os testes ainda não terminaram. Se lançarmos com erro, o cliente perde a confiança." },
+      { "speakerId": "chefe", "text": "Hum. E o que você sugere?" },
+      { "speakerId": "func", "text": "Sugiro adiar uma semana. Prefiro entregar certo a entregar rápido." },
+      { "speakerId": "chefe", "text": "O diretor não vai gostar do atraso." },
+      { "speakerId": "func", "text": "Eu posso preparar uma justificativa técnica para o senhor apresentar a ele." },
+      { "speakerId": "chefe", "text": "Está bem. Uma semana, mas nem um dia a mais." },
+      { "speakerId": "func", "text": "Combinado. Obrigada por ouvir, Cláudio." }
+    ],
+    "translation": [
+      { "speakerId": "chefe", "text": "Beatriz, I've decided we're launching the project on Friday." },
+      { "speakerId": "func", "text": "I see, Cláudio. May I be honest? I think the deadline is risky." },
+      { "speakerId": "chefe", "text": "Why? The team has already put a lot of work into this." },
+      { "speakerId": "func", "text": "They have, but the tests aren't finished yet. If we launch with a bug, the client loses trust." },
+      { "speakerId": "chefe", "text": "Hmm. And what do you suggest?" },
+      { "speakerId": "func", "text": "I suggest postponing one week. I'd rather deliver it right than deliver it fast." },
+      { "speakerId": "chefe", "text": "The director won't like the delay." },
+      { "speakerId": "func", "text": "I can prepare a technical justification for you to present to him." },
+      { "speakerId": "chefe", "text": "All right. One week, but not a day more." },
+      { "speakerId": "func", "text": "Agreed. Thank you for listening, Cláudio." }
+    ],
+    "keyVocabulary": ["vocab.obrigado"],
+    "grammarNotes": "The future subjunctive after 'se' ('se lançarmos com erro...') is required for hypothetical conditions — a distinctly Portuguese structure worth noticing.",
+    "slangRegisterNotes": "Models respectful pushback: asking permission to disagree ('posso ser sincera?'), backing it with reasons, offering a solution, and slipping in 'o senhor' at the key moment of deference.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.neighbor-noise",
+    "scenario": "asking a neighbor to turn the music down",
+    "speakers": [
+      { "id": "mar", "name": "Márcio", "role": "neighbor" },
+      { "id": "tati", "name": "Tatiana", "role": "neighbor hosting a party" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-SP",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "mar", "text": "Oi, Tati, boa noite. Desculpa incomodar." },
+      { "speakerId": "tati", "text": "Oi, Márcio! Tudo bem? Entra, a festa tá boa!" },
+      { "speakerId": "mar", "text": "Valeu, mas na verdade eu vim por causa do som. Já passa da meia-noite e amanhã eu trabalho cedo." },
+      { "speakerId": "tati", "text": "Poxa, desculpa mesmo! Nem vi a hora passar." },
+      { "speakerId": "mar", "text": "Relaxa, acontece. Só queria pedir pra abaixar um pouco." },
+      { "speakerId": "tati", "text": "Claro, vou abaixar agora. A gente já tá encerrando, viu?" },
+      { "speakerId": "mar", "text": "Brigadão. E olha, no sábado pode fazer barulho à vontade, que eu viajo." },
+      { "speakerId": "tati", "text": "Combinado! Desculpa de novo, tá?" },
+      { "speakerId": "mar", "text": "Tranquilo. Boa festa aí!" }
+    ],
+    "translation": [
+      { "speakerId": "mar", "text": "Hi, Tati, good evening. Sorry to bother you." },
+      { "speakerId": "tati", "text": "Hi, Márcio! How's it going? Come in, the party's great!" },
+      { "speakerId": "mar", "text": "Thanks, but actually I came about the music. It's past midnight and I work early tomorrow." },
+      { "speakerId": "tati", "text": "Oh no, I'm really sorry! I didn't even notice the time." },
+      { "speakerId": "mar", "text": "It's fine, it happens. I just wanted to ask you to turn it down a bit." },
+      { "speakerId": "tati", "text": "Of course, I'll turn it down now. We're wrapping up anyway, okay?" },
+      { "speakerId": "mar", "text": "Thanks a lot. And look, on Saturday you can make all the noise you want, I'll be traveling." },
+      { "speakerId": "tati", "text": "Deal! Sorry again, okay?" },
+      { "speakerId": "mar", "text": "No worries. Enjoy the party!" }
+    ],
+    "keyVocabulary": ["vocab.obrigado"],
+    "grammarNotes": "'Queria pedir pra + infinitive' is the softened complaint formula ('só queria pedir pra abaixar um pouco'); 'só' minimizes the imposition.",
+    "slangRegisterNotes": "Conflict, Brazilian style: open with an apology, wrap the request in softeners ('desculpa incomodar', 'relaxa, acontece'), and close warm. 'Brigadão' is a big casual thank-you (from 'obrigadão'); 'poxa' is a mild sympathy interjection.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.street-directions",
+    "scenario": "asking for directions on the street",
+    "speakers": [
+      { "id": "tur", "name": "Marcos", "role": "lost visitor" },
+      { "id": "moradora", "name": "Lúcia", "role": "local resident" }
+    ],
+    "targetLevel": "A1",
+    "regionDialect": "pt-BR-RJ",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "tur", "text": "Com licença, a senhora sabe onde fica o metrô?" },
+      { "speakerId": "moradora", "text": "Sei, sim. Segue reto nessa rua e vira à esquerda na padaria." },
+      { "speakerId": "tur", "text": "Desculpa, não entendi. Pode repetir mais devagar?" },
+      { "speakerId": "moradora", "text": "Claro! Reto... até a padaria... e à esquerda." },
+      { "speakerId": "tur", "text": "Ah, tá! É longe?" },
+      { "speakerId": "moradora", "text": "Não, uns cinco minutos a pé." },
+      { "speakerId": "tur", "text": "Perfeito. Muito obrigado!" },
+      { "speakerId": "moradora", "text": "De nada, meu filho. Boa sorte!" }
+    ],
+    "translation": [
+      { "speakerId": "tur", "text": "Excuse me, do you know where the subway is?" },
+      { "speakerId": "moradora", "text": "I do. Go straight on this street and turn left at the bakery." },
+      { "speakerId": "tur", "text": "Sorry, I didn't understand. Could you repeat that more slowly?" },
+      { "speakerId": "moradora", "text": "Of course! Straight... to the bakery... and left." },
+      { "speakerId": "tur", "text": "Ah, got it! Is it far?" },
+      { "speakerId": "moradora", "text": "No, about five minutes on foot." },
+      { "speakerId": "tur", "text": "Perfect. Thank you very much!" },
+      { "speakerId": "moradora", "text": "You're welcome, dear. Good luck!" }
+    ],
+    "keyVocabulary": ["phrase.com-licenca", "phrase.nao-entendi", "vocab.rua", "vocab.obrigado"],
+    "grammarNotes": "'Onde fica...?' is the standard way to ask where a place is; direction verbs come in the spoken imperative-like form 'segue reto', 'vira à esquerda'.",
+    "slangRegisterNotes": "'Com licença' is the polite opener for strangers, and using 'a senhora' with an older woman shows respect even in a casual street exchange; 'meu filho' back is grandmotherly warmth, not literal.",
+    "audioGenerationInstructions": null
+  },
+  {
+    "schemaVersion": 1,
+    "key": "dialogue.futebol-watch",
+    "scenario": "watching a Flamengo match at a bar",
+    "speakers": [
+      { "id": "vitor", "name": "Vitor" },
+      { "id": "paulo", "name": "Paulinho" }
+    ],
+    "targetLevel": "A2",
+    "regionDialect": "pt-BR-RJ",
+    "formality": "informal",
+    "transcript": [
+      { "speakerId": "vitor", "text": "Pô, mermão, senta logo! Já vai começar!" },
+      { "speakerId": "paulo", "text": "Cheguei, cheguei! Trouxe cerveja e amendoim." },
+      { "speakerId": "vitor", "text": "Aí sim! Hoje o Mengão não pode vacilar." },
+      { "speakerId": "paulo", "text": "Se ganhar hoje, volta pra liderança... ÊPA! Quase gol, hein!" },
+      { "speakerId": "vitor", "text": "Caraca, que defesa! Esse goleiro deles tá jogando demais." },
+      { "speakerId": "paulo", "text": "Calma que o gol vem... AGORA! GOL! É GOL, MERMÃO!" },
+      { "speakerId": "vitor", "text": "CARACA, QUE GOLAÇO! Vem cá, me abraça!" },
+      { "speakerId": "paulo", "text": "Falei que vinha! Falei ou não falei?" },
+      { "speakerId": "vitor", "text": "Agora é segurar o resultado. Garçom, mais duas geladas, por favor!" },
+      { "speakerId": "paulo", "text": "Boa! Hoje ninguém segura a gente." }
+    ],
+    "translation": [
+      { "speakerId": "vitor", "text": "Man, bro, sit down already! It's about to start!" },
+      { "speakerId": "paulo", "text": "I'm here, I'm here! I brought beer and peanuts." },
+      { "speakerId": "vitor", "text": "That's what I'm talking about! Flamengo can't slip up today." },
+      { "speakerId": "paulo", "text": "If they win today, they're back on top... WHOA! Almost a goal, huh!" },
+      { "speakerId": "vitor", "text": "Wow, what a save! Their goalkeeper is playing out of his mind." },
+      { "speakerId": "paulo", "text": "Easy, the goal is coming... NOW! GOAL! IT'S A GOAL, BRO!" },
+      { "speakerId": "vitor", "text": "WOW, WHAT A GOAL! Come here, give me a hug!" },
+      { "speakerId": "paulo", "text": "I said it was coming! Did I say it or did I say it?" },
+      { "speakerId": "vitor", "text": "Now we just hold the score. Waiter, two more cold ones, please!" },
+      { "speakerId": "paulo", "text": "Nice! Nobody can stop us today." }
+    ],
+    "keyVocabulary": ["vocab.hoje", "vocab.falar", "phrase.por-favor"],
+    "grammarNotes": "Future subjunctive after 'se' again, in the wild: 'Se ganhar hoje, volta pra liderança'; the augmentative '-aço' turns 'gol' into 'golaço' (screamer of a goal).",
+    "slangRegisterNotes": "Pure carioca football register: 'mermão' (Rio's 'mano'), 'caraca!' (Rio's signature wow), 'Mengão' (affectionate augmentative for Flamengo), 'vacilar' (to slip up) and 'geladas' (cold beers) — all mild, all essential bar-futebol talk.",
+    "audioGenerationInstructions": null
   }
 ]
