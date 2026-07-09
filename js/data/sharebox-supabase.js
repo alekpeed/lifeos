@@ -40,20 +40,23 @@ export async function getMySpaces() {
 
 // Create a new space and add the creator as its first member in one go.
 // `displayName` is what shows next to the items they post.
+//
+// This calls the create_space() SECURITY DEFINER RPC (sql/supabase-sharebox-
+// rls-fix.sql) rather than doing insert-then-select from the client. That
+// matters: the spaces SELECT policy requires membership, so a client-side
+// `.insert().select()` couldn't read the row back until membership existed —
+// a chicken-and-egg that made creation throw. The RPC inserts the space AND
+// the creator's membership atomically and returns the space row.
 export async function createSpace(name, displayName) {
   const supabase = await getSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Sign in before creating a Sharebox space.');
-
-  const { data: space, error } = await supabase
-    .from(SPACES)
-    .insert({ name: name || 'Sharebox', created_by: user.id })
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('create_space', {
+    p_name: name || 'Sharebox',
+    p_display_name: displayName || 'Me',
+  });
   if (error) throw error;
-
-  await joinSpace(space.id, displayName || 'Me');
-  return space;
+  // rpc returning a table row resolves to the row object (or an array of one
+  // depending on PostgREST's shaping); normalize to the single row.
+  return Array.isArray(data) ? data[0] : data;
 }
 
 // Add the signed-in user to an existing space (the friend-invite side: your

@@ -66,36 +66,87 @@ create trigger sharebox_items_set_updated_at
 -- you're listed in sharebox_members for it. This IS the access control --
 -- there's no separate "share the folder" step anymore, since adding someone
 -- to a space's membership *is* granting them access.
+--
+-- IMPORTANT: membership checks go through the is_space_member() SECURITY
+-- DEFINER helper, NOT an inline "in (select … from sharebox_members …)".
+-- A policy on sharebox_members that subqueries sharebox_members recurses;
+-- routing through a definer-rights function reads membership with RLS
+-- bypassed, which breaks the recursion. See the full write-up in
+-- sql/supabase-sharebox-rls-fix.sql (that file is the authoritative reset if
+-- an already-deployed database has drifted).
 
 alter table sharebox_spaces enable row level security;
 alter table sharebox_members enable row level security;
 alter table sharebox_items enable row level security;
 
-create policy "members can see their spaces" on sharebox_spaces
-  for select using (
-    id in (select space_id from sharebox_members where user_id = auth.uid())
+-- Membership check that bypasses RLS on its inner read (no recursion).
+create or replace function public.is_space_member(p_space_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.sharebox_members m
+    where m.space_id = p_space_id and m.user_id = auth.uid()
   );
+$$;
+revoke all on function public.is_space_member(uuid) from public;
+grant execute on function public.is_space_member(uuid) to authenticated;
 
-create policy "members can see other members of their spaces" on sharebox_members
-  for select using (
-    space_id in (select space_id from sharebox_members where user_id = auth.uid())
-  );
+-- Atomic create: space + creator membership in one txn, returns the space.
+-- Sidesteps the insert-then-select trap (the spaces SELECT policy needs a
+-- membership row that only exists after creation).
+create or replace function public.create_space(p_name text, p_display_name text)
+returns public.sharebox_spaces
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid   uuid := auth.uid();
+  v_space public.sharebox_spaces;
+begin
+  if v_uid is null then
+    raise exception 'must be signed in to create a space';
+  end if;
+  insert into public.sharebox_spaces (name, created_by)
+  values (coalesce(nullif(btrim(p_name), ''), 'Sharebox'), v_uid)
+  returning * into v_space;
+  insert into public.sharebox_members (space_id, user_id, display_name)
+  values (v_space.id, v_uid, coalesce(nullif(btrim(p_display_name), ''), 'Me'));
+  return v_space;
+end;
+$$;
+revoke all on function public.create_space(text, text) from public;
+grant execute on function public.create_space(text, text) to authenticated;
 
-create policy "members can read items in their spaces" on sharebox_items
-  for select using (
-    space_id in (select space_id from sharebox_members where user_id = auth.uid())
-  );
+create policy "see your spaces" on sharebox_spaces
+  for select using (created_by = auth.uid() or public.is_space_member(id));
 
-create policy "members can add items to their spaces" on sharebox_items
-  for insert with check (
-    space_id in (select space_id from sharebox_members where user_id = auth.uid())
-    and posted_by = auth.uid()
-  );
+create policy "see members of your spaces" on sharebox_members
+  for select using (public.is_space_member(space_id));
 
-create policy "members can edit their own items" on sharebox_items
-  for update using (posted_by = auth.uid());
+create policy "add yourself to a space" on sharebox_members
+  for insert with check (user_id = auth.uid());
 
-create policy "members can delete their own items" on sharebox_items
+create policy "update your own membership" on sharebox_members
+  for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+create policy "leave a space" on sharebox_members
+  for delete using (user_id = auth.uid());
+
+create policy "read items in your spaces" on sharebox_items
+  for select using (public.is_space_member(space_id));
+
+create policy "post items to your spaces" on sharebox_items
+  for insert with check (posted_by = auth.uid() and public.is_space_member(space_id));
+
+create policy "edit your own items" on sharebox_items
+  for update using (posted_by = auth.uid()) with check (posted_by = auth.uid());
+
+create policy "delete your own items" on sharebox_items
   for delete using (posted_by = auth.uid());
 
 -- Storage bucket for file-kind items (run once; Supabase also lets you
@@ -105,20 +156,16 @@ insert into storage.buckets (id, name, public)
 values ('sharebox-files', 'sharebox-files', false)
 on conflict (id) do nothing;
 
-create policy "members can read files in their spaces" on storage.objects
+create policy "read files in your spaces" on storage.objects
   for select using (
     bucket_id = 'sharebox-files'
-    and (storage.foldername(name))[1]::uuid in (
-      select space_id from sharebox_members where user_id = auth.uid()
-    )
+    and public.is_space_member(((storage.foldername(name))[1])::uuid)
   );
 
-create policy "members can upload files to their spaces" on storage.objects
+create policy "upload files to your spaces" on storage.objects
   for insert with check (
     bucket_id = 'sharebox-files'
-    and (storage.foldername(name))[1]::uuid in (
-      select space_id from sharebox_members where user_id = auth.uid()
-    )
+    and public.is_space_member(((storage.foldername(name))[1])::uuid)
   );
 
 -- ============================================================
