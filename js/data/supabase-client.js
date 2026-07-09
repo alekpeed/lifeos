@@ -11,7 +11,7 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_VENDOR_SCRIPT, isSupabaseConfigured } from './supabase-config.js';
 
 let scriptLoaded = null;
-let client = null;
+let clientPromise = null;
 
 function loadScript() {
   if (scriptLoaded) return scriptLoaded;
@@ -26,16 +26,12 @@ function loadScript() {
   return scriptLoaded;
 }
 
-// Returns the shared client, creating it on first call. Throws clearly if
-// supabase-config.js hasn't been filled in yet, rather than failing deep
-// inside some unrelated call site.
-export async function getSupabaseClient() {
-  if (client) return client;
+async function createClientOnce() {
   if (!isSupabaseConfigured()) {
     throw new Error('Supabase is not configured yet -- fill in SUPABASE_URL and SUPABASE_ANON_KEY in js/data/supabase-config.js.');
   }
   await loadScript();
-  client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       // Keep the session in localStorage and silently refresh it, so a
       // returning user stays signed in across reloads / app launches.
@@ -51,5 +47,25 @@ export async function getSupabaseClient() {
       flowType: 'pkce',
     },
   });
-  return client;
+}
+
+// Returns the shared client, creating it on first call. Memoizes the creation
+// *promise*, not the resolved client -- critical because on the OAuth redirect
+// landing several call sites (the boot-time redirect completer, the view's
+// auth watcher, getCurrentUser) all call this within the same tick, before the
+// ~200KB vendor script has finished loading. Memoizing only the resolved value
+// (the old `if (client) return client`) let them all race past the guard and
+// each create a separate client, and each client independently tried to redeem
+// the single-use PKCE `?code=` -- the first won, the rest got a 401 and the
+// view could end up holding a session-less loser. One shared promise means one
+// client and exactly one code exchange. Rejects clearly if unconfigured; a
+// transient failure (e.g. script load) clears the memo so a later call retries.
+export function getSupabaseClient() {
+  if (!clientPromise) {
+    clientPromise = createClientOnce().catch((err) => {
+      clientPromise = null;
+      throw err;
+    });
+  }
+  return clientPromise;
 }
