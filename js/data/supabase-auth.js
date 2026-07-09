@@ -89,21 +89,42 @@ export function onAuthChange(cb) {
   };
 }
 
-// Call once at app boot (js/app.js), before any view has a chance to run.
-// PKCE authorization codes are short-lived and single-use. Sharebox's Supabase
-// client is otherwise lazy -- created on first call into ShareboxV2 -- which
-// means if the user lands back from the Google redirect on some OTHER module
-// (the router doesn't preserve the pre-redirect hash) and doesn't click into
-// Sharebox right away, the code can expire before anything ever tries to
-// redeem it. Detecting a pending `?code=` here and eagerly creating the client
-// (which triggers supabase-client.js's detectSessionInUrl exchange) closes
-// that gap without making every other module pay for loading Supabase.
-export function completePendingRedirectIfAny() {
-  if (!isSupabaseConfigured()) return;
-  if (!/[?&]code=/.test(window.location.search)) return;
-  getSupabaseClient().catch((err) => {
-    console.warn('sharebox v2: could not complete pending Google sign-in redirect', err.message || err);
-  });
+// Call once at app boot (js/app.js), awaited before any view renders.
+//
+// We redeem the Google redirect's PKCE `?code=` EXPLICITLY here rather than
+// leaning on the client's silent detectSessionInUrl auto-exchange (which is
+// turned off in supabase-client.js). Explicit is better for two reasons:
+//   1. Debuggability -- the auto-exchange swallows the server's rejection and
+//      only leaves a bare 401 in the network log; calling exchangeCodeForSession
+//      ourselves gives us the real { status, message } to surface and log.
+//   2. Correctness -- one deterministic exchange at a known point, instead of
+//      an exchange that fires implicitly whenever the client happens to be
+//      constructed (which is what let earlier races double-spend the code).
+//
+// On success we strip `?code=` from the URL (keeping any hash route) so a
+// reload can't try to re-spend a now-used code. Never throws -- a failure is
+// recorded on window.__shareboxAuthError and logged, so boot can await this
+// safely and the Sharebox view can show a real message instead of a dead end.
+export async function completePendingRedirectIfAny() {
+  try {
+    if (!isSupabaseConfigured()) return;
+    const code = new URLSearchParams(window.location.search).get('code');
+    if (!code) return;
+
+    const supabase = await getSupabaseClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      window.__shareboxAuthError = { status: error.status ?? null, message: error.message };
+      console.error('[sharebox] Google sign-in code exchange failed:', error.status ?? '(no status)', '-', error.message);
+      return;
+    }
+    // Success: drop the one-time code from the URL, preserve the hash route.
+    const clean = window.location.origin + window.location.pathname + window.location.hash;
+    window.history.replaceState({}, document.title, clean);
+  } catch (err) {
+    window.__shareboxAuthError = { status: null, message: err?.message || String(err) };
+    console.error('[sharebox] Google sign-in code exchange threw:', err);
+  }
 }
 
 // A friendly display name for the signed-in user, best-effort from the Google

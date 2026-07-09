@@ -37,13 +37,16 @@ async function createClientOnce() {
       // returning user stays signed in across reloads / app launches.
       persistSession: true,
       autoRefreshToken: true,
-      // Read the OAuth response out of the return URL after Google bounces
-      // back, then strip it. PKCE returns a `?code=` QUERY param (not a URL
-      // fragment), which matters here: the app uses hash-based routing
-      // (#/chords), so a fragment-based OAuth response would collide with the
-      // router. PKCE's query param sidesteps that entirely and is the more
-      // secure flow for a public client anyway.
-      detectSessionInUrl: true,
+      // We redeem the OAuth `?code=` OURSELVES in supabase-auth.js's
+      // completePendingRedirectIfAny (called once at boot), so the client's
+      // own silent URL-detection is turned OFF. Doing it explicitly gives us
+      // the real exchange error to surface/log instead of a swallowed 401, and
+      // guarantees exactly one deterministic exchange. PKCE returns a `?code=`
+      // QUERY param (not a URL fragment), which matters because the app uses
+      // hash-based routing (#/chords) -- a fragment response would collide with
+      // the router; the query param sidesteps that and is the right flow for a
+      // public client.
+      detectSessionInUrl: false,
       flowType: 'pkce',
     },
   });

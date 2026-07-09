@@ -10,12 +10,13 @@ import { startShell } from './shell.js';
 const appEl = document.getElementById('app');
 
 async function boot() {
-  // Fire-and-forget: if we just landed back from a Google sign-in redirect,
-  // start redeeming the one-time code immediately rather than waiting for the
-  // user to happen to open Sharebox — that code expires quickly. Harmless (a
-  // no-op) for every other boot, since it checks the URL before doing anything.
-  completePendingRedirectIfAny();
   try {
+    // If we just landed back from a Google sign-in redirect, redeem the
+    // one-time `?code=` BEFORE any view renders, so the first paint already
+    // reflects the signed-in state. Awaited but self-contained: it never
+    // throws (records failures on window.__shareboxAuthError), and it's a
+    // no-op on every normal boot since it checks the URL first.
+    await completePendingRedirectIfAny();
     await openDatabase();
     await migrateLegacyPeopleToContacts();
     await migrateLegacyJapaneseToLanguagePacks();
