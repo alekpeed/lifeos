@@ -21,6 +21,40 @@ export { connectCalendar, syncCalendarNow, disconnectCalendar, getCalendarState 
 // Synced separately from personal data through that shared folder.
 export { connectSharebox, syncShareboxNow, disconnectSharebox, getShareboxState } from './sharebox-sync.js';
 
+// Sharebox v2 (Supabase-backed): the eventual replacement for the Drive path
+// above. Grouped under one namespace so the view can flip between backends
+// cleanly and so all the Supabase surface reaches interfaces through ctx.data
+// like everything else — nothing imports the supabase-* modules directly. Inert
+// until supabase-config.js has real credentials (isSupabaseConfigured()).
+import * as shareboxV2 from './sharebox-supabase.js';
+import * as shareboxAuth from './supabase-auth.js';
+import { isSupabaseConfigured } from './supabase-config.js';
+export const ShareboxV2 = {
+  isSupabaseConfigured,
+  // auth
+  signInWithGoogle: shareboxAuth.signInWithGoogle,
+  signOut: shareboxAuth.signOut,
+  getCurrentUser: shareboxAuth.getCurrentUser,
+  getSession: shareboxAuth.getSession,
+  onAuthChange: shareboxAuth.onAuthChange,
+  displayNameOf: shareboxAuth.displayNameOf,
+  // spaces & membership
+  getMySpaces: shareboxV2.getMySpaces,
+  createSpace: shareboxV2.createSpace,
+  joinSpace: shareboxV2.joinSpace,
+  getMembers: shareboxV2.getMembers,
+  // items
+  listItems: shareboxV2.listItems,
+  addItem: shareboxV2.addItem,
+  updateItem: shareboxV2.updateItem,
+  removeItem: shareboxV2.removeItem,
+  // files
+  uploadFile: shareboxV2.uploadFile,
+  getFileUrl: shareboxV2.getFileUrl,
+  // realtime
+  subscribeToItems: shareboxV2.subscribeToItems,
+};
+
 function nowIso() {
   return new Date().toISOString();
 }

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v32';
+const CACHE_VERSION = 'lifeos-v33';
 const APP_SHELL = [
   './',
   './index.html',
@@ -18,6 +18,10 @@ const APP_SHELL = [
   './js/data/calendar.js',
   './js/data/sharebox-sync.js',
   './js/data/picker.js',
+  './js/data/supabase-config.js',
+  './js/data/supabase-client.js',
+  './js/data/supabase-auth.js',
+  './js/data/sharebox-supabase.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
   './js/interfaces/default/index.js',
@@ -58,6 +62,7 @@ const APP_SHELL = [
   './js/audio/synth.js',
   './js/reader/epub.js',
   './vendor/fflate/fflate.module.js',
+  './vendor/supabase/supabase.umd.js',
   './vendor/leaflet/leaflet.js',
   './vendor/leaflet/leaflet.css',
   './vendor/leaflet/images/marker-icon.png',

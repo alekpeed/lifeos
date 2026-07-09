@@ -63,24 +63,42 @@ no-throw getters answer null; the subscription helpers return no-op
 unsubscribers. (Live auth/DB behavior can't be tested from here — it needs
 your real Supabase project.)
 
-## What's left before this is real
+## Status update — configured and wired
 
-Steps 1–3 are yours (dashboard actions I can't do from here); step 4 is the
-remaining code work; step 5 is the cutover.
+Steps 1–4 are **done**:
 
-1. Fill in `supabase-config.js` with the real project URL + anon key
-   (Supabase dashboard → Settings → API).
-2. Enable the Google provider (Authentication → Providers → Google) with the
-   OAuth Client ID + **Secret**, and add your app's URL to the allowed
-   redirect URLs.
-3. Run `sql/supabase-schema.sql` in the SQL Editor.
-4. Wire the Sharebox view to the new modules: a "Sign in with Google" state,
-   create-or-join-a-space flow, and swap the add/list/delete calls from the
-   Drive path to `sharebox-supabase.js`, with `subscribeToItems` for live
-   updates. (New UI work — the data/auth layer it calls is already built.)
-5. Test side by side with the existing Drive-based Sharebox before cutting
-   over; only remove the old code once the new path is proven live with both
-   you and your friend.
+1. ✅ `supabase-config.js` filled in with the real project URL + anon key.
+2. ✅ Google provider enabled (existing app Client ID + a freshly generated
+   Client Secret), with `https://<project>.supabase.co/auth/v1/callback` added
+   to the OAuth client's redirect URIs.
+3. ✅ `sql/supabase-schema.sql` run in the SQL Editor (all five tables + RLS +
+   the Storage bucket).
+4. ✅ Sharebox view wired to the new modules. The v2 surface is exposed through
+   `ctx.data.ShareboxV2` (grouped in `api.js`, so nothing imports the
+   `supabase-*` files directly), and the view now has: a backend toggle,
+   Google sign-in/out, a create-or-join-a-space flow, an invite (copy the space
+   id), the add/list/delete calls routed to `sharebox-supabase.js`, file
+   upload + signed-URL download against Storage, and a `subscribeToItems`
+   Realtime subscription so a friend's post appears live.
 
-This is Tier 2 work (new auth model, new data model, security-rule design) —
-worth doing on Opus rather than rushed.
+**Supabase is now the primary backend** — once configured it's the default and
+what you land on. **Drive stays as a permanent one-click fallback** (the
+"Drive (fallback)" toggle) — a working backup path costs nothing to keep. Both
+were smoke-tested in a headless browser: each renders with zero console errors
+and the toggle switches cleanly.
+
+### The one thing left: a live two-person test
+
+Automated tests can't sign a real Google account in or prove a post syncs to a
+second human. So the remaining validation is manual:
+
+- Sign in with Google on the Sharebox tab (you should bounce to Google and land
+  back signed in — if the redirect errors, the OAuth redirect URI may still be
+  propagating; give it a few minutes).
+- Create a space, copy its ID, have your friend sign in and join with it.
+- Post a link/note/file from each side and confirm it appears on the other
+  **without** a manual refresh (that's Realtime working).
+- Confirm file upload + download round-trips.
+
+Once that's confirmed, v2 is proven live. The Drive path stays regardless as
+the fallback.
