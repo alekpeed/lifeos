@@ -106,13 +106,34 @@ export function onAuthChange(cb) {
 // recorded on window.__shareboxAuthError and logged, so boot can await this
 // safely and the Sharebox view can show a real message instead of a dead end.
 export async function completePendingRedirectIfAny() {
+  // --- Instrumentation: capture the exact state at the moment of return,
+  // BEFORE anything (including the exchange below) can touch storage. This is
+  // the measurement we never had: is the PKCE verifier actually in storage when
+  // we land back from Google? Everything is stashed on window.__shareboxBoot
+  // and logged so it can be read after the fact. (Diagnostic; trim later.)
+  const boot = {
+    href: window.location.href,
+    search: window.location.search,
+    hasCode: /[?&]code=/.test(window.location.search),
+    configured: isSupabaseConfigured(),
+    sbKeys: Object.keys(localStorage).filter((k) => k.toLowerCase().includes('sb-') || k.includes('verifier')),
+  };
+  boot.hasVerifier = boot.sbKeys.some((k) => k.includes('code-verifier'));
+  window.__shareboxBoot = boot;
+  console.log('[sharebox-boot]', JSON.stringify(boot));
+
   try {
     if (!isSupabaseConfigured()) return;
     const code = new URLSearchParams(window.location.search).get('code');
     if (!code) return;
 
     const supabase = await getSupabaseClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    boot.hasVerifierBeforeExchange = Object.keys(localStorage).some((k) => k.includes('code-verifier'));
+    console.log('[sharebox-boot] hasVerifierBeforeExchange:', boot.hasVerifierBeforeExchange);
+
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    boot.exchange = error ? `FAIL ${error.status ?? '?'}: ${error.message}` : `SUCCESS session=${!!data?.session}`;
+    console.log('[sharebox-boot] exchange:', boot.exchange);
     if (error) {
       window.__shareboxAuthError = { status: error.status ?? null, message: error.message };
       console.error('[sharebox] Google sign-in code exchange failed:', error.status ?? '(no status)', '-', error.message);
@@ -122,6 +143,7 @@ export async function completePendingRedirectIfAny() {
     const clean = window.location.origin + window.location.pathname + window.location.hash;
     window.history.replaceState({}, document.title, clean);
   } catch (err) {
+    boot.exchange = `THREW: ${err?.message || String(err)}`;
     window.__shareboxAuthError = { status: null, message: err?.message || String(err) };
     console.error('[sharebox] Google sign-in code exchange threw:', err);
   }
