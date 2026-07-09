@@ -14,7 +14,11 @@
 //     public, real access control lives in Postgres Row Level Security
 //     policies, not in keeping this key secret).
 export const SUPABASE_URL = 'https://ukqdbxxhxxafbcnkmskg.supabase.co';
-export const SUPABASE_ANON_KEY = 'sb_publishable_1cq0ldBeDgQZjctSSLNm5g_iXEkRD';
+// Legacy JWT anon key (role: anon). The newer sb_publishable_... key format is
+// rejected by this project's GoTrue auth endpoint with "Invalid API key" on the
+// PKCE token exchange; the legacy anon JWT is accepted by both the auth and
+// REST endpoints. Public by design -- real access control is Row Level Security.
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcWRieHhoeHhhZmJjbmttc2tnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzA5MzcsImV4cCI6MjA5OTEwNjkzN30.Z-h6cSQrlIYjmM1ROs4oaBxPHpAb8ajwT5QGVgaPWmo';
 
 export function isSupabaseConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
