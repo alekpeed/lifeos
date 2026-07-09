@@ -393,6 +393,49 @@ function itemCardV2(item, currentUserId, ctx, rerender) {
   return el('div', { class: 'mer-person-card mer-sharebox-item' }, children);
 }
 
+// The create-a-space / join-a-space forms, reused for both first-run onboarding
+// (when you belong to no spaces yet) and the always-available "new space or join
+// another" control once you already have one. Creating selects the new space;
+// joining selects the joined one, so you land where you just acted.
+async function renderSpaceForms(ctx, displayName, rerender) {
+  const V2 = ctx.data.ShareboxV2;
+  const defaultName = (await ctx.data.Settings.get('shareboxName')) || displayName;
+  const wrap = el('div', {});
+
+  wrap.append(el('div', { class: 'mer-subsection-label', text: 'Create a space' }));
+  const nameIn = el('input', { type: 'text', placeholder: 'Space name (e.g. “Alek & Sam”)' });
+  const dispIn = el('input', { type: 'text', value: defaultName, placeholder: 'Your name in this space' });
+  wrap.append(el('div', { class: 'mer-person-form' }, [nameIn, dispIn, el('button', {
+    type: 'button', text: 'Create space',
+    onclick: async () => {
+      try {
+        const space = await V2.createSpace(nameIn.value.trim() || 'Sharebox', dispIn.value.trim() || displayName);
+        if (space?.id) await ctx.data.Settings.set('shareboxV2SpaceId', space.id);
+        rerender();
+      } catch (err) { alert(`Could not create space: ${err.message || err}`); }
+    },
+  })]));
+
+  wrap.append(el('div', { class: 'mer-subsection-label', text: 'Or join a space' }));
+  wrap.append(el('p', { class: 'mer-muted', text: 'Paste the space ID someone shared with you.' }));
+  const joinIn = el('input', { type: 'text', placeholder: 'Space ID' });
+  const joinDisp = el('input', { type: 'text', value: defaultName, placeholder: 'Your name in this space' });
+  wrap.append(el('div', { class: 'mer-person-form' }, [joinIn, joinDisp, el('button', {
+    type: 'button', text: 'Join space',
+    onclick: async () => {
+      const id = joinIn.value.trim();
+      if (!id) return;
+      try {
+        await V2.joinSpace(id, joinDisp.value.trim() || displayName);
+        await ctx.data.Settings.set('shareboxV2SpaceId', id);
+        rerender();
+      } catch (err) { alert(`Could not join space: ${err.message || err}`); }
+    },
+  })]));
+
+  return wrap;
+}
+
 async function renderShareboxV2(canvas, ctx, rerender) {
   const V2 = ctx.data.ShareboxV2;
   ensureAuthWatch(ctx, rerender);
@@ -446,40 +489,11 @@ async function renderShareboxV2(canvas, ctx, rerender) {
     return;
   }
 
-  // --- No spaces yet: create or join ---
+  // --- No spaces yet: first-run onboarding (create or join) ---
   if (!spaces.length) {
     teardownLive();
-    const defaultName = (await ctx.data.Settings.get('shareboxName')) || displayName;
-
-    canvas.append(el('div', { class: 'mer-subsection-label', text: 'Create a space' }));
-    const nameIn = el('input', { type: 'text', placeholder: 'Space name (e.g. “Alek & Sam”)' });
-    const dispIn = el('input', { type: 'text', value: defaultName, placeholder: 'Your name in this space' });
-    canvas.append(el('div', { class: 'mer-person-form' }, [nameIn, dispIn, el('button', {
-      type: 'button', text: 'Create space',
-      onclick: async () => {
-        try {
-          await V2.createSpace(nameIn.value.trim() || 'Sharebox', dispIn.value.trim() || displayName);
-          rerender();
-        } catch (err) { alert(`Could not create space: ${err.message || err}`); }
-      },
-    })]));
-
-    canvas.append(el('div', { class: 'mer-subsection-label', text: 'Or join a space' }));
-    canvas.append(el('p', { class: 'mer-muted', text: 'Paste the space ID a friend shared with you.' }));
-    const joinIn = el('input', { type: 'text', placeholder: 'Space ID' });
-    const joinDisp = el('input', { type: 'text', value: defaultName, placeholder: 'Your name in this space' });
-    canvas.append(el('div', { class: 'mer-person-form' }, [joinIn, joinDisp, el('button', {
-      type: 'button', text: 'Join space',
-      onclick: async () => {
-        const id = joinIn.value.trim();
-        if (!id) return;
-        try {
-          await V2.joinSpace(id, joinDisp.value.trim() || displayName);
-          await ctx.data.Settings.set('shareboxV2SpaceId', id);
-          rerender();
-        } catch (err) { alert(`Could not join space: ${err.message || err}`); }
-      },
-    })]));
+    canvas.append(el('p', { class: 'mer-muted', text: 'Create your own space, or join one someone shared with you.' }));
+    canvas.append(await renderSpaceForms(ctx, displayName, rerender));
     return;
   }
 
@@ -495,6 +509,15 @@ async function renderShareboxV2(canvas, ctx, rerender) {
     }, spaces.map((s) => el('option', { value: s.id, text: s.name, selected: s.id === space.id })));
     canvas.append(el('div', { class: 'mer-person-form' }, [picker]));
   }
+
+  // Always let the user spin up a new space or join another, collapsed so it
+  // doesn't clutter the board. (When you have 0 spaces the onboarding above
+  // shows these forms expanded instead.)
+  const more = el('details', { class: 'mer-sharebox-more' }, [
+    el('summary', { class: 'mer-subsection-label', text: '＋ New space or join another' }),
+  ]);
+  more.append(await renderSpaceForms(ctx, displayName, rerender));
+  canvas.append(more);
 
   // --- Members + invite (share the space id) ---
   let members = [];
