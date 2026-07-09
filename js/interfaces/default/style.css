@@ -1287,3 +1287,15 @@
   --knob-face: #d9d2c2; --knob-ring: #2b2b2e; --knob-indicator: #1a1a1a; --knob-tick: #7a756c;
   background: linear-gradient(#161617, #0d0d0e);
 }
+
+/* --- Mobile overrides for Chords: fix toolbar input + voicing grid overflow --- */
+@media (max-width: 44rem) {
+  [data-interface='default'] .mer-quick-add {
+    flex-basis: auto;
+    min-width: 0;
+  }
+
+  [data-interface='default'] .mer-voicing-grid {
+    grid-template-columns: 1fr;
+  }
+}
