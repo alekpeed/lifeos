@@ -35,6 +35,21 @@ export async function getSupabaseClient() {
     throw new Error('Supabase is not configured yet -- fill in SUPABASE_URL and SUPABASE_ANON_KEY in js/data/supabase-config.js.');
   }
   await loadScript();
-  client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      // Keep the session in localStorage and silently refresh it, so a
+      // returning user stays signed in across reloads / app launches.
+      persistSession: true,
+      autoRefreshToken: true,
+      // Read the OAuth response out of the return URL after Google bounces
+      // back, then strip it. PKCE returns a `?code=` QUERY param (not a URL
+      // fragment), which matters here: the app uses hash-based routing
+      // (#/chords), so a fragment-based OAuth response would collide with the
+      // router. PKCE's query param sidesteps that entirely and is the more
+      // secure flow for a public client anyway.
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+    },
+  });
   return client;
 }
