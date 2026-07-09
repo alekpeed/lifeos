@@ -41,6 +41,22 @@ function ensureLive(spaceId, ctx, rerender) {
   liveSub = { spaceId, unsub };
 }
 
+// Sign-in/out subscription, separate from the items Realtime subscription
+// above. Needed because the Google redirect's code-exchange (see app.js's
+// completePendingRedirectIfAny) can still finish *after* this view has already
+// rendered the "not signed in" state on a slow connection — without this, the
+// screen would be stuck on the sign-in button until the user manually navigates
+// away and back. Subscribed once and left running while the v2 view is active.
+let authSub = null;
+
+function ensureAuthWatch(ctx, rerender) {
+  if (authSub) return;
+  authSub = ctx.data.ShareboxV2.onAuthChange(() => {
+    if (ctx.parseRoute().module === 'sharebox') rerender();
+    else { authSub?.(); authSub = null; }
+  });
+}
+
 const URGENCY = [
   { value: 'normal', label: 'Normal' },
   { value: 'soon', label: 'Soon' },
@@ -379,6 +395,7 @@ function itemCardV2(item, currentUserId, ctx, rerender) {
 
 async function renderShareboxV2(canvas, ctx, rerender) {
   const V2 = ctx.data.ShareboxV2;
+  ensureAuthWatch(ctx, rerender);
 
   let user;
   try {

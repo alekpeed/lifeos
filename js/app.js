@@ -3,12 +3,18 @@
 
 import { openDatabase } from './data/db.js';
 import { migrateLegacyPeopleToContacts, migrateLegacyJapaneseToLanguagePacks, ensureLanguagePack } from './data/api.js';
+import { completePendingRedirectIfAny } from './data/supabase-auth.js';
 import './interfaces/manifest.js';
 import { startShell } from './shell.js';
 
 const appEl = document.getElementById('app');
 
 async function boot() {
+  // Fire-and-forget: if we just landed back from a Google sign-in redirect,
+  // start redeeming the one-time code immediately rather than waiting for the
+  // user to happen to open Sharebox — that code expires quickly. Harmless (a
+  // no-op) for every other boot, since it checks the URL before doing anything.
+  completePendingRedirectIfAny();
   try {
     await openDatabase();
     await migrateLegacyPeopleToContacts();

@@ -89,6 +89,23 @@ export function onAuthChange(cb) {
   };
 }
 
+// Call once at app boot (js/app.js), before any view has a chance to run.
+// PKCE authorization codes are short-lived and single-use. Sharebox's Supabase
+// client is otherwise lazy -- created on first call into ShareboxV2 -- which
+// means if the user lands back from the Google redirect on some OTHER module
+// (the router doesn't preserve the pre-redirect hash) and doesn't click into
+// Sharebox right away, the code can expire before anything ever tries to
+// redeem it. Detecting a pending `?code=` here and eagerly creating the client
+// (which triggers supabase-client.js's detectSessionInUrl exchange) closes
+// that gap without making every other module pay for loading Supabase.
+export function completePendingRedirectIfAny() {
+  if (!isSupabaseConfigured()) return;
+  if (!/[?&]code=/.test(window.location.search)) return;
+  getSupabaseClient().catch((err) => {
+    console.warn('sharebox v2: could not complete pending Google sign-in redirect', err.message || err);
+  });
+}
+
 // A friendly display name for the signed-in user, best-effort from the Google
 // profile Supabase stores in user_metadata.
 export function displayNameOf(user) {
