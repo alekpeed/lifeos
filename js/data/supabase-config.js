@@ -13,8 +13,8 @@
 //     by design (same category as the Google Picker API key: meant to be
 //     public, real access control lives in Postgres Row Level Security
 //     policies, not in keeping this key secret).
-export const SUPABASE_URL = '';
-export const SUPABASE_ANON_KEY = '';
+export const SUPABASE_URL = 'https://ukqdbxxhxxafbcnkmskg.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_1cq0ldBeDgQZjctSSLNm5g_iXEkRD';
 
 export function isSupabaseConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
