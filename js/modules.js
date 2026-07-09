@@ -6,6 +6,7 @@
 
 export const MODULES = [
   { id: 'dashboard', label: 'Today', group: 'core' },
+  { id: 'paper', label: 'Daily Paper', group: 'core' },
   { id: 'tasks', label: 'Tasks', group: 'core' },
   { id: 'places', label: 'Places', group: 'core' },
   { id: 'links', label: 'Links', group: 'core' },

@@ -7,6 +7,7 @@
 import { registerInterface } from '../registry.js';
 import { el } from './dom.js';
 import { renderDashboard } from './views/dashboard.js';
+import { renderPaper } from './views/paper.js';
 import { renderSettings } from './views/settings.js';
 import { renderTasks } from './views/tasks.js';
 import { renderPlaces } from './views/places.js';
@@ -94,6 +95,7 @@ function renderPlaceholder(canvas, moduleId) {
 
 const VIEWS = {
   dashboard: renderDashboard,
+  paper: renderPaper,
   settings: renderSettings,
   tasks: renderTasks,
   places: renderPlaces,

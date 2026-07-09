@@ -1299,3 +1299,182 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Daily Paper (screen) ---
+   Deliberately fixed "newsprint" look regardless of light/dark theme: it's a
+   sheet of paper on your desk, so it stays warm off-white in both. */
+[data-interface='default'] .mer-paper {
+  max-width: 60rem;
+  margin: 1rem auto;
+  padding: 2rem 2.5rem;
+  background: #f7f4ec;
+  color: #1a1a1a;
+  border: 1px solid #d8d2c4;
+  box-shadow: 0 2px 18px rgba(0, 0, 0, 0.22);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+[data-interface='default'] .mer-paper-masthead {
+  text-align: center;
+  border-bottom: 3px double #1a1a1a;
+  padding-bottom: 0.4rem;
+}
+[data-interface='default'] .mer-paper-title {
+  font-size: 2.9rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+}
+[data-interface='default'] .mer-paper-dateline {
+  display: flex;
+  justify-content: space-between;
+  font-variant: small-caps;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  border-top: 1px solid #1a1a1a;
+  margin-top: 0.4rem;
+  padding-top: 0.25rem;
+}
+[data-interface='default'] .mer-paper-body {
+  columns: 2;
+  column-gap: 2.2rem;
+  margin-top: 1.1rem;
+}
+[data-interface='default'] .mer-paper-section {
+  break-inside: avoid;
+  margin: 0 0 1.2rem;
+}
+[data-interface='default'] .mer-paper-head {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  border-bottom: 1px solid #1a1a1a;
+  padding-bottom: 0.15rem;
+  margin: 0 0 0.5rem;
+}
+[data-interface='default'] .mer-paper-list,
+[data-interface='default'] .mer-paper-habits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+[data-interface='default'] .mer-paper-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.18rem 0;
+  border-bottom: 1px dotted #c9c2b2;
+  font-size: 0.9rem;
+}
+[data-interface='default'] .mer-paper-habits li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.16rem 0;
+  font-size: 0.9rem;
+}
+[data-interface='default'] .mer-paper-kicker {
+  font-variant: small-caps;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: #6b5f45;
+}
+[data-interface='default'] .mer-paper-item-title { flex: 1 1 auto; }
+[data-interface='default'] .mer-paper-item-date {
+  color: #555;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+[data-interface='default'] .mer-paper-flag {
+  background: #1a1a1a;
+  color: #f7f4ec;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.05rem 0.3rem;
+}
+[data-interface='default'] .mer-paper-list li.is-overdue .mer-paper-item-title { font-weight: 700; }
+[data-interface='default'] .mer-paper-none {
+  font-style: italic;
+  color: #5a5346;
+  font-size: 0.9rem;
+  margin: 0 0 0.4rem;
+}
+[data-interface='default'] .mer-paper-pick {
+  margin: 0 0 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.95rem;
+}
+[data-interface='default'] .mer-paper-almanac {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.15rem 0.8rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+[data-interface='default'] .mer-paper-almanac dt {
+  color: #6b5f45;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+[data-interface='default'] .mer-paper-almanac dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+[data-interface='default'] .mer-paper-body input[type='checkbox'] { accent-color: #1a1a1a; }
+
+@media (max-width: 44rem) {
+  [data-interface='default'] .mer-paper { padding: 1.1rem 1.2rem; }
+  [data-interface='default'] .mer-paper-body { columns: 1; }
+  [data-interface='default'] .mer-paper-title { font-size: 2rem; }
+}
+
+/* --- Daily Paper (print) --- the sheet is a <body> child, so unscoped, and
+   rides the same @media print reset as .mer-print-sheet above. */
+.mer-paper-tick {
+  display: inline-block;
+  width: 9pt;
+  height: 9pt;
+  border: 1px solid #000;
+  flex: 0 0 auto;
+}
+.mer-paper-tick.is-done { background: #000; }
+
+@media print {
+  .mer-paper--print { font-family: Georgia, 'Times New Roman', serif; color: #000; max-width: 7.5in; }
+  .mer-paper--print .mer-paper-masthead { text-align: center; border-bottom: 3px double #000; padding-bottom: 0.06in; }
+  .mer-paper--print .mer-paper-title { font-size: 30pt; font-weight: 800; margin: 0; }
+  .mer-paper--print .mer-paper-dateline {
+    display: flex; justify-content: space-between;
+    font-variant: small-caps; font-size: 9pt;
+    border-top: 1px solid #000; margin-top: 0.05in; padding-top: 0.04in;
+  }
+  .mer-paper--print .mer-paper-body { columns: 2; column-gap: 0.4in; margin-top: 0.15in; }
+  .mer-paper--print .mer-paper-section { break-inside: avoid; margin: 0 0 0.18in; }
+  .mer-paper--print .mer-paper-head {
+    font-size: 10pt; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;
+    border-bottom: 1px solid #000; padding-bottom: 0.02in; margin: 0 0 0.06in;
+  }
+  .mer-paper--print .mer-paper-list,
+  .mer-paper--print .mer-paper-habits { list-style: none; margin: 0; padding: 0; }
+  .mer-paper--print .mer-paper-list li {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.06in;
+    padding: 0.02in 0; border-bottom: 1px dotted #bbb; font-size: 9.5pt;
+  }
+  .mer-paper--print .mer-paper-habits li { display: flex; align-items: center; gap: 0.08in; font-size: 9.5pt; padding: 0.02in 0; }
+  .mer-paper--print .mer-paper-kicker { font-variant: small-caps; font-weight: 700; font-size: 8pt; color: #444; }
+  .mer-paper--print .mer-paper-item-title { flex: 1 1 auto; }
+  .mer-paper--print .mer-paper-item-date { font-size: 8pt; color: #333; white-space: nowrap; }
+  .mer-paper--print .mer-paper-flag { border: 1px solid #000; font-size: 6.5pt; font-weight: 700; padding: 0 0.03in; }
+  .mer-paper--print .mer-paper-none { font-style: italic; margin: 0 0 0.06in; font-size: 9pt; }
+  .mer-paper--print .mer-paper-pick { margin: 0; display: flex; flex-direction: column; gap: 0.03in; }
+  .mer-paper--print .mer-paper-almanac { display: grid; grid-template-columns: auto auto; gap: 0.02in 0.2in; font-size: 9pt; margin: 0; }
+  .mer-paper--print .mer-paper-almanac dt { font-variant: small-caps; color: #444; }
+  .mer-paper--print .mer-paper-almanac dd { margin: 0; text-align: right; font-weight: 700; }
+}
