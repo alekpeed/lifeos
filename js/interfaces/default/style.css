@@ -1850,3 +1850,31 @@
 [data-interface='default'] .mer-swatch:hover {
   border-color: var(--accent);
 }
+
+/* --- The Almanac --- */
+
+[data-interface='default'] .mer-almanac-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+[data-interface='default'] .mer-almanac-card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+[data-interface='default'] .mer-almanac-label {
+  font-family: var(--font-display);
+  margin-bottom: var(--space-xs);
+}
+
+[data-interface='default'] .mer-almanac-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  color: var(--accent);
+  margin-bottom: var(--space-xs);
+}

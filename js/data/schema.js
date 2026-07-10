@@ -14,9 +14,10 @@ export const DB_NAME = 'lifeos';
 // drills. v4 adds the Sharebox stores (`shareboxItems`, `shareboxFiles`,
 // `_shareboxTombstones`) for the shared-with-a-friend space. v5 adds
 // `timeCapsules`, `collections`/`collectionItems`, `packingLists`/
-// `packingItems`, and `inventoryItems`. runUpgrade in db.js creates any store
-// that doesn't yet exist, so these bumps are non-destructive for existing data.
-export const DB_VERSION = 5;
+// `packingItems`, and `inventoryItems`. v6 adds `dreamEntries` and
+// `rabbitHoles`. runUpgrade in db.js creates any store that doesn't yet
+// exist, so these bumps are non-destructive for existing data.
+export const DB_VERSION = 6;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -190,6 +191,19 @@ export const STORES = [
   // Quartermaster: physical inventory + a lending ledger (who has it, since when).
   { name: 'inventoryItems', keyPath: 'id', indexes: [
     { name: 'lentTo', keyPath: 'lentTo' },
+  ] },
+
+  // Dream Journal: one entry per dream. Recurring-pattern detection is
+  // computed client-side from body/tags text across all entries -- nothing
+  // extra stored per entry for it.
+  { name: 'dreamEntries', keyPath: 'id', indexes: [
+    { name: 'date', keyPath: 'date' },
+  ] },
+
+  // Rabbit Hole Journal: research tangents, each with freeform notes and a
+  // list of links, closed out (or not) as `status`.
+  { name: 'rabbitHoles', keyPath: 'id', indexes: [
+    { name: 'status', keyPath: 'status' },
   ] },
 ];
 

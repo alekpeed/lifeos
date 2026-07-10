@@ -38,6 +38,9 @@ import { renderStationCat } from './views/stationcat.js';
 import { renderGhostDays } from './views/ghostdays.js';
 import { renderStarters } from './views/starters.js';
 import { renderThemeFromPhoto } from './views/themefromphoto.js';
+import { renderDreamJournal } from './views/dreamjournal.js';
+import { renderRabbitHoles } from './views/rabbitholes.js';
+import { renderAlmanac } from './views/almanac.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -137,6 +140,9 @@ const VIEWS = {
   ghostdays: renderGhostDays,
   starters: renderStarters,
   themefromphoto: renderThemeFromPhoto,
+  dreamjournal: renderDreamJournal,
+  rabbitholes: renderRabbitHoles,
+  almanac: renderAlmanac,
 };
 
 // --- Interface contract implementation ---
