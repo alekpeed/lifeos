@@ -160,3 +160,36 @@ depth. Every one of the 17 maps to a real, currently-built feature.
 - Actual implementation (hotspot regions, travel animations, a new
   `js/interfaces/vespera/` folder) is Tier 2 work — flag the model switch
   before starting it, per the standing protocol.
+
+## Possible: HUD-chrome visual direction (not built, saved for later)
+
+While iterating on hub label alignment (2026-07-10), a standalone concept
+mockup explored a different visual language entirely — worth revisiting
+even though it isn't what shipped. Rather than labels that try to look
+painted into the scene, this direction leans into the labels being
+*visibly* a HUD layer on top of the station, and makes that layer good
+enough to be a feature rather than a compromise:
+
+- **Reactor core spine** — a pulsing hexagonal core down the center of
+  the concourse, layered depth (three nested hexes at different scales/
+  delays), a glowing vertical spine connecting it top to bottom.
+- **Glass district panels** — blurred/translucent cards with a moving
+  glare that tracks the cursor, a light-sweep animation on hover, a
+  metallic gradient edge, cut/octagon corners to match sci-fi panel
+  language rather than plain rounded rectangles.
+- **Corner telemetry HUD** — live clock, orbital position, power/crew/
+  signal readouts in the four corners, purely atmospheric (no real data
+  behind them) but sells "this is a live station" well.
+- **Warp transition** — clicking a district triggers a zoom-toward-the-
+  doorway animation with an "ESTABLISHING LINK" overlay before arriving,
+  richer than the current plain zoom.
+- Chromatic-aberration masthead text, parallax starfield (Canvas, cursor-
+  driven depth), full boot-in stagger sequence on load.
+
+Layout leaves plenty of room to grow into (per-panel status/stats, more
+telemetry, alert states) if this direction gets picked up later. The
+full working reference is a standalone HTML/CSS/Canvas mockup (not in
+this repo — built as a one-off Artifact, not wired to real data). Revisit
+by asking for it to be rebuilt/ported into `js/interfaces/vespera/` if
+this direction is chosen instead of (or blended with) real-signage
+integration.
