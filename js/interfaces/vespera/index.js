@@ -55,7 +55,9 @@ const DISTRICTS = [
   { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', side: 'center', row: 0, modules: ['paper'] },
 ];
 
-const ROW_TOPS = ['16%', '39.5%', '60%', '78.5%'];
+// Measured against the actual hub.png panel bounds (each row's painted
+// plate), not guessed -- see style.css for the matching left/right/width.
+const ROW_TOPS = ['17.5%', '40%', '61%', '80.5%'];
 
 let ctx = null;
 let els = null; // { root }
@@ -81,17 +83,30 @@ function districtOf(moduleId) {
 
 // --- Hub (Grand Concourse) ---
 
+// On desktop the hub image already has each district's name/icon painted
+// into its own panel, so drawing a second visible label on top of it just
+// doubles up (which is exactly what looked wrong before this pass) --
+// .vsp-plaque-chrome is CSS-hidden at desktop widths and the button itself
+// becomes an invisible hotspot precisely over the painted panel, with a
+// hover/focus glow as the only affordance. On mobile there's no image to
+// align a hotspot against (the hub collapses to a stacked list), so the
+// same chrome becomes the real visible label there via the existing
+// max-width media query -- one markup, two presentations.
 function plaque(district, hub) {
   const btn = el('button', {
     type: 'button',
     class: `vsp-plaque vsp-plaque--${district.side}`,
     style: district.side === 'center' ? '' : `top:${ROW_TOPS[district.row]};`,
+    title: `${district.name} — ${district.tagline}`,
+    'aria-label': `${district.name}. ${district.tagline}.`,
     onclick: () => depart(district, btn, hub),
   }, [
-    el('span', { class: 'vsp-plaque-icon', text: district.icon }),
-    el('span', { class: 'vsp-plaque-text' }, [
-      el('span', { class: 'vsp-plaque-name', text: district.name }),
-      el('span', { class: 'vsp-plaque-tag', text: district.tagline }),
+    el('span', { class: 'vsp-plaque-chrome' }, [
+      el('span', { class: 'vsp-plaque-icon', text: district.icon }),
+      el('span', { class: 'vsp-plaque-text' }, [
+        el('span', { class: 'vsp-plaque-name', text: district.name }),
+        el('span', { class: 'vsp-plaque-tag', text: district.tagline }),
+      ]),
     ]),
   ]);
   return btn;

@@ -77,43 +77,67 @@
   inset: 0;
 }
 
+/* Desktop: the district name/icon are already painted into the hub image
+   itself, so the button is an invisible hotspot precisely over that
+   painted panel -- clicking the picture's own signage, not a second box
+   drawn on top of it. A faint border makes the clickable area discoverable
+   without hovering (relying on hover alone fails on touch and isn't
+   findable by a mouse user who never happens to pass over it); hover/focus
+   brightens it into a proper glow. See the max-width override below, which
+   turns this same markup into a real visible label on mobile, where there's
+   no image to align a hotspot against. */
 [data-interface='vespera'] .vsp-plaque {
   position: absolute;
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  width: 19.5%;
-  min-height: 9%;
+  width: 24%;
+  min-height: 8.8%;
   padding: 0.5rem 0.7rem;
   text-align: left;
   cursor: pointer;
-  color: #e8f4ff;
-  background: rgba(6, 10, 26, 0.72);
-  border: 1px solid rgba(84, 225, 255, 0.55);
+  color: transparent;
+  background: transparent;
+  border: 1px solid rgba(140, 225, 255, 0.16);
   border-radius: 0.4rem;
-  box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
-  backdrop-filter: blur(2px);
-  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+  box-shadow: none;
+  transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
 }
 
 [data-interface='vespera'] .vsp-plaque:hover,
 [data-interface='vespera'] .vsp-plaque:focus-visible {
-  border-color: rgba(140, 245, 255, 0.95);
-  box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
-  transform: scale(1.04);
+  border-color: rgba(140, 245, 255, 0.85);
+  background: rgba(64, 160, 255, 0.08);
+  box-shadow: 0 0 22px rgba(90, 225, 255, 0.4), inset 0 0 16px rgba(90, 160, 255, 0.15);
 }
 
-[data-interface='vespera'] .vsp-plaque--left { left: 2.5%; }
-[data-interface='vespera'] .vsp-plaque--right { right: 2.5%; }
+[data-interface='vespera'] .vsp-plaque-chrome {
+  display: none;
+}
+
+[data-interface='vespera'] .vsp-plaque--left { left: 0; }
+[data-interface='vespera'] .vsp-plaque--right { right: 0; }
 [data-interface='vespera'] .vsp-plaque--center {
   left: 50%;
   bottom: 3.5%;
   transform: translateX(-50%);
   width: 24%;
+  min-height: 0;
   justify-content: center;
+  /* No painted counterpart for this one (Station News is added, not part
+     of the source art -- see VESPERA_SPEC.md), so its label stays visible
+     at every width instead of only appearing on hover. */
+  color: #e8f4ff;
+  background: rgba(6, 10, 26, 0.72);
+  border: 1px solid rgba(84, 225, 255, 0.55);
+  box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
+  backdrop-filter: blur(2px);
 }
+[data-interface='vespera'] .vsp-plaque--center .vsp-plaque-chrome { display: flex; }
 [data-interface='vespera'] .vsp-plaque--center:hover,
 [data-interface='vespera'] .vsp-plaque--center:focus-visible {
+  border-color: rgba(140, 245, 255, 0.95);
+  box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
   transform: translateX(-50%) scale(1.04);
 }
 
@@ -309,6 +333,13 @@
     aspect-ratio: auto;
     min-height: 100vh;
     padding: 5.5rem 0.8rem 1.2rem;
+    /* The photo is a wide establishing shot -- it doesn't work cropped
+       behind a stacked list, so mobile drops back to the gradient-only
+       fallback rather than an oddly-zoomed sliver of the concourse. */
+    background-image:
+      radial-gradient(ellipse at 50% 30%, rgba(124, 96, 255, 0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 110%, rgba(64, 220, 255, 0.25) 0%, transparent 60%),
+      linear-gradient(180deg, #070818 0%, #10122e 60%, #1a1440 100%);
   }
 
   [data-interface='vespera'] .vsp-plaque-layer {
@@ -318,17 +349,32 @@
     gap: 0.6rem;
   }
 
+  /* No image to hide behind here, so every plaque goes back to being a
+     real visible label -- same markup as desktop, chrome just turns back on. */
   [data-interface='vespera'] .vsp-plaque,
   [data-interface='vespera'] .vsp-plaque--center {
     position: static;
     width: auto;
+    min-height: 0;
     transform: none;
     justify-content: flex-start;
+    color: #e8f4ff;
+    background: rgba(6, 10, 26, 0.72);
+    border: 1px solid rgba(84, 225, 255, 0.55);
+    box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
   }
+
+  [data-interface='vespera'] .vsp-plaque-chrome { display: flex; }
 
   [data-interface='vespera'] .vsp-plaque--center { grid-column: 1 / -1; }
 
-  [data-interface='vespera'] .vsp-plaque:hover { transform: none; }
+  [data-interface='vespera'] .vsp-plaque:hover,
+  [data-interface='vespera'] .vsp-plaque:focus-visible {
+    transform: none;
+    border-color: rgba(140, 245, 255, 0.95);
+    background: rgba(6, 10, 26, 0.72);
+    box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
+  }
 
   [data-interface='vespera'] .vsp-plaque-name,
   [data-interface='vespera'] .vsp-plaque-tag { white-space: normal; }
