@@ -396,6 +396,47 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 - **Real background push** — true background sync / Web Push (not just
   foreground-only PWA behavior) so bill-due and streak-at-risk alerts land
   with the app closed, on platforms that genuinely support it.
+- **Natural-language command bar** — type or speak "remind me to call mom
+  Friday" and it parses intent, picks the right module, and creates the
+  record — no navigating. In-browser Whisper handles voice, fully offline.
+- **Real financial ingestion & reconciliation** — import bank/card
+  statements (CSV/OFX), auto-categorize transactions, reconcile against
+  logged bills/subscriptions. Turns Finance from all-manual into something
+  that mirrors reality.
+- **Health-device ingestion** — parse Apple Health / Garmin / Fitbit
+  exports (and clean APIs where they exist) so Health stops being hand-typed
+  — also gives The Almanac real signal to correlate instead of sparse
+  manual entries.
+
+**Privacy & security**
+- **Zero-knowledge encrypted vault** — end-to-end encryption at rest, so
+  data synced to Drive/Supabase is stored as ciphertext only — even the
+  server can't read it. Pairs naturally with the multi-user accounts work.
+- **Passkey / biometric app lock** — unlock the whole vault with Face ID /
+  fingerprint / hardware key via WebAuthn, no password typed. Natural
+  companion to the encrypted vault.
+
+**Making the app smarter about itself**
+- **Rules & automation engine — "IFTTT for your own life"** — "when a bill
+  is 3 days out AND unpaid → surface it + notify"; "when a habit streak
+  hits 30 → log a milestone." Connective tissue so modules can react to
+  each other instead of sitting in silos.
+- **App-wide spaced repetition** — generalize the SRS engine beyond
+  language flashcards to resurface *anything*: a book highlight, a person
+  you haven't contacted in months, a place you meant to revisit.
+- **What-if simulation sandbox** — model decisions against your own data:
+  "cancel these 3 subscriptions → save $X/year," "sleep +30 min →
+  projected effect on habit adherence." Forecasting (above) predicts the
+  default future; this lets you fork it.
+
+**Platform & payoff**
+- **Personal local API + plugin SDK** — expose your own data through a
+  documented local interface so you (or scripts) can build on it without
+  touching core — the same registry philosophy that already governs
+  interfaces, extended to data. What turns this from an app into a platform.
+- **Generative "Year in Review" film** — an auto-produced montage from your
+  photos + milestones + stats, scored by the Life-as-Music synth engine
+  you already have. The emotional payoff piece.
 
 Nothing here is fixed in stone — the plan has already flexed a few times
 this week, and that's expected. This doc is meant to be a snapshot you can
