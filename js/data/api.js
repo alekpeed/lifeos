@@ -401,10 +401,15 @@ const SETTING_DEFAULTS = {
   // look applied to the panel + knobs).
   synthControlStyle: 'auto',
   synthPanelSkin: 'meridian',
-  // Manual/editable rate table (not a live feed) so the currency converter
-  // stays usable fully offline. Rates are "1 <currency> = N base units" with
-  // USD as the implicit base; edit them from the Tools module as needed.
+  // Currency rate cache for the Tools converter. Populated from a live feed
+  // (Frankfurter/ECB, keyless) when online, but stored here (and editable)
+  // so the converter still works fully offline from the last-fetched or
+  // manually-entered values. Rates are "1 <currency> = N base units" with
+  // USD as the implicit base.
   currencyRates: { USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149, CAD: 1.36, AUD: 1.52 },
+  // ISO timestamp of the last successful live-rate fetch, or null if the
+  // rates above are still just the hardcoded/manual defaults.
+  currencyRatesFetchedAt: null,
   savedTimezones: [
     { label: 'Tokyo', tz: 'Asia/Tokyo' },
     { label: 'London', tz: 'Europe/London' },

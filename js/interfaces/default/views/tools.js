@@ -9,6 +9,7 @@ let state = {
   fromUnit: 'm',
   toUnit: 'ft',
   unitAmount: 1,
+  triedLiveRateRefresh: false, // one auto-refresh attempt per app session, not per render
 };
 
 const UNIT_TABLES = {
@@ -44,6 +45,26 @@ function fmtNum(n) {
 }
 
 // --- Currency ---
+// Rates come from Frankfurter (ECB reference rates, free, keyless) when
+// online, cached into Settings so the converter still works offline from
+// whatever was last fetched (or the manual defaults, on a fresh install).
+
+const FRANKFURTER_URL = 'https://api.frankfurter.app/latest?from=USD';
+const STALE_RATES_MS = 24 * 60 * 60 * 1000;
+
+async function refreshLiveRates(ctx, rerender, { silent } = {}) {
+  try {
+    const res = await fetch(FRANKFURTER_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const rates = await ctx.data.Settings.get('currencyRates');
+    await ctx.data.Settings.set('currencyRates', { ...rates, ...data.rates, USD: 1 });
+    await ctx.data.Settings.set('currencyRatesFetchedAt', new Date().toISOString());
+    rerender();
+  } catch (err) {
+    if (!silent) alert(`Couldn't fetch live rates (offline?): ${err.message}`);
+  }
+}
 
 function currencyEditor(rates, ctx, rerender) {
   const rows = el('div', {}, Object.entries(rates).map(([code, rate]) => {
@@ -89,9 +110,16 @@ function currencyEditor(rates, ctx, rerender) {
 
 async function renderCurrency(container, ctx, rerender) {
   const rates = await ctx.data.Settings.get('currencyRates');
+  const fetchedAt = await ctx.data.Settings.get('currencyRatesFetchedAt');
   const codes = Object.keys(rates);
   if (!codes.includes(state.fromCurrency)) state.fromCurrency = codes[0];
   if (!codes.includes(state.toCurrency)) state.toCurrency = codes[1] || codes[0];
+
+  const isStale = !fetchedAt || (Date.now() - new Date(fetchedAt).getTime()) > STALE_RATES_MS;
+  if (isStale && !state.triedLiveRateRefresh) {
+    state.triedLiveRateRefresh = true;
+    refreshLiveRates(ctx, rerender, { silent: true });
+  }
 
   const amountInput = el('input', { type: 'number', step: 'any', value: state.amount, onchange: (e) => { state.amount = Number(e.target.value) || 0; rerender(); } });
   const fromSelect = el('select', { onchange: (e) => { state.fromCurrency = e.target.value; rerender(); } },
@@ -101,6 +129,10 @@ async function renderCurrency(container, ctx, rerender) {
 
   const result = (state.amount / rates[state.fromCurrency]) * rates[state.toCurrency];
 
+  const statusText = fetchedAt
+    ? `Live rates (Frankfurter/ECB) as of ${new Date(fetchedAt).toLocaleString()}.`
+    : 'No live rates fetched yet — using manual/default rates.';
+
   container.append(
     el('div', { class: 'mer-field-grid' }, [
       el('label', { class: 'mer-field' }, [el('span', { text: 'Amount' }), amountInput]),
@@ -108,8 +140,12 @@ async function renderCurrency(container, ctx, rerender) {
       el('label', { class: 'mer-field' }, [el('span', { text: 'To' }), toSelect]),
     ]),
     el('p', {}, [el('strong', { text: `${state.amount} ${state.fromCurrency} = ${fmtNum(result)} ${state.toCurrency}` })]),
-    el('p', { class: 'mer-muted', text: 'Rates are manually maintained (offline-friendly, not a live feed) -- edit them below.' }),
+    el('p', { class: 'mer-muted' }, [
+      document.createTextNode(statusText + ' '),
+      el('button', { type: 'button', class: 'mer-icon-btn', text: '🔄 Refresh', onclick: () => refreshLiveRates(ctx, rerender) }),
+    ]),
     el('div', { class: 'mer-subsection-label', text: 'Exchange rates (per 1 USD)' }),
+    el('p', { class: 'mer-muted', text: 'Editable — overrides live rates until the next refresh, and keeps this working fully offline.' }),
     currencyEditor(rates, ctx, rerender),
   );
 }
