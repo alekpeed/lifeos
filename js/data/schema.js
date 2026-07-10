@@ -15,10 +15,11 @@ export const DB_NAME = 'lifeos';
 // `_shareboxTombstones`) for the shared-with-a-friend space. v5 adds
 // `timeCapsules`, `collections`/`collectionItems`, `packingLists`/
 // `packingItems`, and `inventoryItems`. v6 adds `dreamEntries` and
-// `rabbitHoles`. v7 adds `libraryStories`. runUpgrade in db.js creates any
-// store that doesn't yet exist, so these bumps are non-destructive for
-// existing data.
-export const DB_VERSION = 7;
+// `rabbitHoles`. v7 adds `libraryStories`. v8 adds `graphLinks` (the
+// Knowledge Graph's link-anything-to-anything edges). runUpgrade in db.js
+// creates any store that doesn't yet exist, so these bumps are
+// non-destructive for existing data.
+export const DB_VERSION = 8;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -208,6 +209,18 @@ export const STORES = [
   // list of links, closed out (or not) as `status`.
   { name: 'rabbitHoles', keyPath: 'id', indexes: [
     { name: 'status', keyPath: 'status' },
+  ] },
+
+  // Knowledge Graph: an edge between any two records anywhere in the app.
+  // Endpoints are addressed as "<store>:<id>" composite keys (fromKey/toKey)
+  // so one store can hold links between heterogeneous record types without
+  // foreign-key machinery. Edges are undirected in meaning -- from/to is
+  // storage order only, and queries always check both indexes. Titles are
+  // NOT denormalized onto the edge; they're resolved live at render time so
+  // a renamed task/book/contact never leaves a stale label in the graph.
+  { name: 'graphLinks', keyPath: 'id', indexes: [
+    { name: 'fromKey', keyPath: 'fromKey' },
+    { name: 'toKey', keyPath: 'toKey' },
   ] },
 
   // Library of Babel: a story-based reading library per language pack --

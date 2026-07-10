@@ -593,6 +593,58 @@ export async function globalSearch(query) {
   return results.flat().slice(0, 200);
 }
 
+// --- Knowledge Graph: link any record to any other record ---
+//
+// Edges live in the graphLinks store, endpoints addressed as "<store>:<id>"
+// composite keys. The graph deliberately reuses globalSearch's SEARCH_FIELDS
+// / SEARCH_MODULE_ROUTE as its definition of "what is linkable": anything
+// findable in Search is linkable in the graph, and nothing else -- one
+// list to maintain, two features fed by it.
+
+export const GraphLinks = entities.graphLinks;
+
+export function graphKey(store, id) {
+  return `${store}:${id}`;
+}
+
+// Every edge touching a record, regardless of which end it's stored on
+// (edges are undirected in meaning; from/to is storage order only).
+export async function getGraphLinksFor(store, id) {
+  const key = graphKey(store, id);
+  const [from, to] = await Promise.all([
+    db.getAllByIndex('graphLinks', 'fromKey', key),
+    db.getAllByIndex('graphLinks', 'toKey', key),
+  ]);
+  return [...from, ...to];
+}
+
+// Create an edge unless one already exists between the same pair (in either
+// direction). Returns the existing edge instead of a duplicate.
+export async function createGraphLink(fromStore, fromId, toStore, toId) {
+  const a = graphKey(fromStore, fromId);
+  const b = graphKey(toStore, toId);
+  if (a === b) throw new Error('Cannot link a record to itself.');
+  const existing = await getGraphLinksFor(fromStore, fromId);
+  const dupe = existing.find((l) =>
+    (l.fromKey === a && l.toKey === b) || (l.fromKey === b && l.toKey === a));
+  if (dupe) return dupe;
+  return GraphLinks.create({ fromKey: a, toKey: b });
+}
+
+// Resolve a graph endpoint to something renderable. `exists: false` means
+// the underlying record was deleted after the link was made -- the caller
+// shows a tombstone and offers unlink, rather than the edge silently lying.
+export async function resolveGraphNode(key) {
+  const sep = key.indexOf(':');
+  const store = key.slice(0, sep);
+  const id = key.slice(sep + 1);
+  const titleOf = SEARCH_FIELDS[store];
+  if (!titleOf) return { key, store, id, title: '(unknown type)', module: null, exists: false };
+  const record = await db.get(store, id);
+  if (!record) return { key, store, id, title: '(deleted)', module: SEARCH_MODULE_ROUTE[store], exists: false };
+  return { key, store, id, title: titleOf(record) || '(untitled)', module: SEARCH_MODULE_ROUTE[store], exists: true };
+}
+
 // --- Manual JSON export/import: a Drive-independent backup. Attachments'
 // Blob fields aren't JSON-serializable, so they're round-tripped through
 // data: URLs (readAsDataURL / fetch().blob()) rather than raw base64 math.
