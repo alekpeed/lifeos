@@ -79,8 +79,10 @@ function currencyEditor(rates, ctx, rerender) {
     };
     codeInput.onchange = commit;
     rateInput.onchange = commit;
+    const reverseText = rate ? `1 ${code} = ${fmtNum(1 / rate)} USD` : '';
     return el('div', { class: 'mer-person-form' }, [
       codeInput, rateInput,
+      el('span', { class: 'mer-chip', text: reverseText }),
       el('button', {
         type: 'button', class: 'mer-icon-btn', text: '×',
         onclick: async () => {
