@@ -50,6 +50,49 @@ export async function signOut() {
   return { error };
 }
 
+// --- Email/password: the second sign-in method, alongside Google. Supabase's
+// Email provider is enabled by default on new projects -- these calls need no
+// extra dashboard config beyond what a fresh project already has, though it's
+// worth confirming under Authentication -> Providers -> Email if sign-up fails.
+
+// Returns { user, needsConfirmation, error }. If the project has "Confirm
+// email" turned on (Supabase's default), the account is created but
+// data.session is null until the user clicks the confirmation link --
+// needsConfirmation tells the UI to show "check your email" instead of
+// treating this as an immediate sign-in.
+export async function signUpWithEmail(email, password) {
+  const supabase = await getSupabaseClient();
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) return { error };
+  return { user: data?.user || null, needsConfirmation: !data?.session };
+}
+
+export async function signInWithEmail(email, password) {
+  const supabase = await getSupabaseClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error };
+  return { user: data?.user || null };
+}
+
+// Supabase emails a reset link that lands back on this app (redirectTo) with
+// a recovery session; updatePassword() below then sets the new password on
+// that session. Uses the default Supabase-sent email -- no custom SMTP needed
+// to work, though delivery is rate-limited on the free tier.
+export async function sendPasswordReset(email) {
+  const supabase = await getSupabaseClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectTarget() });
+  return { error };
+}
+
+// Called once the user has landed back from a reset-password email and is on
+// a recovery session (Supabase auth state fires a PASSWORD_RECOVERY event via
+// onAuthChange -- the UI should route to a "set new password" form on that).
+export async function updatePassword(newPassword) {
+  const supabase = await getSupabaseClient();
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  return { error };
+}
+
 // The signed-in user, or null. Safe to call before config is filled in — it
 // answers null instead of throwing, so callers can cheaply check "are we even
 // on the new backend yet?" without a try/catch.
@@ -72,14 +115,18 @@ export async function getSession() {
 // Subscribe to sign-in / sign-out transitions. `cb` receives the new user (or
 // null). Returns an unsubscribe function. No-op (returns a no-op unsubscribe)
 // when Supabase isn't configured, so UI can wire this up unconditionally.
+// `cb` receives (user, event). event is Supabase's auth event name (e.g.
+// 'SIGNED_IN', 'SIGNED_OUT', 'PASSWORD_RECOVERY') -- most callers only need
+// the user and can ignore the second argument, but the Account settings UI
+// watches for 'PASSWORD_RECOVERY' to show a "set new password" form.
 export function onAuthChange(cb) {
   if (!isSupabaseConfigured()) return () => {};
   let subscription = null;
   let cancelled = false;
   getSupabaseClient().then((supabase) => {
     if (cancelled) return;
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      cb(session?.user || null);
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      cb(session?.user || null, event);
     });
     subscription = data?.subscription || null;
   });

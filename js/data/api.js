@@ -67,6 +67,29 @@ export const ShareboxV2 = {
   subscribeToItems: shareboxV2.subscribeToItems,
 };
 
+// Account: app-wide identity (email/password + Google), independent of
+// Sharebox. Shares the same underlying Supabase auth session as ShareboxV2
+// above (one supabase-auth.js module, one signed-in user) -- signing in here
+// also signs you into Sharebox, and vice versa. `profiles` is its own table
+// (sql/supabase-accounts-schema.sql) distinct from Sharebox's per-space
+// display name.
+import * as profileSupabase from './profile-supabase.js';
+export const Account = {
+  isSupabaseConfigured,
+  signInWithGoogle: shareboxAuth.signInWithGoogle,
+  signUpWithEmail: shareboxAuth.signUpWithEmail,
+  signInWithEmail: shareboxAuth.signInWithEmail,
+  sendPasswordReset: shareboxAuth.sendPasswordReset,
+  updatePassword: shareboxAuth.updatePassword,
+  signOut: shareboxAuth.signOut,
+  getCurrentUser: shareboxAuth.getCurrentUser,
+  getSession: shareboxAuth.getSession,
+  onAuthChange: shareboxAuth.onAuthChange,
+  displayNameOf: shareboxAuth.displayNameOf,
+  getProfile: profileSupabase.getProfile,
+  updateDisplayName: profileSupabase.updateDisplayName,
+};
+
 function nowIso() {
   return new Date().toISOString();
 }

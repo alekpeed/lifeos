@@ -32,6 +32,14 @@ effort, neither flagged in advance, because a post-compaction auto-resume
 was followed instead of this protocol. See `PROJECT_SPEC.md` and the
 backup's `HANDOFF.md` for the full writeup.
 
+## Backups
+
+`scripts/make-backup.sh` regenerates a full portable backup (git bundle +
+source snapshot + docs + a HANDOFF.md) into a directory (default
+`/tmp/lifeos-backup-out`). Run it and send the resulting tarball to Alek via
+SendUserFile at the end of any session where you committed changes to this
+repo — don't wait for him to ask. Skip it for sessions with no commits.
+
 ## Project context
 
 This is a vanilla-JS, local-first PWA (IndexedDB, no build step, no

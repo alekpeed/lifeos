@@ -196,9 +196,10 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
 
 ## The near-term core
 
-- 🏗️ **Multi-user accounts** — email + password sign-up/sign-in alongside
-  Google, password recovery, per-user data isolation. Builds on Sharebox
-  v2's already-fixed Supabase/RLS foundation.
+- ✅ **Multi-user accounts (phase 1)** — email/password + Google sign-in,
+  password reset, a `profiles` table for a global display name. Lives in
+  Settings' new Account section, shares one auth session with Sharebox v2.
+  One manual step left: run the SQL migration + a live test.
 - 🏗️ **AI-powered Daily Paper** — an actual AI-written editorial instead of
   the current list-based brief, once accounts exist to scope it per user.
 - 🏗️ **Per-user notifications** — depends on accounts.

@@ -1,5 +1,173 @@
 import { el, fmtDate } from '../dom.js';
 
+// --- Account (email/password + Google) ---
+// App-wide identity, shared with Sharebox v2 (same Supabase auth session --
+// signing in here also signs you into Sharebox). `mode` drives which form
+// shows when signed out; 'reset' is entered automatically when a password
+// -recovery email link lands back on the app.
+
+let accountState = {
+  authSub: null,
+  mode: 'signin', // signin | signup | forgot | reset
+  message: null, // { text, isError }
+};
+
+function ensureAccountAuthWatch(ctx, rerender) {
+  if (accountState.authSub) return;
+  accountState.authSub = ctx.data.Account.onAuthChange((_user, event) => {
+    if (event === 'PASSWORD_RECOVERY') accountState.mode = 'reset';
+    rerender();
+  });
+}
+
+function accountMessage() {
+  if (!accountState.message) return null;
+  return el('p', { class: accountState.message.isError ? 'mer-muted mer-sync-error' : 'mer-muted', text: accountState.message.text });
+}
+
+function signInForm(ctx, rerender) {
+  const emailInput = el('input', { type: 'email', placeholder: 'Email' });
+  const passwordInput = el('input', { type: 'password', placeholder: 'Password' });
+  const submit = async () => {
+    if (!emailInput.value.trim() || !passwordInput.value) return;
+    const res = await ctx.data.Account.signInWithEmail(emailInput.value.trim(), passwordInput.value);
+    if (res?.error) { accountState.message = { text: res.error.message || String(res.error), isError: true }; rerender(); return; }
+    accountState.message = null;
+    rerender();
+  };
+  return el('div', { class: 'mer-person-form' }, [
+    emailInput, passwordInput,
+    el('button', { type: 'button', text: 'Sign in', onclick: submit }),
+    el('button', { type: 'button', class: 'mer-reader-btn', text: 'Forgot password?', onclick: () => { accountState.mode = 'forgot'; accountState.message = null; rerender(); } }),
+    el('button', { type: 'button', class: 'mer-reader-btn', text: 'Need an account? Sign up', onclick: () => { accountState.mode = 'signup'; accountState.message = null; rerender(); } }),
+  ]);
+}
+
+function signUpForm(ctx, rerender) {
+  const emailInput = el('input', { type: 'email', placeholder: 'Email' });
+  const passwordInput = el('input', { type: 'password', placeholder: 'Password (min 6 characters)' });
+  const submit = async () => {
+    if (!emailInput.value.trim() || !passwordInput.value) return;
+    const res = await ctx.data.Account.signUpWithEmail(emailInput.value.trim(), passwordInput.value);
+    if (res?.error) { accountState.message = { text: res.error.message || String(res.error), isError: true }; rerender(); return; }
+    accountState.message = res.needsConfirmation
+      ? { text: 'Account created — check your email to confirm before signing in.' }
+      : { text: 'Account created and signed in.' };
+    accountState.mode = 'signin';
+    rerender();
+  };
+  return el('div', { class: 'mer-person-form' }, [
+    emailInput, passwordInput,
+    el('button', { type: 'button', text: 'Sign up', onclick: submit }),
+    el('button', { type: 'button', class: 'mer-reader-btn', text: 'Already have an account? Sign in', onclick: () => { accountState.mode = 'signin'; accountState.message = null; rerender(); } }),
+  ]);
+}
+
+function forgotForm(ctx, rerender) {
+  const emailInput = el('input', { type: 'email', placeholder: 'Email' });
+  const submit = async () => {
+    if (!emailInput.value.trim()) return;
+    const res = await ctx.data.Account.sendPasswordReset(emailInput.value.trim());
+    if (res?.error) { accountState.message = { text: res.error.message || String(res.error), isError: true }; rerender(); return; }
+    accountState.message = { text: 'If that email has an account, a reset link is on its way.' };
+    accountState.mode = 'signin';
+    rerender();
+  };
+  return el('div', { class: 'mer-person-form' }, [
+    emailInput,
+    el('button', { type: 'button', text: 'Send reset link', onclick: submit }),
+    el('button', { type: 'button', class: 'mer-reader-btn', text: '← Back to sign in', onclick: () => { accountState.mode = 'signin'; accountState.message = null; rerender(); } }),
+  ]);
+}
+
+function resetPasswordForm(ctx, rerender) {
+  const passwordInput = el('input', { type: 'password', placeholder: 'New password (min 6 characters)' });
+  const submit = async () => {
+    if (!passwordInput.value) return;
+    const res = await ctx.data.Account.updatePassword(passwordInput.value);
+    if (res?.error) { accountState.message = { text: res.error.message || String(res.error), isError: true }; rerender(); return; }
+    accountState.message = { text: 'Password updated.' };
+    accountState.mode = 'signin';
+    rerender();
+  };
+  return el('div', { class: 'mer-person-form' }, [
+    passwordInput,
+    el('button', { type: 'button', text: 'Set new password', onclick: submit }),
+  ]);
+}
+
+function signedInPanel(user, ctx, rerender) {
+  const nameInput = el('input', { type: 'text', value: '', placeholder: 'Display name' });
+  ctx.data.Account.getProfile()
+    .then((profile) => { if (profile) nameInput.value = profile.display_name || ''; })
+    .catch(() => {}); // best-effort -- the sign-out/sign-in controls above still work if this fails
+
+  const saveNameBtn = el('button', {
+    type: 'button', text: 'Save',
+    onclick: async () => {
+      try {
+        await ctx.data.Account.updateDisplayName(nameInput.value.trim());
+        accountState.message = { text: 'Display name updated.' };
+      } catch (err) {
+        accountState.message = { text: err.message || String(err), isError: true };
+      }
+      rerender();
+    },
+  });
+
+  return el('div', {}, [
+    el('div', { class: 'mer-person-form' }, [
+      el('span', { class: 'mer-person-name', text: `Signed in as ${ctx.data.Account.displayNameOf(user)}` }),
+      el('span', { class: 'mer-person-meta', text: user.email || '' }),
+      el('button', { type: 'button', class: 'mer-reader-btn', text: 'Sign out', onclick: async () => { await ctx.data.Account.signOut(); rerender(); } }),
+    ]),
+    el('label', { class: 'mer-field' }, [el('span', { text: 'Display name' }), nameInput]),
+    saveNameBtn,
+  ]);
+}
+
+async function renderAccountSection(canvas, ctx, rerender) {
+  if (!ctx.data.Account.isSupabaseConfigured()) return;
+  ensureAccountAuthWatch(ctx, rerender);
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Account' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Sign in with email/password or Google. This is the same account used by Sharebox, and the foundation for per-user features (AI Daily Paper, notifications) as they land.' }));
+
+  const msg = accountMessage();
+  if (msg) canvas.append(msg);
+
+  if (accountState.mode === 'reset') {
+    canvas.append(resetPasswordForm(ctx, rerender));
+    return;
+  }
+
+  let user;
+  try {
+    user = await ctx.data.Account.getCurrentUser();
+  } catch (err) {
+    canvas.append(el('p', { class: 'mer-muted mer-sync-error', text: `Couldn't reach Supabase: ${err.message || err}` }));
+    return;
+  }
+  if (user) {
+    canvas.append(signedInPanel(user, ctx, rerender));
+    return;
+  }
+
+  canvas.append(el('div', { class: 'mer-toolbar' }, [
+    el('button', {
+      type: 'button', text: 'Sign in with Google',
+      onclick: async () => {
+        const res = await ctx.data.Account.signInWithGoogle();
+        if (res?.error) { accountState.message = { text: res.error.message || String(res.error), isError: true }; rerender(); }
+      },
+    }),
+  ]));
+
+  if (accountState.mode === 'signup') canvas.append(signUpForm(ctx, rerender));
+  else if (accountState.mode === 'forgot') canvas.append(forgotForm(ctx, rerender));
+  else canvas.append(signInForm(ctx, rerender));
+}
+
 function fmtSyncTime(iso) {
   if (!iso) return 'never';
   const d = new Date(iso);
@@ -199,6 +367,7 @@ export async function renderSettings(canvas, ctx, rerender) {
 
   canvas.append(el('div', { class: 'mer-toolbar' }, [exportBtn, el('label', { class: 'mer-setting' }, [el('span', { text: 'Import from JSON' }), importInput])]));
 
+  await renderAccountSection(canvas, ctx, rerender || (() => {}));
   await renderSyncSection(canvas, ctx, rerender || (() => {}));
   await renderCalendarSection(canvas, ctx, rerender || (() => {}));
 }

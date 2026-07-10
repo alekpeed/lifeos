@@ -318,12 +318,22 @@ lets the whole app be redecorated later without rebuilding it:
   CoinGecko coin IDs with live USD price and 24h change, cached for five
   minutes so it still shows something offline.
 
+- **Multi-user accounts (phase 1)** — email/password sign-up/sign-in,
+  password reset, and Google sign-in, all sharing one Supabase auth session
+  with Sharebox v2 (sign in either place, you're signed in everywhere). A new
+  `profiles` table (`sql/supabase-accounts-schema.sql`) gives every account a
+  global display name, auto-created via a trigger on signup. Lives in
+  Settings' new "Account" section. Verified headlessly (every form/mode
+  transition, and that Supabase being unreachable degrades to a clear error
+  instead of breaking the page) — live email/OAuth exchange can't be tested
+  from this environment, same limitation as Sharebox v2 originally. **One
+  manual step left:** run `sql/supabase-accounts-schema.sql` against the live
+  project, then do a real sign-up/sign-in/reset test. Per-user data isolation
+  for the rest of the app (Tasks, Places, Finance, ...) is deliberately NOT
+  part of this phase — the phased architecture approach (see "Additional
+  interfaces" section) keeps those modules local-first for now.
+
 ### Still to build 📋
-- **Multi-user accounts** — email + password sign-up/sign-in (alongside the
-  existing Google sign-in), password recovery, and per-user data isolation —
-  the foundation for every person having their own private space, AI Daily
-  Paper, and notifications. Sharebox v2's Supabase backend and RLS pattern is
-  the proven foundation this builds on.
 - **AI-powered Daily Paper** — turn the current list-based brief into an
   actual AI-written editorial (Claude/GPT/Gemini), once accounts exist to
   scope it per user.
@@ -384,8 +394,9 @@ Everything below came out of talking through what would actually feel
 
 ## 5. Rough order of what's left
 
-1. Multi-user accounts (email/password + password recovery), building on
-   Sharebox v2's now-fixed Supabase/RLS foundation
+1. ~~Multi-user accounts (phase 1)~~ — DONE: email/password + Google sign-in,
+   password reset, profiles table (see Built ✅). One manual step left: run
+   the SQL migration + a live end-to-end test.
 2. AI-powered Daily Paper + per-user notifications (depend on accounts)
 3. ~~The four Tier-2 features~~ — DONE: Knowledge Graph, The Orrery,
    Time Machine, and QR Airgap Sync all shipped (see Built ✅)
