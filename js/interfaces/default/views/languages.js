@@ -2,15 +2,12 @@ import { el, todayStr } from '../dom.js';
 
 let state = {
   packId: null,
-  tab: 'decks', // decks | lessons
   showAddPackForm: false,
   deckId: null,
   studying: false,
   studyQueue: [],
   studyIndex: 0,
   showAnswer: false,
-  selectedLessonId: null,
-  showAddLessonForm: false,
 };
 
 // Starter content keyed by language code -- the format any future pack can
@@ -25,46 +22,6 @@ const STARTER_DECKS = {
       ['さ', 'sa'], ['し', 'shi'], ['す', 'su'], ['せ', 'se'], ['そ', 'so'],
     ],
   },
-};
-
-const STARTER_LESSONS = {
-  ja: [
-    {
-      topic: 'Sentence Structure', title: 'Basic sentence structure',
-      body: 'Japanese word order is Subject-Object-Verb (SOV), not Subject-Verb-Object like English — the verb comes last.\n\nThe topic of a sentence is marked with the particle は (pronounced "wa" here, not "ha"). です (desu) is a polite copula, roughly "is/am/are," and typically ends the sentence.',
-      examples: [
-        { text: 'これは本です。', translation: 'This is a book.' },
-        { text: '私は学生です。', translation: 'As for me, I am a student.' },
-      ],
-    },
-    {
-      topic: 'Particles', title: 'Particles overview',
-      body: 'は (wa) marks the topic. が (ga) marks the grammatical subject, often for new information or with verbs like ある/いる. を (o) marks the direct object. に (ni) marks a destination or time. で (de) marks the location where an action happens. と (to) means "and" (for nouns) or "with." も (mo) means "also/too" and replaces は or が.',
-      examples: [
-        { text: 'パンを食べます。', translation: '(I) eat bread.' },
-        { text: '学校に行きます。', translation: '(I) go to school.' },
-        { text: '図書館で勉強します。', translation: '(I) study at the library.' },
-      ],
-    },
-    {
-      topic: 'Verbs', title: 'Dictionary form vs. ます form',
-      body: 'Verbs have a plain/dictionary form (used casually and as the form found in a dictionary) and a polite ます form.\n\nFor ichidan (る-)verbs: drop る and add ます (食べる → 食べます).\nFor godan (う-)verbs: change the final u-sound to an i-sound and add ます (行く → 行きます; 話す → 話します).\nする and 来る are irregular: します, 来ます (kimasu).',
-      examples: [
-        { text: '食べる → 食べます', translation: 'to eat (dictionary → polite)' },
-        { text: '行く → 行きます', translation: 'to go (dictionary → polite)' },
-        { text: '話す → 話します', translation: 'to speak (dictionary → polite)' },
-      ],
-    },
-    {
-      topic: 'Adjectives', title: 'い-adjectives vs. な-adjectives',
-      body: 'い-adjectives end in い (高い, おいしい) and conjugate directly: 高くない ("not expensive"), 高かった ("was expensive").\n\nな-adjectives (静か, 好き) need な when directly modifying a noun (静かな部屋 = "quiet room") and otherwise behave like nouns with だ/です.\n\nWatch for いい ("good") — it\'s irregular. Its negative/past forms come from the older form よい: よくない, よかった (not いくない).',
-      examples: [
-        { text: '高い本', translation: 'expensive book (い-adjective)' },
-        { text: '静かな部屋', translation: 'quiet room (な-adjective)' },
-        { text: 'よくないです。', translation: '(it) is not good — いい is irregular' },
-      ],
-    },
-  ],
 };
 
 function computeStreak(dates) {
@@ -105,7 +62,6 @@ function addPackForm(ctx, rerender) {
       const pack = await ctx.data.ensureLanguagePack(codeInput.value.trim().toLowerCase(), nameInput.value.trim(), localeInput.value.trim() || 'en-US');
       state.packId = pack.id;
       state.showAddPackForm = false;
-      state.tab = 'decks';
       rerender();
     },
   });
@@ -116,7 +72,7 @@ function packTabsBar(packs, ctx, rerender) {
   const tabs = el('div', { class: 'mer-toggle-group' }, [
     ...packs.map((pack) => el('button', {
       type: 'button', class: state.packId === pack.id ? 'is-active' : '', text: pack.name,
-      onclick: () => { state.packId = pack.id; state.deckId = null; state.tab = 'decks'; rerender(); },
+      onclick: () => { state.packId = pack.id; state.deckId = null; rerender(); },
     })),
     el('button', { type: 'button', text: '+ Add language', onclick: () => { state.showAddPackForm = !state.showAddPackForm; rerender(); } }),
   ]);
@@ -292,114 +248,13 @@ async function renderDecksTab(container, ctx, rerender, pack) {
   }
 }
 
-// --- Lessons ---
-
-function exampleRow(example) {
-  return el('div', { class: 'mer-lesson-example' }, [
-    el('div', { class: 'mer-lesson-example-text', text: example.text }),
-    el('div', { class: 'mer-lesson-example-translation', text: example.translation }),
-  ]);
-}
-
-function lessonDetail(lesson, ctx, rerender) {
-  return el('div', { class: 'mer-task-detail' }, [
-    el('div', { class: 'mer-detail-header' }, [
-      el('h3', { text: lesson.title }),
-      el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.selectedLessonId = null; rerender(); } }),
-    ]),
-    el('p', { class: 'mer-muted', text: lesson.topic }),
-    ...lesson.body.split('\n\n').map((para) => el('p', { class: 'mer-lesson-para', text: para })),
-    lesson.examples?.length ? el('div', { class: 'mer-subsection-label', text: 'Examples' }) : null,
-    lesson.examples?.length ? el('div', { class: 'mer-lesson-examples' }, lesson.examples.map(exampleRow)) : null,
-    el('button', {
-      type: 'button', class: 'mer-danger-btn', text: 'Delete lesson',
-      onclick: async () => { await ctx.data.LanguageLessons.remove(lesson.id); state.selectedLessonId = null; rerender(); },
-    }),
-  ]);
-}
-
-function newLessonForm(pack, ctx, rerender) {
-  const topicInput = el('input', { type: 'text', placeholder: 'Topic (e.g. Verbs)' });
-  const titleInput = el('input', { type: 'text', placeholder: 'Title' });
-  const bodyInput = el('textarea', { rows: '3', placeholder: 'Explanation' });
-  const addBtn = el('button', {
-    type: 'button', text: '+ Add lesson',
-    onclick: async () => {
-      if (!titleInput.value.trim() || !bodyInput.value.trim()) return;
-      await ctx.data.LanguageLessons.create({
-        packId: pack.id, topic: topicInput.value.trim() || 'General',
-        title: titleInput.value.trim(), body: bodyInput.value.trim(), examples: [],
-      });
-      topicInput.value = '';
-      titleInput.value = '';
-      bodyInput.value = '';
-      rerender();
-    },
-  });
-  return el('div', { class: 'mer-person-form' }, [topicInput, titleInput, bodyInput, addBtn]);
-}
-
-async function renderLessonsTab(container, ctx, rerender, pack) {
-  const lessons = await ctx.data.LanguageLessons.byIndex('packId', pack.id);
-
-  const toolbarRow = [];
-  if (STARTER_LESSONS[pack.code] && !lessons.length) {
-    toolbarRow.push(el('button', {
-      type: 'button', text: `+ Starter ${pack.name} lessons`,
-      onclick: async () => {
-        for (const lesson of STARTER_LESSONS[pack.code]) {
-          await ctx.data.LanguageLessons.create({ packId: pack.id, ...lesson });
-        }
-        rerender();
-      },
-    }));
-  }
-  if (toolbarRow.length) container.append(el('div', { class: 'mer-toolbar' }, toolbarRow));
-
-  const area = el('div', { class: 'mer-task-list-area' });
-  container.append(area);
-
-  if (!lessons.length) {
-    area.append(el('p', { class: 'mer-muted', text: 'No lessons yet.' }));
-  } else {
-    const byTopic = new Map();
-    for (const lesson of lessons) {
-      if (!byTopic.has(lesson.topic)) byTopic.set(lesson.topic, []);
-      byTopic.get(lesson.topic).push(lesson);
-    }
-    for (const [topic, group] of byTopic) {
-      area.append(el('div', { class: 'mer-group-label', text: topic }));
-      for (const lesson of group) {
-        const row = el('div', { class: lesson.id === state.selectedLessonId ? 'mer-task-row is-active' : 'mer-task-row' }, [el('span', { class: 'mer-task-title', text: lesson.title })]);
-        row.addEventListener('click', () => { state.selectedLessonId = state.selectedLessonId === lesson.id ? null : lesson.id; rerender(); });
-        area.append(row);
-      }
-    }
-  }
-
-  // The lesson you clicked opens directly under the list, not after the
-  // add-lesson form -- that form stays tucked away until asked for.
-  if (state.selectedLessonId) {
-    const lesson = lessons.find((l) => l.id === state.selectedLessonId);
-    if (lesson) area.append(lessonDetail(lesson, ctx, rerender));
-  }
-
-  if (state.showAddLessonForm) {
-    area.append(el('div', { class: 'mer-subsection-label', text: 'Add a lesson' }), newLessonForm(pack, ctx, rerender));
-  } else {
-    area.append(el('button', { type: 'button', text: '+ Add a lesson', onclick: () => { state.showAddLessonForm = true; rerender(); } }));
-  }
-}
-
 // --- Root ---
 
-function subTabsBar(rerender) {
-  return el('div', { class: 'mer-toggle-group' }, [
-    el('button', { type: 'button', class: state.tab === 'decks' ? 'is-active' : '', text: 'Decks', onclick: () => { state.tab = 'decks'; rerender(); } }),
-    el('button', { type: 'button', class: state.tab === 'lessons' ? 'is-active' : '', text: 'Lessons', onclick: () => { state.tab = 'lessons'; rerender(); } }),
-  ]);
-}
-
+// Lessons used to live here as a second tab (grammar explainers you wrote
+// yourself). Retired in favor of Library of Babel -- a story-based reading
+// library, its own module -- rather than keeping two half-satisfying ways
+// to learn grammar/reading side by side. Decks (flashcard SRS) is the only
+// tab now, so there's nothing left to switch between.
 export async function renderLanguages(canvas, ctx, rerender) {
   canvas.append(el('h1', { text: 'Languages' }));
 
@@ -420,7 +275,5 @@ export async function renderLanguages(canvas, ctx, rerender) {
     return;
   }
 
-  canvas.append(el('div', { class: 'mer-toolbar' }, [subTabsBar(rerender)]));
-  if (state.tab === 'decks') await renderDecksTab(canvas, ctx, rerender, pack);
-  else await renderLessonsTab(canvas, ctx, rerender, pack);
+  await renderDecksTab(canvas, ctx, rerender, pack);
 }

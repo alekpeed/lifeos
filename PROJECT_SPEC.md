@@ -90,12 +90,12 @@ lets the whole app be redecorated later without rebuilding it:
 - **Languages** — plug-and-play: language learning is built as installable
   "packs" (name, code, TTS locale), each owning its own decks/cards
   (spaced-repetition flashcards, Again/Good/Easy, browser TTS, a study
-  streak) and Lessons (grammar/syntax/morphology explainers with example
-  sentences). Japanese ships as the default pack with a starter hiragana
-  deck and four starter lessons (sentence structure, particles, verb
-  forms, adjective types) — a starting set, not a full curriculum. Adding
-  a second language (Spanish, etc.) later is just a new pack via the
-  in-app "+ Add language" form, no rebuild needed.
+  streak). Japanese ships as the default pack with a starter hiragana deck —
+  a starting set, not a full curriculum. Adding a second language (Spanish,
+  etc.) later is just a new pack via the in-app "+ Add language" form, no
+  rebuild needed. The old Lessons tab (grammar/syntax explainers) was
+  retired and replaced by the Library of Babel module (see below) — reading
+  practice through stories instead of standalone grammar notes.
 - **Geolocation nudges in Places** — a manual "check nearby places" action
   surfaces want-to-go spots and stale revisit-flagged places within 1km.
   Deliberately not passive/background — a plain PWA (especially on iOS
@@ -224,6 +224,39 @@ lets the whole app be redecorated later without rebuilding it:
 - **The Station Cat** — a small rule-based companion whose mood reflects
   recent activity (tasks, habits, health logs) — purely cosmetic, no new
   storage.
+- **Ghost Days** — a fuller "on this day across the years" view than the
+  Dashboard/Daily Paper snippet: adds contact birthdays, recipes cooked, and
+  tasks/assignments completed on this date in past years, on top of the
+  original milestones/places/books sources.
+- **Conversation Starters** — pick a contact, get openers drawn from several
+  contexts (relationship, shared tags, an upcoming birthday, your own notes
+  on them), plus a general fallback list.
+- **Theme-from-Photo** — pick a gallery photo or upload one, extract a small
+  accent palette via canvas pixel quantization, click a swatch to apply it as
+  the app's accent color (alongside the built-in brass/teal/garnet presets).
+- **Dream Journal** — entries plus recurring-pattern detection: a
+  word-frequency scan across every entry's body/tags surfacing what keeps
+  recurring across your dreams.
+- **Rabbit Hole Journal** — research tangents with freeform notes and a
+  running list of links, active/resolved status.
+- **The Almanac** — long-horizon correlations between curated stat pairs
+  (sleep vs. habits kept, sleep vs. tasks completed, workout minutes vs.
+  sleep) via Pearson correlation, with a "not enough data yet" floor so a
+  number never shows on too thin a sample.
+- **Life as Music** — a short ambient pad progression generated from your own
+  numbers: one chord per life area (tasks done, habit check-ins, books
+  finished, recipes cooked, places visited, contacts), root/quality derived
+  deterministically from each area's count. Reuses the existing Web Audio
+  synth engine (Chords module) — no new audio code.
+- **Library of Babel** — a story-based reading library, one shelf per
+  language pack: write or paste in short graded stories with an optional
+  translation/gloss, read them in-app, mark as read. **This fully replaced
+  the Languages module's old Lessons tab** (grammar explainers) — removed at
+  your request once Library of Babel existed, rather than keeping two
+  half-satisfying ways to learn reading/grammar side by side. The
+  `languageLessons` data store, its API exports, and its global-search
+  entries were all removed together (verified via a fresh-profile test that
+  search doesn't break for anyone who never had that store).
 
 ### Still to build 📋
 - **Multi-user accounts** — email + password sign-up/sign-in (alongside the
@@ -254,15 +287,8 @@ lets the whole app be redecorated later without rebuilding it:
 - **QR Airgap Sync** — sync between your two devices via QR codes, no
   internet or account needed. Needs a sync-protocol design decision, same
   category as Drive sync.
-- **Dream Journal** (with recurring-pattern detection), **Rabbit Hole
-  Journal** (research tangents), **Conversation Starter generator**, **Ghost
-  Days** (ambient "on this day" expansion), **The Almanac** (long-horizon
-  personal stat correlations), **Life as Music** (generative soundtrack from
-  your data, reusing the Chords synth engine), **Library of Babel**
-  (story-based reading library, replacing the Lessons tab), **Theme-from-
-  photo** (generate an accent palette from a gallery photo) — all planned,
-  none started; all look like routine builds (no architecture decision
-  needed) except where noted above.
+- **Geofenced notes-to-self on Places** — the one remaining routine-build
+  idea not yet done.
 
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you

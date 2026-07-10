@@ -92,9 +92,12 @@ export const STORES = [
     { name: 'cardId', keyPath: 'cardId' },
     { name: 'date', keyPath: 'date' },
   ] },
-  { name: 'languageLessons', keyPath: 'id', indexes: [
-    { name: 'packId', keyPath: 'packId' },
-  ] },
+  // languageLessons was retired along with the Languages module's Lessons
+  // tab, replaced by the Library of Babel module. Removed from the schema
+  // list (not just unused) so new installs never create it and global
+  // search's SEARCH_FIELDS/SEARCH_MODULE_ROUTE (js/data/api.js) no longer
+  // reference it either -- leaving it in either place while removed here
+  // would throw "object store not found" for any browser that never had it.
 
   { name: 'chordProgressions', keyPath: 'id' },
 

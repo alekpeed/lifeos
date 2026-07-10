@@ -129,7 +129,6 @@ export const LanguagePacks = entities.languagePacks;
 export const LanguageDecks = entities.languageDecks;
 export const LanguageCards = entities.languageCards;
 export const LanguageReviewLogs = entities.languageReviewLogs;
-export const LanguageLessons = entities.languageLessons;
 export const ChordProgressions = entities.chordProgressions;
 export const ChordSkills = entities.chordSkills;
 export const ChordDrillLogs = entities.chordDrillLogs;
@@ -568,7 +567,6 @@ const SEARCH_FIELDS = {
   milestones: (r) => r.title,
   habits: (r) => r.name,
   languageDecks: (r) => r.name,
-  languageLessons: (r) => r.title,
   chordProgressions: (r) => r.name,
   albums: (r) => r.name,
 };
@@ -577,7 +575,7 @@ const SEARCH_MODULE_ROUTE = {
   tasks: 'tasks', places: 'places', links: 'links', semesters: 'education', courses: 'education',
   assignments: 'education', bills: 'finance', subscriptions: 'finance', books: 'books',
   recipes: 'recipes', documents: 'documents', contacts: 'contacts', milestones: 'milestones',
-  habits: 'habits', languageDecks: 'languages', languageLessons: 'languages',
+  habits: 'habits', languageDecks: 'languages',
   chordProgressions: 'chords', albums: 'photos',
 };
 
