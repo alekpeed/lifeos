@@ -1,7 +1,9 @@
 -- Life OS -- Supabase schema (Sharebox v2 + future push/Telegram scaffolding)
 --
--- NOT YET RUN against the live project. Paste this into the Supabase
--- dashboard's SQL Editor once supabase-config.js has real credentials.
+-- Already applied to the live project (ukqdbxxhxxafbcnkmskg) -- this file
+-- reflects the current, working schema. Can be re-run via the Supabase
+-- Management API's database/query endpoint (POST /v1/projects/{ref}/database/query)
+-- using a personal access token, no need to paste into the dashboard SQL Editor.
 -- Designed to work under EITHER auth strategy under discussion (Google
 -- sign-in or magic-link email) -- both populate Supabase's built-in
 -- auth.users table identically, so nothing here depends on that choice.
