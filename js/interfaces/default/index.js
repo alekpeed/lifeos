@@ -185,7 +185,11 @@ function requestRender(route) {
 }
 
 async function renderRoute(route) {
-  return requestRender(route);
+  // Only called on an actual navigation (hash change), never for a same-page
+  // re-render (habit ticks, etc. go through requestRender/scheduleRerender
+  // directly) -- so it's the right and only place to reset scroll position.
+  await requestRender(route);
+  window.scrollTo({ top: 0 });
 }
 
 function scheduleRerender() {
