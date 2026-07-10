@@ -13,8 +13,12 @@
 //     // Build persistent chrome (nav, header) into `container`. `ctx` is the
 //     // ONLY doorway to the rest of the app — see shell.js for its shape.
 //     // Interfaces must never import js/data/db.js or js/data/schema.js,
-//     // and must never import another interface. Data access goes through
-//     // ctx.data (js/data/api.js) exclusively.
+//     // and must never import another interface's entry module or chrome.
+//     // The one sanctioned shared surface is js/interfaces/view-library.js
+//     // (the canonical module-view map): views are pure (canvas, ctx,
+//     // rerender) functions, so any interface may host them inside its own
+//     // chrome. Data access goes through ctx.data (js/data/api.js)
+//     // exclusively.
 //     async mount(container, ctx) {},
 //
 //     // Called by the shell after mount and again on every route change.

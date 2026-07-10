@@ -9,11 +9,15 @@ actually does, or is explicitly marked as reserved for a module that
 doesn't exist yet. Nothing here is decoration with no function behind it —
 that's the one hard rule carried over from the source concept.
 
-Status: **planned, not started.** Building the actual interface is Tier 2
-work (interface-registry design) per the model-switching protocol — flag
-the switch before writing `js/interfaces/vespera/` code. This doc is the
-reference to build from once that happens, and once core module
-build-out is further along (see `PROJECT_SPEC.md` §5).
+Status: **v1 built** (2026-07-10, Fable+high, flagged and confirmed per
+protocol). `js/interfaces/vespera/` implements the Hub (nine district
+plaques + Central Directory), district door screens, travel transitions,
+and Spaces hosting the canonical module views (shared via
+`js/interfaces/view-library.js`) inside station chrome. The hub expects
+its concourse art at `js/interfaces/vespera/img/hub.jpg` and paints a
+pure-CSS starfield until that file is uploaded — art is atmosphere, never
+load-bearing. Remaining from this spec: per-district room art (the ~16
+other images) and richer per-space chrome.
 
 ## Navigation shape
 

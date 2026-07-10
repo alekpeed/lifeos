@@ -5,49 +5,8 @@
 // growing pile of unrelated view code.
 
 import { registerInterface } from '../registry.js';
+import { VIEWS } from '../view-library.js';
 import { el } from './dom.js';
-import { renderDashboard } from './views/dashboard.js';
-import { renderPaper } from './views/paper.js';
-import { renderSettings } from './views/settings.js';
-import { renderTasks } from './views/tasks.js';
-import { renderPlaces } from './views/places.js';
-import { renderLinks } from './views/links.js';
-import { renderEducation } from './views/education.js';
-import { renderBooks } from './views/books.js';
-import { renderRecipes } from './views/recipes.js';
-import { renderFinance } from './views/finance.js';
-import { renderDocuments } from './views/documents.js';
-import { renderContacts } from './views/contacts.js';
-import { renderMilestones } from './views/milestones.js';
-import { renderSearch } from './views/search.js';
-import { renderTools } from './views/tools.js';
-import { renderHabits } from './views/habits.js';
-import { renderHealth } from './views/health.js';
-import { renderPhotos } from './views/photos.js';
-import { renderLanguages } from './views/languages.js';
-import { renderChords } from './views/chords.js';
-import { renderSharebox } from './views/sharebox.js';
-import { renderMuseum } from './views/museum.js';
-import { renderTimeCapsules } from './views/timecapsules.js';
-import { renderCollections } from './views/collections.js';
-import { renderPacking } from './views/packing.js';
-import { renderQuartermaster } from './views/quartermaster.js';
-import { renderSkillTree } from './views/skilltree.js';
-import { renderEntropy } from './views/entropy.js';
-import { renderStationCat } from './views/stationcat.js';
-import { renderGhostDays } from './views/ghostdays.js';
-import { renderStarters } from './views/starters.js';
-import { renderThemeFromPhoto } from './views/themefromphoto.js';
-import { renderDreamJournal } from './views/dreamjournal.js';
-import { renderRabbitHoles } from './views/rabbitholes.js';
-import { renderAlmanac } from './views/almanac.js';
-import { renderLifeAsMusic } from './views/lifeasmusic.js';
-import { renderKnowledge } from './views/knowledge.js';
-import { renderOrrery } from './views/orrery.js';
-import { renderTimeMachine } from './views/timemachine.js';
-import { renderQrSync } from './views/qrsync.js';
-import { renderAssistant } from './views/assistant.js';
-import { renderIdeas } from './views/ideas.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -114,50 +73,8 @@ function renderPlaceholder(canvas, moduleId) {
   );
 }
 
-const VIEWS = {
-  dashboard: renderDashboard,
-  paper: renderPaper,
-  settings: renderSettings,
-  tasks: renderTasks,
-  places: renderPlaces,
-  links: renderLinks,
-  education: renderEducation,
-  books: renderBooks,
-  recipes: renderRecipes,
-  finance: renderFinance,
-  documents: renderDocuments,
-  contacts: renderContacts,
-  milestones: renderMilestones,
-  search: renderSearch,
-  tools: renderTools,
-  habits: renderHabits,
-  health: renderHealth,
-  photos: renderPhotos,
-  languages: renderLanguages,
-  chords: renderChords,
-  sharebox: renderSharebox,
-  museum: renderMuseum,
-  timecapsules: renderTimeCapsules,
-  collections: renderCollections,
-  packing: renderPacking,
-  quartermaster: renderQuartermaster,
-  skilltree: renderSkillTree,
-  entropy: renderEntropy,
-  stationcat: renderStationCat,
-  ghostdays: renderGhostDays,
-  starters: renderStarters,
-  themefromphoto: renderThemeFromPhoto,
-  dreamjournal: renderDreamJournal,
-  rabbitholes: renderRabbitHoles,
-  almanac: renderAlmanac,
-  lifeasmusic: renderLifeAsMusic,
-  knowledge: renderKnowledge,
-  orrery: renderOrrery,
-  timemachine: renderTimeMachine,
-  qrsync: renderQrSync,
-  assistant: renderAssistant,
-  ideas: renderIdeas,
-};
+// VIEWS (module id → render function) comes from the shared view library —
+// see js/interfaces/view-library.js for why it's shared across interfaces.
 
 // --- Interface contract implementation ---
 

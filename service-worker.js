@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v68';
+const CACHE_VERSION = 'lifeos-v69';
 const APP_SHELL = [
   './',
   './index.html',
@@ -27,7 +27,14 @@ const APP_SHELL = [
   './js/data/telegram-client.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
+  './js/interfaces/view-library.js',
   './js/interfaces/default/index.js',
+  // Vespera. Note: img/hub.jpg is deliberately NOT precached -- the art is
+  // optional (CSS paints a fallback), and cache.addAll() rejects the whole
+  // install on any single 404, which would brick offline support whenever
+  // the image hasn't been uploaded. It gets runtime-cached on first view.
+  './js/interfaces/vespera/index.js',
+  './js/interfaces/vespera/style.css',
   './js/interfaces/default/dom.js',
   './js/interfaces/default/knob.js',
   './js/interfaces/default/leaflet-loader.js',

@@ -1,0 +1,101 @@
+// The canonical module-view library. Every module's view is a pure render
+// function `(canvas, ctx, requestRerender) => Promise<void>` that talks to
+// the app exclusively through ctx — which is what makes the views
+// interface-agnostic even though they were born inside Equator: any
+// interface can host them inside its own chrome. This file is the one
+// shared source of truth for "module id → view", consumed by both Equator
+// (js/interfaces/default/) and Vespera (js/interfaces/vespera/), so the
+// registry's "interfaces never import each other" rule holds — both import
+// this neutral library instead of reaching into one another.
+//
+// The view files themselves still live under default/views/ (moving 40+
+// files would churn every import and service-worker path for zero
+// behavioral gain); what's shared is this map, not Equator's chrome.
+
+import { renderDashboard } from './default/views/dashboard.js';
+import { renderPaper } from './default/views/paper.js';
+import { renderSettings } from './default/views/settings.js';
+import { renderTasks } from './default/views/tasks.js';
+import { renderPlaces } from './default/views/places.js';
+import { renderLinks } from './default/views/links.js';
+import { renderEducation } from './default/views/education.js';
+import { renderBooks } from './default/views/books.js';
+import { renderRecipes } from './default/views/recipes.js';
+import { renderFinance } from './default/views/finance.js';
+import { renderDocuments } from './default/views/documents.js';
+import { renderContacts } from './default/views/contacts.js';
+import { renderMilestones } from './default/views/milestones.js';
+import { renderSearch } from './default/views/search.js';
+import { renderTools } from './default/views/tools.js';
+import { renderHabits } from './default/views/habits.js';
+import { renderHealth } from './default/views/health.js';
+import { renderPhotos } from './default/views/photos.js';
+import { renderLanguages } from './default/views/languages.js';
+import { renderChords } from './default/views/chords.js';
+import { renderSharebox } from './default/views/sharebox.js';
+import { renderMuseum } from './default/views/museum.js';
+import { renderTimeCapsules } from './default/views/timecapsules.js';
+import { renderCollections } from './default/views/collections.js';
+import { renderPacking } from './default/views/packing.js';
+import { renderQuartermaster } from './default/views/quartermaster.js';
+import { renderSkillTree } from './default/views/skilltree.js';
+import { renderEntropy } from './default/views/entropy.js';
+import { renderStationCat } from './default/views/stationcat.js';
+import { renderGhostDays } from './default/views/ghostdays.js';
+import { renderStarters } from './default/views/starters.js';
+import { renderThemeFromPhoto } from './default/views/themefromphoto.js';
+import { renderDreamJournal } from './default/views/dreamjournal.js';
+import { renderRabbitHoles } from './default/views/rabbitholes.js';
+import { renderAlmanac } from './default/views/almanac.js';
+import { renderLifeAsMusic } from './default/views/lifeasmusic.js';
+import { renderKnowledge } from './default/views/knowledge.js';
+import { renderOrrery } from './default/views/orrery.js';
+import { renderTimeMachine } from './default/views/timemachine.js';
+import { renderQrSync } from './default/views/qrsync.js';
+import { renderAssistant } from './default/views/assistant.js';
+import { renderIdeas } from './default/views/ideas.js';
+
+export const VIEWS = {
+  dashboard: renderDashboard,
+  paper: renderPaper,
+  settings: renderSettings,
+  tasks: renderTasks,
+  places: renderPlaces,
+  links: renderLinks,
+  education: renderEducation,
+  books: renderBooks,
+  recipes: renderRecipes,
+  finance: renderFinance,
+  documents: renderDocuments,
+  contacts: renderContacts,
+  milestones: renderMilestones,
+  search: renderSearch,
+  tools: renderTools,
+  habits: renderHabits,
+  health: renderHealth,
+  photos: renderPhotos,
+  languages: renderLanguages,
+  chords: renderChords,
+  sharebox: renderSharebox,
+  museum: renderMuseum,
+  timecapsules: renderTimeCapsules,
+  collections: renderCollections,
+  packing: renderPacking,
+  quartermaster: renderQuartermaster,
+  skilltree: renderSkillTree,
+  entropy: renderEntropy,
+  stationcat: renderStationCat,
+  ghostdays: renderGhostDays,
+  starters: renderStarters,
+  themefromphoto: renderThemeFromPhoto,
+  dreamjournal: renderDreamJournal,
+  rabbitholes: renderRabbitHoles,
+  almanac: renderAlmanac,
+  lifeasmusic: renderLifeAsMusic,
+  knowledge: renderKnowledge,
+  orrery: renderOrrery,
+  timemachine: renderTimeMachine,
+  qrsync: renderQrSync,
+  assistant: renderAssistant,
+  ideas: renderIdeas,
+};

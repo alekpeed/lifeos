@@ -1,0 +1,346 @@
+/* Vespera — spatial interface chrome.
+   The @import pulls in Equator's stylesheet so hosted module views keep
+   their full styling: every mer-* rule there is scoped under
+   [data-interface='default'], which Vespera's content well opts into via a
+   data-interface="default" wrapper attribute (attribute selectors match any
+   ancestor). Vespera's own chrome uses vsp-* under [data-interface='vespera']
+   so the two skins can't bleed into each other. */
+@import url('../default/style.css');
+
+[data-interface='vespera'] .vsp-root {
+  min-height: 100vh;
+  background:
+    radial-gradient(1px 1px at 12% 22%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 12%, rgba(255, 255, 255, 0.5) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 55% 68%, rgba(200, 220, 255, 0.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 32% 84%, rgba(255, 255, 255, 0.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 55%, rgba(255, 255, 255, 0.5) 50%, transparent 51%),
+    linear-gradient(180deg, #05060f 0%, #0b0d22 55%, #141033 100%);
+  color: #dfe6ff;
+}
+
+/* --- Hub (Grand Concourse) --- */
+
+[data-interface='vespera'] .vsp-hub {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 100vh;
+  overflow: hidden;
+  /* The generated concourse art, layered over a gradient fallback: if
+     img/hub.jpg doesn't exist (yet), the gradients below still paint and
+     every plaque still works — the art is atmosphere, not load-bearing. */
+  background-image:
+    url('img/hub.jpg'),
+    radial-gradient(ellipse at 50% 30%, rgba(124, 96, 255, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 110%, rgba(64, 220, 255, 0.25) 0%, transparent 60%),
+    linear-gradient(180deg, #070818 0%, #10122e 60%, #1a1440 100%);
+  background-size: cover, auto, auto, auto;
+  background-position: center;
+  transition: transform 0.45s ease-in, opacity 0.45s ease-in;
+}
+
+[data-interface='vespera'] .vsp-hub.is-depart {
+  transform: scale(2.1);
+  opacity: 0;
+}
+
+[data-interface='vespera'] .vsp-masthead {
+  position: absolute;
+  top: 2.5%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+}
+
+[data-interface='vespera'] .vsp-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.6vw, 2.2rem);
+  letter-spacing: 0.55em;
+  text-indent: 0.55em; /* recenters despite letter-spacing on the last glyph */
+  color: #eef2ff;
+}
+
+[data-interface='vespera'] .vsp-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: clamp(0.6rem, 1.1vw, 0.85rem);
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(160, 210, 255, 0.75);
+}
+
+[data-interface='vespera'] .vsp-plaque-layer {
+  position: absolute;
+  inset: 0;
+}
+
+[data-interface='vespera'] .vsp-plaque {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 19.5%;
+  min-height: 9%;
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  cursor: pointer;
+  color: #e8f4ff;
+  background: rgba(6, 10, 26, 0.72);
+  border: 1px solid rgba(84, 225, 255, 0.55);
+  border-radius: 0.4rem;
+  box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
+  backdrop-filter: blur(2px);
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+[data-interface='vespera'] .vsp-plaque:hover,
+[data-interface='vespera'] .vsp-plaque:focus-visible {
+  border-color: rgba(140, 245, 255, 0.95);
+  box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
+  transform: scale(1.04);
+}
+
+[data-interface='vespera'] .vsp-plaque--left { left: 2.5%; }
+[data-interface='vespera'] .vsp-plaque--right { right: 2.5%; }
+[data-interface='vespera'] .vsp-plaque--center {
+  left: 50%;
+  bottom: 3.5%;
+  transform: translateX(-50%);
+  width: 24%;
+  justify-content: center;
+}
+[data-interface='vespera'] .vsp-plaque--center:hover,
+[data-interface='vespera'] .vsp-plaque--center:focus-visible {
+  transform: translateX(-50%) scale(1.04);
+}
+
+[data-interface='vespera'] .vsp-plaque-icon {
+  font-size: 1.15rem;
+  filter: drop-shadow(0 0 6px rgba(120, 220, 255, 0.8));
+}
+
+[data-interface='vespera'] .vsp-plaque-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+[data-interface='vespera'] .vsp-plaque-name {
+  font-size: clamp(0.62rem, 1.05vw, 0.9rem);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-interface='vespera'] .vsp-plaque-tag {
+  font-size: clamp(0.55rem, 0.85vw, 0.75rem);
+  color: rgba(170, 215, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Central Directory --- */
+
+[data-interface='vespera'] .vsp-directory {
+  padding: 0.6rem 1rem 1.4rem;
+  text-align: center;
+}
+
+[data-interface='vespera'] .vsp-dir-toggle {
+  background: transparent;
+  border: 1px solid rgba(124, 96, 255, 0.5);
+  color: rgba(200, 190, 255, 0.9);
+  border-radius: 0.4rem;
+  padding: 0.4rem 1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+[data-interface='vespera'] .vsp-dir-list {
+  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+
+[data-interface='vespera'] .vsp-directory.is-open .vsp-dir-list { display: flex; }
+
+[data-interface='vespera'] .vsp-dir-item {
+  color: #cfe2ff;
+  text-decoration: none;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid rgba(84, 225, 255, 0.25);
+  border-radius: 999px;
+  background: rgba(10, 14, 34, 0.6);
+}
+
+[data-interface='vespera'] .vsp-dir-item:hover {
+  border-color: rgba(140, 245, 255, 0.8);
+}
+
+/* --- District + Space screens --- */
+
+[data-interface='vespera'] .vsp-screen {
+  animation: vspArrive 0.35s ease-out;
+  min-height: 100vh;
+}
+
+@keyframes vspArrive {
+  from { opacity: 0; transform: scale(1.03); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+[data-interface='vespera'] .vsp-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1rem;
+  background: rgba(7, 10, 26, 0.85);
+  border-bottom: 1px solid rgba(84, 225, 255, 0.35);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  backdrop-filter: blur(6px);
+}
+
+[data-interface='vespera'] .vsp-back {
+  background: transparent;
+  border: 1px solid rgba(84, 225, 255, 0.5);
+  color: #bfeaff;
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+}
+
+[data-interface='vespera'] .vsp-back:hover { border-color: rgba(140, 245, 255, 0.95); }
+
+[data-interface='vespera'] .vsp-bar-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #eef4ff;
+}
+
+[data-interface='vespera'] .vsp-bar-tag {
+  font-size: 0.75rem;
+  color: rgba(170, 215, 255, 0.7);
+  letter-spacing: 0.08em;
+}
+
+[data-interface='vespera'] .vsp-doors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1rem;
+  padding: 2rem;
+  max-width: 70rem;
+  margin: 0 auto;
+}
+
+[data-interface='vespera'] .vsp-door {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.6rem;
+  padding: 1.2rem 1rem 0.9rem;
+  cursor: pointer;
+  color: #e8f4ff;
+  text-align: left;
+  background: linear-gradient(180deg, rgba(16, 22, 52, 0.9), rgba(9, 12, 30, 0.9));
+  border: 1px solid rgba(84, 225, 255, 0.4);
+  border-radius: 0.5rem;
+  box-shadow: 0 0 16px rgba(64, 160, 255, 0.15);
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+[data-interface='vespera'] .vsp-door:hover,
+[data-interface='vespera'] .vsp-door:focus-visible {
+  border-color: rgba(140, 245, 255, 0.95);
+  box-shadow: 0 0 28px rgba(90, 225, 255, 0.45);
+  transform: translateY(-2px);
+}
+
+[data-interface='vespera'] .vsp-door-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+[data-interface='vespera'] .vsp-door-enter {
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(120, 230, 255, 0.85);
+}
+
+/* --- Hosted module content --- */
+
+/* The well keeps Equator's ink-navy canvas feel inside the station so the
+   hosted views read on their intended background, not Vespera's deep space. */
+[data-interface='vespera'] .vsp-content {
+  background: var(--color-bg);
+  min-height: calc(100vh - 3rem);
+}
+
+[data-interface='vespera'] .vsp-content .mer-canvas {
+  padding: var(--space-lg) var(--space-xl);
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+/* --- Mobile: plaques become a stacked grid under a banner crop --- */
+
+@media (max-width: 700px) {
+  [data-interface='vespera'] .vsp-hub {
+    aspect-ratio: auto;
+    min-height: 100vh;
+    padding: 5.5rem 0.8rem 1.2rem;
+  }
+
+  [data-interface='vespera'] .vsp-plaque-layer {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  [data-interface='vespera'] .vsp-plaque,
+  [data-interface='vespera'] .vsp-plaque--center {
+    position: static;
+    width: auto;
+    transform: none;
+    justify-content: flex-start;
+  }
+
+  [data-interface='vespera'] .vsp-plaque--center { grid-column: 1 / -1; }
+
+  [data-interface='vespera'] .vsp-plaque:hover { transform: none; }
+
+  [data-interface='vespera'] .vsp-plaque-name,
+  [data-interface='vespera'] .vsp-plaque-tag { white-space: normal; }
+
+  [data-interface='vespera'] .vsp-content .mer-canvas {
+    padding: var(--space-md);
+  }
+
+  [data-interface='vespera'] .vsp-doors { padding: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-interface='vespera'] .vsp-hub { transition: none; }
+  [data-interface='vespera'] .vsp-screen { animation: none; }
+}
