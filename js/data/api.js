@@ -461,6 +461,12 @@ const SETTING_DEFAULTS = {
   // incoming messages. Both empty until you add them in Settings.
   telegramBotToken: '',
   telegramChatId: '',
+  // Daily Paper's "On the Docket" checkmarks -- which local calendar date
+  // they belong to, so a stale array from a previous day is ignored instead
+  // of carried over (the reset "at midnight" is just this date no longer
+  // matching todayStr(), computed from the device's own local clock).
+  paperChecklistDate: '',
+  paperChecklistChecked: [],
 };
 
 export const Settings = {

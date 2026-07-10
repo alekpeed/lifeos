@@ -1358,6 +1358,10 @@
   font-size: 0.78rem;
   white-space: nowrap;
 }
+[data-interface='default'] .mer-paper-list li.is-checked .mer-paper-item-title {
+  text-decoration: line-through;
+  color: #8a8375;
+}
 [data-interface='default'] .mer-paper-flag {
   background: #1a1a1a;
   color: #f7f4ec;

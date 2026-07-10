@@ -47,7 +47,28 @@ function sectionCard(title, body) {
   ]);
 }
 
-function agendaSection(feed) {
+// Reads the checklist fresh from Settings and drops it if it belongs to a
+// previous local day -- this *is* the "resets at midnight" behavior, since
+// todayStr() is always the device's own local date, never UTC.
+async function currentChecklist(ctx) {
+  const [date, checked] = await Promise.all([
+    ctx.data.Settings.get('paperChecklistDate'),
+    ctx.data.Settings.get('paperChecklistChecked'),
+  ]);
+  return new Set(date === todayStr() ? checked : []);
+}
+
+async function toggleChecklistItem(ctx, key, isChecked, rerender) {
+  const set = await currentChecklist(ctx);
+  if (isChecked) set.add(key); else set.delete(key);
+  await Promise.all([
+    ctx.data.Settings.set('paperChecklistDate', todayStr()),
+    ctx.data.Settings.set('paperChecklistChecked', [...set]),
+  ]);
+  rerender();
+}
+
+function agendaSection(feed, checkedSet, ctx, rerender, forPrint) {
   if (!feed.length) {
     return sectionCard('On the Docket', el('p', {
       class: 'mer-paper-none',
@@ -56,7 +77,19 @@ function agendaSection(feed) {
   }
   const list = el('ul', { class: 'mer-paper-list' });
   for (const item of feed) {
-    list.append(el('li', { class: item.overdue ? 'is-overdue' : '' }, [
+    const key = `${item.module}:${item.id}`;
+    const isChecked = checkedSet.has(key);
+    let box;
+    if (forPrint) {
+      box = el('span', { class: isChecked ? 'mer-paper-tick is-done' : 'mer-paper-tick' });
+    } else {
+      box = el('input', {
+        type: 'checkbox', checked: isChecked,
+        onclick: (e) => toggleChecklistItem(ctx, key, e.target.checked, rerender),
+      });
+    }
+    list.append(el('li', { class: [item.overdue ? 'is-overdue' : '', isChecked ? 'is-checked' : ''].filter(Boolean).join(' ') }, [
+      box,
       item.overdue ? el('span', { class: 'mer-paper-flag', text: 'OVERDUE' }) : null,
       el('span', { class: 'mer-paper-kicker', text: MODULE_LABEL[item.module] || item.module }),
       el('span', { class: 'mer-paper-item-title', text: item.title || '(untitled)' }),
@@ -157,10 +190,10 @@ function almanacSection({ feed, habits, logsByHabit, sleep }) {
 }
 
 function buildPaper(data, forPrint, ctx, rerender) {
-  const { feed, onThisDay, habits, logsByHabit, sleep, weather } = data;
+  const { feed, onThisDay, habits, logsByHabit, sleep, weather, checkedSet } = data;
   const sections = [
     weatherSection(weather, ctx),
-    agendaSection(feed),
+    agendaSection(feed, checkedSet, ctx, rerender, forPrint),
     onThisDaySection(onThisDay),
     habitsSection(habits, logsByHabit, ctx, rerender, forPrint),
     pickSection(ctx, rerender, forPrint),
@@ -206,13 +239,14 @@ export async function renderPaper(canvas, ctx, rerender) {
     ctx.data.Settings.get('billDueSoonDays'),
     ctx.data.Settings.get('documentExpiryDays'),
   ]);
-  const [feed, onThisDay, habits, allLogs, healthLogs, weather] = await Promise.all([
+  const [feed, onThisDay, habits, allLogs, healthLogs, weather, checkedSet] = await Promise.all([
     ctx.data.getDueSoonFeed(7, billDays, docDays),
     ctx.data.getOnThisDay(),
     ctx.data.Habits.list(),
     ctx.data.HabitLogs.list(),
     ctx.data.HealthLogs.list(),
     ctx.data.getWeather(),
+    currentChecklist(ctx),
   ]);
   if (state.surprise === undefined) state.surprise = await ctx.data.getSurpriseMe();
 
@@ -226,7 +260,7 @@ export async function renderPaper(canvas, ctx, rerender) {
     .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
   const sleep = latest ? latest.sleepHours : null;
 
-  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather };
+  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, checkedSet };
 
   canvas.append(el('h1', { text: 'Daily Paper' }));
   const telegramStatus = el('span', { class: 'mer-muted' });
