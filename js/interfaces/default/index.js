@@ -44,6 +44,7 @@ import { renderAlmanac } from './views/almanac.js';
 import { renderLifeAsMusic } from './views/lifeasmusic.js';
 import { renderKnowledge } from './views/knowledge.js';
 import { renderOrrery } from './views/orrery.js';
+import { renderTimeMachine } from './views/timemachine.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -149,6 +150,7 @@ const VIEWS = {
   lifeasmusic: renderLifeAsMusic,
   knowledge: renderKnowledge,
   orrery: renderOrrery,
+  timemachine: renderTimeMachine,
 };
 
 // --- Interface contract implementation ---
