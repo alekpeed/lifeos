@@ -21,23 +21,49 @@
 
 /* --- Hub (Grand Concourse) --- */
 
+/* The hub is the full-bleed viewport window; the stage inside it is the
+   box the art and the plaques actually share. The stage is locked to the
+   image's exact aspect ratio and letterboxed (never cropped): hotspot
+   percentages are measurements of the image, so the art must render at
+   exactly the stage's size for them to line up. The previous structure
+   (aspect-ratio + max-height + background-size: cover on one element)
+   cover-cropped the art whenever the window wasn't exactly 16:9, drifting
+   every hotspot off its sign -- and passed testing only because the test
+   viewport happened to be exactly 16:9. */
 [data-interface='vespera'] .vsp-hub {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   max-height: 100vh;
   overflow: hidden;
-  /* The generated concourse art, layered over a gradient fallback: if
-     img/hub.png doesn't exist (yet), the gradients below still paint and
-     every plaque still works — the art is atmosphere, not load-bearing. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(124, 96, 255, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 110%, rgba(64, 220, 255, 0.25) 0%, transparent 60%),
+    linear-gradient(180deg, #070818 0%, #10122e 60%, #1a1440 100%);
+  transition: transform 0.45s ease-in, opacity 0.45s ease-in;
+}
+
+[data-interface='vespera'] .vsp-stage {
+  position: relative;
+  height: 100%;
+  max-width: 100%;
+  /* The real pixel dimensions of img/hub.png -- update if the art's
+     canvas size ever changes. */
+  aspect-ratio: 1672 / 941;
+  /* The concourse art at exact fit (100% 100%, undistorted because the
+     stage matches its ratio), over a gradient fallback: if img/hub.png
+     doesn't exist (yet) the gradients still paint and every plaque still
+     works — the art is atmosphere, not load-bearing. */
   background-image:
     url('img/hub.png'),
     radial-gradient(ellipse at 50% 30%, rgba(124, 96, 255, 0.35) 0%, transparent 55%),
     radial-gradient(ellipse at 50% 110%, rgba(64, 220, 255, 0.25) 0%, transparent 60%),
     linear-gradient(180deg, #070818 0%, #10122e 60%, #1a1440 100%);
-  background-size: cover, auto, auto, auto;
+  background-size: 100% 100%, auto, auto, auto;
   background-position: center;
-  transition: transform 0.45s ease-in, opacity 0.45s ease-in;
 }
 
 [data-interface='vespera'] .vsp-hub.is-depart {
@@ -306,14 +332,20 @@
   [data-interface='vespera'] .vsp-hub {
     aspect-ratio: auto;
     min-height: 100vh;
+    max-height: none;
+    display: block;
     padding: 5.5rem 0.8rem 1.2rem;
-    /* The photo is a wide establishing shot -- it doesn't work cropped
-       behind a stacked list, so mobile drops back to the gradient-only
-       fallback rather than an oddly-zoomed sliver of the concourse. */
-    background-image:
-      radial-gradient(ellipse at 50% 30%, rgba(124, 96, 255, 0.35) 0%, transparent 55%),
-      radial-gradient(ellipse at 50% 110%, rgba(64, 220, 255, 0.25) 0%, transparent 60%),
-      linear-gradient(180deg, #070818 0%, #10122e 60%, #1a1440 100%);
+  }
+
+  /* The photo is a wide establishing shot -- it doesn't work cropped
+     behind a stacked list, so mobile drops the art (and the stage's
+     aspect lock) entirely: the stage becomes a plain block and the hub's
+     gradient shows through. */
+  [data-interface='vespera'] .vsp-stage {
+    position: static;
+    height: auto;
+    aspect-ratio: auto;
+    background: none;
   }
 
   [data-interface='vespera'] .vsp-plaque-layer {

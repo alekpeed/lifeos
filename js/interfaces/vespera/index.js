@@ -153,15 +153,23 @@ function depart(district, plaqueEl, hub) {
 
 function renderHub(root) {
   const hub = el('div', { class: 'vsp-hub' });
+  // The stage is what the art and the plaques share: a box locked to the
+  // image's exact aspect ratio, letterboxed inside the hub. Hotspot
+  // percentages only mean anything measured against the image itself --
+  // putting them on a container that cover-crops the art (the previous
+  // structure) silently breaks alignment at any viewport that isn't
+  // exactly 16:9, which is most real browser windows.
+  const stage = el('div', { class: 'vsp-stage' });
   const layer = el('div', { class: 'vsp-plaque-layer' });
   for (const d of DISTRICTS) layer.append(plaque(d, hub));
-  hub.append(
+  stage.append(
     el('header', { class: 'vsp-masthead' }, [
       el('h1', { class: 'vsp-title', text: 'VESPERA' }),
       el('p', { class: 'vsp-subtitle', text: 'Grand Concourse' }),
     ]),
     layer,
   );
+  hub.append(stage);
   root.append(hub);
 
   // Central Directory: the flat every-module list, so nothing is
