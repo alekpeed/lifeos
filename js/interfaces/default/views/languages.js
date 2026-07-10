@@ -1,13 +1,16 @@
-import { el, todayStr } from '../dom.js';
+import { el, todayStr, fmtDate } from '../dom.js';
 
 let state = {
   packId: null,
+  tab: 'decks', // decks | library
   showAddPackForm: false,
   deckId: null,
   studying: false,
   studyQueue: [],
   studyIndex: 0,
   showAnswer: false,
+  storyId: null,
+  showTranslation: false,
 };
 
 // Starter content keyed by language code -- the format any future pack can
@@ -72,7 +75,7 @@ function packTabsBar(packs, ctx, rerender) {
   const tabs = el('div', { class: 'mer-toggle-group' }, [
     ...packs.map((pack) => el('button', {
       type: 'button', class: state.packId === pack.id ? 'is-active' : '', text: pack.name,
-      onclick: () => { state.packId = pack.id; state.deckId = null; rerender(); },
+      onclick: () => { state.packId = pack.id; state.deckId = null; state.storyId = null; rerender(); },
     })),
     el('button', { type: 'button', text: '+ Add language', onclick: () => { state.showAddPackForm = !state.showAddPackForm; rerender(); } }),
   ]);
@@ -248,13 +251,109 @@ async function renderDecksTab(container, ctx, rerender, pack) {
   }
 }
 
+// --- Library (Library of Babel: story-based reading, merged in from its own
+// module -- Decks and reading practice both belong under "how you learn a
+// language," so they live together now instead of two separate modules) ---
+
+const LEVELS = ['beginner', 'intermediate', 'advanced'];
+
+async function renderReader(container, story, ctx, rerender) {
+  container.append(el('div', { class: 'mer-detail-header' }, [
+    el('h2', { text: story.title || '(untitled)' }),
+    el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.storyId = null; rerender(); } }),
+  ]));
+  container.append(el('div', { class: 'mer-toolbar' }, [
+    el('span', { class: 'mer-chip', text: story.level || 'beginner' }),
+    story.readAt ? el('span', { class: 'mer-chip', text: `Read ${fmtDate(story.readAt)}` }) : null,
+  ].filter(Boolean)));
+
+  container.append(el('div', { class: 'mer-babel-story', text: story.body || '' }));
+
+  if (story.translation) {
+    const toggle = el('button', {
+      type: 'button', class: 'mer-reader-btn', text: state.showTranslation ? 'Hide translation' : 'Show translation',
+      onclick: () => { state.showTranslation = !state.showTranslation; rerender(); },
+    });
+    container.append(toggle);
+    if (state.showTranslation) container.append(el('div', { class: 'mer-babel-translation', text: story.translation }));
+  }
+
+  container.append(el('div', { class: 'mer-toolbar' }, [
+    !story.readAt
+      ? el('button', { type: 'button', text: 'Mark as read', onclick: async () => { await ctx.data.LibraryStories.update(story.id, { readAt: todayStr() }); rerender(); } })
+      : el('button', { type: 'button', text: 'Mark unread', onclick: async () => { await ctx.data.LibraryStories.update(story.id, { readAt: null }); rerender(); } }),
+    el('button', {
+      type: 'button', class: 'mer-danger-btn', text: 'Delete',
+      onclick: async () => { if (confirm('Delete this story?')) { await ctx.data.LibraryStories.remove(story.id); state.storyId = null; rerender(); } },
+    }),
+  ]));
+}
+
+function storyCard(story, onSelect) {
+  const card = el('div', { class: 'mer-place-card' }, [
+    el('div', { class: 'mer-place-body' }, [
+      el('div', { class: 'mer-place-name', text: story.title || '(untitled)' }),
+      el('div', { class: 'mer-place-meta' }, [
+        el('span', { class: 'mer-chip', text: story.level || 'beginner' }),
+        story.readAt ? el('span', { class: 'mer-chip', text: '✓ Read' }) : null,
+      ].filter(Boolean)),
+    ]),
+  ]);
+  card.addEventListener('click', () => onSelect(story.id));
+  return card;
+}
+
+function newStoryForm(packId, ctx, rerender) {
+  const titleIn = el('input', { type: 'text', placeholder: 'Title' });
+  const levelIn = el('select', {}, LEVELS.map((l) => el('option', { value: l, text: l })));
+  const bodyIn = el('textarea', { rows: '6', placeholder: 'Story text (in the language you\'re learning)…' });
+  const translationIn = el('textarea', { rows: '4', placeholder: 'Translation/gloss (optional)…' });
+  return el('div', { class: 'mer-person-form' }, [
+    titleIn, levelIn, bodyIn, translationIn,
+    el('button', {
+      type: 'button', text: 'Add story',
+      onclick: async () => {
+        if (!bodyIn.value.trim()) return;
+        await ctx.data.LibraryStories.create({
+          packId, title: titleIn.value.trim(), level: levelIn.value,
+          body: bodyIn.value.trim(), translation: translationIn.value.trim(), readAt: null,
+        });
+        rerender();
+      },
+    }),
+  ]);
+}
+
+async function renderLibraryTab(container, ctx, rerender, pack) {
+  if (state.storyId) {
+    const story = await ctx.data.LibraryStories.get(state.storyId);
+    if (story) { await renderReader(container, story, ctx, rerender); return; }
+    state.storyId = null;
+  }
+
+  container.append(el('div', { class: 'mer-subsection-label', text: 'Add a story' }));
+  container.append(newStoryForm(pack.id, ctx, rerender));
+
+  const stories = await ctx.data.LibraryStories.byIndex('packId', pack.id);
+  container.append(el('div', { class: 'mer-subsection-label', text: `Shelf (${stories.length})` }));
+  if (!stories.length) {
+    container.append(el('p', { class: 'mer-muted', text: 'No stories on this shelf yet.' }));
+    return;
+  }
+  const grid = el('div', { class: 'mer-place-grid' });
+  for (const story of stories) grid.append(storyCard(story, (id) => { state.storyId = id; state.showTranslation = false; rerender(); }));
+  container.append(grid);
+}
+
 // --- Root ---
 
-// Lessons used to live here as a second tab (grammar explainers you wrote
-// yourself). Retired in favor of Library of Babel -- a story-based reading
-// library, its own module -- rather than keeping two half-satisfying ways
-// to learn grammar/reading side by side. Decks (flashcard SRS) is the only
-// tab now, so there's nothing left to switch between.
+function subTabsBar(rerender) {
+  return el('div', { class: 'mer-toggle-group' }, [
+    el('button', { type: 'button', class: state.tab === 'decks' ? 'is-active' : '', text: 'Decks', onclick: () => { state.tab = 'decks'; rerender(); } }),
+    el('button', { type: 'button', class: state.tab === 'library' ? 'is-active' : '', text: 'Library', onclick: () => { state.tab = 'library'; rerender(); } }),
+  ]);
+}
+
 export async function renderLanguages(canvas, ctx, rerender) {
   canvas.append(el('h1', { text: 'Languages' }));
 
@@ -275,5 +374,7 @@ export async function renderLanguages(canvas, ctx, rerender) {
     return;
   }
 
-  await renderDecksTab(canvas, ctx, rerender, pack);
+  canvas.append(el('div', { class: 'mer-toolbar' }, [subTabsBar(rerender)]));
+  if (state.tab === 'decks') await renderDecksTab(canvas, ctx, rerender, pack);
+  else await renderLibraryTab(canvas, ctx, rerender, pack);
 }

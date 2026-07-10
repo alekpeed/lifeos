@@ -28,7 +28,6 @@ export const MODULES = [
   { id: 'starters', label: 'Conversation Starters', group: 'life' },
   { id: 'rabbitholes', label: 'Rabbit Holes', group: 'life' },
   { id: 'languages', label: 'Languages', group: 'study' },
-  { id: 'libraryofbabel', label: 'Library of Babel', group: 'study' },
   { id: 'chords', label: 'Chords', group: 'study' },
   { id: 'lifeasmusic', label: 'Life as Music', group: 'study' },
   { id: 'habits', label: 'Habits', group: 'health' },
