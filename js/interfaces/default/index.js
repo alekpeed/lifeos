@@ -47,6 +47,7 @@ import { renderOrrery } from './views/orrery.js';
 import { renderTimeMachine } from './views/timemachine.js';
 import { renderQrSync } from './views/qrsync.js';
 import { renderAssistant } from './views/assistant.js';
+import { renderIdeas } from './views/ideas.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -155,6 +156,7 @@ const VIEWS = {
   timemachine: renderTimeMachine,
   qrsync: renderQrSync,
   assistant: renderAssistant,
+  ideas: renderIdeas,
 };
 
 // --- Interface contract implementation ---

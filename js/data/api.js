@@ -228,6 +228,7 @@ export const LibraryStories = entities.libraryStories;
 export const PlaceNotes = entities.placeNotes;
 export const AiConversations = entities.aiConversations;
 export const AiMessages = entities.aiMessages;
+export const Ideas = entities.ideas;
 
 // --- Attachments: binary assets (place photos, bill/document PDFs, ...) ---
 // Stored locally as a Blob for now; the Drive sync layer will populate

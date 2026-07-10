@@ -21,10 +21,11 @@ export const DB_NAME = 'lifeos';
 // freeform practice-session log, separate from the auto-tracked drill
 // stats). v11 adds `aiConversations`/`aiMessages` (the AI Assistant module --
 // the API key itself lives in Settings, device-local and unsynced; the
-// conversation text is regular synced data like everything else). runUpgrade
+// conversation text is regular synced data like everything else). v12 adds
+// `ideas` (a broad, unstructured capture-anything notes list). runUpgrade
 // in db.js creates any store that doesn't yet exist, so these bumps are
 // non-destructive for existing data.
-export const DB_VERSION = 11;
+export const DB_VERSION = 12;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -263,6 +264,14 @@ export const STORES = [
   ] },
   { name: 'aiMessages', keyPath: 'id', indexes: [
     { name: 'conversationId', keyPath: 'conversationId' },
+  ] },
+
+  // Ideas: a deliberately unstructured catch-all for anything worth jotting
+  // down before it evaporates -- no folders/tags/module to pick first, since
+  // that upfront categorization is exactly the friction that keeps stray
+  // thoughts from getting captured at all.
+  { name: 'ideas', keyPath: 'id', indexes: [
+    { name: 'archived', keyPath: 'archived' },
   ] },
 ];
 

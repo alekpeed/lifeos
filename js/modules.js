@@ -9,6 +9,7 @@ export const MODULES = [
   { id: 'orrery', label: 'Orrery', group: 'core' },
   { id: 'paper', label: 'Daily Paper', group: 'core' },
   { id: 'tasks', label: 'Tasks', group: 'core' },
+  { id: 'ideas', label: 'Ideas', group: 'core' },
   { id: 'places', label: 'Places', group: 'core' },
   { id: 'links', label: 'Links', group: 'core' },
   { id: 'education', label: 'Education', group: 'core' },
