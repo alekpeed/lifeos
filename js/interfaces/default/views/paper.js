@@ -13,7 +13,9 @@ import { el, fmtDate, todayStr } from '../dom.js';
 
 // undefined = not fetched yet; null = fetched, nothing to suggest. Kept at
 // module scope so re-renders (ticking a habit) don't re-roll the pick.
-let state = { surprise: undefined };
+// editorialGenerating/editorialError track the AI editorial's in-flight
+// state across re-renders (see ensureEditorial below).
+let state = { surprise: undefined, editorialGenerating: false, editorialError: null };
 
 const MODULE_LABEL = { tasks: 'Task', bills: 'Bill', assignments: 'Assignment', documents: 'Document' };
 
@@ -164,6 +166,54 @@ function pickSection(ctx, rerender, forPrint) {
   return sectionCard("Editor's Pick", wrap);
 }
 
+function editorialSection(editorial, forPrint, onRegenerate) {
+  if (!editorial) return null; // no API key set -- section omitted entirely
+  let body;
+  if (editorial.loading) {
+    body = el('p', { class: 'mer-paper-none', text: 'Writing…' });
+  } else if (editorial.error) {
+    body = el('p', { class: 'mer-paper-none mer-sync-error', text: editorial.error });
+  } else if (editorial.text) {
+    body = el('p', { class: 'mer-paper-pick' }, [document.createTextNode(editorial.text)]);
+  } else {
+    return null;
+  }
+  const wrap = el('div', {}, [body]);
+  if (!forPrint && !editorial.loading) {
+    wrap.append(el('button', { type: 'button', class: 'mer-reader-btn', text: editorial.error ? 'Retry' : '🔄 Regenerate', onclick: onRegenerate }));
+  }
+  return sectionCard('The Editorial', wrap);
+}
+
+// Kicks off one Claude call (fire-and-forget from the caller's perspective)
+// and caches the result under today's local date -- same reset-by-date
+// pattern as the checklist. Guarded by state.editorialGenerating so a
+// re-render mid-generation (e.g. ticking a habit while it's writing)
+// doesn't fire a second concurrent call.
+async function ensureEditorial(ctx, data, rerender) {
+  state.editorialGenerating = true;
+  try {
+    const text = await ctx.data.generateDailyEditorial(buildDigestText(data));
+    await Promise.all([
+      ctx.data.Settings.set('paperEditorialDate', todayStr()),
+      ctx.data.Settings.set('paperEditorialText', text),
+    ]);
+  } catch (err) {
+    state.editorialError = err.message || String(err);
+  }
+  state.editorialGenerating = false;
+  rerender();
+}
+
+async function regenerateEditorial(ctx, rerender) {
+  await Promise.all([
+    ctx.data.Settings.set('paperEditorialDate', ''),
+    ctx.data.Settings.set('paperEditorialText', ''),
+  ]);
+  state.editorialError = null;
+  rerender();
+}
+
 function weatherSection(weather, ctx) {
   if (!weather) return null;
   const { icon, label } = ctx.data.describeWeatherCode(weather.code);
@@ -190,8 +240,9 @@ function almanacSection({ feed, habits, logsByHabit, sleep }) {
 }
 
 function buildPaper(data, forPrint, ctx, rerender) {
-  const { feed, onThisDay, habits, logsByHabit, sleep, weather, checkedSet } = data;
+  const { feed, onThisDay, habits, logsByHabit, sleep, weather, checkedSet, editorial } = data;
   const sections = [
+    editorialSection(editorial, forPrint, () => regenerateEditorial(ctx, rerender)),
     weatherSection(weather, ctx),
     agendaSection(feed, checkedSet, ctx, rerender, forPrint),
     onThisDaySection(onThisDay),
@@ -207,8 +258,9 @@ function buildPaper(data, forPrint, ctx, rerender) {
 // Plain-text version of the paper's core content, for the "Send to Telegram"
 // button. Deliberately a summary, not a full transcription of buildPaper().
 function buildDigestText(data) {
-  const { feed, habits, logsByHabit, weather } = data;
+  const { feed, habits, logsByHabit, weather, editorial } = data;
   const lines = [`Life OS — ${longDate()}`];
+  if (editorial?.text) lines.push('', editorial.text);
   if (weather) lines.push(`${weather.tempF != null ? Math.round(weather.tempF) + '°F' : ''}`.trim());
   if (feed.length) {
     lines.push('', 'On the docket:');
@@ -261,6 +313,27 @@ export async function renderPaper(canvas, ctx, rerender) {
   const sleep = latest ? latest.sleepHours : null;
 
   const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, checkedSet };
+
+  // AI editorial: only if a key is set at all (omitted entirely otherwise).
+  // Cached per local date; a cache miss kicks off one Claude call and shows
+  // "Writing…" until it resolves, rather than blocking the rest of the page.
+  const apiKey = await ctx.data.Settings.get('anthropicApiKey');
+  if (apiKey) {
+    const [edDate, edText] = await Promise.all([
+      ctx.data.Settings.get('paperEditorialDate'),
+      ctx.data.Settings.get('paperEditorialText'),
+    ]);
+    if (edDate === todayStr() && edText) {
+      data.editorial = { text: edText, loading: false, error: null };
+    } else if (state.editorialGenerating) {
+      data.editorial = { text: '', loading: true, error: null };
+    } else if (state.editorialError) {
+      data.editorial = { text: '', loading: false, error: state.editorialError };
+    } else {
+      data.editorial = { text: '', loading: true, error: null };
+      ensureEditorial(ctx, data, rerender);
+    }
+  }
 
   canvas.append(el('h1', { text: 'Daily Paper' }));
   const telegramStatus = el('span', { class: 'mer-muted' });

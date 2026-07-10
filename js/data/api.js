@@ -470,6 +470,11 @@ const SETTING_DEFAULTS = {
   // matching todayStr(), computed from the device's own local clock).
   paperChecklistDate: '',
   paperChecklistChecked: [],
+  // Daily Paper's AI-written editorial -- cached per local date (same
+  // pattern as the checklist above) so opening the paper repeatedly in one
+  // day doesn't re-call Claude each time. Empty/blank until generated.
+  paperEditorialDate: '',
+  paperEditorialText: '',
 };
 
 export const Settings = {
@@ -773,6 +778,25 @@ export function adjustLevel(levels, currentLevel, feedback) {
   if (feedback === 'easy') return levels[Math.min(levels.length - 1, i + 1)];
   if (feedback === 'hard') return levels[Math.max(0, i - 1)];
   return levels[i];
+}
+
+// --- Daily Paper: AI-written editorial (Claude, direct browser-to-API,
+// same per-device key as the Assistant chat -- no sponsored/shared path). ---
+// Caching (which local date it belongs to) lives in Settings and is handled
+// by the caller (views/paper.js), same as the checklist above -- this
+// function just does the one Claude call given an already-built summary.
+
+export async function generateDailyEditorial(summary) {
+  const [apiKey, model] = await Promise.all([
+    Settings.get('anthropicApiKey'),
+    Settings.get('anthropicModel'),
+  ]);
+  const prompt = `Here is today's data from someone's personal life-tracking app:\n\n${summary}\n\n`
+    + `Write a short, warm editorial paragraph (3-5 sentences) for the top of their daily paper. `
+    + `Reference specifics naturally rather than just listing them back. Second person ("you"). `
+    + `Plain prose, no headers, no markdown, no bullet points.`;
+  const { text } = await sendClaudeMessage(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 400 });
+  return text.trim();
 }
 
 // --- Telegram (send-only) ---
