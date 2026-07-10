@@ -36,6 +36,18 @@ async function applyPreferences() {
   root.dataset.theme = settings.theme;
   root.dataset.density = settings.density;
   root.dataset.accent = settings.accent;
+  // A photo-derived accent (Theme-from-Photo) is stored as raw hex colors
+  // rather than a CSS-selector preset name, so it's applied as an inline
+  // override on top of whichever [data-accent] preset matched above --
+  // present only when accent === 'custom'; cleared otherwise so switching
+  // back to a preset doesn't leave a stale inline color behind.
+  if (settings.accent === 'custom' && settings.customAccent) {
+    root.style.setProperty('--accent', settings.customAccent.accent);
+    root.style.setProperty('--accent-strong', settings.customAccent.accentStrong);
+  } else {
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--accent-strong');
+  }
 }
 
 // --- Interface lifecycle ---

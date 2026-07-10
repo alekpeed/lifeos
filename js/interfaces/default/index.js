@@ -35,6 +35,9 @@ import { renderQuartermaster } from './views/quartermaster.js';
 import { renderSkillTree } from './views/skilltree.js';
 import { renderEntropy } from './views/entropy.js';
 import { renderStationCat } from './views/stationcat.js';
+import { renderGhostDays } from './views/ghostdays.js';
+import { renderStarters } from './views/starters.js';
+import { renderThemeFromPhoto } from './views/themefromphoto.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -131,6 +134,9 @@ const VIEWS = {
   skilltree: renderSkillTree,
   entropy: renderEntropy,
   stationcat: renderStationCat,
+  ghostdays: renderGhostDays,
+  starters: renderStarters,
+  themefromphoto: renderThemeFromPhoto,
 };
 
 // --- Interface contract implementation ---

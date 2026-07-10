@@ -1758,3 +1758,95 @@
   font-family: var(--font-display);
   margin-bottom: var(--space-xs);
 }
+
+/* --- Ghost Days --- */
+
+[data-interface='default'] .mer-ghostday-empty {
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-top: var(--space-md);
+}
+
+[data-interface='default'] .mer-ghostday-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+[data-interface='default'] .mer-ghostday-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+[data-interface='default'] .mer-ghostday-kind {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: 0 0 auto;
+  width: 6.5rem;
+}
+
+[data-interface='default'] .mer-ghostday-text {
+  flex: 1 1 auto;
+}
+
+[data-interface='default'] .mer-ghostday-when {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* --- Conversation Starters --- */
+
+[data-interface='default'] .mer-starter-list {
+  list-style: none;
+  margin: 0 0 var(--space-md);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+[data-interface='default'] .mer-starter-list li {
+  padding: var(--space-sm);
+  background: var(--color-bg-raised);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Theme from Photo --- */
+
+[data-interface='default'] .mer-themephoto-preview {
+  max-width: 16rem;
+  max-height: 16rem;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+[data-interface='default'] .mer-swatch-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+[data-interface='default'] .mer-swatch {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  cursor: pointer;
+  padding: 0;
+}
+
+[data-interface='default'] .mer-swatch:hover {
+  border-color: var(--accent);
+}
