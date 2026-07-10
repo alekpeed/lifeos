@@ -181,6 +181,12 @@ export const HabitLogs = entities.habitLogs;
 export const HealthLogs = entities.healthLogs;
 export const Albums = entities.albums;
 export const Attachments = entities.attachments;
+export const TimeCapsules = entities.timeCapsules;
+export const Collections = entities.collections;
+export const CollectionItems = entities.collectionItems;
+export const PackingLists = entities.packingLists;
+export const PackingItems = entities.packingItems;
+export const InventoryItems = entities.inventoryItems;
 
 // --- Attachments: binary assets (place photos, bill/document PDFs, ...) ---
 // Stored locally as a Blob for now; the Drive sync layer will populate

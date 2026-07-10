@@ -28,6 +28,13 @@ import { renderLanguages } from './views/languages.js';
 import { renderChords } from './views/chords.js';
 import { renderSharebox } from './views/sharebox.js';
 import { renderMuseum } from './views/museum.js';
+import { renderTimeCapsules } from './views/timecapsules.js';
+import { renderCollections } from './views/collections.js';
+import { renderPacking } from './views/packing.js';
+import { renderQuartermaster } from './views/quartermaster.js';
+import { renderSkillTree } from './views/skilltree.js';
+import { renderEntropy } from './views/entropy.js';
+import { renderStationCat } from './views/stationcat.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -117,6 +124,13 @@ const VIEWS = {
   chords: renderChords,
   sharebox: renderSharebox,
   museum: renderMuseum,
+  timecapsules: renderTimeCapsules,
+  collections: renderCollections,
+  packing: renderPacking,
+  quartermaster: renderQuartermaster,
+  skilltree: renderSkillTree,
+  entropy: renderEntropy,
+  stationcat: renderStationCat,
 };
 
 // --- Interface contract implementation ---

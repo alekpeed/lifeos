@@ -12,10 +12,11 @@ export const DB_NAME = 'lifeos';
 // propagate between devices instead of resurrecting from the other device's
 // snapshot). v3 adds `chordSkills`/`chordDrillLogs` for the chord practice
 // drills. v4 adds the Sharebox stores (`shareboxItems`, `shareboxFiles`,
-// `_shareboxTombstones`) for the shared-with-a-friend space. runUpgrade in
-// db.js creates any store that doesn't yet exist, so these bumps are
-// non-destructive for existing data.
-export const DB_VERSION = 4;
+// `_shareboxTombstones`) for the shared-with-a-friend space. v5 adds
+// `timeCapsules`, `collections`/`collectionItems`, `packingLists`/
+// `packingItems`, and `inventoryItems`. runUpgrade in db.js creates any store
+// that doesn't yet exist, so these bumps are non-destructive for existing data.
+export const DB_VERSION = 5;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -165,6 +166,31 @@ export const STORES = [
     { name: 'itemId', keyPath: 'itemId' },
   ] },
   { name: '_shareboxTombstones', keyPath: 'key' },
+
+  // Time Capsules: a sealed note to your future self. `sealedUntil` is a date
+  // string; the view treats anything with sealedUntil <= today as openable.
+  { name: 'timeCapsules', keyPath: 'id', indexes: [
+    { name: 'sealedUntil', keyPath: 'sealedUntil' },
+  ] },
+
+  // Collections Tracker: any freeform collection (records, cards, whatever)
+  // and its items. Deliberately schemaless beyond name/notes/tags -- no
+  // per-collection custom fields, to keep this simple.
+  { name: 'collections', keyPath: 'id' },
+  { name: 'collectionItems', keyPath: 'id', indexes: [
+    { name: 'collectionId', keyPath: 'collectionId' },
+  ] },
+
+  // Trip Packing Lists: one list per trip, items checked off as packed.
+  { name: 'packingLists', keyPath: 'id' },
+  { name: 'packingItems', keyPath: 'id', indexes: [
+    { name: 'listId', keyPath: 'listId' },
+  ] },
+
+  // Quartermaster: physical inventory + a lending ledger (who has it, since when).
+  { name: 'inventoryItems', keyPath: 'id', indexes: [
+    { name: 'lentTo', keyPath: 'lentTo' },
+  ] },
 ];
 
 export const STORE_NAMES = STORES.map((s) => s.name);

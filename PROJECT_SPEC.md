@@ -176,27 +176,93 @@ lets the whole app be redecorated later without rebuilding it:
   core and full IO path are tested; the one unverifiable-without-you piece is
   the live Calendar consent grant (same as Drive was — you approve a Calendar
   permission the first time you connect).
-- **Sharebox** — a small space shared with one friend: links, notes, and
-  files, each with an urgency flag (normal / soon / urgent) and a "posted by"
-  name (no accounts — each device sets its own). It syncs through a Google
-  Drive folder you both pick via the Google Picker, using the same proven
-  engine as Drive sync (per-device snapshots, last-write-wins, tombstones for
-  deletes) — just pointed at the shared folder. Kept completely walled off
-  from the rest of your data: separate stores, its own tombstone log, and file
-  binaries that never enter your private Drive. Add things anytime (they live
-  locally first) and they reconcile with your friend's copy on sync. The
-  engine and full IO path are tested against a fake Picker + Drive; the live
-  pieces you verify are the one-time Picker folder-grant (you did the Picker
-  API key + shared the "Sharebox" folder) and your friend doing the same on
-  her end.
+- **Sharebox** — a small space shared with a friend, now on **two backends
+  side by side**, switchable in-app:
+  - **v2 (Supabase, primary)** — real accounts (Google sign-in today), a
+    "space" you're both members of, Postgres as the source of truth with Row
+    Level Security for access control, and Realtime subscriptions so a
+    friend's post appears live — no manual "Sync now." Supports more than one
+    space (create/join anytime, a picker when you have several). Confirmed
+    working end-to-end (creating spaces, posting links/notes/files, live
+    updates) after a Row-Level-Security bug was root-caused and fixed — the
+    fix is documented in `sql/supabase-sharebox-rls-fix.sql`.
+  - **v1 (Drive, fallback)** — the original: syncs through a Google Drive
+    folder you both pick, same proven per-device-snapshot/last-write-wins/
+    tombstone engine as personal Drive sync. Kept only until v2 is fully
+    trusted; the plan is to retire it once that's certain.
+- **The Daily Paper** — a newspaper-style one-page daily brief, composed
+  entirely from data the app already has: your due-soon agenda (overdue items
+  flagged), an "On This Day" section, a tickable habit checklist for today, an
+  Editor's Pick (a random want-to-go place / unread book / untried recipe),
+  and a small Almanac of quick counts. A 🖨️ Print button lays the same
+  content into a print-only sheet and hands it to the browser's
+  print-to-PDF — no new library, reuses the same approach as the Chords
+  practice sheet. Not yet AI-written (see "Still to build" below).
+- **Museum of Finished Things** — a trophy-case view over completions already
+  scattered across other modules: done tasks/assignments, finished books
+  (with covers), milestones, recipes ranked by times cooked, archived
+  projects, and each habit's longest-ever streak (not just the current one).
+- **Time Capsules** — write a note to your future self and seal it until a
+  date you choose; it stays hidden (shown as "🔒 Sealed" with a countdown)
+  until that date passes, then surfaces on its own.
+- **Collections Tracker** — track any freeform collection you keep (records,
+  cards, whatever) and the items in it — deliberately generic, no
+  per-collection custom fields.
+- **Trip Packing Lists** — one checklist per trip, with built-in templates
+  (weekend / beach / ski / international) that bulk-add common items in one
+  click, plus freeform items and a packed-count tally.
+- **Quartermaster** — a physical inventory with a lending ledger: what you
+  own, and who has it right now if you lent it out (with a one-click "mark
+  returned").
+- **Skill Trees** — an RPG-style character sheet computed entirely from real
+  activity (tasks/assignments completed, habit check-ins, books finished,
+  chord concepts mastered, language reviews done) — five skills, each with a
+  level and an XP bar, no new storage.
+- **Entropy** — a neglect score per module (and one overall), based on how
+  long it's been since each area's data was last touched — sorted most-
+  neglected first, so you can see at a glance what's been ignored.
+- **The Station Cat** — a small rule-based companion whose mood reflects
+  recent activity (tasks, habits, health logs) — purely cosmetic, no new
+  storage.
 
 ### Still to build 📋
+- **Multi-user accounts** — email + password sign-up/sign-in (alongside the
+  existing Google sign-in), password recovery, and per-user data isolation —
+  the foundation for every person having their own private space, AI Daily
+  Paper, and notifications. Sharebox v2's Supabase backend and RLS pattern is
+  the proven foundation this builds on.
+- **AI-powered Daily Paper** — turn the current list-based brief into an
+  actual AI-written editorial (Claude/GPT/Gemini), once accounts exist to
+  scope it per user.
+- **Per-user notifications** — depends on accounts existing first.
 - **AI assistant modules** (Claude/ChatGPT/Gemini panels) + cross-LLM relay +
   **Telegram integration** — plumbing/UI can be built without your real API
   keys/bot token, but live testing needs them, and direct browser-to-API
   calls may hit CORS restrictions that won't be known until tested live.
   Treat as "needs a follow-up session with you present," not a solo build.
 - **AI-written yearly recap** — needs a working AI module first (see above)
+- **Knowledge Graph** — link anything to anything (a task to a contact, a
+  book to a milestone...) and browse it as a radial web of connections.
+  Needs a real graph-rendering/layout design decision before building —
+  same category as the Harmony Map.
+- **The Orrery** — the dashboard reimagined as a solar system, each life area
+  a planet whose size/speed/wobble reflects how that area is doing. Needs an
+  orbital-layout design decision before building.
+- **Time Machine** — scrub a slider back through time and see the app as it
+  looked on a past day. Needs a real design decision about reconstructing
+  historical snapshots from data that was never versioned.
+- **QR Airgap Sync** — sync between your two devices via QR codes, no
+  internet or account needed. Needs a sync-protocol design decision, same
+  category as Drive sync.
+- **Dream Journal** (with recurring-pattern detection), **Rabbit Hole
+  Journal** (research tangents), **Conversation Starter generator**, **Ghost
+  Days** (ambient "on this day" expansion), **The Almanac** (long-horizon
+  personal stat correlations), **Life as Music** (generative soundtrack from
+  your data, reusing the Chords synth engine), **Library of Babel**
+  (story-based reading library, replacing the Lessons tab), **Theme-from-
+  photo** (generate an accent palette from a gallery photo) — all planned,
+  none started; all look like routine builds (no architecture decision
+  needed) except where noted above.
 
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you
@@ -234,12 +300,27 @@ Everything below came out of talking through what would actually feel
 
 ## 5. Rough order of what's left
 
-1. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
-2. AI-written recap (needs an AI module first)
-3. Additional interfaces (Vespera, LCARS)
-4. Sharebox companion app / friend-mesh (the in-app Sharebox itself is built)
-5. Someday: a standalone music-practice app (progressions, play-along,
+1. Multi-user accounts (email/password + password recovery), building on
+   Sharebox v2's now-fixed Supabase/RLS foundation
+2. AI-powered Daily Paper + per-user notifications (depend on accounts)
+3. The four Tier-2 "needs a design decision first" features: Knowledge Graph,
+   The Orrery, Time Machine, QR Airgap Sync
+4. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
+5. AI-written yearly recap (needs an AI module first)
+6. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+   Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of
+   Babel, Theme-from-photo)
+7. Additional interfaces (Vespera, LCARS)
+8. Sharebox companion app / friend-mesh (the in-app Sharebox itself is built)
+9. Someday: a standalone music-practice app (progressions, play-along,
    melody-aware voicing) — deliberately out of LifeOS scope
+
+**Open architecture decision:** whether the rest of the app's modules (tasks,
+places, finance, etc. — currently local-first in IndexedDB) eventually move
+to the same Supabase backend as Sharebox v2/accounts ("full cloud"), stay
+local with just accounts+Sharebox+notifications on Supabase ("hybrid"), or
+that decision gets deferred further (the phased approach, currently in
+progress: prove accounts+AI Paper first, decide the rest later).
 
 Nothing here is fixed in stone — the plan has already flexed a few times
 this week, and that's expected. This doc is meant to be a snapshot you can
