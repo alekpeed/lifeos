@@ -7,7 +7,7 @@ const SUB_FREQS = [
 ];
 
 let state = {
-  tab: 'bills', // bills | subscriptions | spend
+  tab: 'bills', // bills | subscriptions | spend | crypto
   billCategoryFilter: 'all',
   showPaid: false,
   selectedBillId: null,
@@ -358,6 +358,66 @@ async function renderSpendSummary(container, ctx) {
   );
 }
 
+// --- Crypto tickers (CoinGecko, keyless) ---
+
+function cryptoRow(coinId, price, ctx, watchlist, rerender) {
+  const change = price?.usd_24h_change;
+  const changeText = typeof change === 'number' ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '—';
+  return el('div', { class: 'mer-person-card' }, [
+    el('div', { class: 'mer-person-info' }, [
+      el('div', { class: 'mer-person-name', text: coinId }),
+      el('div', { class: 'mer-person-meta', text: price ? `${money(price.usd)} · ${changeText} (24h)` : 'No price yet' }),
+    ]),
+    el('button', {
+      type: 'button', class: 'mer-icon-btn', text: '×',
+      onclick: async () => {
+        await ctx.data.Settings.set('cryptoWatchlist', watchlist.filter((c) => c !== coinId));
+        await ctx.data.Settings.set('cryptoPricesCache', null);
+        rerender();
+      },
+    }),
+  ]);
+}
+
+async function renderCryptoTab(area, ctx, rerender) {
+  const watchlist = await ctx.data.Settings.get('cryptoWatchlist');
+  const prices = await ctx.data.getCryptoPrices();
+  const cache = await ctx.data.Settings.get('cryptoPricesCache');
+
+  const statusText = cache?.fetchedAt
+    ? `Prices (CoinGecko) as of ${new Date(cache.fetchedAt).toLocaleString()}.`
+    : 'No prices fetched yet.';
+
+  area.append(el('p', { class: 'mer-muted' }, [
+    document.createTextNode(statusText + ' '),
+    el('button', {
+      type: 'button', class: 'mer-icon-btn', text: '🔄 Refresh',
+      onclick: async () => { await ctx.data.Settings.set('cryptoPricesCache', null); rerender(); },
+    }),
+  ]));
+
+  if (!watchlist.length) {
+    area.append(el('p', { class: 'mer-muted', text: 'No coins on your watchlist yet.' }));
+  } else {
+    area.append(el('div', { class: 'mer-people-list' },
+      watchlist.map((coinId) => cryptoRow(coinId, prices[coinId], ctx, watchlist, rerender))));
+  }
+
+  const newCoin = el('input', { type: 'text', placeholder: 'CoinGecko ID (e.g. bitcoin, ethereum, solana)' });
+  const addBtn = el('button', {
+    type: 'button', text: '+ Add coin',
+    onclick: async () => {
+      const id = newCoin.value.trim().toLowerCase();
+      if (!id || watchlist.includes(id)) return;
+      await ctx.data.Settings.set('cryptoWatchlist', [...watchlist, id]);
+      await ctx.data.Settings.set('cryptoPricesCache', null);
+      rerender();
+    },
+  });
+  area.append(el('div', { class: 'mer-person-form' }, [newCoin, addBtn]));
+  area.append(el('p', { class: 'mer-muted', text: 'Coin IDs are CoinGecko\'s slugs, not ticker symbols -- e.g. "bitcoin", not "BTC".' }));
+}
+
 // --- Root ---
 
 function tabsBar(rerender) {
@@ -365,6 +425,7 @@ function tabsBar(rerender) {
     el('button', { type: 'button', class: state.tab === 'bills' ? 'is-active' : '', text: 'Bills', onclick: () => { state.tab = 'bills'; rerender(); } }),
     el('button', { type: 'button', class: state.tab === 'subscriptions' ? 'is-active' : '', text: 'Subscriptions', onclick: () => { state.tab = 'subscriptions'; rerender(); } }),
     el('button', { type: 'button', class: state.tab === 'spend' ? 'is-active' : '', text: 'Yearly Spend', onclick: () => { state.tab = 'spend'; rerender(); } }),
+    el('button', { type: 'button', class: state.tab === 'crypto' ? 'is-active' : '', text: 'Crypto', onclick: () => { state.tab = 'crypto'; rerender(); } }),
   ]);
 }
 
@@ -377,5 +438,6 @@ export async function renderFinance(canvas, ctx, rerender) {
 
   if (state.tab === 'bills') await renderBillsTab(area, ctx, rerender);
   else if (state.tab === 'subscriptions') await renderSubscriptionsTab(area, ctx, rerender);
-  else await renderSpendSummary(area, ctx);
+  else if (state.tab === 'spend') await renderSpendSummary(area, ctx);
+  else await renderCryptoTab(area, ctx, rerender);
 }

@@ -420,6 +420,12 @@ const SETTING_DEFAULTS = {
   // Last-fetched weather, cached so it survives offline/reload; see
   // getWeather() below for the staleness policy.
   weatherCache: null,
+  // Coin IDs (CoinGecko's slugs, e.g. "bitcoin", "ethereum") for the
+  // Finance > Crypto ticker tab. Empty until the user adds one.
+  cryptoWatchlist: [],
+  // Last-fetched prices, cached so the tab still shows something offline;
+  // see getCryptoPrices() below for the staleness policy.
+  cryptoPricesCache: null,
 };
 
 export const Settings = {
@@ -590,6 +596,35 @@ export async function getWeather() {
     return result;
   } catch {
     return sameSpot ? cache : null;
+  }
+}
+
+// --- Crypto price tickers (CoinGecko, keyless). Opt-in via a watchlist of
+// coin IDs; empty watchlist means nothing is fetched. ---
+
+const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price';
+const CRYPTO_STALE_MS = 5 * 60 * 1000;
+
+// Returns { coinId: { usd, usd_24h_change } }, or {} if the watchlist is
+// empty. Never throws -- a fetch failure falls back to the cache.
+export async function getCryptoPrices() {
+  const watchlist = await Settings.get('cryptoWatchlist');
+  if (!watchlist.length) return {};
+
+  const cache = await Settings.get('cryptoPricesCache');
+  const sameList = cache && cache.coins.join(',') === watchlist.join(',');
+  const fresh = sameList && (Date.now() - new Date(cache.fetchedAt).getTime()) < CRYPTO_STALE_MS;
+  if (fresh) return cache.prices;
+
+  try {
+    const url = `${COINGECKO_URL}?ids=${watchlist.map(encodeURIComponent).join(',')}&vs_currencies=usd&include_24hr_change=true`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const prices = await res.json();
+    await Settings.set('cryptoPricesCache', { coins: watchlist, prices, fetchedAt: new Date().toISOString() });
+    return prices;
+  } catch {
+    return sameList ? cache.prices : {};
   }
 }
 
