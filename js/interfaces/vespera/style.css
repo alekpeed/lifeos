@@ -77,76 +77,54 @@
   inset: 0;
 }
 
-/* Desktop: the district name/icon are already painted into the hub image
-   itself, so the button is an invisible hotspot precisely over that
-   painted panel -- clicking the picture's own signage, not a second box
-   drawn on top of it. A faint border makes the clickable area discoverable
-   without hovering (relying on hover alone fails on touch and isn't
-   findable by a mouse user who never happens to pass over it); hover/focus
-   brightens it into a proper glow. See the max-width override below, which
-   turns this same markup into a real visible label on mobile, where there's
-   no image to align a hotspot against. */
+/* Labels are always visible, drawn by the app -- not traced from the
+   background art (see the DISTRICTS comment in index.js for why that
+   approach got abandoned). Every district uses the same glowing-panel
+   chrome regardless of what's behind it. */
 [data-interface='vespera'] .vsp-plaque {
   position: absolute;
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  /* No default width/min-height here on purpose: every district hotspot
-     supplies its own measured width/height inline (index.js), and several
-     are legitimately shorter than the old uniform default was -- a
-     min-height floor would silently override those and throw off the
-     rotation (which pivots around this box's own center). */
   padding: 0.5rem 0.7rem;
   text-align: left;
   cursor: pointer;
-  color: transparent;
-  background: transparent;
-  border: 1px solid rgba(140, 225, 255, 0.16);
+  color: #e8f4ff;
+  background: rgba(6, 10, 26, 0.72);
+  border: 1px solid rgba(84, 225, 255, 0.55);
   border-radius: 0.4rem;
-  box-shadow: none;
-  transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
+  box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
+  backdrop-filter: blur(2px);
+  transition: box-shadow 0.2s, border-color 0.2s, background 0.2s, transform 0.2s;
 }
 
 [data-interface='vespera'] .vsp-plaque:hover,
 [data-interface='vespera'] .vsp-plaque:focus-visible {
-  border-color: rgba(140, 245, 255, 0.85);
-  background: rgba(64, 160, 255, 0.08);
-  box-shadow: 0 0 22px rgba(90, 225, 255, 0.4), inset 0 0 16px rgba(90, 160, 255, 0.15);
+  border-color: rgba(140, 245, 255, 0.95);
+  box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
 }
 
 [data-interface='vespera'] .vsp-plaque-chrome {
-  display: none;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
 }
 
-/* Each district's hotspot is positioned entirely via inline style (left/
-   top/width/height/rotate, computed from its measured hub.png coordinates
-   in index.js) -- no left/right/row helper classes needed anymore, since
-   every sign's position and rotation is individually measured rather than
-   assumed from a repeating grid. */
+/* Each district's box is positioned via inline style (left/top/width/
+   height, from the clean grid in index.js) -- no rotation, no per-sign
+   measurement against any particular background image. */
 
 [data-interface='vespera'] .vsp-plaque--news {
   position: absolute;
   left: 50%;
   bottom: 3.5%;
-  top: auto;
-  width: auto;
-  min-height: 0;
   transform: translateX(-50%);
+  width: 24%;
   justify-content: center;
-  /* No painted counterpart for this one (Station News is added, not part
-     of the source art -- see VESPERA_SPEC.md), so its label stays visible
-     at every width instead of only appearing on hover. */
-  color: #e8f4ff;
-  background: rgba(6, 10, 26, 0.72);
-  border: 1px solid rgba(84, 225, 255, 0.55);
-  box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
-  backdrop-filter: blur(2px);
 }
-[data-interface='vespera'] .vsp-plaque--news .vsp-plaque-chrome { display: flex; }
 [data-interface='vespera'] .vsp-plaque--news:hover,
 [data-interface='vespera'] .vsp-plaque--news:focus-visible {
-  border-color: rgba(140, 245, 255, 0.95);
-  box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
   transform: translateX(-50%) scale(1.04);
 }
 
@@ -358,13 +336,12 @@
     gap: 0.6rem;
   }
 
-  /* No image to hide behind here, so every plaque goes back to being a
-     real visible label -- same markup as desktop, chrome just turns back
-     on. !important is load-bearing here, not decorative: each desktop
-     hotspot carries its measured left/top/width/height/rotate as an
-     inline style (see index.js), which normally outranks any stylesheet
-     rule -- including these -- regardless of media query. Overriding
-     that back to a static, unrotated grid item is exactly the case
+  /* Chrome is already visible on desktop now, so this is just a layout
+     change (grid -> stacked list), not a visibility toggle. !important is
+     still load-bearing, not decorative: each plaque carries its grid
+     position as an inline left/top/width/height style (index.js), which
+     normally outranks any stylesheet rule regardless of media query --
+     overriding that back to a static grid item is exactly the case
      !important exists for. */
   [data-interface='vespera'] .vsp-plaque {
     position: static !important;

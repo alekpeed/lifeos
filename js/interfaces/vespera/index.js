@@ -38,41 +38,44 @@ function el(tag, attrs = {}, children = []) {
   return node;
 }
 
-// The eight districts from the hub image, plus Station News (center floor).
-// Taglines describe what the doors actually open — where the image's
-// painted label drifted from built reality (e.g. "Japanese" before the
-// Languages module generalized, "ChatGPT, Gemini" before they exist), the
-// code label tells the truth and the art keeps its atmosphere.
+// The eight districts, plus Station News (center floor). Taglines describe
+// what the doors actually open -- where the image's painted label (if any)
+// drifts from built reality (e.g. "Japanese" before the Languages module
+// generalized, "ChatGPT, Gemini" before they exist), the code label tells
+// the truth.
 //
-// hotspot: {cx, cy, w, h, rot} -- each measured directly off hub.png
-// (1672x941) by cropping around each sign with a pixel-coordinate grid
-// overlaid and reading the actual icon+text bounds, not assumed from a
-// repeating layout. cx/cy/w/h are percentages of the full image; rot is
-// degrees (CSS rotate() convention, clockwise positive) matching each
-// sign's real tilt from the concourse's perspective -- there is no flat
-// backing panel in the art to trace (the labels float directly on the
-// architecture), so this bounds the readable icon+text cluster itself.
-// See img/README.txt for the crop/measure method if the art is replaced.
+// Labels are drawn by the app, not traced from the art (see the pass this
+// replaced, in git history, for why: pinning invisible hotspots to a
+// perspective-warped painted sign is fragile by construction -- any art
+// change re-breaks every measurement, and "pixel-perfect against one
+// specific image" was never going to survive a second image). This is a
+// clean, deliberately-designed grid instead: even rows, no rotation, sized
+// for legibility -- not measured against any particular background.
+// img/hub.png (or whatever replaces it) is just atmosphere behind these,
+// same as the gradient fallback. See img/README.txt for the brief used to
+// commission blank-plate art that leaves room for this exact grid.
+const ROW_TOPS = [17, 39.5, 62, 84.5];
+const COL = { left: 2, right: 74, width: 24 };
+
 const DISTRICTS = [
   { id: 'ops', name: 'Operations Deck', tagline: 'Tasks & Projects', icon: '📋', modules: ['tasks', 'ideas', 'habits'],
-    hotspot: { cx: 21.1, cy: 19.7, w: 24.2, h: 11.7, rot: 0 } },
+    hotspot: { cx: COL.left + COL.width / 2, cy: ROW_TOPS[0], w: COL.width, h: 10 } },
   { id: 'navbay', name: 'Navigation Bay', tagline: 'Places & Maps', icon: '🧭', modules: ['places', 'packing'],
-    hotspot: { cx: 21.2, cy: 43.8, w: 22.7, h: 11.2, rot: 0 } },
+    hotspot: { cx: COL.left + COL.width / 2, cy: ROW_TOPS[1], w: COL.width, h: 10 } },
   { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', modules: ['links', 'books', 'education', 'knowledge', 'rabbitholes'],
-    hotspot: { cx: 21.1, cy: 64.3, w: 23.0, h: 8.5, rot: 0 } },
+    hotspot: { cx: COL.left + COL.width / 2, cy: ROW_TOPS[2], w: COL.width, h: 10 } },
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents'],
-    hotspot: { cx: 20.8, cy: 83.6, w: 23.6, h: 7.1, rot: 5 } },
+    hotspot: { cx: COL.left + COL.width / 2, cy: ROW_TOPS[3], w: COL.width, h: 10 } },
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos'],
-    hotspot: { cx: 91.4, cy: 24.4, w: 15.9, h: 12.8, rot: -11 } },
+    hotspot: { cx: COL.right + COL.width / 2, cy: ROW_TOPS[0], w: COL.width, h: 10 } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
-    hotspot: { cx: 91.2, cy: 43.3, w: 15.6, h: 12.2, rot: -5 } },
+    hotspot: { cx: COL.right + COL.width / 2, cy: ROW_TOPS[1], w: COL.width, h: 10 } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync'],
-    hotspot: { cx: 85.2, cy: 64.8, w: 16.2, h: 7.4, rot: -2 } },
+    hotspot: { cx: COL.right + COL.width / 2, cy: ROW_TOPS[2], w: COL.width, h: 10 } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant'],
-    hotspot: { cx: 91.1, cy: 83.4, w: 17.1, h: 8.5, rot: 9 } },
-  // No painted counterpart for this one in the source art (added to give
-  // the Dashboard's due-soon feed a hub-level home) -- stays visible/
-  // unrotated rather than pretending to trace a sign that isn't there.
+    hotspot: { cx: COL.right + COL.width / 2, cy: ROW_TOPS[3], w: COL.width, h: 10 } },
+  // Added for Dashboard's due-soon feed to have a hub-level home -- no
+  // expectation of a painted counterpart, so it just sits bottom-center.
   { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', modules: ['paper'], hotspot: null },
 ];
 
@@ -100,21 +103,16 @@ function districtOf(moduleId) {
 
 // --- Hub (Grand Concourse) ---
 
-// On desktop the hub image already has each district's name/icon painted
-// into its own panel, so drawing a second visible label on top of it just
-// doubles up (which is exactly what looked wrong before this pass) --
-// .vsp-plaque-chrome is CSS-hidden at desktop widths and the button itself
-// becomes an invisible hotspot precisely over the painted panel, with a
-// hover/focus glow as the only affordance. On mobile there's no image to
-// align a hotspot against (the hub collapses to a stacked list), so the
-// same chrome becomes the real visible label there via the existing
-// max-width media query -- one markup, two presentations.
+// Labels are always visible, always code-drawn -- no attempt to hide
+// behind or align with whatever's painted into the background image (see
+// the DISTRICTS comment above for why). The background art, whatever it
+// currently is, shows through everywhere these boxes don't cover.
 function plaque(district, hub) {
   const h = district.hotspot;
-  // Station News has no hotspot (no painted sign to trace) -- it's
-  // positioned by its own fixed CSS rule instead (.vsp-plaque--news).
+  // Station News has no hotspot -- positioned by its own fixed CSS rule
+  // instead (.vsp-plaque--news).
   const posStyle = h
-    ? `left:${h.cx}%; top:${h.cy}%; width:${h.w}%; height:${h.h}%; transform: translate(-50%, -50%) rotate(${h.rot}deg);`
+    ? `left:${h.cx}%; top:${h.cy}%; width:${h.w}%; height:${h.h}%; transform: translate(-50%, -50%);`
     : '';
   const btn = el('button', {
     type: 'button',
