@@ -268,6 +268,64 @@ async function renderCalendarSection(canvas, ctx, rerender) {
   canvas.append(row, status);
 }
 
+// --- AI Assistant (Claude, direct browser-to-API) ---
+
+async function renderAiAssistantSection(canvas, ctx, rerender) {
+  const [apiKey, model] = await Promise.all([
+    ctx.data.Settings.get('anthropicApiKey'),
+    ctx.data.Settings.get('anthropicModel'),
+  ]);
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'AI Assistant' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Your own Anthropic API key, used to chat with Claude directly from this browser -- no server in between. Kept device-local (not synced to Drive or the cloud), sent only to api.anthropic.com.' }));
+
+  const keyInput = el('input', { type: 'password', value: apiKey, placeholder: 'sk-ant-…', onchange: (e) => ctx.data.Settings.set('anthropicApiKey', e.target.value.trim()) });
+  const modelInput = el('input', { type: 'text', value: model, placeholder: 'claude-sonnet-5', onchange: (e) => ctx.data.Settings.set('anthropicModel', e.target.value.trim() || 'claude-sonnet-5') });
+
+  canvas.append(
+    el('label', { class: 'mer-setting' }, [el('span', { text: 'Anthropic API key' }), keyInput]),
+    el('label', { class: 'mer-setting' }, [el('span', { text: 'Model' }), modelInput]),
+  );
+}
+
+// --- Telegram (send-only) ---
+
+async function renderTelegramSection(canvas, ctx, rerender) {
+  const [botToken, chatId] = await Promise.all([
+    ctx.data.Settings.get('telegramBotToken'),
+    ctx.data.Settings.get('telegramChatId'),
+  ]);
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Telegram' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Send-only: the app can message you through a bot you create yourself (via @BotFather in Telegram). There\'s no listener for incoming messages -- a static PWA can\'t run one when it\'s not open.' }));
+
+  const tokenInput = el('input', { type: 'password', value: botToken, placeholder: 'Bot token from @BotFather', onchange: (e) => ctx.data.Settings.set('telegramBotToken', e.target.value.trim()) });
+  const chatIdInput = el('input', { type: 'text', value: chatId, placeholder: 'Your chat ID', onchange: (e) => ctx.data.Settings.set('telegramChatId', e.target.value.trim()) });
+
+  canvas.append(
+    el('label', { class: 'mer-setting' }, [el('span', { text: 'Bot token' }), tokenInput]),
+    el('label', { class: 'mer-setting' }, [el('span', { text: 'Chat ID' }), chatIdInput]),
+  );
+
+  const status = el('p', { class: 'mer-muted' });
+  canvas.append(el('div', { class: 'mer-toolbar' }, [
+    el('button', {
+      type: 'button', text: 'Send test message',
+      onclick: async () => {
+        status.textContent = 'Sending…';
+        status.classList.remove('mer-sync-error');
+        try {
+          await ctx.data.sendDigestToTelegram('Life OS: this is a test message. If you got this, Telegram is wired up correctly.');
+          status.textContent = 'Sent! Check Telegram.';
+        } catch (err) {
+          status.textContent = err.message || String(err);
+          status.classList.add('mer-sync-error');
+        }
+      },
+    }),
+  ]), status);
+}
+
 export async function renderSettings(canvas, ctx, rerender) {
   canvas.append(el('h1', { text: 'Settings' }));
   const settings = await ctx.data.Settings.getAll();
@@ -370,4 +428,6 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderAccountSection(canvas, ctx, rerender || (() => {}));
   await renderSyncSection(canvas, ctx, rerender || (() => {}));
   await renderCalendarSection(canvas, ctx, rerender || (() => {}));
+  await renderAiAssistantSection(canvas, ctx, rerender || (() => {}));
+  await renderTelegramSection(canvas, ctx, rerender || (() => {}));
 }

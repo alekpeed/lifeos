@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v58';
+const CACHE_VERSION = 'lifeos-v59';
 const APP_SHELL = [
   './',
   './index.html',
@@ -23,6 +23,8 @@ const APP_SHELL = [
   './js/data/supabase-auth.js',
   './js/data/sharebox-supabase.js',
   './js/data/profile-supabase.js',
+  './js/data/claude-client.js',
+  './js/data/telegram-client.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
   './js/interfaces/default/index.js',
@@ -71,6 +73,7 @@ const APP_SHELL = [
   './js/interfaces/default/views/orrery.js',
   './js/interfaces/default/views/timemachine.js',
   './js/interfaces/default/views/qrsync.js',
+  './js/interfaces/default/views/assistant.js',
   './js/theory/notes.js',
   './js/theory/chords.js',
   './js/theory/voicings.js',

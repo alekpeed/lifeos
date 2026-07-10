@@ -36,6 +36,7 @@ export const MODULES = [
   { id: 'skilltree', label: 'Skill Trees', group: 'health' },
   { id: 'dreamjournal', label: 'Dream Journal', group: 'health' },
   { id: 'almanac', label: 'The Almanac', group: 'health' },
+  { id: 'assistant', label: 'AI Assistant', group: 'utility' },
   { id: 'knowledge', label: 'Knowledge Graph', group: 'utility' },
   { id: 'timemachine', label: 'Time Machine', group: 'utility' },
   { id: 'qrsync', label: 'QR Sync', group: 'utility' },

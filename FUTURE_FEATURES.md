@@ -36,20 +36,22 @@ Tier legend:
   actual AI-written editorial (Claude/GPT/Gemini), once accounts exist to
   scope it per user.
 - 🏗️ **Per-user notifications** — depends on accounts existing first.
-- 🔑 **AI assistant modules** (Claude/ChatGPT/Gemini panels) + cross-LLM
-  relay + **Telegram integration** — plumbing/UI can be built without real
-  API keys/bot token, but live testing needs them, and direct
-  browser-to-API calls may hit CORS restrictions not knowable until tested
-  live. Needs a follow-up session with you present, not a solo build.
-  - Three separate themed panels (not one generic "AI" tab), each with your
-    own API key stored only on your device, each grantable per-question
-    read/act permission on your actual Life OS data.
+- ✅ **AI Assistant (Claude) + Telegram (send-only)** — DONE: a new AI
+  Assistant module, a chat with Claude called directly from the browser
+  with your own Anthropic API key (Settings, device-local, never synced).
+  Confirmed api.anthropic.com and Gemini's API are both actually reachable
+  from this dev environment (unlike Supabase and OpenAI, both blocked) —
+  scoped to Claude only per your call. Telegram is send-only: the app
+  messages you through a bot you create yourself (@BotFather), triggered by
+  your own action (a Settings test button, Daily Paper's "Send to
+  Telegram"). No listener for incoming messages by design. Still open:
+  - ChatGPT/Gemini panels alongside Claude's, each its own themed panel with
+    its own API key.
   - Cross-LLM relay: chain one question across more than one AI in sequence
     (Claude answers → GPT reacts → Gemini synthesizes both).
-  - Telegram: both a chat surface and a notification channel (more
-    reliable than browser push, especially on iPhone) — chosen over
-    WhatsApp/Messages/iMessage, none of which have a clean, personal,
-    automatable API for this.
+  - Full two-way Telegram chat — needs a real backend webhook (a Supabase
+    Edge Function) since a static PWA can't listen for incoming messages
+    when it's not open; deliberately out of scope for the send-only pass.
 - 🏗️ **AI-written yearly recap** — once an AI module can read your data,
   have it draft the actual recap narrative instead of just tallying
   numbers (the numbers-driven aggregation already exists in Milestones).

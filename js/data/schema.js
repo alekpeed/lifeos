@@ -19,9 +19,12 @@ export const DB_NAME = 'lifeos';
 // Knowledge Graph's link-anything-to-anything edges). v9 adds `placeNotes`
 // (geofenced notes-to-self on Places). v10 adds `chordPracticeLogs` (a
 // freeform practice-session log, separate from the auto-tracked drill
-// stats). runUpgrade in db.js creates any store that doesn't yet exist, so
-// these bumps are non-destructive for existing data.
-export const DB_VERSION = 10;
+// stats). v11 adds `aiConversations`/`aiMessages` (the AI Assistant module --
+// the API key itself lives in Settings, device-local and unsynced; the
+// conversation text is regular synced data like everything else). runUpgrade
+// in db.js creates any store that doesn't yet exist, so these bumps are
+// non-destructive for existing data.
+export const DB_VERSION = 11;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -248,6 +251,18 @@ export const STORES = [
   // freeform `notes` textarea -- these are meant to resurface, not just sit.
   { name: 'placeNotes', keyPath: 'id', indexes: [
     { name: 'placeId', keyPath: 'placeId' },
+  ] },
+
+  // AI Assistant: conversations with an LLM (Claude first; other providers
+  // can plug in the same shape later). The API key is NOT stored here -- it
+  // lives in Settings (device-local, excluded from sync), same as every
+  // other credential in the app. The conversation text itself is regular
+  // synced data, like any other module.
+  { name: 'aiConversations', keyPath: 'id', indexes: [
+    { name: 'provider', keyPath: 'provider' },
+  ] },
+  { name: 'aiMessages', keyPath: 'id', indexes: [
+    { name: 'conversationId', keyPath: 'conversationId' },
   ] },
 ];
 

@@ -171,6 +171,27 @@ function buildPaper(data, forPrint, ctx, rerender) {
   return el('div', { class: cls }, [masthead(), body]);
 }
 
+// Plain-text version of the paper's core content, for the "Send to Telegram"
+// button. Deliberately a summary, not a full transcription of buildPaper().
+function buildDigestText(data) {
+  const { feed, habits, logsByHabit, weather } = data;
+  const lines = [`Life OS — ${longDate()}`];
+  if (weather) lines.push(`${weather.tempF != null ? Math.round(weather.tempF) + '°F' : ''}`.trim());
+  if (feed.length) {
+    lines.push('', 'On the docket:');
+    for (const item of feed.slice(0, 10)) {
+      lines.push(`${item.overdue ? '⚠️ ' : ''}${item.title || '(untitled)'} — ${fmtDate(item.dueDate)}`);
+    }
+  } else {
+    lines.push('', 'Nothing due in the next 7 days.');
+  }
+  if (habits.length) {
+    const doneToday = habits.filter((h) => (logsByHabit.get(h.id) || []).some((l) => l.date === todayStr())).length;
+    lines.push('', `Habits: ${doneToday}/${habits.length} done today`);
+  }
+  return lines.join('\n');
+}
+
 function printPaper(data, ctx) {
   const sheet = buildPaper(data, true, ctx, () => {});
   document.body.append(sheet);
@@ -208,12 +229,28 @@ export async function renderPaper(canvas, ctx, rerender) {
   const data = { feed, onThisDay, habits, logsByHabit, sleep, weather };
 
   canvas.append(el('h1', { text: 'Daily Paper' }));
+  const telegramStatus = el('span', { class: 'mer-muted' });
   canvas.append(el('div', { class: 'mer-toolbar' }, [
     el('button', {
       type: 'button', text: '🖨️ Print / Save as PDF',
       title: 'Print or save as PDF via your browser',
       onclick: () => printPaper(data, ctx),
     }),
+    el('button', {
+      type: 'button', text: '📤 Send to Telegram',
+      onclick: async () => {
+        telegramStatus.textContent = 'Sending…';
+        telegramStatus.classList.remove('mer-sync-error');
+        try {
+          await ctx.data.sendDigestToTelegram(buildDigestText(data));
+          telegramStatus.textContent = 'Sent!';
+        } catch (err) {
+          telegramStatus.textContent = err.message || String(err);
+          telegramStatus.classList.add('mer-sync-error');
+        }
+      },
+    }),
+    telegramStatus,
   ]));
   canvas.append(buildPaper(data, false, ctx, rerender));
 }

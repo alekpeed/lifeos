@@ -335,16 +335,28 @@ lets the whole app be redecorated later without rebuilding it:
   approach (see "Additional interfaces" section) keeps those modules
   local-first for now.
 
+- **AI Assistant (Claude) + Telegram (send-only)** — a new "AI Assistant"
+  module: a chat with Claude, called directly from the browser using your
+  own Anthropic API key (Settings, device-local, never synced). Confirmed
+  both api.anthropic.com and Gemini's API are actually reachable from this
+  environment's network (unlike Supabase and OpenAI, both blocked) — scoped
+  to Claude only for this pass per your call. Conversations/messages are
+  regular synced data (`aiConversations`/`aiMessages`). Telegram is
+  send-only by design — the app messages you through a bot you create
+  yourself (@BotFather), triggered by your own action (a "Send test
+  message" button in Settings, and a "Send to Telegram" button on the Daily
+  Paper that sends a plain-text digest). No listener for incoming
+  messages — a static PWA can't run one when it's not open; full two-way
+  chat would need a real backend webhook, deliberately out of scope here.
+  Verified headlessly with both APIs mocked (message send/receive, digest
+  send, gated "no key" state) — a live call needs your real API key/bot
+  token, which can't be tested from this environment.
+
 ### Still to build 📋
 - **AI-powered Daily Paper** — turn the current list-based brief into an
   actual AI-written editorial (Claude/GPT/Gemini), once accounts exist to
   scope it per user.
 - **Per-user notifications** — depends on accounts existing first.
-- **AI assistant modules** (Claude/ChatGPT/Gemini panels) + cross-LLM relay +
-  **Telegram integration** — plumbing/UI can be built without your real API
-  keys/bot token, but live testing needs them, and direct browser-to-API
-  calls may hit CORS restrictions that won't be known until tested live.
-  Treat as "needs a follow-up session with you present," not a solo build.
 - **AI-written yearly recap** — needs a working AI module first (see above)
 
 ## 3. Additional interfaces 📋
@@ -401,7 +413,9 @@ Everything below came out of talking through what would actually feel
 2. AI-powered Daily Paper + per-user notifications (depend on accounts)
 3. ~~The four Tier-2 features~~ — DONE: Knowledge Graph, The Orrery,
    Time Machine, and QR Airgap Sync all shipped (see Built ✅)
-4. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
+4. ~~AI Assistant (Claude) + Telegram (send-only)~~ — DONE (see Built ✅).
+   ChatGPT/Gemini panels + cross-LLM relay + full two-way Telegram chat are
+   still open, out of scope for this pass.
 5. AI-written yearly recap (needs an AI module first)
 6. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of

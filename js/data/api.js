@@ -226,6 +226,8 @@ export const DreamEntries = entities.dreamEntries;
 export const RabbitHoles = entities.rabbitHoles;
 export const LibraryStories = entities.libraryStories;
 export const PlaceNotes = entities.placeNotes;
+export const AiConversations = entities.aiConversations;
+export const AiMessages = entities.aiMessages;
 
 // --- Attachments: binary assets (place photos, bill/document PDFs, ...) ---
 // Stored locally as a Blob for now; the Drive sync layer will populate
@@ -449,6 +451,16 @@ const SETTING_DEFAULTS = {
   // Last-fetched prices, cached so the tab still shows something offline;
   // see getCryptoPrices() below for the staleness policy.
   cryptoPricesCache: null,
+  // AI Assistant: your own Anthropic API key, kept device-local (Settings is
+  // excluded from Drive/cloud sync) and sent only to api.anthropic.com,
+  // directly from the browser. Empty until you add one in Settings.
+  anthropicApiKey: '',
+  anthropicModel: 'claude-sonnet-5',
+  // Telegram: a bot you create yourself (via @BotFather) and your own chat
+  // ID, so the app can message you. Send-only -- there's no listener for
+  // incoming messages. Both empty until you add them in Settings.
+  telegramBotToken: '',
+  telegramChatId: '',
 };
 
 export const Settings = {
@@ -649,6 +661,51 @@ export async function getCryptoPrices() {
   } catch {
     return sameList ? cache.prices : {};
   }
+}
+
+// --- AI Assistant (Claude, direct browser-to-API) ---
+// Conversations/messages are regular synced data (aiConversations/aiMessages
+// above); the API key stays in Settings, device-local and unsynced.
+
+import { sendClaudeMessage } from './claude-client.js';
+
+export async function createAiConversation(title) {
+  return AiConversations.create({ title: title || 'New conversation', provider: 'claude' });
+}
+
+export async function getAiMessages(conversationId) {
+  const messages = await AiMessages.byIndex('conversationId', conversationId);
+  return messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+// Persists the user's message, calls Claude with the full conversation
+// history, persists the reply, and returns the reply message. Throws
+// Claude's own error (bad key, rate limit, ...) if the call fails -- the
+// user's message stays saved either way, so nothing is lost on a failure.
+export async function sendAiMessage(conversationId, userText) {
+  await AiMessages.create({ conversationId, role: 'user', content: userText });
+
+  const [apiKey, model, history] = await Promise.all([
+    Settings.get('anthropicApiKey'),
+    Settings.get('anthropicModel'),
+    getAiMessages(conversationId),
+  ]);
+  const claudeMessages = history.map((m) => ({ role: m.role, content: m.content }));
+  const { text } = await sendClaudeMessage(apiKey, claudeMessages, { model });
+
+  return AiMessages.create({ conversationId, role: 'assistant', content: text });
+}
+
+// --- Telegram (send-only) ---
+
+import { sendTelegramMessage } from './telegram-client.js';
+
+export async function sendDigestToTelegram(text) {
+  const [botToken, chatId] = await Promise.all([
+    Settings.get('telegramBotToken'),
+    Settings.get('telegramChatId'),
+  ]);
+  return sendTelegramMessage(botToken, chatId, text);
 }
 
 // --- Milestones: year-in-review aggregation, pulled from every other module ---

@@ -204,11 +204,12 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
 - 🏗️ **AI-powered Daily Paper** — an actual AI-written editorial instead of
   the current list-based brief, once accounts exist to scope it per user.
 - 🏗️ **Per-user notifications** — depends on accounts.
-- 🔑 **AI assistant modules** (Claude/ChatGPT/Gemini, each its own themed
-  panel with your own API key) + **cross-LLM relay** (chain a question
-  across more than one) + **Telegram integration** (chat surface and a
-  more reliable notification channel than browser push). Needs you present
-  for real API keys/bot token.
+- ✅ **AI Assistant (Claude) + Telegram (send-only)** — a chat with Claude,
+  called directly from the browser with your own API key (device-local,
+  never synced). Telegram sends you a digest via a bot you create yourself,
+  triggered by your own action (Settings test button, Daily Paper's "Send
+  to Telegram"). Still open: ChatGPT/Gemini panels, cross-LLM relay, and
+  full two-way Telegram chat (needs a backend webhook).
 - 🏗️ **AI-written yearly recap** — once an AI module exists, have it draft
   the actual narrative instead of just tallying numbers.
 
