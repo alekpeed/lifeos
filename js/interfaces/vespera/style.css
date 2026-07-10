@@ -328,100 +328,108 @@
 /* --- Immersive district room --- */
 
 /* .vsp-room reuses .vsp-hub (sizing + is-depart zoom) and .vsp-room-stage
-   reuses .vsp-stage (aspect-lock to the room image, set inline). The panel
-   is absolutely placed on the stage, so it tracks the wall at every
-   viewport, and its inner card is rotated in 3D onto the wall's plane. */
-[data-interface='vespera'] .vsp-room-panel {
-  position: absolute;
-  /* No transform-style: preserve-3d -- the perspective is inline on this
-     element and the single rotateY lives on the child, which is all a
-     one-level 3D tilt needs. preserve-3d here spawns a 3D rendering
-     context that breaks pointer hit-testing on the rotated children
-     (hover never registers), so it stays off. */
-}
+   reuses .vsp-stage (aspect-lock to the room image, set inline).
 
-[data-interface='vespera'] .vsp-room-panel-inner {
-  transform: rotateY(var(--vsp-roty, 0deg));
-  transform-origin: var(--vsp-orx, 0%) var(--vsp-ory, 50%);
-  padding: clamp(0.7rem, 1.6vw, 1.5rem) clamp(1rem, 2.2vw, 2rem) clamp(0.9rem, 1.8vw, 1.6rem);
-  border-radius: 0.5rem;
-  background: linear-gradient(158deg, rgba(10, 22, 42, 0.42), rgba(6, 12, 28, 0.24));
-  box-shadow: inset 0 0 0 1px rgba(90, 200, 255, 0.16), 0 20px 55px rgba(0, 0, 0, 0.5);
+   .vsp-room-quad is the signage plane: text laid out flat in a fixed
+   design box (width/height inline, from the room config), then projected
+   onto the measured wall quad by a matrix3d homography computed in
+   index.js. There is deliberately NO card, background, or border here --
+   the text is painted straight onto the wall and foreshortens with it.
+   All font sizes inside are fixed px relative to the design box: the
+   matrix scales them with the wall at every viewport. */
+[data-interface='vespera'] .vsp-room-quad {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  display: flex;
+  flex-direction: column;
+  padding: 26px 30px;
 }
 
 [data-interface='vespera'] .vsp-room-title {
   font-family: 'Oxanium', var(--font-display);
   font-weight: 600;
-  font-size: clamp(1rem, 2vw, 1.9rem);
+  font-size: 34px;
   letter-spacing: 0.06em;
-  line-height: 1;
+  line-height: 1.05;
   text-transform: uppercase;
   color: #54e6ff;
-  text-shadow: 0 0 12px rgba(64, 200, 255, 0.75), 0 0 30px rgba(64, 180, 255, 0.35);
+  /* dark seat shadow first (grounds it on the surface), then neon bloom */
+  text-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.85),
+    0 0 14px rgba(64, 200, 255, 0.75),
+    0 0 36px rgba(64, 180, 255, 0.35);
 }
 
 [data-interface='vespera'] .vsp-room-sub {
   font-family: 'Rajdhani', sans-serif;
-  font-size: clamp(0.55rem, 0.85vw, 0.8rem);
-  letter-spacing: 0.22em;
+  font-size: 14px;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  margin-top: 0.35rem;
+  margin-top: 8px;
   color: #6fb8e6;
   opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 [data-interface='vespera'] .vsp-room-links {
-  margin-top: clamp(0.7rem, 1.5vw, 1.3rem);
+  margin-top: 40px;
   display: flex;
   flex-direction: column;
-  gap: clamp(0.4rem, 0.8vw, 0.7rem);
+  gap: 26px;
 }
 
-/* Rest: teal outline + teal text. */
+/* Rest: teal neon text over a hairline rule -- no box, no fill. */
 [data-interface='vespera'] .vsp-room-link {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 3px;
   text-align: left;
   cursor: pointer;
   background: transparent;
   border: none;
-  padding: clamp(0.4rem, 0.9vw, 0.6rem) clamp(0.6rem, 1.2vw, 0.9rem);
-  border-radius: 0.4rem;
-  box-shadow: inset 0 0 0 1px rgba(90, 200, 255, 0.16);
-  transition: background 0.3s, box-shadow 0.3s;
+  border-bottom: 1px solid rgba(90, 200, 255, 0.22);
+  padding: 0 4px 12px;
+  transition: border-color 0.3s;
 }
 
 [data-interface='vespera'] .vsp-room-link-name {
   font-family: 'Oxanium', var(--font-display);
   font-weight: 600;
-  font-size: clamp(0.75rem, 1.15vw, 1.05rem);
-  letter-spacing: 0.05em;
+  font-size: 21px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #49dbff;
-  text-shadow: 0 0 8px rgba(64, 190, 255, 0.5);
+  text-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.85),
+    0 0 10px rgba(64, 190, 255, 0.55);
   transition: color 0.3s, text-shadow 0.3s;
 }
 
 [data-interface='vespera'] .vsp-room-link-sub {
   font-family: 'Rajdhani', sans-serif;
-  font-size: clamp(0.5rem, 0.75vw, 0.68rem);
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: #6f9fc8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   transition: color 0.3s;
 }
 
-/* Hover/focus: hot pink with a soft, fuzzy bloom that bleeds past the edge. */
+/* Hover/focus: the letters themselves go hot pink with a fat fuzzy bloom,
+   plus an edgeless pool of pink light on the wall behind them (a radial
+   gradient fading to nothing -- light bleed, not a highlight box). */
 [data-interface='vespera'] .vsp-room-link:hover,
 [data-interface='vespera'] .vsp-room-link:focus-visible {
-  background: rgba(255, 40, 150, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(255, 90, 190, 0.75), 0 0 34px rgba(255, 50, 160, 0.6);
+  border-bottom-color: rgba(255, 90, 190, 0.7);
+  background: radial-gradient(120% 160% at 20% 50%, rgba(255, 50, 165, 0.16), transparent 70%);
 }
 [data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-name,
 [data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-name {
   color: #ff5cc0;
   text-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.85),
     0 0 6px rgba(255, 80, 190, 0.95),
     0 0 18px rgba(255, 50, 165, 0.85),
     0 0 40px rgba(255, 30, 150, 0.7),
@@ -523,19 +531,17 @@
   [data-interface='vespera'] .vsp-doors { padding: 1rem; }
 
   /* Room: the stage drops its art (shared .vsp-stage rule above), so the
-     perspective placard flattens into a normal stacked card -- no absolute
-     positioning, no 3D rotation against art that isn't there. */
-  [data-interface='vespera'] .vsp-room-panel {
+     signage plane flattens into a normal stacked list -- no absolute
+     positioning, no homography against art that isn't there. !important
+     is load-bearing again: width/height and the matrix3d transform are
+     inline styles from index.js. */
+  [data-interface='vespera'] .vsp-room-quad {
     position: static;
     width: auto !important;
-    left: auto !important;
-    top: auto !important;
-    perspective: none !important;
-    margin: 1rem;
-  }
-  [data-interface='vespera'] .vsp-room-panel-inner {
-    transform: none;
-    background: rgba(6, 10, 26, 0.72);
+    height: auto !important;
+    transform: none !important;
+    margin: 0.5rem 1rem 1rem;
+    padding: 0;
   }
 }
 

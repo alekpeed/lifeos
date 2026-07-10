@@ -68,14 +68,17 @@ const DISTRICTS = [
     hotspot: { cx: 85.93, cy: 36.56, w: 13.43, h: 8.5, clip: 'polygon(0.0% 31.2%, 100.0% 0.0%, 99.1% 90.0%, 0.2% 100.0%)' },
     // Immersive entry room (see renderRoom). `image` is a full-bleed
     // establishing shot rendered on an aspect-locked stage (same technique
-    // as the hub); `panel` positions the link placard onto a flat wall in
-    // the art, angled in CSS perspective to sit on that wall's plane.
-    // Values are % of the stage + a rotateY, eyeballed against the art --
-    // no marker extraction needed since the wall is deliberately blank.
+    // as the hub). `quad` is the wall plane the signage is projected onto:
+    // the four corners (TL,TR,BR,BL as % of the image) of a quadrilateral
+    // measured off the art's blank wall, kept inside its trim lines. Text
+    // is laid out flat in a designW x designH box and mapped onto the quad
+    // with a true perspective homography (matrix3d) -- not an eyeballed
+    // rotate -- so it forshortens exactly like paint on that wall.
     room: {
       image: 'img/conservatory.png',
       ratio: '1672 / 941',
-      panel: { left: 4.5, top: 19, width: 27, perspective: 1150, rotateY: 21, originX: 0, originY: 50 },
+      designW: 400, designH: 470,
+      quad: [[8.97, 23.91], [31.10, 30.29], [31.10, 63.76], [8.97, 82.89]],
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync'],
     hotspot: { cx: 85.68, cy: 60.31, w: 12.8, h: 9.14, clip: 'polygon(0.2% 0.0%, 100.0% 22.7%, 100.0% 100.0%, 0.0% 64.0%)' } },
@@ -120,6 +123,36 @@ function moduleTagline(id) {
 
 function districtOf(moduleId) {
   return DISTRICTS.find((d) => d.modules.includes(moduleId)) || null;
+}
+
+// Perspective homography: the matrix3d that maps a flat wDesign x hDesign
+// box onto an arbitrary destination quadrilateral (TL,TR,BR,BL in px).
+// Standard 4-point projective solve (8x8 Gaussian elimination). This is
+// what makes room signage foreshorten like paint on the wall instead of a
+// tilted card: the wall quad is measured off the art, and this maps the
+// text plane onto it exactly.
+function quadTransform(wDesign, hDesign, dst) {
+  const src = [[0, 0], [wDesign, 0], [wDesign, hDesign], [0, hDesign]];
+  const A = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = src[i];
+    const [X, Y] = dst[i];
+    A.push([x, y, 1, 0, 0, 0, -x * X, -y * X, X]);
+    A.push([0, 0, 0, x, y, 1, -x * Y, -y * Y, Y]);
+  }
+  for (let col = 0; col < 8; col++) {
+    let piv = col;
+    for (let r = col + 1; r < 8; r++) if (Math.abs(A[r][col]) > Math.abs(A[piv][col])) piv = r;
+    [A[col], A[piv]] = [A[piv], A[col]];
+    if (Math.abs(A[col][col]) < 1e-12) return ''; // degenerate quad
+    for (let r = 0; r < 8; r++) {
+      if (r === col) continue;
+      const f = A[r][col] / A[col][col];
+      for (let c = col; c < 9; c++) A[r][c] -= f * A[col][c];
+    }
+  }
+  const h = A.map((row, i) => row[8] / A[i][i]); // [a,b,c,d,e,f,g,h]
+  return `matrix3d(${h[0]},${h[3]},0,${h[6]},${h[1]},${h[4]},0,${h[7]},0,0,1,0,${h[2]},${h[5]},0,1)`;
 }
 
 // Shared zoom-travel: aim the transform-origin at the clicked target, add
@@ -274,14 +307,13 @@ function renderRoom(root, district) {
     style: `aspect-ratio: ${room.ratio}; background-image: url('${imgUrl}');`,
   });
 
-  const p = room.panel;
+  // The signage plane: flat text laid out in a designW x designH box, then
+  // projected onto the measured wall quad. No card, no border -- the wall
+  // itself is the sign, the text is the paint.
   const panel = el('div', {
-    class: 'vsp-room-panel',
-    style: `left:${p.left}%; top:${p.top}%; width:${p.width}%;`
-      + ` perspective:${p.perspective}px;`
-      + ` --vsp-roty:${p.rotateY}deg; --vsp-orx:${p.originX}%; --vsp-ory:${p.originY}%;`,
-  });
-  const inner = el('div', { class: 'vsp-room-panel-inner' }, [
+    class: 'vsp-room-quad',
+    style: `width:${room.designW}px; height:${room.designH}px;`,
+  }, [
     el('div', { class: 'vsp-room-title', text: district.name }),
     el('div', { class: 'vsp-room-sub', text: district.tagline }),
   ]);
@@ -296,12 +328,26 @@ function renderRoom(root, district) {
     ]);
     links.append(link);
   }
-  inner.append(links);
-  panel.append(inner);
+  panel.append(links);
   stage.append(panel);
   zoom.append(stage);
   screen.append(zoom);
   root.append(screen);
+
+  // Project the text plane onto the wall, and keep it projected: the quad
+  // is stored as % of the image, so the matrix depends on the stage's
+  // rendered size and must be recomputed whenever that changes. (On mobile
+  // the stylesheet overrides the inline transform with !important and the
+  // panel falls back to a flat stacked list -- recomputing here is a
+  // harmless no-op there.)
+  const apply = () => {
+    const r = stage.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const dst = room.quad.map(([qx, qy]) => [(qx / 100) * r.width, (qy / 100) * r.height]);
+    panel.style.transform = quadTransform(room.designW, room.designH, dst);
+  };
+  new ResizeObserver(apply).observe(stage);
+  requestAnimationFrame(apply);
 }
 
 // --- Space (module content inside station chrome) ---
