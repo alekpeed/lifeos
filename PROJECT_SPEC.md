@@ -293,6 +293,17 @@ lets the whole app be redecorated later without rebuilding it:
   category as Drive sync.
 - **Geofenced notes-to-self on Places** — the one remaining routine-build
   idea not yet done.
+- **Practice Log (Chords)** — a freeform log of practice sessions (date,
+  duration, what you worked on), separate from the existing auto-tracked
+  drill-accuracy stats. No external dependency — routine, buildable anytime.
+- **Live currency conversion** — swap Tools' manual/editable rate table for
+  a live public rate feed (e.g. Frankfurter/ECB rates — free, no API key).
+  Routine; the only reason it was manual originally was to keep Tools fully
+  offline-capable, which this would trade away for that one converter.
+- **Weather context** — a free, keyless public weather API (Open-Meteo) to
+  add local conditions to the Dashboard/Daily Paper. Routine.
+- **Price tickers (crypto)** — CoinGecko's free public API, no key needed.
+  Routine.
 
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you
@@ -437,6 +448,37 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 - **Generative "Year in Review" film** — an auto-produced montage from your
   photos + milestones + stats, scored by the Life-as-Music synth engine
   you already have. The emotional payoff piece.
+
+**External integrations (new OAuth flows / paid third parties — each is its
+own Tier 2 flag, not a routine add)**
+- **Financial Center** — bank/investment linking via **Plaid** (Sandbox is
+  free; Production is usage-based, roughly $0.30-$3/connected account/month
+  depending on product, with per-call fees on top for some products and
+  negotiated enterprise minimums at scale — see pricing note below) plus a
+  live price-ticker panel (crypto via CoinGecko is free/keyless; stocks need
+  a paid key — Alpha Vantage or Finnhub, both priced below). Needs its own
+  backend token exchange (rides on the Supabase backend, can't be
+  client-only) — this is the most security-sensitive item on either list.
+- **Spotify listening stats** — a "recently played / top artists / listening
+  time" page via Spotify's Web API. Free API; needs its own new OAuth flow
+  (a third, alongside Google and Supabase).
+- **YouTube real watch history** — upgrades the current manual "watch later"
+  links to real watch history/liked videos via the YouTube Data API. Reuses
+  the existing Google sign-in, but needs a new scope added to it.
+- **Google Photos import** — same deal: reuses existing Google auth, needs
+  its own new scope.
+
+**Paid API pricing, as researched (verify at signup — these change often):**
+- **Alpha Vantage** (stock tickers): free tier is 25 requests/day; paid
+  tiers start at $49.99/mo (75 req/min) up to $249.99/mo (1,200 req/min).
+- **Finnhub** (stock tickers): free tier is a generous 60 calls/min; paid
+  tiers run roughly $50-$100+/mo depending on data bundle/coverage.
+- **Plaid** (bank/investment linking): Sandbox (fake data, for building) is
+  free. Production is usage-based — commonly cited around $0.30-$3 per
+  connected account/month for subscription-style products (Transactions,
+  Investments), or $0.10-$0.60 per call for one-time-fee products (Auth,
+  Identity, Income); Plaid doesn't publish one flat price list, and
+  meaningful scale typically means a negotiated contract.
 
 Nothing here is fixed in stone — the plan has already flexed a few times
 this week, and that's expected. This doc is meant to be a snapshot you can
