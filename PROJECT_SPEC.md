@@ -314,6 +314,19 @@ lets the whole app be redecorated later without rebuilding it:
   execution — no copyrighted assets)
 - Any others that come to mind along the way
 
+**Device philosophy — desktop-immersive, mobile-companion 🏗️:** desktop is
+the primary immersive canvas (this is Vespera's real home); mobile is a
+genuinely different, lighter surface, not the same UI at a smaller
+breakpoint. Baseline: mobile is fully capable standalone, using the same
+offline-first synced data as everything else — no dependency on desktop
+being open. Enhanced (progressive, when desktop is live): mobile detects an
+active desktop session via a presence signal (Supabase Realtime presence,
+already wired in for Sharebox) and unlocks extras — cast a view to the big
+screen, use the phone as a remote input (camera capture → result shown on
+desktop), live handoff (pick up on desktop exactly where you left off on
+mobile). Reframes the existing device-priority note into a deliberate
+two-tier design rather than an afterthought.
+
 ## 4. New ideas from later conversations 📋
 
 Everything below came out of talking through what would actually feel

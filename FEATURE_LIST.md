@@ -258,6 +258,36 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
 - **LCARS-inspired mode** — Star Trek control-panel aesthetic, original
   execution.
 
+## Device philosophy: desktop-immersive, mobile-companion 🏗️
+
+A named architecture direction, not yet built: **desktop is the primary,
+immersive canvas** (Vespera-style spatial navigation, rich graphics,
+interaction) — **mobile is a genuinely different, lighter surface**, not
+just the same interface at a smaller breakpoint.
+
+- **Baseline (mobile standalone):** fully capable on its own, using the
+  same offline-first, locally-synced data every other module already has.
+  No dependency on desktop being open or online — mobile never degrades if
+  desktop isn't reachable.
+- **Enhanced (progressive, when desktop is live):** mobile detects an
+  active desktop session via a presence signal (Supabase Realtime already
+  has a presence feature built for exactly this, and it's already wired
+  into the app for Sharebox) and unlocks extra capability on top:
+  - **Cast a view to the big screen** — pull up the Harmony Map or a book
+    on your phone, send it to display on desktop, phone becomes the
+    controller.
+  - **Phone as remote input** — camera-based features (Theme-from-Photo,
+    future camera-vision cataloging) capture on the phone, result appears
+    live on the desktop screen.
+  - **Live handoff** — reading in Library of Babel on the couch on your
+    phone, desktop picks up at the same spot the moment you sit down —
+    genuinely live, not just "synced eventually."
+
+This reframes the existing "mobile = occasional check-in, tablet/desktop =
+real future target" device-priority note into a deliberate two-tier
+design, and gives Vespera's immersive spatial concept a clear home (desktop)
+rather than needing to also work as a small-screen experience.
+
 ## Sharebox, further out
 
 - A lightweight **companion app** for a friend who doesn't run full Life OS.

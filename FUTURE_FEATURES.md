@@ -129,6 +129,24 @@ screens out "personal archiving" as a use case anyway.)*
   execution, no copyrighted assets).
 - Any others that come to mind along the way.
 
+### Device philosophy — desktop-immersive, mobile-companion 🏗️
+
+Desktop is the primary immersive canvas (Vespera's real home); mobile is a
+genuinely different, lighter surface, not the same UI at a smaller
+breakpoint.
+- **Baseline (standalone):** mobile is fully capable on its own, using the
+  same offline-first synced data as everything else — no dependency on
+  desktop being open or reachable.
+- **Enhanced (progressive, when desktop is live):** mobile detects an
+  active desktop session via a presence signal (Supabase Realtime presence
+  — already wired in for Sharebox) and unlocks extras: casting a view to
+  the big screen, using the phone as a remote input (e.g. camera capture
+  with the result shown on desktop), and live handoff (desktop picks up
+  exactly where you left off on mobile, not just "synced eventually").
+
+This reframes the existing "mobile = occasional check-in, tablet/desktop =
+real future target" device-priority note into a deliberate two-tier design.
+
 ## 6. Sharebox, beyond the in-app module
 
 The in-app Sharebox module is built (Supabase v2, RLS fixed, working).
