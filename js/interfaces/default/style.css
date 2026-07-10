@@ -1478,3 +1478,115 @@
   .mer-paper--print .mer-paper-almanac dt { font-variant: small-caps; color: #444; }
   .mer-paper--print .mer-paper-almanac dd { margin: 0; text-align: right; font-weight: 700; }
 }
+
+/* --- Museum of Finished Things --- */
+
+[data-interface='default'] .mer-museum-hall {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-top: var(--space-md);
+}
+
+[data-interface='default'] .mer-museum-wing {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+}
+
+[data-interface='default'] .mer-museum-wing-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+[data-interface='default'] .mer-museum-wing-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  margin: 0;
+}
+
+[data-interface='default'] .mer-museum-wing-count {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+[data-interface='default'] .mer-museum-empty {
+  font-style: italic;
+}
+
+[data-interface='default'] .mer-museum-tally {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+[data-interface='default'] .mer-museum-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+[data-interface='default'] .mer-museum-plaque {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-overlay);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+}
+
+[data-interface='default'] .mer-museum-plaque-title {
+  font-weight: 600;
+}
+
+[data-interface='default'] .mer-museum-plaque-meta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+[data-interface='default'] .mer-museum-book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--space-md);
+}
+
+[data-interface='default'] .mer-museum-book {
+  text-align: center;
+}
+
+[data-interface='default'] .mer-museum-cover,
+[data-interface='default'] .mer-museum-cover-empty {
+  width: 100%;
+  height: 10rem;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-overlay);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-xs);
+}
+
+[data-interface='default'] .mer-museum-book-title {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+[data-interface='default'] .mer-museum-book-meta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

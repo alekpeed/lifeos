@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v41';
+const CACHE_VERSION = 'lifeos-v42';
 const APP_SHELL = [
   './',
   './index.html',
@@ -51,6 +51,7 @@ const APP_SHELL = [
   './js/interfaces/default/views/languages.js',
   './js/interfaces/default/views/chords.js',
   './js/interfaces/default/views/sharebox.js',
+  './js/interfaces/default/views/museum.js',
   './js/theory/notes.js',
   './js/theory/chords.js',
   './js/theory/voicings.js',

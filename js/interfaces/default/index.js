@@ -27,6 +27,7 @@ import { renderPhotos } from './views/photos.js';
 import { renderLanguages } from './views/languages.js';
 import { renderChords } from './views/chords.js';
 import { renderSharebox } from './views/sharebox.js';
+import { renderMuseum } from './views/museum.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -115,6 +116,7 @@ const VIEWS = {
   languages: renderLanguages,
   chords: renderChords,
   sharebox: renderSharebox,
+  museum: renderMuseum,
 };
 
 // --- Interface contract implementation ---
