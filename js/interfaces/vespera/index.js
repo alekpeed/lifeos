@@ -65,7 +65,18 @@ const DISTRICTS = [
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos'],
     hotspot: { cx: 86.99, cy: 13.02, w: 12.62, h: 14.35, clip: 'polygon(0.0% 58.1%, 100.0% 0.0%, 100.0% 58.5%, 0.2% 100.0%)' } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
-    hotspot: { cx: 85.93, cy: 36.56, w: 13.43, h: 8.5, clip: 'polygon(0.0% 31.2%, 100.0% 0.0%, 99.1% 90.0%, 0.2% 100.0%)' } },
+    hotspot: { cx: 85.93, cy: 36.56, w: 13.43, h: 8.5, clip: 'polygon(0.0% 31.2%, 100.0% 0.0%, 99.1% 90.0%, 0.2% 100.0%)' },
+    // Immersive entry room (see renderRoom). `image` is a full-bleed
+    // establishing shot rendered on an aspect-locked stage (same technique
+    // as the hub); `panel` positions the link placard onto a flat wall in
+    // the art, angled in CSS perspective to sit on that wall's plane.
+    // Values are % of the stage + a rotateY, eyeballed against the art --
+    // no marker extraction needed since the wall is deliberately blank.
+    room: {
+      image: 'img/conservatory.png',
+      ratio: '1672 / 941',
+      panel: { left: 4.5, top: 19, width: 27, perspective: 1150, rotateY: 21, originX: 0, originY: 50 },
+    } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync'],
     hotspot: { cx: 85.68, cy: 60.31, w: 12.8, h: 9.14, clip: 'polygon(0.2% 0.0%, 100.0% 22.7%, 100.0% 100.0%, 0.0% 64.0%)' } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant'],
@@ -95,8 +106,36 @@ function moduleLabel(id) {
   return ctx.modules.find((m) => m.id === id)?.label || id;
 }
 
+// Short room-link descriptors. Only needed for modules that appear as
+// links inside an immersive room; anything without an entry falls back to
+// the module's own label so a new room never renders a blank sub-line.
+const MODULE_TAGLINES = {
+  languages: 'Study packs & drills',
+  chords: 'Harmony & voicings',
+  lifeasmusic: 'Your life, played back',
+};
+function moduleTagline(id) {
+  return MODULE_TAGLINES[id] || moduleLabel(id);
+}
+
 function districtOf(moduleId) {
   return DISTRICTS.find((d) => d.modules.includes(moduleId)) || null;
+}
+
+// Shared zoom-travel: aim the transform-origin at the clicked target, add
+// the depart class (CSS scales+fades), then run `done` after the animation.
+// Used by both the hub's district plaques and immersive-room links so every
+// transition is the same motion -- and the single place future room-to-room
+// animation hooks in.
+function travel(zoomEl, targetEl, done) {
+  if (reducedMotion() || !zoomEl) { done(); return; }
+  const box = zoomEl.getBoundingClientRect();
+  const r = targetEl.getBoundingClientRect();
+  const ox = ((r.left + r.width / 2 - box.left) / box.width) * 100;
+  const oy = ((r.top + r.height / 2 - box.top) / box.height) * 100;
+  zoomEl.style.transformOrigin = `${ox}% ${oy}%`;
+  zoomEl.classList.add('is-depart');
+  setTimeout(done, 420);
 }
 
 // --- Hub (Grand Concourse) ---
@@ -141,14 +180,7 @@ function depart(district, plaqueEl, hub) {
       requestRender(currentRoute);
     }
   };
-  if (reducedMotion() || !hub) { arrive(); return; }
-  const hubRect = hub.getBoundingClientRect();
-  const r = plaqueEl.getBoundingClientRect();
-  const ox = ((r.left + r.width / 2 - hubRect.left) / hubRect.width) * 100;
-  const oy = ((r.top + r.height / 2 - hubRect.top) / hubRect.height) * 100;
-  hub.style.transformOrigin = `${ox}% ${oy}%`;
-  hub.classList.add('is-depart');
-  setTimeout(arrive, 420);
+  travel(hub, plaqueEl, arrive);
 }
 
 function renderHub(root) {
@@ -187,9 +219,11 @@ function renderHub(root) {
   root.append(dir);
 }
 
-// --- District doors screen ---
+// --- District screen ---
 
 function renderDistrict(root, district) {
+  if (district.room) { renderRoom(root, district); return; }
+
   const screen = el('div', { class: 'vsp-screen vsp-district' });
   screen.append(el('div', { class: 'vsp-bar' }, [
     el('button', {
@@ -209,6 +243,64 @@ function renderDistrict(root, district) {
     ]));
   }
   screen.append(doors);
+  root.append(screen);
+}
+
+// --- Immersive district room (a full-bleed establishing shot with a
+// perspective-mounted link placard on a blank wall in the art). Shares the
+// aspect-locked-stage technique with the hub so the placard stays glued to
+// its wall at every viewport, and reuses travel() so clicking a link zooms
+// the room toward it before navigating -- the same motion the hub uses,
+// and the hook for future room-to-room animation.
+function renderRoom(root, district) {
+  const { room } = district;
+  const screen = el('div', { class: 'vsp-screen vsp-district' });
+  screen.append(el('div', { class: 'vsp-bar' }, [
+    el('button', {
+      type: 'button', class: 'vsp-back', text: '◂ Concourse',
+      onclick: () => { state.district = null; requestRender(currentRoute); },
+    }),
+    el('span', { class: 'vsp-bar-title', text: `${district.icon} ${district.name}` }),
+    el('span', { class: 'vsp-bar-tag', text: district.tagline }),
+  ]));
+
+  const zoom = el('div', { class: 'vsp-hub vsp-room' });
+  // Resolve the art path against THIS module's URL, not the document base:
+  // an inline background-image url() would otherwise resolve relative to
+  // index.html (wrong folder, and wrong again under GitHub Pages' subpath).
+  const imgUrl = new URL(room.image, import.meta.url).href;
+  const stage = el('div', {
+    class: 'vsp-stage vsp-room-stage',
+    style: `aspect-ratio: ${room.ratio}; background-image: url('${imgUrl}');`,
+  });
+
+  const p = room.panel;
+  const panel = el('div', {
+    class: 'vsp-room-panel',
+    style: `left:${p.left}%; top:${p.top}%; width:${p.width}%;`
+      + ` perspective:${p.perspective}px;`
+      + ` --vsp-roty:${p.rotateY}deg; --vsp-orx:${p.originX}%; --vsp-ory:${p.originY}%;`,
+  });
+  const inner = el('div', { class: 'vsp-room-panel-inner' }, [
+    el('div', { class: 'vsp-room-title', text: district.name }),
+    el('div', { class: 'vsp-room-sub', text: district.tagline }),
+  ]);
+  const links = el('div', { class: 'vsp-room-links' });
+  for (const id of district.modules) {
+    const link = el('button', {
+      type: 'button', class: 'vsp-room-link',
+      onclick: () => travel(zoom, link, () => ctx.navigate(id)),
+    }, [
+      el('span', { class: 'vsp-room-link-name', text: moduleLabel(id) }),
+      el('span', { class: 'vsp-room-link-sub', text: moduleTagline(id) }),
+    ]);
+    links.append(link);
+  }
+  inner.append(links);
+  panel.append(inner);
+  stage.append(panel);
+  zoom.append(stage);
+  screen.append(zoom);
   root.append(screen);
 }
 
