@@ -16,10 +16,11 @@ export const DB_NAME = 'lifeos';
 // `timeCapsules`, `collections`/`collectionItems`, `packingLists`/
 // `packingItems`, and `inventoryItems`. v6 adds `dreamEntries` and
 // `rabbitHoles`. v7 adds `libraryStories`. v8 adds `graphLinks` (the
-// Knowledge Graph's link-anything-to-anything edges). runUpgrade in db.js
-// creates any store that doesn't yet exist, so these bumps are
-// non-destructive for existing data.
-export const DB_VERSION = 8;
+// Knowledge Graph's link-anything-to-anything edges). v9 adds `placeNotes`
+// (geofenced notes-to-self on Places). runUpgrade in db.js creates any
+// store that doesn't yet exist, so these bumps are non-destructive for
+// existing data.
+export const DB_VERSION = 9;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -231,6 +232,14 @@ export const STORES = [
   // functionality isn't this feature's call to make unilaterally.
   { name: 'libraryStories', keyPath: 'id', indexes: [
     { name: 'packId', keyPath: 'packId' },
+  ] },
+
+  // Geofenced notes-to-self on Places: a short note attached to a place that
+  // surfaces the next time the existing "Check nearby places" nudge (in
+  // places.js) finds you within range of it. Distinct from the place's
+  // freeform `notes` textarea -- these are meant to resurface, not just sit.
+  { name: 'placeNotes', keyPath: 'id', indexes: [
+    { name: 'placeId', keyPath: 'placeId' },
   ] },
 ];
 

@@ -201,6 +201,7 @@ export const InventoryItems = entities.inventoryItems;
 export const DreamEntries = entities.dreamEntries;
 export const RabbitHoles = entities.rabbitHoles;
 export const LibraryStories = entities.libraryStories;
+export const PlaceNotes = entities.placeNotes;
 
 // --- Attachments: binary assets (place photos, bill/document PDFs, ...) ---
 // Stored locally as a Blob for now; the Drive sync layer will populate

@@ -78,6 +78,37 @@ function linkContactForm(place, allContacts, ctx, rerender) {
   return el('div', { class: 'mer-person-form' }, [contactSelect, newNameInput, addBtn]);
 }
 
+// --- Geofenced notes-to-self ---
+// Distinct from the freeform `place.notes` textarea above: each of these
+// resurfaces individually the next time "Check nearby places" finds you
+// within range (see findNearbyNudges below).
+
+async function placeNotesSection(place, ctx, rerender) {
+  const section = el('div', { class: 'mer-people-list' });
+  const notes = await ctx.data.PlaceNotes.byIndex('placeId', place.id);
+  for (const note of notes) {
+    section.append(el('div', { class: 'mer-person-card' }, [
+      el('div', { class: 'mer-person-info' }, [
+        el('div', { class: 'mer-person-name', text: note.text }),
+      ]),
+      el('button', {
+        type: 'button', class: 'mer-icon-btn', text: '×',
+        onclick: async () => { await ctx.data.PlaceNotes.remove(note.id); rerender(); },
+      }),
+    ]));
+  }
+  section.append(el('input', {
+    type: 'text', class: 'mer-quick-add', placeholder: '+ New note-to-self — press Enter',
+    onkeydown: async (e) => {
+      if (e.key !== 'Enter' || !e.target.value.trim()) return;
+      await ctx.data.PlaceNotes.create({ placeId: place.id, text: e.target.value.trim() });
+      e.target.value = '';
+      rerender();
+    },
+  }));
+  return section;
+}
+
 async function peopleSection(place, ctx, rerender) {
   const section = el('div', { class: 'mer-people-list' });
   const allContacts = await ctx.data.Contacts.list();
@@ -170,6 +201,7 @@ function detailEditor(place, ctx, rerender) {
   // fragile child-index math (the surrounding layout varies by listType).
   const photosPlaceholder = el('p', { class: 'mer-muted', text: 'Loading photos…' });
   const peoplePlaceholder = el('p', { class: 'mer-muted', text: 'Loading people…' });
+  const placeNotesPlaceholder = el('p', { class: 'mer-muted', text: 'Loading notes-to-self…' });
 
   const detail = el('div', { class: 'mer-task-detail' }, [
     el('div', { class: 'mer-detail-header' }, [
@@ -192,6 +224,9 @@ function detailEditor(place, ctx, rerender) {
     place.listType === 'visited' ? visitDatesEditor(place, ctx, rerender) : null,
     el('div', { class: 'mer-subsection-label', text: 'Notes' }),
     notesInput,
+    el('div', { class: 'mer-subsection-label', text: 'Notes-to-self (geofenced)' }),
+    el('p', { class: 'mer-muted', text: 'Resurfaces here next time "Check nearby places" finds you within range.' }),
+    placeNotesPlaceholder,
     el('div', { class: 'mer-subsection-label', text: 'Photos' }),
     photosPlaceholder,
     el('div', { class: 'mer-subsection-label', text: 'People' }),
@@ -207,6 +242,9 @@ function detailEditor(place, ctx, rerender) {
   });
   peopleSection(place, ctx, rerender).then((section) => {
     peoplePlaceholder.replaceWith(section);
+  });
+  placeNotesSection(place, ctx, rerender).then((section) => {
+    placeNotesPlaceholder.replaceWith(section);
   });
 
   return detail;
@@ -325,7 +363,13 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
 const NEARBY_RADIUS_METERS = 1000;
 const STALE_REVISIT_DAYS = 90;
 
-function findNearbyNudges(places, lat, lng) {
+function findNearbyNudges(places, placeNotes, lat, lng) {
+  const notesByPlace = new Map();
+  for (const note of placeNotes) {
+    if (!notesByPlace.has(note.placeId)) notesByPlace.set(note.placeId, []);
+    notesByPlace.get(note.placeId).push(note);
+  }
+
   const results = [];
   for (const place of places) {
     if (typeof place.lat !== 'number' || typeof place.lng !== 'number') continue;
@@ -339,6 +383,9 @@ function findNearbyNudges(places, lat, lng) {
       const daysSince = lastVisit ? (Date.now() - new Date(lastVisit).getTime()) / 86400000 : Infinity;
       if (daysSince >= STALE_REVISIT_DAYS) results.push({ place, distance, reason: `Haven't been back in ${Math.round(daysSince)} days` });
     }
+    for (const note of notesByPlace.get(place.id) || []) {
+      results.push({ place, distance, reason: `📝 ${note.text}` });
+    }
   }
   return results.sort((a, b) => a.distance - b.distance);
 }
@@ -350,8 +397,8 @@ function checkNearbyButton(ctx, rerender) {
       if (!navigator.geolocation) { alert('Geolocation is not available in this browser.'); return; }
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
-          const places = await ctx.data.Places.list();
-          state.nearbyNudges = findNearbyNudges(places, pos.coords.latitude, pos.coords.longitude);
+          const [places, placeNotes] = await Promise.all([ctx.data.Places.list(), ctx.data.PlaceNotes.list()]);
+          state.nearbyNudges = findNearbyNudges(places, placeNotes, pos.coords.latitude, pos.coords.longitude);
           rerender();
         },
         (err) => alert(`Couldn't get location: ${err.message}`)
