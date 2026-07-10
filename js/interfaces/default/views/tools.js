@@ -12,6 +12,56 @@ let state = {
   triedLiveRateRefresh: false, // one auto-refresh attempt per app session, not per render
 };
 
+// Display names only -- not exchange-rate data, so no staleness/accuracy
+// risk the way guessing rates would be. Falls back to the bare code for
+// anything not listed (e.g. a very obscure currency the live feed returns
+// that isn't worth hand-maintaining a name for).
+const CURRENCY_NAMES = {
+  USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', JPY: 'Japanese Yen', CHF: 'Swiss Franc',
+  CAD: 'Canadian Dollar', AUD: 'Australian Dollar', NZD: 'New Zealand Dollar', CNY: 'Chinese Yuan',
+  HKD: 'Hong Kong Dollar', SGD: 'Singapore Dollar', INR: 'Indian Rupee', KRW: 'South Korean Won',
+  MXN: 'Mexican Peso', BRL: 'Brazilian Real', ZAR: 'South African Rand', SEK: 'Swedish Krona',
+  NOK: 'Norwegian Krone', DKK: 'Danish Krone', PLN: 'Polish Zloty', TRY: 'Turkish Lira',
+  RUB: 'Russian Ruble', THB: 'Thai Baht', IDR: 'Indonesian Rupiah', MYR: 'Malaysian Ringgit',
+  PHP: 'Philippine Peso', VND: 'Vietnamese Dong', ILS: 'Israeli Shekel', AED: 'UAE Dirham',
+  SAR: 'Saudi Riyal', EGP: 'Egyptian Pound', NGN: 'Nigerian Naira', KES: 'Kenyan Shilling',
+  PKR: 'Pakistani Rupee', BDT: 'Bangladeshi Taka', CZK: 'Czech Koruna', HUF: 'Hungarian Forint',
+  RON: 'Romanian Leu', BGN: 'Bulgarian Lev', UAH: 'Ukrainian Hryvnia', ARS: 'Argentine Peso',
+  CLP: 'Chilean Peso', COP: 'Colombian Peso', PEN: 'Peruvian Sol', TWD: 'Taiwan Dollar',
+  QAR: 'Qatari Riyal', KWD: 'Kuwaiti Dinar', BHD: 'Bahraini Dinar', OMR: 'Omani Rial',
+  JOD: 'Jordanian Dinar', ISK: 'Icelandic Krona',
+  AFN: 'Afghan Afghani', ALL: 'Albanian Lek', AMD: 'Armenian Dram', ANG: 'Netherlands Antillean Guilder',
+  AOA: 'Angolan Kwanza', AWG: 'Aruban Florin', AZN: 'Azerbaijani Manat', BAM: 'Bosnia-Herzegovina Mark',
+  BBD: 'Barbadian Dollar', BIF: 'Burundian Franc', BMD: 'Bermudian Dollar', BND: 'Brunei Dollar',
+  BOB: 'Bolivian Boliviano', BSD: 'Bahamian Dollar', BTN: 'Bhutanese Ngultrum', BWP: 'Botswana Pula',
+  BYN: 'Belarusian Ruble', BZD: 'Belize Dollar', CDF: 'Congolese Franc', CRC: 'Costa Rican Colon',
+  CUP: 'Cuban Peso', CVE: 'Cape Verdean Escudo', DJF: 'Djiboutian Franc', DOP: 'Dominican Peso',
+  DZD: 'Algerian Dinar', ERN: 'Eritrean Nakfa', ETB: 'Ethiopian Birr', FJD: 'Fijian Dollar',
+  FKP: 'Falkland Islands Pound', GEL: 'Georgian Lari', GHS: 'Ghanaian Cedi', GIP: 'Gibraltar Pound',
+  GMD: 'Gambian Dalasi', GNF: 'Guinean Franc', GTQ: 'Guatemalan Quetzal', GYD: 'Guyanese Dollar',
+  HNL: 'Honduran Lempira', HTG: 'Haitian Gourde', IQD: 'Iraqi Dinar', IRR: 'Iranian Rial',
+  JMD: 'Jamaican Dollar', KGS: 'Kyrgystani Som', KHR: 'Cambodian Riel', KMF: 'Comorian Franc',
+  KPW: 'North Korean Won', KYD: 'Cayman Islands Dollar', KZT: 'Kazakhstani Tenge', LAK: 'Laotian Kip',
+  LBP: 'Lebanese Pound', LKR: 'Sri Lankan Rupee', LRD: 'Liberian Dollar', LSL: 'Lesotho Loti',
+  LYD: 'Libyan Dinar', MAD: 'Moroccan Dirham', MDL: 'Moldovan Leu', MGA: 'Malagasy Ariary',
+  MKD: 'Macedonian Denar', MMK: 'Myanmar Kyat', MNT: 'Mongolian Tugrik', MOP: 'Macanese Pataca',
+  MRU: 'Mauritanian Ouguiya', MUR: 'Mauritian Rupee', MVR: 'Maldivian Rufiyaa', MWK: 'Malawian Kwacha',
+  MZN: 'Mozambican Metical', NAD: 'Namibian Dollar', NIO: 'Nicaraguan Cordoba', NPR: 'Nepalese Rupee',
+  PAB: 'Panamanian Balboa', PGK: 'Papua New Guinean Kina', PYG: 'Paraguayan Guarani', RSD: 'Serbian Dinar',
+  RWF: 'Rwandan Franc', SBD: 'Solomon Islands Dollar', SCR: 'Seychellois Rupee', SDG: 'Sudanese Pound',
+  SHP: 'Saint Helena Pound', SLE: 'Sierra Leonean Leone', SOS: 'Somali Shilling', SRD: 'Surinamese Dollar',
+  SSP: 'South Sudanese Pound', STN: 'Sao Tome and Principe Dobra', SYP: 'Syrian Pound', SZL: 'Swazi Lilangeni',
+  TJS: 'Tajikistani Somoni', TMT: 'Turkmenistani Manat', TND: 'Tunisian Dinar', TOP: 'Tongan Paanga',
+  TTD: 'Trinidad and Tobago Dollar', TZS: 'Tanzanian Shilling', UGX: 'Ugandan Shilling', UYU: 'Uruguayan Peso',
+  UZS: 'Uzbekistani Som', VES: 'Venezuelan Bolivar', VUV: 'Vanuatu Vatu', WST: 'Samoan Tala',
+  XAF: 'Central African CFA Franc', XCD: 'East Caribbean Dollar', XOF: 'West African CFA Franc',
+  XPF: 'CFP Franc', YER: 'Yemeni Rial', ZMW: 'Zambian Kwacha', ZWL: 'Zimbabwean Dollar',
+};
+
+function currencyLabel(code) {
+  return CURRENCY_NAMES[code] ? `${code} — ${CURRENCY_NAMES[code]}` : code;
+}
+
 const UNIT_TABLES = {
   length: { label: 'Length', base: 'm', units: { m: 1, km: 1000, cm: 0.01, mm: 0.001, mi: 1609.344, yd: 0.9144, ft: 0.3048, in: 0.0254 } },
   weight: { label: 'Weight', base: 'kg', units: { kg: 1, g: 0.001, lb: 0.453592, oz: 0.0283495, ton: 907.185 } },
@@ -88,17 +138,10 @@ function currencyEditor(rates, ctx, rerender) {
     rateInput.onchange = commit;
     const reverseText = rate ? `1 ${code} = ${fmtNum(1 / rate)} USD` : '';
     return el('div', { class: 'mer-person-form' }, [
-      codeInput, rateInput,
+      codeInput,
+      el('span', { class: 'mer-muted', text: CURRENCY_NAMES[code] || '' }),
+      rateInput,
       el('span', { class: 'mer-chip', text: reverseText }),
-      el('button', {
-        type: 'button', class: 'mer-icon-btn', text: '×',
-        onclick: async () => {
-          const newRates = { ...rates };
-          delete newRates[code];
-          await ctx.data.Settings.set('currencyRates', newRates);
-          rerender();
-        },
-      }),
     ]);
   }));
 
@@ -132,9 +175,9 @@ async function renderCurrency(container, ctx, rerender) {
 
   const amountInput = el('input', { type: 'number', step: 'any', value: state.amount, onchange: (e) => { state.amount = Number(e.target.value) || 0; rerender(); } });
   const fromSelect = el('select', { onchange: (e) => { state.fromCurrency = e.target.value; rerender(); } },
-    codes.map((c) => el('option', { value: c, text: c, selected: c === state.fromCurrency })));
+    codes.map((c) => el('option', { value: c, text: currencyLabel(c), selected: c === state.fromCurrency })));
   const toSelect = el('select', { onchange: (e) => { state.toCurrency = e.target.value; rerender(); } },
-    codes.map((c) => el('option', { value: c, text: c, selected: c === state.toCurrency })));
+    codes.map((c) => el('option', { value: c, text: currencyLabel(c), selected: c === state.toCurrency })));
 
   const result = (state.amount / rates[state.fromCurrency]) * rates[state.toCurrency];
 
