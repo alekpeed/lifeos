@@ -449,6 +449,54 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   photos + milestones + stats, scored by the Life-as-Music synth engine
   you already have. The emotional payoff piece.
 
+**Far tier — scale-and-space swings (each closer to its own product than a
+feature; heavy on either engineering, storage, or compute)**
+- **A true 3D Memory Palace** — not flat districts (Vespera) but a fully
+  rendered, walkable 3D space (Three.js/WebGL): rooms per module, physical
+  objects representing records, real lighting/physics. Game-engine-scale
+  work; 3D assets/textures push storage into the hundreds of MB+.
+- **A local, continuous "life recorder"** — periodic screen capture + local
+  OCR, indexed and searchable (a fully private, self-hosted Rewind.ai).
+  Massive ongoing storage growth (easily GB/month), a real local vision
+  pipeline, and the most privacy-sensitive idea on this list — has to be
+  100% local, never synced, by design.
+- **A local Whisper-powered audio diary with auto-routing** — talk instead
+  of type; a large local speech model transcribes and classifies what you
+  said, filing it into the right module itself (a dream to Dream Journal, a
+  tangent to Rabbit Holes). Requires a multi-GB local model plus real
+  classification logic.
+- **A true digital twin / life-simulation engine** — beyond the what-if
+  sandbox's simple parameter nudges: an actual agent-based model of you,
+  with internal state and feedback loops, run forward from your real data to
+  project "future you" — potentially rendered as a visual avatar that
+  visibly evolves over months.
+- **A full bidirectionally-linked personal wiki, built natively** — a real
+  Obsidian/Roam-style note system inside the OS: markdown, backlinks,
+  embeds, transclusion, a living graph view. Its own large, ever-growing
+  note archive.
+- **Generative dream visualization** — feed Dream Journal entries into a
+  local generative image/video pipeline and render what you dreamed — short
+  animated scenes or stills per entry, with generated ambient audio. Heavy
+  compute and storage (every dream becomes a media file).
+- **Camera-vision auto-cataloging** — point your phone at a bookshelf or a
+  garage full of stuff; on-device vision recognizes and catalogs everything
+  into Books or Quartermaster automatically, no manual entry.
+- **A real trained ML pattern engine, not just correlation** — The Almanac
+  does simple Pearson correlation on curated pairs; this would be an actual
+  model that continuously retrains on your entire history and surfaces
+  genuinely non-obvious, non-linear patterns (multi-variable interactions a
+  human would never manually think to check).
+- **A full multi-generational family archive** — Contacts evolves into real
+  genealogy: an ancestry graph, embedded oral-history video/audio
+  interviews, photos across generations — a family history preservation
+  project living inside the OS.
+- **A generative "personal mythology"** — an illustrated, ever-growing
+  storybook of your life: the app periodically composes and illustrates
+  (local image generation) an evolving fantasy chronicle where real
+  milestones and habit streaks become "quests completed" and "trials
+  overcome." Skill Trees taken to its most maximalist extreme — exportable
+  as an actual book.
+
 **External integrations (new OAuth flows / paid third parties — each is its
 own Tier 2 flag, not a routine add)**
 - **Financial Center** — bank/investment linking via **Plaid** (Sandbox is
