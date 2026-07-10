@@ -28,10 +28,10 @@
   max-height: 100vh;
   overflow: hidden;
   /* The generated concourse art, layered over a gradient fallback: if
-     img/hub.jpg doesn't exist (yet), the gradients below still paint and
+     img/hub.png doesn't exist (yet), the gradients below still paint and
      every plaque still works — the art is atmosphere, not load-bearing. */
   background-image:
-    url('img/hub.jpg'),
+    url('img/hub.png'),
     radial-gradient(ellipse at 50% 30%, rgba(124, 96, 255, 0.35) 0%, transparent 55%),
     radial-gradient(ellipse at 50% 110%, rgba(64, 220, 255, 0.25) 0%, transparent 60%),
     linear-gradient(180deg, #070818 0%, #10122e 60%, #1a1440 100%);

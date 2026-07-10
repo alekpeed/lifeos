@@ -14,7 +14,7 @@ protocol). `js/interfaces/vespera/` implements the Hub (nine district
 plaques + Central Directory), district door screens, travel transitions,
 and Spaces hosting the canonical module views (shared via
 `js/interfaces/view-library.js`) inside station chrome. The hub expects
-its concourse art at `js/interfaces/vespera/img/hub.jpg` and paints a
+its concourse art at `js/interfaces/vespera/img/hub.png` and paints a
 pure-CSS starfield until that file is uploaded — art is atmosphere, never
 load-bearing. Remaining from this spec: per-district room art (the ~16
 other images) and richer per-space chrome.

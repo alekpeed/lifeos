@@ -264,7 +264,7 @@ bug).
   matching the generated concourse image, district door screens, travel
   transitions, and every module hosted inside station chrome via the
   shared view library. Switch in Settings → Interface. Hub art loads from
-  `js/interfaces/vespera/img/hub.jpg` (CSS starfield until uploaded).
+  `js/interfaces/vespera/img/hub.png` (CSS starfield until uploaded).
   Still open from `VESPERA_SPEC.md`: per-district room art, richer
   per-space chrome.
 - **LCARS-inspired mode** — Star Trek control-panel aesthetic, original

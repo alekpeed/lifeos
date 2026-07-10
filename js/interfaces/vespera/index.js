@@ -12,7 +12,7 @@
 // that's sanctioned).
 //
 // Room art: the hub expects its generated concourse image at
-// js/interfaces/vespera/img/hub.jpg. Until that file exists the CSS paints
+// js/interfaces/vespera/img/hub.png. Until that file exists the CSS paints
 // a pure-gradient starfield fallback, so the interface works (and every
 // door still functions) with no image at all — the art is atmosphere,
 // never load-bearing.
