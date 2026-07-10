@@ -36,9 +36,9 @@ backup's `HANDOFF.md` for the full writeup.
 
 `scripts/make-backup.sh` regenerates a full portable backup (git bundle +
 source snapshot + docs + a HANDOFF.md) into a directory (default
-`/tmp/lifeos-backup-out`). Run it and send the resulting tarball to Alek via
-SendUserFile at the end of any session where you committed changes to this
-repo — don't wait for him to ask. Skip it for sessions with no commits.
+`/tmp/lifeos-backup-out`). **Manual only — run it and send the tarball via
+SendUserFile only when Alek explicitly asks for a backup.** Do not run it
+automatically after commits/sessions.
 
 ## Project context
 
