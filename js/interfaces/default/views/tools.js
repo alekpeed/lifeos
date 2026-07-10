@@ -45,18 +45,25 @@ function fmtNum(n) {
 }
 
 // --- Currency ---
-// Rates come from Frankfurter (ECB reference rates, free, keyless) when
-// online, cached into Settings so the converter still works offline from
-// whatever was last fetched (or the manual defaults, on a fresh install).
+// Rates come from open.er-api.com (free, keyless, ~160 currencies -- wider
+// coverage than Frankfurter/ECB's ~30, which is why every seeded default
+// currency actually gets a live update instead of some staying static)
+// when online, cached into Settings so the converter still works offline
+// from whatever was last fetched (or the manual defaults, on a fresh
+// install). The merge below (`{...rates, ...data.rates}`) also backfills
+// any currency added to the seeded defaults after this was first installed
+// -- an existing install's stored rates gain the new codes on the next
+// refresh, not just fresh installs.
 
-const FRANKFURTER_URL = 'https://api.frankfurter.app/latest?from=USD';
+const LIVE_RATES_URL = 'https://open.er-api.com/v6/latest/USD';
 const STALE_RATES_MS = 24 * 60 * 60 * 1000;
 
 async function refreshLiveRates(ctx, rerender, { silent } = {}) {
   try {
-    const res = await fetch(FRANKFURTER_URL);
+    const res = await fetch(LIVE_RATES_URL);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    if (data.result !== 'success' || !data.rates) throw new Error('Unexpected response shape');
     const rates = await ctx.data.Settings.get('currencyRates');
     await ctx.data.Settings.set('currencyRates', { ...rates, ...data.rates, USD: 1 });
     await ctx.data.Settings.set('currencyRatesFetchedAt', new Date().toISOString());
@@ -132,7 +139,7 @@ async function renderCurrency(container, ctx, rerender) {
   const result = (state.amount / rates[state.fromCurrency]) * rates[state.toCurrency];
 
   const statusText = fetchedAt
-    ? `Live rates (Frankfurter/ECB) as of ${new Date(fetchedAt).toLocaleString()}.`
+    ? `Live rates (open.er-api.com) as of ${new Date(fetchedAt).toLocaleString()}.`
     : 'No live rates fetched yet — using manual/default rates.';
 
   container.append(

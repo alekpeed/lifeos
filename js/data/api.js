@@ -428,11 +428,22 @@ const SETTING_DEFAULTS = {
   synthControlStyle: 'auto',
   synthPanelSkin: 'meridian',
   // Currency rate cache for the Tools converter. Populated from a live feed
-  // (Frankfurter/ECB, keyless) when online, but stored here (and editable)
-  // so the converter still works fully offline from the last-fetched or
-  // manually-entered values. Rates are "1 <currency> = N base units" with
-  // USD as the implicit base.
-  currencyRates: { USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149, CAD: 1.36, AUD: 1.52 },
+  // (open.er-api.com, keyless, ~160 currencies) when online, but stored here
+  // (and editable) so the converter still works fully offline from the
+  // last-fetched or manually-entered values. Rates are "1 USD = N
+  // <currency>". Seeded with ~50 major currencies so most people don't need
+  // to add their own; a live refresh (auto-triggered when stale, or via the
+  // Refresh button) covers essentially all of these plus anything else you
+  // add manually.
+  currencyRates: {
+    USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149, CHF: 0.88, CAD: 1.36, AUD: 1.52, NZD: 1.64,
+    CNY: 7.24, HKD: 7.82, SGD: 1.34, INR: 83.3, KRW: 1330, MXN: 17.0, BRL: 5.1, ZAR: 18.5,
+    SEK: 10.4, NOK: 10.6, DKK: 6.87, PLN: 4.0, TRY: 32.0, RUB: 92.0, THB: 35.5, IDR: 15700,
+    MYR: 4.7, PHP: 56.5, VND: 24500, ILS: 3.7, AED: 3.6725, SAR: 3.75, EGP: 48.0, NGN: 1550,
+    KES: 129, PKR: 278, BDT: 110, CZK: 23.2, HUF: 355, RON: 4.57, BGN: 1.8, UAH: 39.5,
+    ARS: 880, CLP: 950, COP: 3900, PEN: 3.75, TWD: 31.5, QAR: 3.64, KWD: 0.307, BHD: 0.376,
+    OMR: 0.3845, JOD: 0.709, ISK: 137,
+  },
   // ISO timestamp of the last successful live-rate fetch, or null if the
   // rates above are still just the hardcoded/manual defaults.
   currencyRatesFetchedAt: null,
