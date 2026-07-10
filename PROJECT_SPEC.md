@@ -352,6 +352,51 @@ local with just accounts+Sharebox+notifications on Supabase ("hybrid"), or
 that decision gets deferred further (the phased approach, currently in
 progress: prove accounts+AI Paper first, decide the rest later).
 
+## 6. Ambitious / moonshot tier 🌙
+
+Bigger swings — each is closer to its own sub-project than a feature, and
+several are foundational (they change how the whole app works underneath,
+not just what it can do). All Tier 2+; subject to change. Grouped loosely.
+
+**AI & intelligence**
+- **Fully local LLM, zero API key** — a small model running in-browser
+  (WebGPU / WebLLM) so the AI Daily Paper, smarter search, and any assistant
+  work fully offline, free, and with data never leaving the device. Extends
+  the app's local-first ethos to AI itself. This is the one idea that changes
+  the app's *size class* (a bundled/downloaded model is hundreds of MB to
+  multiple GB).
+- **Semantic memory across your whole life** — embed every record from every
+  module into a local vector index, so "when did I last see Sarah?" or "what
+  was bugging me in March?" returns a real answer from your actual history,
+  not keyword matching.
+- **Autonomous daily chief-of-staff** — an agent that reviews everything each
+  morning, drafts a prioritized brief (bills at risk, streaks about to break,
+  rabbit holes gone cold), and can act on pre-approved simple tasks itself.
+- **AI with continuity** — the Daily Paper stops being stateless day-to-day;
+  it remembers what it told you last week and writes with callbacks ("did you
+  end up going to that place you bookmarked?").
+- **AI-suggested knowledge-graph edges** — beyond manual linking: a model
+  reads across every module and proposes non-obvious connections you'd never
+  have drawn yourself.
+- **Predictive forecasting** — real trend modeling on your own data:
+  subscription cost creep, likely habit-streak breakpoints, when something
+  will actually need attention based on your past patterns, not a static date.
+
+**Foundational rearchitecture**
+- **Event-sourced core** — every change becomes an immutable event instead of
+  an in-place edit. Unlocks real undo/redo everywhere and per-record history,
+  and makes the already-planned Time Machine trivial once it exists.
+- **CRDT-based sync** — replace last-write-wins Drive sync with a real
+  conflict-free merge engine, so simultaneous edits on two devices combine
+  automatically instead of one silently clobbering the other.
+
+**Capture & reach**
+- **Camera-to-data capture** — photograph a receipt, bill, or ID and have
+  vision extraction auto-fill Documents/Finance fields instead of typing.
+- **Real background push** — true background sync / Web Push (not just
+  foreground-only PWA behavior) so bill-due and streak-at-risk alerts land
+  with the app closed, on platforms that genuinely support it.
+
 Nothing here is fixed in stone — the plan has already flexed a few times
 this week, and that's expected. This doc is meant to be a snapshot you can
 hand to a future session (or future you) to get back up to speed fast.
