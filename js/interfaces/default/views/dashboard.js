@@ -1,7 +1,10 @@
 import { el, fmtDate } from '../dom.js';
 
+// surprise: undefined = not tried yet; null = tried, nothing to suggest
+// (an empty pool is a legitimate result, not a bug -- but it needs to say
+// so, or a working "nothing to suggest" looks identical to a dead button).
 let state = {
-  surprise: null,
+  surprise: undefined,
 };
 
 function surpriseSection(ctx, rerender) {
@@ -9,7 +12,13 @@ function surpriseSection(ctx, rerender) {
     type: 'button', text: '🎲 Surprise me',
     onclick: async () => { state.surprise = await ctx.data.getSurpriseMe(); rerender(); },
   });
-  if (!state.surprise) return el('div', {}, [button]);
+  if (state.surprise === undefined) return el('div', {}, [button]);
+  if (!state.surprise) {
+    return el('div', {}, [
+      button,
+      el('p', { class: 'mer-muted', text: 'Nothing in the queue — add a want-to-go place, an unread book, an untried recipe, or a bucket-list goal to get a pick.' }),
+    ]);
+  }
 
   return el('div', {}, [
     button,
