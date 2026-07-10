@@ -62,7 +62,14 @@ export async function signOut() {
 // treating this as an immediate sign-in.
 export async function signUpWithEmail(email, password) {
   const supabase = await getSupabaseClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  // Without emailRedirectTo, Supabase sends the confirmation link to the
+  // project's default Site URL -- which is the bare domain root, not this
+  // app's actual path, and 404s on GitHub Pages. redirectTarget() (the same
+  // helper Google sign-in uses) points it at the right place.
+  const { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { emailRedirectTo: redirectTarget() },
+  });
   if (error) return { error };
   return { user: data?.user || null, needsConfirmation: !data?.session };
 }
