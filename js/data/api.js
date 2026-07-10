@@ -144,6 +144,7 @@ export const LanguageReviewLogs = entities.languageReviewLogs;
 export const ChordProgressions = entities.chordProgressions;
 export const ChordSkills = entities.chordSkills;
 export const ChordDrillLogs = entities.chordDrillLogs;
+export const ChordPracticeLogs = entities.chordPracticeLogs;
 export const ShareboxItems = entities.shareboxItems;
 export const ShareboxFiles = entities.shareboxFiles;
 

@@ -17,10 +17,11 @@ export const DB_NAME = 'lifeos';
 // `packingItems`, and `inventoryItems`. v6 adds `dreamEntries` and
 // `rabbitHoles`. v7 adds `libraryStories`. v8 adds `graphLinks` (the
 // Knowledge Graph's link-anything-to-anything edges). v9 adds `placeNotes`
-// (geofenced notes-to-self on Places). runUpgrade in db.js creates any
-// store that doesn't yet exist, so these bumps are non-destructive for
-// existing data.
-export const DB_VERSION = 9;
+// (geofenced notes-to-self on Places). v10 adds `chordPracticeLogs` (a
+// freeform practice-session log, separate from the auto-tracked drill
+// stats). runUpgrade in db.js creates any store that doesn't yet exist, so
+// these bumps are non-destructive for existing data.
+export const DB_VERSION = 10;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -111,6 +112,13 @@ export const STORES = [
   { name: 'chordDrillLogs', keyPath: 'id', indexes: [
     { name: 'date', keyPath: 'date' },
     { name: 'conceptId', keyPath: 'conceptId' },
+  ] },
+
+  // Freeform practice-session log: date, duration, what you worked on.
+  // Separate from chordDrillLogs (auto-tracked, self-graded drill accuracy) --
+  // this is for actual instrument practice, which the drills don't capture.
+  { name: 'chordPracticeLogs', keyPath: 'id', indexes: [
+    { name: 'date', keyPath: 'date' },
   ] },
 
   { name: 'financeSnapshots', keyPath: 'id', indexes: [

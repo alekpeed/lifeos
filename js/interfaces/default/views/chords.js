@@ -21,7 +21,7 @@ import { playChord, playSequence, FACTORY_PRESETS, PARAM_DEFS } from '../../../a
 const ROOTS = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
 
 let state = {
-  tab: 'dictionary', // dictionary | barry | calculator | map | lessons | sound
+  tab: 'dictionary', // dictionary | barry | calculator | map | lessons | practice | log | sound
   rootName: 'C',
   qualityId: 'maj7',
   instrument: 'piano', // piano | guitar
@@ -1045,6 +1045,58 @@ async function renderPractice(area, ctx, rerender) {
   }
 }
 
+// --- Log tab: freeform practice-session log ---
+// Separate from the Practice tab's auto-graded drill stats above -- this is
+// for actual instrument time (date, duration, what you worked on), which
+// the drills don't capture.
+
+function practiceLogRow(log, ctx, rerender) {
+  return el('div', { class: 'mer-person-card' }, [
+    el('div', { class: 'mer-person-info' }, [
+      el('div', { class: 'mer-person-name', text: `${fmtDate(log.date)}${log.durationMinutes ? ` · ${log.durationMinutes} min` : ''}` }),
+      log.notes ? el('div', { class: 'mer-person-meta', text: log.notes }) : null,
+    ]),
+    el('button', {
+      type: 'button', class: 'mer-icon-btn', text: '×',
+      onclick: async () => { await ctx.data.ChordPracticeLogs.remove(log.id); rerender(); },
+    }),
+  ]);
+}
+
+async function renderPracticeLog(area, ctx, rerender) {
+  const logs = await ctx.data.ChordPracticeLogs.list();
+  logs.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+  const dateInput = el('input', { type: 'date', value: todayStr() });
+  const durationInput = el('input', { type: 'number', min: '0', placeholder: 'Minutes' });
+  const notesInput = el('input', { type: 'text', placeholder: 'What did you work on?' });
+  const addBtn = el('button', {
+    type: 'button', text: '+ Log session',
+    onclick: async () => {
+      if (!notesInput.value.trim() && !durationInput.value) return;
+      await ctx.data.ChordPracticeLogs.create({
+        date: dateInput.value || todayStr(),
+        durationMinutes: durationInput.value ? Number(durationInput.value) : null,
+        notes: notesInput.value.trim(),
+      });
+      dateInput.value = todayStr();
+      durationInput.value = '';
+      notesInput.value = '';
+      rerender();
+    },
+  });
+
+  area.append(el('div', { class: 'mer-toolbar' }, [dateInput, durationInput, notesInput, addBtn]));
+
+  if (!logs.length) {
+    area.append(el('p', { class: 'mer-muted', text: 'No practice sessions logged yet.' }));
+    return;
+  }
+  const totalMinutes = logs.reduce((sum, l) => sum + (l.durationMinutes || 0), 0);
+  area.append(el('p', { class: 'mer-muted', text: `${logs.length} session${logs.length === 1 ? '' : 's'} logged · ${totalMinutes} total minutes` }));
+  area.append(el('div', { class: 'mer-people-list' }, logs.map((log) => practiceLogRow(log, ctx, rerender))));
+}
+
 // --- Root ---
 
 const TABS = [
@@ -1054,6 +1106,7 @@ const TABS = [
   ['map', 'Harmony Map'],
   ['lessons', 'Lessons'],
   ['practice', 'Practice'],
+  ['log', 'Log'],
   ['sound', 'Sound'],
 ];
 
@@ -1075,5 +1128,6 @@ export async function renderChords(canvas, ctx, rerender) {
   else if (state.tab === 'map') renderMap(area, ctx, rerender);
   else if (state.tab === 'lessons') renderLessons(area, ctx, rerender);
   else if (state.tab === 'practice') await renderPractice(area, ctx, rerender);
+  else if (state.tab === 'log') await renderPracticeLog(area, ctx, rerender);
   else await renderSound(area, ctx, rerender);
 }
