@@ -91,8 +91,11 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  width: 24%;
-  min-height: 8.8%;
+  /* No default width/min-height here on purpose: every district hotspot
+     supplies its own measured width/height inline (index.js), and several
+     are legitimately shorter than the old uniform default was -- a
+     min-height floor would silently override those and throw off the
+     rotation (which pivots around this box's own center). */
   padding: 0.5rem 0.7rem;
   text-align: left;
   cursor: pointer;
@@ -115,14 +118,20 @@
   display: none;
 }
 
-[data-interface='vespera'] .vsp-plaque--left { left: 0; }
-[data-interface='vespera'] .vsp-plaque--right { right: 0; }
-[data-interface='vespera'] .vsp-plaque--center {
+/* Each district's hotspot is positioned entirely via inline style (left/
+   top/width/height/rotate, computed from its measured hub.png coordinates
+   in index.js) -- no left/right/row helper classes needed anymore, since
+   every sign's position and rotation is individually measured rather than
+   assumed from a repeating grid. */
+
+[data-interface='vespera'] .vsp-plaque--news {
+  position: absolute;
   left: 50%;
   bottom: 3.5%;
-  transform: translateX(-50%);
-  width: 24%;
+  top: auto;
+  width: auto;
   min-height: 0;
+  transform: translateX(-50%);
   justify-content: center;
   /* No painted counterpart for this one (Station News is added, not part
      of the source art -- see VESPERA_SPEC.md), so its label stays visible
@@ -133,9 +142,9 @@
   box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
   backdrop-filter: blur(2px);
 }
-[data-interface='vespera'] .vsp-plaque--center .vsp-plaque-chrome { display: flex; }
-[data-interface='vespera'] .vsp-plaque--center:hover,
-[data-interface='vespera'] .vsp-plaque--center:focus-visible {
+[data-interface='vespera'] .vsp-plaque--news .vsp-plaque-chrome { display: flex; }
+[data-interface='vespera'] .vsp-plaque--news:hover,
+[data-interface='vespera'] .vsp-plaque--news:focus-visible {
   border-color: rgba(140, 245, 255, 0.95);
   box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
   transform: translateX(-50%) scale(1.04);
@@ -350,13 +359,21 @@
   }
 
   /* No image to hide behind here, so every plaque goes back to being a
-     real visible label -- same markup as desktop, chrome just turns back on. */
-  [data-interface='vespera'] .vsp-plaque,
-  [data-interface='vespera'] .vsp-plaque--center {
-    position: static;
-    width: auto;
-    min-height: 0;
-    transform: none;
+     real visible label -- same markup as desktop, chrome just turns back
+     on. !important is load-bearing here, not decorative: each desktop
+     hotspot carries its measured left/top/width/height/rotate as an
+     inline style (see index.js), which normally outranks any stylesheet
+     rule -- including these -- regardless of media query. Overriding
+     that back to a static, unrotated grid item is exactly the case
+     !important exists for. */
+  [data-interface='vespera'] .vsp-plaque {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    transform: none !important;
     justify-content: flex-start;
     color: #e8f4ff;
     background: rgba(6, 10, 26, 0.72);
@@ -366,11 +383,11 @@
 
   [data-interface='vespera'] .vsp-plaque-chrome { display: flex; }
 
-  [data-interface='vespera'] .vsp-plaque--center { grid-column: 1 / -1; }
+  [data-interface='vespera'] .vsp-plaque--news { grid-column: 1 / -1; }
 
   [data-interface='vespera'] .vsp-plaque:hover,
   [data-interface='vespera'] .vsp-plaque:focus-visible {
-    transform: none;
+    transform: none !important;
     border-color: rgba(140, 245, 255, 0.95);
     background: rgba(6, 10, 26, 0.72);
     box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);

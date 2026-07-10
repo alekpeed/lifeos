@@ -43,21 +43,38 @@ function el(tag, attrs = {}, children = []) {
 // painted label drifted from built reality (e.g. "Japanese" before the
 // Languages module generalized, "ChatGPT, Gemini" before they exist), the
 // code label tells the truth and the art keeps its atmosphere.
+//
+// hotspot: {cx, cy, w, h, rot} -- each measured directly off hub.png
+// (1672x941) by cropping around each sign with a pixel-coordinate grid
+// overlaid and reading the actual icon+text bounds, not assumed from a
+// repeating layout. cx/cy/w/h are percentages of the full image; rot is
+// degrees (CSS rotate() convention, clockwise positive) matching each
+// sign's real tilt from the concourse's perspective -- there is no flat
+// backing panel in the art to trace (the labels float directly on the
+// architecture), so this bounds the readable icon+text cluster itself.
+// See img/README.txt for the crop/measure method if the art is replaced.
 const DISTRICTS = [
-  { id: 'ops', name: 'Operations Deck', tagline: 'Tasks & Projects', icon: '📋', side: 'left', row: 0, modules: ['tasks', 'ideas', 'habits'] },
-  { id: 'navbay', name: 'Navigation Bay', tagline: 'Places & Maps', icon: '🧭', side: 'left', row: 1, modules: ['places', 'packing'] },
-  { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', side: 'left', row: 2, modules: ['links', 'books', 'education', 'knowledge', 'rabbitholes'] },
-  { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', side: 'left', row: 3, modules: ['finance', 'documents'] },
-  { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', side: 'right', row: 0, modules: ['contacts', 'milestones', 'recipes', 'photos'] },
-  { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', side: 'right', row: 1, modules: ['languages', 'chords', 'lifeasmusic'] },
-  { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', side: 'right', row: 2, modules: ['tools', 'settings', 'search', 'qrsync'] },
-  { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', side: 'right', row: 3, modules: ['assistant'] },
-  { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', side: 'center', row: 0, modules: ['paper'] },
+  { id: 'ops', name: 'Operations Deck', tagline: 'Tasks & Projects', icon: '📋', modules: ['tasks', 'ideas', 'habits'],
+    hotspot: { cx: 21.1, cy: 19.7, w: 24.2, h: 11.7, rot: 0 } },
+  { id: 'navbay', name: 'Navigation Bay', tagline: 'Places & Maps', icon: '🧭', modules: ['places', 'packing'],
+    hotspot: { cx: 21.2, cy: 43.8, w: 22.7, h: 11.2, rot: 0 } },
+  { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', modules: ['links', 'books', 'education', 'knowledge', 'rabbitholes'],
+    hotspot: { cx: 21.1, cy: 64.3, w: 23.0, h: 8.5, rot: 0 } },
+  { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents'],
+    hotspot: { cx: 20.8, cy: 83.6, w: 23.6, h: 7.1, rot: 5 } },
+  { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos'],
+    hotspot: { cx: 91.4, cy: 24.4, w: 15.9, h: 12.8, rot: -11 } },
+  { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
+    hotspot: { cx: 91.2, cy: 43.3, w: 15.6, h: 12.2, rot: -5 } },
+  { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync'],
+    hotspot: { cx: 85.2, cy: 64.8, w: 16.2, h: 7.4, rot: -2 } },
+  { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant'],
+    hotspot: { cx: 91.1, cy: 83.4, w: 17.1, h: 8.5, rot: 9 } },
+  // No painted counterpart for this one in the source art (added to give
+  // the Dashboard's due-soon feed a hub-level home) -- stays visible/
+  // unrotated rather than pretending to trace a sign that isn't there.
+  { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', modules: ['paper'], hotspot: null },
 ];
-
-// Measured against the actual hub.png panel bounds (each row's painted
-// plate), not guessed -- see style.css for the matching left/right/width.
-const ROW_TOPS = ['17.5%', '40%', '61%', '80.5%'];
 
 let ctx = null;
 let els = null; // { root }
@@ -93,10 +110,16 @@ function districtOf(moduleId) {
 // same chrome becomes the real visible label there via the existing
 // max-width media query -- one markup, two presentations.
 function plaque(district, hub) {
+  const h = district.hotspot;
+  // Station News has no hotspot (no painted sign to trace) -- it's
+  // positioned by its own fixed CSS rule instead (.vsp-plaque--news).
+  const posStyle = h
+    ? `left:${h.cx}%; top:${h.cy}%; width:${h.w}%; height:${h.h}%; transform: translate(-50%, -50%) rotate(${h.rot}deg);`
+    : '';
   const btn = el('button', {
     type: 'button',
-    class: `vsp-plaque vsp-plaque--${district.side}`,
-    style: district.side === 'center' ? '' : `top:${ROW_TOPS[district.row]};`,
+    class: `vsp-plaque vsp-plaque--${district.id}${h ? '' : ' vsp-plaque--news'}`,
+    style: posStyle,
     title: `${district.name} — ${district.tagline}`,
     'aria-label': `${district.name}. ${district.tagline}.`,
     onclick: () => depart(district, btn, hub),
