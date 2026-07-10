@@ -379,10 +379,29 @@ function cryptoRow(coinId, price, ctx, watchlist, rerender) {
   ]);
 }
 
+// --- DJIA (Stooq, keyless -- just the one index, no stock API key) ---
+
+function djiaSection(djia, rerender) {
+  const changeText = typeof djia?.changePct === 'number'
+    ? `${djia.changePct >= 0 ? '+' : ''}${djia.changePct.toFixed(2)}% today`
+    : '—';
+  return el('div', { class: 'mer-person-card' }, [
+    el('div', { class: 'mer-person-info' }, [
+      el('div', { class: 'mer-person-name', text: 'Dow Jones (DJIA)' }),
+      el('div', { class: 'mer-person-meta', text: djia ? `${money(djia.price)} · ${changeText}` : 'No quote yet' }),
+    ]),
+  ]);
+}
+
 async function renderCryptoTab(area, ctx, rerender) {
   const watchlist = await ctx.data.Settings.get('cryptoWatchlist');
   const prices = await ctx.data.getCryptoPrices();
   const cache = await ctx.data.Settings.get('cryptoPricesCache');
+  const djia = await ctx.data.getDjiaPrice();
+
+  area.append(el('div', { class: 'mer-subsection-label', text: 'Dow Jones' }));
+  area.append(el('div', { class: 'mer-people-list' }, [djiaSection(djia, rerender)]));
+  area.append(el('div', { class: 'mer-subsection-label', text: 'Crypto watchlist' }));
 
   const statusText = cache?.fetchedAt
     ? `Prices (CoinGecko) as of ${new Date(cache.fetchedAt).toLocaleString()}.`
@@ -425,7 +444,7 @@ function tabsBar(rerender) {
     el('button', { type: 'button', class: state.tab === 'bills' ? 'is-active' : '', text: 'Bills', onclick: () => { state.tab = 'bills'; rerender(); } }),
     el('button', { type: 'button', class: state.tab === 'subscriptions' ? 'is-active' : '', text: 'Subscriptions', onclick: () => { state.tab = 'subscriptions'; rerender(); } }),
     el('button', { type: 'button', class: state.tab === 'spend' ? 'is-active' : '', text: 'Yearly Spend', onclick: () => { state.tab = 'spend'; rerender(); } }),
-    el('button', { type: 'button', class: state.tab === 'crypto' ? 'is-active' : '', text: 'Crypto', onclick: () => { state.tab = 'crypto'; rerender(); } }),
+    el('button', { type: 'button', class: state.tab === 'crypto' ? 'is-active' : '', text: 'Markets', onclick: () => { state.tab = 'crypto'; rerender(); } }),
   ]);
 }
 

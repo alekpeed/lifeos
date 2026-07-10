@@ -257,13 +257,36 @@ async function renderDecksTab(container, ctx, rerender, pack) {
 
 const LEVELS = ['beginner', 'intermediate', 'advanced'];
 
-async function renderReader(container, story, ctx, rerender) {
+// After a generated story is marked read, ask how the difficulty felt and
+// nudge the pack's tracked level for the *next* generation accordingly.
+// Manual (non-generated) stories skip this -- there's no level to adjust
+// for something you wrote yourself.
+function levelFeedbackPrompt(story, pack, ctx, rerender) {
+  if (!story.generated || story.levelFeedback) return null;
+  const rate = async (feedback) => {
+    const nextLevel = ctx.data.adjustLevel(LEVELS, pack.babelLevel || 'beginner', feedback);
+    await Promise.all([
+      ctx.data.LibraryStories.update(story.id, { levelFeedback: feedback }),
+      ctx.data.LanguagePacks.update(pack.id, { babelLevel: nextLevel }),
+    ]);
+    rerender();
+  };
+  return el('div', { class: 'mer-toolbar' }, [
+    el('span', { class: 'mer-muted', text: 'How was the difficulty?' }),
+    el('button', { type: 'button', text: 'Too easy', onclick: () => rate('easy') }),
+    el('button', { type: 'button', text: 'Just right', onclick: () => rate('right') }),
+    el('button', { type: 'button', text: 'Too hard', onclick: () => rate('hard') }),
+  ]);
+}
+
+async function renderReader(container, story, pack, ctx, rerender) {
   container.append(el('div', { class: 'mer-detail-header' }, [
     el('h2', { text: story.title || '(untitled)' }),
     el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.storyId = null; rerender(); } }),
   ]));
   container.append(el('div', { class: 'mer-toolbar' }, [
     el('span', { class: 'mer-chip', text: story.level || 'beginner' }),
+    story.generated ? el('span', { class: 'mer-chip', text: '✨ Generated' }) : null,
     story.readAt ? el('span', { class: 'mer-chip', text: `Read ${fmtDate(story.readAt)}` }) : null,
   ].filter(Boolean)));
 
@@ -287,12 +310,15 @@ async function renderReader(container, story, ctx, rerender) {
       onclick: async () => { if (confirm('Delete this story?')) { await ctx.data.LibraryStories.remove(story.id); state.storyId = null; rerender(); } },
     }),
   ]));
+
+  const feedback = levelFeedbackPrompt(story, pack, ctx, rerender);
+  if (feedback) container.append(feedback);
 }
 
 function storyCard(story, onSelect) {
   const card = el('div', { class: 'mer-place-card' }, [
     el('div', { class: 'mer-place-body' }, [
-      el('div', { class: 'mer-place-name', text: story.title || '(untitled)' }),
+      el('div', { class: 'mer-place-name', text: `${story.generated ? '✨ ' : ''}${story.title || '(untitled)'}` }),
       el('div', { class: 'mer-place-meta' }, [
         el('span', { class: 'mer-chip', text: story.level || 'beginner' }),
         story.readAt ? el('span', { class: 'mer-chip', text: '✓ Read' }) : null,
@@ -301,6 +327,38 @@ function storyCard(story, onSelect) {
   ]);
   card.addEventListener('click', () => onSelect(story.id));
   return card;
+}
+
+// Generate-a-story control: gated on the same per-device Anthropic key as
+// the AI Assistant chat -- no shared/sponsored path, so if this pack is
+// ever shared with someone else, they need their own key too, same as chat.
+function generateStoryControl(pack, stories, hasApiKey, ctx, rerender) {
+  const status = el('span', { class: 'mer-muted' });
+  if (!hasApiKey) {
+    return el('p', { class: 'mer-muted', text: 'Add your Anthropic API key in Settings > AI Assistant to generate stories.' });
+  }
+  const btn = el('button', {
+    type: 'button', text: '✨ Generate a story',
+    onclick: async () => {
+      status.textContent = 'Writing…';
+      status.classList.remove('mer-sync-error');
+      try {
+        const level = pack.babelLevel || 'beginner';
+        const recentTitles = stories.slice(-5).map((s) => s.title).filter(Boolean);
+        const { title, body, translation } = await ctx.data.generateLibraryStory(pack.name, level, recentTitles);
+        const story = await ctx.data.LibraryStories.create({
+          packId: pack.id, title, level, body, translation, readAt: null, generated: true,
+        });
+        state.storyId = story.id;
+        state.showTranslation = false;
+        rerender();
+      } catch (err) {
+        status.textContent = err.message || String(err);
+        status.classList.add('mer-sync-error');
+      }
+    },
+  });
+  return el('div', { class: 'mer-toolbar' }, [btn, el('span', { class: 'mer-chip', text: `level: ${pack.babelLevel || 'beginner'}` }), status]);
 }
 
 function newStoryForm(packId, ctx, rerender) {
@@ -325,16 +383,21 @@ function newStoryForm(packId, ctx, rerender) {
 }
 
 async function renderLibraryTab(container, ctx, rerender, pack) {
+  const stories = await ctx.data.LibraryStories.byIndex('packId', pack.id);
+
   if (state.storyId) {
-    const story = await ctx.data.LibraryStories.get(state.storyId);
-    if (story) { await renderReader(container, story, ctx, rerender); return; }
+    const story = stories.find((s) => s.id === state.storyId);
+    if (story) { await renderReader(container, story, pack, ctx, rerender); return; }
     state.storyId = null;
   }
+
+  const hasApiKey = !!(await ctx.data.Settings.get('anthropicApiKey'));
+  container.append(el('div', { class: 'mer-subsection-label', text: 'Generate a story' }));
+  container.append(generateStoryControl(pack, stories, hasApiKey, ctx, rerender));
 
   container.append(el('div', { class: 'mer-subsection-label', text: 'Add a story' }));
   container.append(newStoryForm(pack.id, ctx, rerender));
 
-  const stories = await ctx.data.LibraryStories.byIndex('packId', pack.id);
   container.append(el('div', { class: 'mer-subsection-label', text: `Shelf (${stories.length})` }));
   if (!stories.length) {
     container.append(el('p', { class: 'mer-muted', text: 'No stories on this shelf yet.' }));

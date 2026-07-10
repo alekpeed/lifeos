@@ -451,6 +451,8 @@ const SETTING_DEFAULTS = {
   // Last-fetched prices, cached so the tab still shows something offline;
   // see getCryptoPrices() below for the staleness policy.
   cryptoPricesCache: null,
+  // Last-fetched DJIA quote; see getDjiaPrice() below for staleness policy.
+  djiaCache: null,
   // AI Assistant: your own Anthropic API key, kept device-local (Settings is
   // excluded from Drive/cloud sync) and sent only to api.anthropic.com,
   // directly from the browser. Empty until you add one in Settings.
@@ -669,6 +671,33 @@ export async function getCryptoPrices() {
   }
 }
 
+// --- DJIA ticker (Stooq, keyless -- no stock API key needed since this is
+// just the one index, not arbitrary tickers). ---
+
+const STOOQ_DJIA_URL = 'https://stooq.com/q/l/?s=^dji&f=sd2t2ohlc&h&e=csv';
+const DJIA_STALE_MS = 5 * 60 * 1000;
+
+// Returns { price, changePct, fetchedAt } or the last cache on failure/offline.
+export async function getDjiaPrice() {
+  const cache = await Settings.get('djiaCache');
+  if (cache && (Date.now() - new Date(cache.fetchedAt).getTime()) < DJIA_STALE_MS) return cache;
+
+  try {
+    const res = await fetch(STOOQ_DJIA_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const csv = await res.text();
+    const [, dataLine] = csv.trim().split('\n');
+    const [, , , open, , , close] = dataLine.split(',');
+    const price = Number(close);
+    const changePct = open && Number(open) ? ((Number(close) - Number(open)) / Number(open)) * 100 : null;
+    const result = { price, changePct, fetchedAt: new Date().toISOString() };
+    await Settings.set('djiaCache', result);
+    return result;
+  } catch {
+    return cache || null;
+  }
+}
+
 // --- AI Assistant (Claude, direct browser-to-API) ---
 // Conversations/messages are regular synced data (aiConversations/aiMessages
 // above); the API key stays in Settings, device-local and unsynced.
@@ -700,6 +729,49 @@ export async function sendAiMessage(conversationId, userText) {
   const { text } = await sendClaudeMessage(apiKey, claudeMessages, { model });
 
   return AiMessages.create({ conversationId, role: 'assistant', content: text });
+}
+
+// --- Library of Babel: AI-generated stories, gated the same way as the
+// AI Assistant chat -- each device needs its own Anthropic key in Settings
+// (no shared/sponsored path here), so this naturally stays per-person if
+// other people ever pick up the same pack. ---
+
+function parseGeneratedStory(text) {
+  const storyMatch = text.match(/STORY:\s*([\s\S]*?)(?:\nTRANSLATION:|$)/i);
+  const translationMatch = text.match(/TRANSLATION:\s*([\s\S]*)$/i);
+  const titleMatch = text.match(/TITLE:\s*(.+)/i);
+  return {
+    title: titleMatch ? titleMatch[1].trim() : 'Generated story',
+    body: (storyMatch ? storyMatch[1] : text).trim(),
+    translation: translationMatch ? translationMatch[1].trim() : '',
+  };
+}
+
+// Generates one short story at `level` for the given language, avoiding
+// recent titles so the shelf doesn't repeat itself. Throws (key missing,
+// rate limit, etc.) rather than swallowing errors -- the caller decides how
+// to surface that.
+export async function generateLibraryStory(packName, level, recentTitles = []) {
+  const [apiKey, model] = await Promise.all([
+    Settings.get('anthropicApiKey'),
+    Settings.get('anthropicModel'),
+  ]);
+  const avoid = recentTitles.length ? ` Avoid repeating these previous titles/themes: ${recentTitles.join(', ')}.` : '';
+  const prompt = `Write a very short story in ${packName} for a ${level} learner of the language.${avoid} `
+    + `Keep vocabulary and grammar appropriate for that level. Respond in exactly this format, nothing else:\n\n`
+    + `TITLE: <short title in ${packName}>\nSTORY:\n<the story, in ${packName}>\nTRANSLATION:\n<full English translation>`;
+  const { text } = await sendClaudeMessage(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 1200 });
+  return parseGeneratedStory(text);
+}
+
+// Nudges a pack's tracked difficulty level after read-story feedback.
+// Clamped at the ends of LEVELS (views/languages.js) rather than passed in,
+// since the ordering itself is fixed there.
+export function adjustLevel(levels, currentLevel, feedback) {
+  const i = Math.max(0, levels.indexOf(currentLevel));
+  if (feedback === 'easy') return levels[Math.min(levels.length - 1, i + 1)];
+  if (feedback === 'hard') return levels[Math.max(0, i - 1)];
+  return levels[i];
 }
 
 // --- Telegram (send-only) ---
