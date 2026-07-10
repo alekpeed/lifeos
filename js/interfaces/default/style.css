@@ -1878,3 +1878,49 @@
   color: var(--accent);
   margin-bottom: var(--space-xs);
 }
+
+/* --- Life as Music --- */
+
+[data-interface='default'] .mer-lifemusic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+[data-interface='default'] .mer-lifemusic-chord {
+  text-align: center;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-sm);
+}
+
+[data-interface='default'] .mer-lifemusic-symbol {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  color: var(--accent);
+}
+
+[data-interface='default'] .mer-lifemusic-label {
+  font-size: var(--text-sm);
+  margin-top: var(--space-xs);
+}
+
+/* --- Library of Babel --- */
+
+[data-interface='default'] .mer-babel-story {
+  white-space: pre-wrap;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: var(--line-height-normal);
+  margin: var(--space-md) 0;
+}
+
+[data-interface='default'] .mer-babel-translation {
+  white-space: pre-wrap;
+  color: var(--color-text-muted);
+  border-left: 3px solid var(--accent);
+  padding-left: var(--space-sm);
+  margin: var(--space-sm) 0;
+}

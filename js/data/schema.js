@@ -15,9 +15,10 @@ export const DB_NAME = 'lifeos';
 // `_shareboxTombstones`) for the shared-with-a-friend space. v5 adds
 // `timeCapsules`, `collections`/`collectionItems`, `packingLists`/
 // `packingItems`, and `inventoryItems`. v6 adds `dreamEntries` and
-// `rabbitHoles`. runUpgrade in db.js creates any store that doesn't yet
-// exist, so these bumps are non-destructive for existing data.
-export const DB_VERSION = 6;
+// `rabbitHoles`. v7 adds `libraryStories`. runUpgrade in db.js creates any
+// store that doesn't yet exist, so these bumps are non-destructive for
+// existing data.
+export const DB_VERSION = 7;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -204,6 +205,16 @@ export const STORES = [
   // list of links, closed out (or not) as `status`.
   { name: 'rabbitHoles', keyPath: 'id', indexes: [
     { name: 'status', keyPath: 'status' },
+  ] },
+
+  // Library of Babel: a story-based reading library per language pack --
+  // short graded stories (with an optional translation/gloss) you write or
+  // paste in yourself, read in-app, and mark as read. Additive alongside
+  // the Languages module's existing Lessons tab (grammar explainers) rather
+  // than replacing it -- both are useful, and removing already-shipped
+  // functionality isn't this feature's call to make unilaterally.
+  { name: 'libraryStories', keyPath: 'id', indexes: [
+    { name: 'packId', keyPath: 'packId' },
   ] },
 ];
 
