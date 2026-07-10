@@ -61,17 +61,19 @@ when it lands.)
 
 ## 3. Remaining routine builds (no new accounts/APIs needed)
 
-- 🔧 **Geofenced notes-to-self on Places**
-- 🔧 **Practice Log (Chords)** — a freeform log of practice sessions (date,
-  duration, what you worked on), separate from the existing auto-tracked
-  drill-accuracy stats.
-- 🔧 **Live currency conversion** — swap Tools' manual/editable rate table
-  for a live public rate feed (Frankfurter/ECB — free, no key). The only
-  reason it was manual originally was to keep Tools fully offline-capable,
-  which this trades away for that one converter.
-- 🔧 **Weather context** — Open-Meteo (free, keyless) added to the
-  Dashboard/Daily Paper.
-- 🔧 **Price tickers (crypto)** — CoinGecko's free, keyless public API.
+All five routine builds identified here have shipped:
+
+- ✅ **Geofenced notes-to-self on Places** — a short note attached to a place
+  that resurfaces the next time "Check nearby places" finds you within range.
+- ✅ **Practice Log (Chords)** — a freeform date/duration/notes log on its
+  own Log tab, separate from the auto-tracked drill-accuracy stats.
+- ✅ **Live currency conversion** — Tools' Currency tab now pulls live rates
+  from Frankfurter/ECB, auto-refreshing when stale, with a clean offline
+  fallback to the last-cached/manual values.
+- ✅ **Weather context** — Dashboard and Daily Paper show current conditions
+  from Open-Meteo, opt-in via "Use my location," cached for an hour.
+- ✅ **Price tickers (crypto)** — a new Crypto tab in Finance: a watchlist of
+  CoinGecko coin IDs with live price and 24h change, cached for five minutes.
 
 ## 4. External integrations (new OAuth flows or paid third parties)
 

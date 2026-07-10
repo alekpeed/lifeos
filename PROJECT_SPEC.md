@@ -300,6 +300,24 @@ lets the whole app be redecorated later without rebuilding it:
   that already duplicated. Attachments (photo/PDF blobs) don't ride this
   path yet — noted in the UI.
 
+- **Geofenced notes-to-self on Places** — a short note attached to a place
+  that resurfaces the next time "Check nearby places" finds you within
+  range, distinct from the place's freeform notes textarea.
+- **Practice Log (Chords)** — a freeform date/duration/notes log of actual
+  instrument time, on its own Log tab, separate from the Practice tab's
+  auto-tracked drill-accuracy stats.
+- **Live currency conversion** — Tools' Currency tab now pulls live rates
+  from Frankfurter/ECB (free, keyless), auto-refreshing once per session
+  when the cache is >24h stale, plus a manual Refresh button. Falls back
+  cleanly to the last-cached or manually-edited rates when offline — the
+  converter never breaks, it just stops updating.
+- **Weather context** — Dashboard and Daily Paper both show current
+  conditions from Open-Meteo (free, keyless) once you opt in via "Use my
+  location." Cached for an hour so it still shows something offline.
+- **Price tickers (crypto)** — a new Crypto tab in Finance: a watchlist of
+  CoinGecko coin IDs with live USD price and 24h change, cached for five
+  minutes so it still shows something offline.
+
 ### Still to build 📋
 - **Multi-user accounts** — email + password sign-up/sign-in (alongside the
   existing Google sign-in), password recovery, and per-user data isolation —
@@ -316,19 +334,6 @@ lets the whole app be redecorated later without rebuilding it:
   calls may hit CORS restrictions that won't be known until tested live.
   Treat as "needs a follow-up session with you present," not a solo build.
 - **AI-written yearly recap** — needs a working AI module first (see above)
-- **Geofenced notes-to-self on Places** — the one remaining routine-build
-  idea not yet done.
-- **Practice Log (Chords)** — a freeform log of practice sessions (date,
-  duration, what you worked on), separate from the existing auto-tracked
-  drill-accuracy stats. No external dependency — routine, buildable anytime.
-- **Live currency conversion** — swap Tools' manual/editable rate table for
-  a live public rate feed (e.g. Frankfurter/ECB rates — free, no API key).
-  Routine; the only reason it was manual originally was to keep Tools fully
-  offline-capable, which this would trade away for that one converter.
-- **Weather context** — a free, keyless public weather API (Open-Meteo) to
-  add local conditions to the Dashboard/Daily Paper. Routine.
-- **Price tickers (crypto)** — CoinGecko's free public API, no key needed.
-  Routine.
 
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you

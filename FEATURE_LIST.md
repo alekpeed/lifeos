@@ -223,16 +223,18 @@ LAN, LWW + tombstone merge, verified end-to-end across two isolated browser
 profiles — building it also fixed a latent duplicate-language-pack sync
 bug).
 
-## Remaining routine builds
+## ~~Five routine builds~~ — ALL BUILT ✅
 
-- 🔧 **Geofenced notes-to-self on Places**
-- 🔧 **Practice Log (Chords)** — a freeform log of practice sessions,
-  separate from the auto-tracked drill stats.
-- 🔧 **Live currency conversion** — swap the manual rate table for a live
-  feed (Frankfurter/ECB, free, keyless).
-- 🔧 **Weather context** — Open-Meteo (free, keyless) on the
-  Dashboard/Daily Paper.
-- 🔧 **Price tickers (crypto)** — CoinGecko, free, keyless.
+- ✅ **Geofenced notes-to-self on Places** — resurfaces via the existing
+  "Check nearby places" nudge, distinct from the freeform notes textarea.
+- ✅ **Practice Log (Chords)** — a freeform date/duration/notes log on its
+  own Log tab, separate from the auto-tracked drill stats.
+- ✅ **Live currency conversion** — Tools' Currency tab now pulls live rates
+  from Frankfurter/ECB, with a clean offline fallback.
+- ✅ **Weather context** — Open-Meteo on the Dashboard/Daily Paper, opt-in,
+  cached for offline use.
+- ✅ **Price tickers (crypto)** — a Crypto tab in Finance, CoinGecko
+  watchlist with live price + 24h change.
 
 ## External integrations (new OAuth or paid third parties)
 
