@@ -21,6 +21,41 @@ function surpriseSection(ctx, rerender) {
   ]);
 }
 
+function weatherSection(weather, ctx, rerender) {
+  if (!weather) {
+    return el('p', { class: 'mer-muted' }, [
+      document.createTextNode('No weather set. '),
+      el('button', {
+        type: 'button', class: 'mer-icon-btn', text: '📍 Use my location',
+        onclick: () => {
+          if (!navigator.geolocation) { alert('Geolocation is not available in this browser.'); return; }
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              await ctx.data.Settings.set('weatherLocation', { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Home' });
+              await ctx.data.Settings.set('weatherCache', null);
+              rerender();
+            },
+            (err) => alert(`Couldn't get location: ${err.message}`)
+          );
+        },
+      }),
+    ]);
+  }
+  const { icon, label } = ctx.data.describeWeatherCode(weather.code);
+  return el('p', {}, [
+    el('span', { text: `${icon} ${Math.round(weather.tempF)}°F, ${label}` }),
+    weather.highF != null ? el('span', { class: 'mer-muted', text: ` · H:${Math.round(weather.highF)}° L:${Math.round(weather.lowF)}°` }) : null,
+    el('button', {
+      type: 'button', class: 'mer-icon-btn', text: '×', title: 'Remove weather',
+      onclick: async () => {
+        await ctx.data.Settings.set('weatherLocation', null);
+        await ctx.data.Settings.set('weatherCache', null);
+        rerender();
+      },
+    }),
+  ]);
+}
+
 function onThisDaySection(items) {
   if (!items.length) return null;
   const list = el('ul', { class: 'mer-feed' });
@@ -35,13 +70,15 @@ function onThisDaySection(items) {
 }
 
 export async function renderDashboard(canvas, ctx, rerender) {
-  const [billDueSoonDays, documentExpiryDays, onThisDay] = await Promise.all([
+  const [billDueSoonDays, documentExpiryDays, onThisDay, weather] = await Promise.all([
     ctx.data.Settings.get('billDueSoonDays'),
     ctx.data.Settings.get('documentExpiryDays'),
     ctx.data.getOnThisDay(),
+    ctx.data.getWeather(),
   ]);
   const feed = await ctx.data.getDueSoonFeed(7, billDueSoonDays, documentExpiryDays);
   canvas.append(el('h1', { text: 'Today' }));
+  canvas.append(weatherSection(weather, ctx, rerender));
 
   if (!feed.length) {
     canvas.append(el('p', { class: 'mer-muted', text: 'Nothing due in the next 7 days.' }));

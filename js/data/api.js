@@ -414,6 +414,12 @@ const SETTING_DEFAULTS = {
     { label: 'Tokyo', tz: 'Asia/Tokyo' },
     { label: 'London', tz: 'Europe/London' },
   ],
+  // Home location for the Dashboard/Daily Paper weather blurb (Open-Meteo,
+  // keyless). Null until the user opts in via "Use my location".
+  weatherLocation: null, // { lat, lng, label }
+  // Last-fetched weather, cached so it survives offline/reload; see
+  // getWeather() below for the staleness policy.
+  weatherCache: null,
 };
 
 export const Settings = {
@@ -533,6 +539,58 @@ export async function getSurpriseMe() {
   ];
   if (!pool.length) return null;
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// --- Weather: current conditions for the Dashboard/Daily Paper (Open-Meteo,
+// keyless). Opt-in -- weatherLocation stays null until the user sets it. ---
+
+const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast';
+const WEATHER_STALE_MS = 60 * 60 * 1000;
+
+const WEATHER_CODES = {
+  0: { label: 'Clear sky', icon: '☀️' }, 1: { label: 'Mainly clear', icon: '🌤️' },
+  2: { label: 'Partly cloudy', icon: '⛅' }, 3: { label: 'Overcast', icon: '☁️' },
+  45: { label: 'Fog', icon: '🌫️' }, 48: { label: 'Fog', icon: '🌫️' },
+  51: { label: 'Light drizzle', icon: '🌦️' }, 53: { label: 'Drizzle', icon: '🌦️' }, 55: { label: 'Heavy drizzle', icon: '🌧️' },
+  61: { label: 'Light rain', icon: '🌦️' }, 63: { label: 'Rain', icon: '🌧️' }, 65: { label: 'Heavy rain', icon: '🌧️' },
+  71: { label: 'Light snow', icon: '🌨️' }, 73: { label: 'Snow', icon: '🌨️' }, 75: { label: 'Heavy snow', icon: '❄️' },
+  80: { label: 'Rain showers', icon: '🌦️' }, 81: { label: 'Rain showers', icon: '🌧️' }, 82: { label: 'Violent showers', icon: '⛈️' },
+  95: { label: 'Thunderstorm', icon: '⛈️' }, 96: { label: 'Thunderstorm, hail', icon: '⛈️' }, 99: { label: 'Thunderstorm, hail', icon: '⛈️' },
+};
+
+export function describeWeatherCode(code) {
+  return WEATHER_CODES[code] || { label: 'Unknown', icon: '🌡️' };
+}
+
+// Returns null if no location is set. Otherwise returns cached/live weather;
+// never throws -- a fetch failure just falls back to whatever's cached.
+export async function getWeather() {
+  const location = await Settings.get('weatherLocation');
+  if (!location) return null;
+
+  const cache = await Settings.get('weatherCache');
+  const sameSpot = cache && cache.lat === location.lat && cache.lng === location.lng;
+  const fresh = sameSpot && (Date.now() - new Date(cache.fetchedAt).getTime()) < WEATHER_STALE_MS;
+  if (fresh) return cache;
+
+  try {
+    const url = `${OPEN_METEO_URL}?latitude=${location.lat}&longitude=${location.lng}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const result = {
+      lat: location.lat, lng: location.lng, label: location.label,
+      tempF: data.current?.temperature_2m ?? null,
+      code: data.current?.weather_code ?? null,
+      highF: data.daily?.temperature_2m_max?.[0] ?? null,
+      lowF: data.daily?.temperature_2m_min?.[0] ?? null,
+      fetchedAt: new Date().toISOString(),
+    };
+    await Settings.set('weatherCache', result);
+    return result;
+  } catch {
+    return sameSpot ? cache : null;
+  }
 }
 
 // --- Milestones: year-in-review aggregation, pulled from every other module ---

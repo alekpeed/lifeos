@@ -131,6 +131,17 @@ function pickSection(ctx, rerender, forPrint) {
   return sectionCard("Editor's Pick", wrap);
 }
 
+function weatherSection(weather, ctx) {
+  if (!weather) return null;
+  const { icon, label } = ctx.data.describeWeatherCode(weather.code);
+  const body = el('p', { class: 'mer-paper-pick' }, [
+    el('span', { class: 'mer-paper-kicker', text: `${icon} ${label}` }),
+    el('span', { class: 'mer-paper-item-title', text: `${Math.round(weather.tempF)}°F` }),
+    weather.highF != null ? el('span', { class: 'mer-paper-item-date', text: `H:${Math.round(weather.highF)}° L:${Math.round(weather.lowF)}°` }) : null,
+  ].filter(Boolean));
+  return sectionCard('Weather', body);
+}
+
 function almanacSection({ feed, habits, logsByHabit, sleep }) {
   const overdue = feed.filter((f) => f.overdue).length;
   const doneToday = habits.filter((h) => (logsByHabit.get(h.id) || []).some((l) => l.date === todayStr())).length;
@@ -146,8 +157,9 @@ function almanacSection({ feed, habits, logsByHabit, sleep }) {
 }
 
 function buildPaper(data, forPrint, ctx, rerender) {
-  const { feed, onThisDay, habits, logsByHabit, sleep } = data;
+  const { feed, onThisDay, habits, logsByHabit, sleep, weather } = data;
   const sections = [
+    weatherSection(weather, ctx),
     agendaSection(feed),
     onThisDaySection(onThisDay),
     habitsSection(habits, logsByHabit, ctx, rerender, forPrint),
@@ -173,12 +185,13 @@ export async function renderPaper(canvas, ctx, rerender) {
     ctx.data.Settings.get('billDueSoonDays'),
     ctx.data.Settings.get('documentExpiryDays'),
   ]);
-  const [feed, onThisDay, habits, allLogs, healthLogs] = await Promise.all([
+  const [feed, onThisDay, habits, allLogs, healthLogs, weather] = await Promise.all([
     ctx.data.getDueSoonFeed(7, billDays, docDays),
     ctx.data.getOnThisDay(),
     ctx.data.Habits.list(),
     ctx.data.HabitLogs.list(),
     ctx.data.HealthLogs.list(),
+    ctx.data.getWeather(),
   ]);
   if (state.surprise === undefined) state.surprise = await ctx.data.getSurpriseMe();
 
@@ -192,7 +205,7 @@ export async function renderPaper(canvas, ctx, rerender) {
     .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
   const sleep = latest ? latest.sleepHours : null;
 
-  const data = { feed, onThisDay, habits, logsByHabit, sleep };
+  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather };
 
   canvas.append(el('h1', { text: 'Daily Paper' }));
   canvas.append(el('div', { class: 'mer-toolbar' }, [
