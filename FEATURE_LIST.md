@@ -210,17 +210,18 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
 - 🏗️ **AI-written yearly recap** — once an AI module exists, have it draft
   the actual narrative instead of just tallying numbers.
 
-## Four architecture-decision features
+## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
-- 🏗️ **Knowledge Graph** — link anything to anything, browse it as a radial
-  web of connections. Same design-decision category as the built Harmony
-  Map.
-- 🏗️ **The Orrery** — the dashboard as a solar system, each life area a
-  planet reflecting how it's doing.
-- 🏗️ **Time Machine** — scrub back through time to see the app as it looked
-  on a past day (event sourcing, below, would make this trivial).
-- 🏗️ **QR Airgap Sync** — sync your two devices via QR codes, no internet
-  or account needed.
+All four shipped (see Part 1 additions below): **Knowledge Graph** (radial,
+walkable, Search-defined linkability), **The Orrery** (solar-system
+alternate dashboard where orbit = neglect, size = volume, speed = activity,
+pulsing ring = overdue), **Time Machine** (scrub any past date: existence
+counts, added-that-day, genuinely-dated lived-that-day, with an on-screen
+honesty note about its limits), and **QR Airgap Sync** (QR = WebRTC pairing
+handshake scannable by a phone's native camera, data peer-to-peer over the
+LAN, LWW + tombstone merge, verified end-to-end across two isolated browser
+profiles — building it also fixed a latent duplicate-language-pack sync
+bug).
 
 ## Remaining routine builds
 

@@ -51,23 +51,13 @@ Tier legend:
   have it draft the actual recap narrative instead of just tallying
   numbers (the numbers-driven aggregation already exists in Milestones).
 
-## 2. The four original Tier-2 architecture items
+## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
-- 🏗️ **Knowledge Graph** — link anything to anything (a task to a contact,
-  a book to a milestone...) and browse it as a radial web of connections.
-  Needs a real graph-rendering/layout design decision — same category as
-  the already-built Harmony Map.
-- 🏗️ **The Orrery** — the dashboard reimagined as a solar system, each life
-  area a planet whose size/speed/wobble reflects how that area is doing.
-  Needs an orbital-layout design decision.
-- 🏗️ **Time Machine** — scrub a slider back through time and see the app as
-  it looked on a past day. Needs a design decision about reconstructing
-  historical snapshots from data that was never versioned (the "Foundational
-  rearchitecture" section below has an idea — event sourcing — that would
-  make this trivial once it existed).
-- 🏗️ **QR Airgap Sync** — sync between your two devices via QR codes, no
-  internet or account needed. Needs a sync-protocol design decision, same
-  category as Drive sync.
+Knowledge Graph, The Orrery, Time Machine, and QR Airgap Sync all shipped —
+see PROJECT_SPEC.md's Built section for what each became. (Time Machine
+shipped as the agreed lightweight approximation; the event-sourced core in
+section 7 below still upgrades it to true any-point-in-time reconstruction
+when it lands.)
 
 ## 3. Remaining routine builds (no new accounts/APIs needed)
 

@@ -262,6 +262,44 @@ lets the whole app be redecorated later without rebuilding it:
   fresh-profile test that search doesn't break for anyone who never had
   that store).
 
+- **Knowledge Graph** — link anything to anything (a task to a contact, a
+  book to a milestone…) and walk it as a radial web borrowing the Harmony
+  Map's interaction grammar: the focused record at the center, connections
+  as spokes, click a spoke to refocus and keep walking. "What is linkable"
+  is defined as "what Search can find" (one shared record-addressing table).
+  Edges are undirected and title-free — endpoints resolve live so renames
+  never leave stale labels, and a deleted record shows an honest
+  "(deleted)" tombstone with an unlink offer. Duplicate links dedupe in
+  either direction; self-links are rejected.
+- **The Orrery** — the dashboard as a solar system, shipped as an alternate
+  view (its own nav entry; the Dashboard stays the default). Every visual
+  property encodes a real signal: orbit radius = neglect (fresh areas hug
+  the sun, stale ones drift outward, no-data areas park dimmed on the outer
+  ring), planet size = record count (log-scaled), orbital speed = this
+  week's activity, a pulsing red ring = something overdue. Click a planet
+  to fly to its module. The animation loop provably stops on navigation,
+  and prefers-reduced-motion gets a fully static layout.
+- **Time Machine** — scrub a slider (or pick a date) and see what the app
+  knew on that day: per-module "existed then → now" counts from createdAt
+  timestamps, what was added that day, and — genuinely historical — what
+  was *lived* that day from the dated log stores (habit check-ins, health,
+  cooking, reading). An on-screen honesty note states what it can't show
+  (deletions since then, old field values); the event-sourced core on the
+  moonshot list upgrades this in place when it lands.
+- **QR Airgap Sync** — sync two devices with no server, no account, no
+  internet: the QR code is the pairing handshake (it carries a WebRTC
+  offer as a URL the other phone's NATIVE camera app can scan — zero
+  in-app camera code), the reply code comes back by QR/paste, and data
+  then flows peer-to-peer over the local network. Merge mirrors Drive
+  sync: last-write-wins by updatedAt, deletions propagate via tombstones.
+  Verified end-to-end across two isolated browser profiles: bidirectional
+  transfer, edit propagation, delete propagation. Building this also
+  surfaced and fixed a latent sync bug: boot-seeded language packs used
+  random per-device ids (so any sync duplicated "Japanese"); they're now
+  deterministic ("languagepack-ja") with self-healing dedupe for installs
+  that already duplicated. Attachments (photo/PDF blobs) don't ride this
+  path yet — noted in the UI.
+
 ### Still to build 📋
 - **Multi-user accounts** — email + password sign-up/sign-in (alongside the
   existing Google sign-in), password recovery, and per-user data isolation —
@@ -278,19 +316,6 @@ lets the whole app be redecorated later without rebuilding it:
   calls may hit CORS restrictions that won't be known until tested live.
   Treat as "needs a follow-up session with you present," not a solo build.
 - **AI-written yearly recap** — needs a working AI module first (see above)
-- **Knowledge Graph** — link anything to anything (a task to a contact, a
-  book to a milestone...) and browse it as a radial web of connections.
-  Needs a real graph-rendering/layout design decision before building —
-  same category as the Harmony Map.
-- **The Orrery** — the dashboard reimagined as a solar system, each life area
-  a planet whose size/speed/wobble reflects how that area is doing. Needs an
-  orbital-layout design decision before building.
-- **Time Machine** — scrub a slider back through time and see the app as it
-  looked on a past day. Needs a real design decision about reconstructing
-  historical snapshots from data that was never versioned.
-- **QR Airgap Sync** — sync between your two devices via QR codes, no
-  internet or account needed. Needs a sync-protocol design decision, same
-  category as Drive sync.
 - **Geofenced notes-to-self on Places** — the one remaining routine-build
   idea not yet done.
 - **Practice Log (Chords)** — a freeform log of practice sessions (date,
@@ -357,8 +382,8 @@ Everything below came out of talking through what would actually feel
 1. Multi-user accounts (email/password + password recovery), building on
    Sharebox v2's now-fixed Supabase/RLS foundation
 2. AI-powered Daily Paper + per-user notifications (depend on accounts)
-3. The four Tier-2 "needs a design decision first" features: Knowledge Graph,
-   The Orrery, Time Machine, QR Airgap Sync
+3. ~~The four Tier-2 features~~ — DONE: Knowledge Graph, The Orrery,
+   Time Machine, and QR Airgap Sync all shipped (see Built ✅)
 4. AI modules (Claude/GPT/Gemini) + relay + Telegram (needs you present for real API keys)
 5. AI-written yearly recap (needs an AI module first)
 6. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,

@@ -45,6 +45,7 @@ import { renderLifeAsMusic } from './views/lifeasmusic.js';
 import { renderKnowledge } from './views/knowledge.js';
 import { renderOrrery } from './views/orrery.js';
 import { renderTimeMachine } from './views/timemachine.js';
+import { renderQrSync } from './views/qrsync.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -151,6 +152,7 @@ const VIEWS = {
   knowledge: renderKnowledge,
   orrery: renderOrrery,
   timemachine: renderTimeMachine,
+  qrsync: renderQrSync,
 };
 
 // --- Interface contract implementation ---

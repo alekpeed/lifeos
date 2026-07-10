@@ -21,6 +21,18 @@ export { connectCalendar, syncCalendarNow, disconnectCalendar, getCalendarState 
 // Synced separately from personal data through that shared folder.
 export { connectSharebox, syncShareboxNow, disconnectSharebox, getShareboxState } from './sharebox-sync.js';
 
+// QR Airgap Sync: device-to-device over the local network, paired by QR
+// code, no server/account/internet involved. Grouped under one namespace so
+// the view reaches it through ctx.data like everything else.
+import * as qrsync from './qrsync.js';
+export const QrSync = {
+  isSupported: qrsync.isQrSyncSupported,
+  createOfferSession: qrsync.createOfferSession,
+  acceptOffer: qrsync.acceptOffer,
+  completeOffer: qrsync.completeOffer,
+  mergeSnapshot: qrsync.mergeSnapshot,
+};
+
 // Sharebox v2 (Supabase-backed): the eventual replacement for the Drive path
 // above. Grouped under one namespace so the view can flip between backends
 // cleanly and so all the Supabase surface reaches interfaces through ctx.data
@@ -335,10 +347,35 @@ export async function migrateLegacyJapaneseToLanguagePacks() {
 // the existing or newly-created record either way. Called at boot to
 // guarantee Japanese is always available out of the box, and reused by
 // the migration above.
+//
+// Two sync-correctness details live here:
+//   • Boot-seeded packs get a DETERMINISTIC id ("languagepack-<code>"), not
+//     a random UUID — otherwise every device mints its own "Japanese" pack
+//     and the first sync (Drive or QR) leaves both devices with duplicates.
+//     With a shared id, the two seeds are the same record and merge cleanly.
+//   • Self-healing for installs that already duplicated: if more than one
+//     pack shares a code, keep the deterministic winner (oldest createdAt,
+//     id as tiebreak — both devices independently pick the SAME winner),
+//     re-point decks/stories at it, and delete the rest. The deletions
+//     tombstone, so the cleanup itself propagates on the next sync.
 export async function ensureLanguagePack(code, name, ttsLocale) {
-  const existing = (await LanguagePacks.byIndex('code', code))[0];
-  if (existing) return existing;
-  return LanguagePacks.create({ code, name, ttsLocale });
+  const matches = await LanguagePacks.byIndex('code', code);
+  if (matches.length > 1) {
+    matches.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '') || a.id.localeCompare(b.id));
+    const keeper = matches[0];
+    for (const dupe of matches.slice(1)) {
+      for (const deck of await LanguageDecks.byIndex('packId', dupe.id)) {
+        await LanguageDecks.update(deck.id, { packId: keeper.id });
+      }
+      for (const story of await LibraryStories.byIndex('packId', dupe.id)) {
+        await LibraryStories.update(story.id, { packId: keeper.id });
+      }
+      await LanguagePacks.remove(dupe.id);
+    }
+    return keeper;
+  }
+  if (matches.length === 1) return matches[0];
+  return LanguagePacks.create({ id: `languagepack-${code}`, code, name, ttsLocale });
 }
 
 // --- Settings: plain key-value store, separate shape from the entity stores. ---

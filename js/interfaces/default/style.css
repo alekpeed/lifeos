@@ -2092,3 +2092,46 @@
   padding-left: var(--space-sm);
   margin-top: var(--space-lg);
 }
+
+/* --- QR Airgap Sync --- */
+
+[data-interface='default'] .mer-qrsync-code {
+  /* QR codes need a light quiet zone to scan reliably in dark mode too. */
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  width: fit-content;
+  max-width: min(320px, 100%);
+  margin: var(--space-sm) 0;
+}
+
+[data-interface='default'] .mer-qrsync-code svg {
+  display: block;
+  width: 280px;
+  max-width: 100%;
+  height: auto;
+}
+
+[data-interface='default'] .mer-qrsync-payload {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  word-break: break-all;
+}
+
+[data-interface='default'] .mer-qrsync-done {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+[data-interface='default'] .mer-qrsync-note {
+  max-width: 70ch;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  border-left: 3px solid var(--color-border);
+  padding-left: var(--space-sm);
+  margin-top: var(--space-lg);
+}

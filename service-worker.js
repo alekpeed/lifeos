@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v50';
+const CACHE_VERSION = 'lifeos-v51';
 const APP_SHELL = [
   './',
   './index.html',
@@ -69,6 +69,7 @@ const APP_SHELL = [
   './js/interfaces/default/views/knowledge.js',
   './js/interfaces/default/views/orrery.js',
   './js/interfaces/default/views/timemachine.js',
+  './js/interfaces/default/views/qrsync.js',
   './js/theory/notes.js',
   './js/theory/chords.js',
   './js/theory/voicings.js',
@@ -82,6 +83,7 @@ const APP_SHELL = [
   './js/reader/epub.js',
   './vendor/fflate/fflate.module.js',
   './vendor/supabase/supabase.umd.js',
+  './vendor/qrcode/qrcode.mjs',
   './vendor/leaflet/leaflet.js',
   './vendor/leaflet/leaflet.css',
   './vendor/leaflet/images/marker-icon.png',
