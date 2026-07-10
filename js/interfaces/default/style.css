@@ -1949,3 +1949,77 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+
+/* --- The Orrery (dashboard as a solar system) --- */
+
+[data-interface='default'] .mer-orrery-svg {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  display: block;
+  margin: var(--space-md) auto;
+  user-select: none;
+  /* Space is dark in both themes — the one deliberate fixed-look surface,
+     like the Daily Paper's newsprint. */
+  background: radial-gradient(ellipse at center, #10131c 0%, #070910 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+[data-interface='default'] .mer-orrery-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 1;
+}
+
+[data-interface='default'] .mer-orrery-sun {
+  fill: #e8c66a;
+  filter: drop-shadow(0 0 14px rgba(232, 198, 106, 0.55));
+}
+
+[data-interface='default'] .mer-orrery-sun-label {
+  fill: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+  font-family: var(--font-ui);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+[data-interface='default'] .mer-orrery-planet { cursor: pointer; }
+[data-interface='default'] .mer-orrery-planet:focus-visible { outline: none; }
+[data-interface='default'] .mer-orrery-planet:hover .mer-orrery-body,
+[data-interface='default'] .mer-orrery-planet:focus-visible .mer-orrery-body {
+  filter: brightness(1.4) drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
+}
+[data-interface='default'] .mer-orrery-planet.is-empty { opacity: 0.35; }
+
+[data-interface='default'] .mer-orrery-label {
+  fill: rgba(255, 255, 255, 0.75);
+  font-size: 10.5px;
+  font-family: var(--font-ui);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+[data-interface='default'] .mer-orrery-alert {
+  stroke: #d95757;
+  stroke-width: 1.6;
+  animation: mer-orrery-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes mer-orrery-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.95; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-interface='default'] .mer-orrery-alert { animation: none; opacity: 0.8; }
+}
+
+[data-interface='default'] .mer-orrery-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}

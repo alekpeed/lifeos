@@ -43,6 +43,7 @@ import { renderRabbitHoles } from './views/rabbitholes.js';
 import { renderAlmanac } from './views/almanac.js';
 import { renderLifeAsMusic } from './views/lifeasmusic.js';
 import { renderKnowledge } from './views/knowledge.js';
+import { renderOrrery } from './views/orrery.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -147,6 +148,7 @@ const VIEWS = {
   almanac: renderAlmanac,
   lifeasmusic: renderLifeAsMusic,
   knowledge: renderKnowledge,
+  orrery: renderOrrery,
 };
 
 // --- Interface contract implementation ---
