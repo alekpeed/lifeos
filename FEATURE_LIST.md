@@ -199,7 +199,8 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
 - ✅ **Multi-user accounts (phase 1)** — email/password + Google sign-in,
   password reset, a `profiles` table for a global display name. Lives in
   Settings' new Account section, shares one auth session with Sharebox v2.
-  One manual step left: run the SQL migration + a live test.
+  Live-verified end to end (SQL run, Google + email sign-up/sign-in all
+  confirmed working).
 - 🏗️ **AI-powered Daily Paper** — an actual AI-written editorial instead of
   the current list-based brief, once accounts exist to scope it per user.
 - 🏗️ **Per-user notifications** — depends on accounts.

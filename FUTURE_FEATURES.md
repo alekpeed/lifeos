@@ -23,14 +23,14 @@ Tier legend:
 
 ## 1. The near-term core: accounts, AI, and notifications
 
-- ✅ **Multi-user accounts (phase 1)** — DONE: email/password sign-up/sign-in,
-  password reset, and Google sign-in, sharing one Supabase auth session with
-  Sharebox v2. A `profiles` table gives every account a global display name.
-  Lives in Settings' new Account section. One manual step left: run
-  `sql/supabase-accounts-schema.sql` + a live end-to-end test (can't be done
-  from this environment — same limitation Sharebox v2 originally had).
-  Per-user data isolation for the REST of the app (Tasks, Places, Finance...)
-  is deliberately not part of this phase — see the open architecture
+- ✅ **Multi-user accounts (phase 1)** — DONE and live-verified: email/password
+  sign-up/sign-in, password reset, and Google sign-in, sharing one Supabase
+  auth session with Sharebox v2. A `profiles` table gives every account a
+  global display name. Lives in Settings' new Account section. Fixed one real
+  bug the live test caught: the email confirmation link 404'd (missing
+  emailRedirectTo). Per-user data isolation for the REST of the app (Tasks,
+  Places, Finance...) is deliberately not part of this phase — see the open
+  architecture
   question in section 11.
 - 🏗️ **AI-powered Daily Paper** — turn the current list-based brief into an
   actual AI-written editorial (Claude/GPT/Gemini), once accounts exist to

@@ -323,15 +323,17 @@ lets the whole app be redecorated later without rebuilding it:
   with Sharebox v2 (sign in either place, you're signed in everywhere). A new
   `profiles` table (`sql/supabase-accounts-schema.sql`) gives every account a
   global display name, auto-created via a trigger on signup. Lives in
-  Settings' new "Account" section. Verified headlessly (every form/mode
-  transition, and that Supabase being unreachable degrades to a clear error
-  instead of breaking the page) — live email/OAuth exchange can't be tested
-  from this environment, same limitation as Sharebox v2 originally. **One
-  manual step left:** run `sql/supabase-accounts-schema.sql` against the live
-  project, then do a real sign-up/sign-in/reset test. Per-user data isolation
-  for the rest of the app (Tasks, Places, Finance, ...) is deliberately NOT
-  part of this phase — the phased architecture approach (see "Additional
-  interfaces" section) keeps those modules local-first for now.
+  Settings' new "Account" section. **Fully verified live, not just
+  headlessly:** SQL migration run, Google sign-in + display name save
+  confirmed, email sign-up + confirmation email + email sign-in all confirmed
+  working end-to-end. (Along the way, fixed a real bug the live test caught:
+  the confirmation email link 404'd because signUpWithEmail() wasn't passing
+  emailRedirectTo — it now reuses the same redirect helper Google sign-in
+  already used correctly.) "Forgot password" is built but not yet live-tested.
+  Per-user data isolation for the rest of the app (Tasks, Places, Finance,
+  ...) is deliberately NOT part of this phase — the phased architecture
+  approach (see "Additional interfaces" section) keeps those modules
+  local-first for now.
 
 ### Still to build 📋
 - **AI-powered Daily Paper** — turn the current list-based brief into an
@@ -394,9 +396,8 @@ Everything below came out of talking through what would actually feel
 
 ## 5. Rough order of what's left
 
-1. ~~Multi-user accounts (phase 1)~~ — DONE: email/password + Google sign-in,
-   password reset, profiles table (see Built ✅). One manual step left: run
-   the SQL migration + a live end-to-end test.
+1. ~~Multi-user accounts (phase 1)~~ — DONE and live-verified: email/password
+   + Google sign-in, password reset, profiles table (see Built ✅).
 2. AI-powered Daily Paper + per-user notifications (depend on accounts)
 3. ~~The four Tier-2 features~~ — DONE: Knowledge Graph, The Orrery,
    Time Machine, and QR Airgap Sync all shipped (see Built ✅)
