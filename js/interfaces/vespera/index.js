@@ -44,38 +44,34 @@ function el(tag, attrs = {}, children = []) {
 // generalized, "ChatGPT, Gemini" before they exist), the code label tells
 // the truth.
 //
-// Labels are drawn by the app, not traced from the art (see the pass this
-// replaced, in git history, for why: pinning invisible hotspots to a
-// perspective-warped painted sign is fragile by construction -- any art
-// change re-breaks every measurement, and "pixel-perfect against one
-// specific image" was never going to survive a second image). This is a
-// clean, deliberately-designed grid instead: even rows, no rotation, sized
-// for legibility -- not measured against any particular background.
-// img/hub.png (or whatever replaces it) is just atmosphere behind these,
-// same as the gradient fallback. See img/README.txt for the brief used to
-// commission blank-plate art that leaves room for this exact grid.
-const ROW_TOPS = [17, 39.5, 62, 84.5];
-const COL = { left: 2, right: 74, width: 24 };
-
+// hotspot.clip is a clip-path polygon (percentages relative to that
+// district's own bounding box, not the full image) tracing the real
+// painted sign's four corners -- both cx/cy/w/h and clip were measured
+// directly from img/hub.png via a red-corner-marker commissioning process
+// (see img/README.txt): the art is generated with small solid #FF0000
+// squares at each sign's real corners, which get detected, clustered, and
+// converted to these coordinates, then inpainted out of the shipped image.
+// This is inherently tied to the current hub.png -- a new image needs the
+// same process re-run, not a hand-tweak of these numbers.
 const DISTRICTS = [
   { id: 'ops', name: 'Operations Deck', tagline: 'Tasks & Projects', icon: '📋', modules: ['tasks', 'ideas', 'habits'],
-    hotspot: { cx: COL.left + COL.width / 2, cy: ROW_TOPS[0], w: COL.width, h: 10 } },
+    hotspot: { cx: 16.22, cy: 13.34, w: 13.67, h: 14.88, clip: 'polygon(0.4% 0.0%, 100.0% 59.6%, 99.3% 100.0%, 0.0% 55.4%)' } },
   { id: 'navbay', name: 'Navigation Bay', tagline: 'Places & Maps', icon: '🧭', modules: ['places', 'packing'],
-    hotspot: { cx: COL.left + COL.width / 2, cy: ROW_TOPS[1], w: COL.width, h: 10 } },
+    hotspot: { cx: 16.85, cy: 36.88, w: 12.95, h: 8.29, clip: 'polygon(0.0% 0.0%, 99.8% 32.7%, 100.0% 100.0%, 0.5% 86.5%)' } },
   { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', modules: ['links', 'books', 'education', 'knowledge', 'rabbitholes'],
-    hotspot: { cx: COL.left + COL.width / 2, cy: ROW_TOPS[2], w: COL.width, h: 10 } },
+    hotspot: { cx: 18.39, cy: 59.62, w: 11.78, h: 8.29, clip: 'polygon(0.5% 20.5%, 99.7% 0.0%, 100.0% 69.9%, 0.0% 100.0%)' } },
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents'],
-    hotspot: { cx: COL.left + COL.width / 2, cy: ROW_TOPS[3], w: COL.width, h: 10 } },
+    hotspot: { cx: 16.39, cy: 78.91, w: 12.38, h: 10.95, clip: 'polygon(0.0% 39.3%, 99.3% 0.0%, 100.0% 51.9%, 0.0% 100.0%)' } },
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos'],
-    hotspot: { cx: COL.right + COL.width / 2, cy: ROW_TOPS[0], w: COL.width, h: 10 } },
+    hotspot: { cx: 86.99, cy: 13.02, w: 12.62, h: 14.35, clip: 'polygon(0.0% 58.1%, 100.0% 0.0%, 100.0% 58.5%, 0.2% 100.0%)' } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
-    hotspot: { cx: COL.right + COL.width / 2, cy: ROW_TOPS[1], w: COL.width, h: 10 } },
+    hotspot: { cx: 85.93, cy: 36.56, w: 13.43, h: 8.5, clip: 'polygon(0.0% 31.2%, 100.0% 0.0%, 99.1% 90.0%, 0.2% 100.0%)' } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync'],
-    hotspot: { cx: COL.right + COL.width / 2, cy: ROW_TOPS[2], w: COL.width, h: 10 } },
+    hotspot: { cx: 85.68, cy: 60.31, w: 12.8, h: 9.14, clip: 'polygon(0.2% 0.0%, 100.0% 22.7%, 100.0% 100.0%, 0.0% 64.0%)' } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant'],
-    hotspot: { cx: COL.right + COL.width / 2, cy: ROW_TOPS[3], w: COL.width, h: 10 } },
+    hotspot: { cx: 86.66, cy: 80.74, w: 12.92, h: 11.96, clip: 'polygon(0.7% 0.0%, 100.0% 42.2%, 99.8% 100.0%, 0.0% 49.3%)' } },
   // Added for Dashboard's due-soon feed to have a hub-level home -- no
-  // expectation of a painted counterpart, so it just sits bottom-center.
+  // painted counterpart in the art, so it just sits bottom-center.
   { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', modules: ['paper'], hotspot: null },
 ];
 
@@ -103,16 +99,16 @@ function districtOf(moduleId) {
 
 // --- Hub (Grand Concourse) ---
 
-// Labels are always visible, always code-drawn -- no attempt to hide
-// behind or align with whatever's painted into the background image (see
-// the DISTRICTS comment above for why). The background art, whatever it
-// currently is, shows through everywhere these boxes don't cover.
+// Each plaque is an invisible click target clipped to the real painted
+// sign's shape (see the DISTRICTS comment above) -- at rest it shows
+// nothing but a faint outline, brightening to a glow on hover/focus so the
+// actual station art reads as the label. Station News is the exception:
+// no painted counterpart exists for it, so it gets its own always-visible
+// chrome instead (.vsp-plaque--news).
 function plaque(district, hub) {
   const h = district.hotspot;
-  // Station News has no hotspot -- positioned by its own fixed CSS rule
-  // instead (.vsp-plaque--news).
   const posStyle = h
-    ? `left:${h.cx}%; top:${h.cy}%; width:${h.w}%; height:${h.h}%; transform: translate(-50%, -50%);`
+    ? `left:${h.cx}%; top:${h.cy}%; width:${h.w}%; height:${h.h}%; transform: translate(-50%, -50%); clip-path: ${h.clip};`
     : '';
   const btn = el('button', {
     type: 'button',

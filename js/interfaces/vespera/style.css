@@ -77,10 +77,11 @@
   inset: 0;
 }
 
-/* Labels are always visible, drawn by the app -- not traced from the
-   background art (see the DISTRICTS comment in index.js for why that
-   approach got abandoned). Every district uses the same glowing-panel
-   chrome regardless of what's behind it. */
+/* Real painted signage now lives in the art itself (see the DISTRICTS
+   comment in index.js), so at rest a plaque shows nothing but a faint
+   inset outline clipped to the sign's real shape -- brightening to a glow
+   on hover/focus. The station art is the label; this is just the invisible
+   click target on top of it. */
 [data-interface='vespera'] .vsp-plaque {
   position: absolute;
   display: flex;
@@ -89,32 +90,34 @@
   padding: 0.5rem 0.7rem;
   text-align: left;
   cursor: pointer;
-  color: #e8f4ff;
-  background: rgba(6, 10, 26, 0.72);
-  border: 1px solid rgba(84, 225, 255, 0.55);
+  color: transparent;
+  background: transparent;
+  border: none;
   border-radius: 0.4rem;
-  box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
-  backdrop-filter: blur(2px);
-  transition: box-shadow 0.2s, border-color 0.2s, background 0.2s, transform 0.2s;
+  box-shadow: inset 0 0 0 1px rgba(140, 225, 255, 0.14);
+  transition: box-shadow 0.2s, background 0.2s;
 }
 
 [data-interface='vespera'] .vsp-plaque:hover,
 [data-interface='vespera'] .vsp-plaque:focus-visible {
-  border-color: rgba(140, 245, 255, 0.95);
-  box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
+  background: rgba(64, 160, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(140, 245, 255, 0.6), 0 0 22px rgba(90, 225, 255, 0.4);
 }
 
 [data-interface='vespera'] .vsp-plaque-chrome {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 0.55rem;
   min-width: 0;
 }
 
-/* Each district's box is positioned via inline style (left/top/width/
-   height, from the clean grid in index.js) -- no rotation, no per-sign
-   measurement against any particular background image. */
+/* Each district's box is positioned AND shaped via inline style (left/top/
+   width/height/clip-path, measured from the real art in index.js) -- see
+   the DISTRICTS comment there. */
 
+/* No painted counterpart exists for Station News in the art -- it's a UI
+   overlay, not a real sign -- so unlike every other plaque it keeps its
+   own always-visible chrome instead of the invisible-hotspot treatment. */
 [data-interface='vespera'] .vsp-plaque--news {
   position: absolute;
   left: 50%;
@@ -122,10 +125,19 @@
   transform: translateX(-50%);
   width: 24%;
   justify-content: center;
+  color: #e8f4ff;
+  background: rgba(6, 10, 26, 0.72);
+  box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
+  backdrop-filter: blur(2px);
+}
+[data-interface='vespera'] .vsp-plaque--news .vsp-plaque-chrome {
+  display: flex;
 }
 [data-interface='vespera'] .vsp-plaque--news:hover,
 [data-interface='vespera'] .vsp-plaque--news:focus-visible {
   transform: translateX(-50%) scale(1.04);
+  background: rgba(6, 10, 26, 0.72);
+  box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
 }
 
 [data-interface='vespera'] .vsp-plaque-icon {
@@ -336,13 +348,15 @@
     gap: 0.6rem;
   }
 
-  /* Chrome is already visible on desktop now, so this is just a layout
-     change (grid -> stacked list), not a visibility toggle. !important is
-     still load-bearing, not decorative: each plaque carries its grid
-     position as an inline left/top/width/height style (index.js), which
-     normally outranks any stylesheet rule regardless of media query --
-     overriding that back to a static grid item is exactly the case
-     !important exists for. */
+  /* Mobile drops the background art entirely (see .vsp-hub above), so
+     plaques switch back to always-visible chrome in a static stacked grid
+     rather than invisible hotspots over nothing. !important is load-
+     bearing, not decorative: each plaque carries its hotspot as inline
+     left/top/width/height/transform/clip-path styles (index.js), which
+     normally outrank any stylesheet rule regardless of media query --
+     overriding all of that back to a plain static grid item, including
+     the clip-path shape that only makes sense against the desktop art, is
+     exactly the case !important exists for. */
   [data-interface='vespera'] .vsp-plaque {
     position: static !important;
     left: auto !important;
@@ -351,6 +365,7 @@
     height: auto !important;
     min-height: 0 !important;
     transform: none !important;
+    clip-path: none !important;
     justify-content: flex-start;
     color: #e8f4ff;
     background: rgba(6, 10, 26, 0.72);
