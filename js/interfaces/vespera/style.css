@@ -111,34 +111,9 @@
   min-width: 0;
 }
 
-/* Each district's box is positioned AND shaped via inline style (left/top/
-   width/height/clip-path, measured from the real art in index.js) -- see
-   the DISTRICTS comment there. */
-
-/* No painted counterpart exists for Station News in the art -- it's a UI
-   overlay, not a real sign -- so unlike every other plaque it keeps its
-   own always-visible chrome instead of the invisible-hotspot treatment. */
-[data-interface='vespera'] .vsp-plaque--news {
-  position: absolute;
-  left: 50%;
-  bottom: 3.5%;
-  transform: translateX(-50%);
-  width: 24%;
-  justify-content: center;
-  color: #e8f4ff;
-  background: rgba(6, 10, 26, 0.72);
-  box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
-  backdrop-filter: blur(2px);
-}
-[data-interface='vespera'] .vsp-plaque--news .vsp-plaque-chrome {
-  display: flex;
-}
-[data-interface='vespera'] .vsp-plaque--news:hover,
-[data-interface='vespera'] .vsp-plaque--news:focus-visible {
-  transform: translateX(-50%) scale(1.04);
-  background: rgba(6, 10, 26, 0.72);
-  box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
-}
+/* Every district's box, including Station News, is positioned AND shaped
+   via inline style (left/top/width/height/clip-path, measured from the
+   real art in index.js) -- see the DISTRICTS comment there. */
 
 [data-interface='vespera'] .vsp-plaque-icon {
   font-size: 1.15rem;

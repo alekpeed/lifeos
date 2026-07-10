@@ -70,9 +70,11 @@ const DISTRICTS = [
     hotspot: { cx: 85.68, cy: 60.31, w: 12.8, h: 9.14, clip: 'polygon(0.2% 0.0%, 100.0% 22.7%, 100.0% 100.0%, 0.0% 64.0%)' } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant'],
     hotspot: { cx: 86.66, cy: 80.74, w: 12.92, h: 11.96, clip: 'polygon(0.7% 0.0%, 100.0% 42.2%, 99.8% 100.0%, 0.0% 49.3%)' } },
-  // Added for Dashboard's due-soon feed to have a hub-level home -- no
-  // painted counterpart in the art, so it just sits bottom-center.
-  { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', modules: ['paper'], hotspot: null },
+  // Added for Dashboard's due-soon feed to have a hub-level home. This
+  // art does paint a real Station News sign bottom-center, same as the
+  // other 8 -- measured the same way, not a special case.
+  { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', modules: ['paper'],
+    hotspot: { cx: 51.11, cy: 75.56, w: 15.67, h: 6.7, clip: 'polygon(0.6% 0.0%, 99.4% 0.8%, 100.0% 100.0%, 0.0% 100.0%)' } },
 ];
 
 let ctx = null;
@@ -102,9 +104,7 @@ function districtOf(moduleId) {
 // Each plaque is an invisible click target clipped to the real painted
 // sign's shape (see the DISTRICTS comment above) -- at rest it shows
 // nothing but a faint outline, brightening to a glow on hover/focus so the
-// actual station art reads as the label. Station News is the exception:
-// no painted counterpart exists for it, so it gets its own always-visible
-// chrome instead (.vsp-plaque--news).
+// actual station art reads as the label.
 function plaque(district, hub) {
   const h = district.hotspot;
   const posStyle = h
@@ -112,7 +112,7 @@ function plaque(district, hub) {
     : '';
   const btn = el('button', {
     type: 'button',
-    class: `vsp-plaque vsp-plaque--${district.id}${h ? '' : ' vsp-plaque--news'}`,
+    class: `vsp-plaque vsp-plaque--${district.id}`,
     style: posStyle,
     title: `${district.name} — ${district.tagline}`,
     'aria-label': `${district.name}. ${district.tagline}.`,
