@@ -330,117 +330,40 @@
 /* .vsp-room reuses .vsp-hub (sizing + is-depart zoom) and .vsp-room-stage
    reuses .vsp-stage (aspect-lock to the room image, set inline).
 
-   .vsp-room-quad is the signage plane: text laid out flat in a fixed
-   design box (width/height inline, from the room config), then projected
-   onto the measured wall quad by a matrix3d homography computed in
-   index.js. There is deliberately NO card, background, or border here --
-   the text is painted straight onto the wall and foreshortens with it.
-   All font sizes inside are fixed px relative to the design box: the
-   matrix scales them with the wall at every viewport. */
-/* position/left/top/transform-origin live INLINE on the element (see
-   renderRoom) so they can never be version-skewed away from the matrix3d
-   the JS computes -- only cosmetic layout lives here. */
-[data-interface='vespera'] .vsp-room-quad {
-  display: flex;
-  flex-direction: column;
-  padding: 26px 30px;
-}
-
-[data-interface='vespera'] .vsp-room-title {
-  font-family: 'Oxanium', var(--font-display);
-  font-weight: 600;
-  font-size: 40px;
-  letter-spacing: 0.06em;
-  line-height: 1.05;
-  text-transform: uppercase;
-  color: #54e6ff;
-  /* dark seat shadow first (grounds it on the surface), then neon bloom */
-  text-shadow:
-    0 2px 3px rgba(0, 0, 0, 0.85),
-    0 0 14px rgba(64, 200, 255, 0.75),
-    0 0 36px rgba(64, 180, 255, 0.35);
-}
-
-[data-interface='vespera'] .vsp-room-sub {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 14px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  margin-top: 8px;
-  color: #6fb8e6;
-  opacity: 0.9;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-/* flex:1 + space-evenly spreads the links down the remaining design box so
-   the block fills its wall band deliberately instead of clustering at the
-   top with dead wall below. */
-[data-interface='vespera'] .vsp-room-links {
-  margin-top: 24px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  justify-content: space-evenly;
-}
-
-/* Rest: teal neon text over a hairline rule -- no box, no fill. */
+   The teal signage is baked directly into img/conservatory.png -- no
+   code-drawn text at all. Each .vsp-room-link is an invisible click target
+   sized to its signage row (left/top/width/height inline, from the room
+   config in index.js) holding a pink-recolored cutout of that exact row
+   (.vsp-room-link-overlay), pre-rendered with a soft bloom and transparent
+   everywhere else, that fades in on hover -- a real fuzzy glow because the
+   blur is baked into the image, not simulated with box-shadow. */
 [data-interface='vespera'] .vsp-room-link {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  text-align: left;
+  position: absolute;
   cursor: pointer;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(90, 200, 255, 0.22);
-  padding: 0 4px 12px;
-  transition: border-color 0.3s;
+  padding: 0;
 }
 
-[data-interface='vespera'] .vsp-room-link-name {
-  font-family: 'Oxanium', var(--font-display);
-  font-weight: 600;
-  font-size: 24px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #49dbff;
-  text-shadow:
-    0 2px 3px rgba(0, 0, 0, 0.85),
-    0 0 10px rgba(64, 190, 255, 0.55);
-  transition: color 0.3s, text-shadow 0.3s;
+[data-interface='vespera'] .vsp-room-link-overlay {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+  pointer-events: none;
 }
 
-[data-interface='vespera'] .vsp-room-link-sub {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #6f9fc8;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-  transition: color 0.3s;
+[data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-overlay,
+[data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-overlay {
+  opacity: 1;
 }
 
-/* Hover/focus: the letters themselves go hot pink with a fat fuzzy bloom,
-   plus an edgeless pool of pink light on the wall behind them (a radial
-   gradient fading to nothing -- light bleed, not a highlight box). */
-[data-interface='vespera'] .vsp-room-link:hover,
-[data-interface='vespera'] .vsp-room-link:focus-visible {
-  border-bottom-color: rgba(255, 90, 190, 0.7);
-  background: radial-gradient(120% 160% at 20% 50%, rgba(255, 50, 165, 0.16), transparent 70%);
-}
-[data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-name,
-[data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-name {
-  color: #ff5cc0;
-  text-shadow:
-    0 2px 3px rgba(0, 0, 0, 0.85),
-    0 0 6px rgba(255, 80, 190, 0.95),
-    0 0 18px rgba(255, 50, 165, 0.85),
-    0 0 40px rgba(255, 30, 150, 0.7),
-    0 0 70px rgba(255, 20, 140, 0.5);
-}
-[data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-sub,
-[data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-sub {
-  color: #ff9ad6;
+/* Hidden on desktop -- the art (or its hover overlay) already says this.
+   Mobile (below) turns it back on since the art itself is dropped there. */
+[data-interface='vespera'] .vsp-room-link-fallback {
+  display: none;
 }
 
 /* --- Hosted module content --- */
@@ -534,20 +457,46 @@
   [data-interface='vespera'] .vsp-doors { padding: 1rem; }
 
   /* Room: the stage drops its art (shared .vsp-stage rule above), so the
-     signage plane flattens into a normal stacked list -- no absolute
-     positioning, no homography against art that isn't there. !important
-     is load-bearing on every geometry property here: they are all inline
-     styles from index.js (kept atomic with the matrix on purpose), and
-     only !important stylesheet rules outrank inline styles. */
-  [data-interface='vespera'] .vsp-room-quad {
+     baked-in signage isn't visible -- links flatten into a normal stacked
+     list with plain text instead of image cutouts. !important overrides
+     the inline left/top/width/height from index.js (they position against
+     art that isn't rendered here). */
+  [data-interface='vespera'] .vsp-room-link {
     position: static !important;
     left: auto !important;
     top: auto !important;
     width: auto !important;
     height: auto !important;
-    transform: none !important;
-    margin: 0.5rem 1rem 1rem;
-    padding: 0;
+    display: block;
+    padding: 0.9rem 1rem;
+    margin: 0 1rem;
+    border-bottom: 1px solid rgba(90, 200, 255, 0.22);
+    text-align: left;
+  }
+  [data-interface='vespera'] .vsp-room-link-overlay { display: none; }
+  [data-interface='vespera'] .vsp-room-link-fallback {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  [data-interface='vespera'] .vsp-room-link-fallback-name {
+    font-family: 'Oxanium', var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #49dbff;
+  }
+  [data-interface='vespera'] .vsp-room-link-fallback-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #6f9fc8;
+  }
+  [data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-fallback-name,
+  [data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-fallback-name {
+    color: #ff5cc0;
   }
 }
 

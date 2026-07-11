@@ -73,3 +73,61 @@ built):
 This whole pipeline is tied to whatever image is currently in hub.png --
 a new image needs the process re-run from step 1, not a hand-tweak of the
 existing numbers.
+
+## District room signage (different method -- red TEXT, not corner markers)
+
+Used for immersive per-district rooms (e.g. img/conservatory.png, the
+Conservatory entry room). This supersedes an earlier CSS-projection
+attempt (measuring a wall plane and mapping DOM text onto it with a
+matrix3d homography) that never looked fully glued no matter how the
+quad was tuned -- the fix was to stop trying to fake perspective in CSS
+and have the image generator render the real signage directly.
+
+Commissioning: ask the image tool to render the actual title, subtitle,
+and every link's name + description directly onto the wall, at whatever
+perspective/lighting/material it chooses -- BUT in solid red
+(instructed as r255 g0 b0; expect some anti-aliased/darker-red variance
+at edges and against certain backgrounds anyway, that's fine). Keep
+icons in the same red so they get recolored too. Upload this source
+image as consred.png (not conservatory.png -- keep the deployed baseline
+untouched until the new one is ready).
+
+Extraction + recolor pipeline (re-run per new consred.png):
+1. Threshold for red: r>60 and r > g*1.6 and r > b*1.6 and g<120 and
+   b<120 -- hue-based tolerance, not an exact RGB match, so it catches
+   the darker/anti-aliased reds. Restrict to the actual signage region
+   (e.g. x < 650) to exclude stray red-ish pixels bleeding from
+   unrelated neon elsewhere in the scene.
+2. Recolor every masked pixel to the target hue (teal ~193deg for rest,
+   hot pink ~322deg for hover) in HSV, keeping each pixel's ORIGINAL
+   brightness (max channel /255 as the V value) so the neon falloff/
+   glow shape is preserved, not flattened to one flat color.
+3. Add a bloom: a Gaussian-blurred copy of the mask (sigma ~2 for the
+   gentle always-on rest bloom, ~5-6 for a fuzzier hover bloom),
+   screen-blended under the sharp recolored text so the glow bleeds
+   softly onto the surrounding wall. This is what makes the hover glow
+   read as genuinely fuzzy rather than a flat color swap.
+4. Base image: apply the teal recolor+bloom to the FULL image and save
+   as conservatory.png (or whatever the room's `image` filename is) --
+   this is the always-visible rest state, no code-drawn text at all.
+5. Hover overlays: apply the pink recolor+bloom, then crop tightly
+   around each interactive row (icon + name + description together,
+   with padding so the blur isn't clipped) and export as a transparent
+   RGBA PNG per row -- alpha = the blurred glow intensity (clipped/
+   boosted so the sharp text hits full opacity and the halo fades to
+   0), NOT a flat rectangle, so it composites with no visible hard edge.
+6. Compute each crop's position as % of the full image (left, top,
+   width, height) and wire it into the district's `room.links[id]`
+   config in index.js -- position by construction, no rotation or
+   perspective math needed since these are pixel-for-pixel crops of the
+   same photo the base image came from.
+7. Bump service-worker.js's CACHE_VERSION, then actually look at
+   screenshots of rest state (clean teal signage, no boxes) and hover
+   state (pink fuzzy glow on just that row) at more than one viewport
+   shape before shipping.
+
+Copy caveat: whatever text the image generator rendered is now baked
+into pixels -- it can drift from the district's real `name`/`tagline`/
+`moduleLabel` strings in code (e.g. "AND" vs "&", wording differences)
+with no way to correct it except regenerating the art. Worth a glance
+at district name/tagline consistency before commissioning a new room.
