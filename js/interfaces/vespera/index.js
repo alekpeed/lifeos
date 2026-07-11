@@ -51,17 +51,17 @@ function el(tag, attrs = {}, children = []) {
 // remeasuring every plaque.
 const DISTRICTS = [
   { id: 'ops', name: 'Operations Deck', tagline: 'Tasks & Projects', icon: '📋', modules: ['tasks', 'ideas', 'habits', 'museum', 'skilltree', 'health'],
-    hotspot: { cx: 14, cy: 14, w: 28, h: 20, clip: 'polygon(0% 0%, 96% 13%, 100% 100%, 0% 86%)' } },
+    hotspot: { cx: 14.05, cy: 14.03, w: 28.11, h: 19.98, clip: 'polygon(0% 0%, 96.38% 12.23%, 100% 100%, 0% 86.17%)' } },
   { id: 'navbay', name: 'Navigation Bay', tagline: 'Places & Maps', icon: '🧭', modules: ['places', 'packing'],
-    hotspot: { cx: 14.5, cy: 34.5, w: 29, h: 21, clip: 'polygon(0% 3%, 100% 0%, 98% 95%, 0% 100%)' } },
+    hotspot: { cx: 14.53, cy: 34.64, w: 29.07, h: 20.83, clip: 'polygon(0% 0.51%, 100% 0%, 98.15% 100%, 0% 99.49%)' } },
   { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', modules: ['links', 'books', 'education', 'knowledge', 'rabbitholes', 'collections'],
-    hotspot: { cx: 14.5, cy: 56.5, w: 29, h: 21, clip: 'polygon(0% 0%, 98% 0%, 98% 100%, 0% 100%)' } },
+    hotspot: { cx: 14.29, cy: 56.64, w: 28.59, h: 21.25, clip: 'polygon(0% 0%, 100% 0%, 99.79% 100%, 0% 100%)' } },
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents', 'quartermaster'],
-    hotspot: { cx: 14.5, cy: 78, w: 29, h: 20, clip: 'polygon(0% 0%, 98% 0%, 96% 100%, 0% 100%)' } },
+    hotspot: { cx: 14.14, cy: 78.11, w: 28.29, h: 20.19, clip: 'polygon(0% 0%, 100% 0%, 99.15% 100%, 0% 100%)' } },
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules', 'starters', 'dreamjournal'],
-    hotspot: { cx: 86, cy: 14, w: 28, h: 20, clip: 'polygon(4% 13%, 100% 0%, 100% 86%, 0% 100%)' } },
+    hotspot: { cx: 85.55, cy: 14.08, w: 27.93, h: 19.87, clip: 'polygon(3.85% 0%, 100% 0%, 100% 86.63%, 0% 100%)' } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
-    hotspot: { cx: 85.5, cy: 35, w: 29, h: 22, clip: 'polygon(0% 0%, 100% 3%, 100% 100%, 2% 95%)' },
+    hotspot: { cx: 85.59, cy: 34.33, w: 28.83, h: 21.68, clip: 'polygon(0% 0%, 100% 1.96%, 100% 100%, 0.62% 97.06%)' },
     // Immersive entry room (see renderRoom). `image` is a plain
     // establishing shot (no text, no markers) rendered on an aspect-locked
     // stage (same technique as the hub). `quad` is the wall plane the
@@ -86,14 +86,14 @@ const DISTRICTS = [
       quad: [[4.52, 20.72], [32.18, 29.49], [33.43, 62.11], [4.25, 64.45]],
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
-    hotspot: { cx: 85.5, cy: 56.5, w: 29, h: 21, clip: 'polygon(2% 0%, 100% 0%, 100% 100%, 2% 100%)' } },
+    hotspot: { cx: 85.91, cy: 56.64, w: 28.41, h: 21.25, clip: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant', 'stationcat'],
-    hotspot: { cx: 85.5, cy: 78, w: 29, h: 20, clip: 'polygon(2% 0%, 100% 0%, 100% 100%, 4% 100%)' } },
+    hotspot: { cx: 85.98, cy: 78.11, w: 28.05, h: 20.19, clip: 'polygon(0% 0%, 100% 0%, 100% 100%, 0.43% 100%)' } },
   // Added for Dashboard's due-soon feed to have a hub-level home. This
   // art does paint a real Station News sign bottom-center, same as the
   // other 8 -- measured the same way, not a special case.
   { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', modules: ['paper', 'orrery', 'ghostdays'],
-    hotspot: { cx: 50, cy: 88, w: 32, h: 20, clip: 'polygon(15% 0%, 85% 0%, 100% 76%, 86% 100%, 14% 100%, 0% 76%)' } },
+    hotspot: { cx: 50, cy: 91.07, w: 32.18, h: 14.24, clip: 'polygon(12.64% 0%, 86.8% 0%, 100% 64.18%, 87.18% 99.25%, 13.75% 99.25%, 0% 64.18%)' } },
 ];
 
 let ctx = null;
