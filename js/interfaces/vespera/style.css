@@ -337,11 +337,10 @@
    the text is painted straight onto the wall and foreshortens with it.
    All font sizes inside are fixed px relative to the design box: the
    matrix scales them with the wall at every viewport. */
+/* position/left/top/transform-origin live INLINE on the element (see
+   renderRoom) so they can never be version-skewed away from the matrix3d
+   the JS computes -- only cosmetic layout lives here. */
 [data-interface='vespera'] .vsp-room-quad {
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform-origin: 0 0;
   display: flex;
   flex-direction: column;
   padding: 26px 30px;
@@ -533,10 +532,13 @@
   /* Room: the stage drops its art (shared .vsp-stage rule above), so the
      signage plane flattens into a normal stacked list -- no absolute
      positioning, no homography against art that isn't there. !important
-     is load-bearing again: width/height and the matrix3d transform are
-     inline styles from index.js. */
+     is load-bearing on every geometry property here: they are all inline
+     styles from index.js (kept atomic with the matrix on purpose), and
+     only !important stylesheet rules outrank inline styles. */
   [data-interface='vespera'] .vsp-room-quad {
-    position: static;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
     width: auto !important;
     height: auto !important;
     transform: none !important;

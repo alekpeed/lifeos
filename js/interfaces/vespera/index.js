@@ -310,9 +310,17 @@ function renderRoom(root, district) {
   // The signage plane: flat text laid out in a designW x designH box, then
   // projected onto the measured wall quad. No card, no border -- the wall
   // itself is the sign, the text is the paint.
+  //
+  // position/left/top/transform-origin are INLINE, not in the stylesheet,
+  // deliberately: they are load-bearing for the projection (the matrix is
+  // computed about the 0 0 origin at the stage's top-left), and a stale
+  // cached stylesheet must not be able to detach them from the matrix the
+  // JS sets. That exact mismatch shipped once -- new JS + old CSS swung
+  // the plane around its center and flung the text off the stage.
   const panel = el('div', {
     class: 'vsp-room-quad',
-    style: `width:${room.designW}px; height:${room.designH}px;`,
+    style: `position:absolute; left:0; top:0; transform-origin:0 0;`
+      + ` width:${room.designW}px; height:${room.designH}px;`,
   }, [
     el('div', { class: 'vsp-room-title', text: district.name }),
     el('div', { class: 'vsp-room-sub', text: district.tagline }),
@@ -341,9 +349,13 @@ function renderRoom(root, district) {
   // panel falls back to a flat stacked list -- recomputing here is a
   // harmless no-op there.)
   const apply = () => {
-    const r = stage.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    const dst = room.quad.map(([qx, qy]) => [(qx / 100) * r.width, (qy / 100) * r.height]);
+    // clientWidth/Height, not getBoundingClientRect: layout size is immune
+    // to ancestor transforms (the arrive/depart scale animations would
+    // otherwise skew the rect and bake a stale scale into the matrix).
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+    if (!w || !h) { requestAnimationFrame(apply); return; }
+    const dst = room.quad.map(([qx, qy]) => [(qx / 100) * w, (qy / 100) * h]);
     panel.style.transform = quadTransform(room.designW, room.designH, dst);
   };
   new ResizeObserver(apply).observe(stage);

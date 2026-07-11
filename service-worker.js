@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v78';
+const CACHE_VERSION = 'lifeos-v79';
 const APP_SHELL = [
   './',
   './index.html',
