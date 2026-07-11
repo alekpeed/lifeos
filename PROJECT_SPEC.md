@@ -390,9 +390,11 @@ Everything below came out of talking through what would actually feel
   get their *own* themed panel (not one generic "AI" tab), each with your own
   API key stored only on your device. Each can be given permission to read
   and act on your actual Life OS data (tasks, notes, etc.) on a per-question,
-  opt-in basis.
-- **Cross-LLM relay** — chain a single question across more than one AI in
-  sequence (e.g. Claude answers, GPT reacts to that, Gemini synthesizes both)
+  opt-in basis. (Considered and struck from this plan: an automated cross-LLM
+  relay chaining a question across all three in sequence — it trades real
+  signal for compounding drift/hedging without a human deciding what to keep
+  at each hop. Not built into the core app; nothing stops it from being a
+  separate standalone project later if wanted.)
 - **Telegram integration** — both as a chat surface and as a notification
   channel (due bills/tasks pushed to Telegram, since that's more reliable
   than browser push notifications, especially on iPhone). Chosen deliberately
@@ -414,8 +416,9 @@ Everything below came out of talking through what would actually feel
 3. ~~The four Tier-2 features~~ — DONE: Knowledge Graph, The Orrery,
    Time Machine, and QR Airgap Sync all shipped (see Built ✅)
 4. ~~AI Assistant (Claude) + Telegram (send-only)~~ — DONE (see Built ✅).
-   ChatGPT/Gemini panels + cross-LLM relay + full two-way Telegram chat are
-   still open, out of scope for this pass.
+   ChatGPT/Gemini panels + full two-way Telegram chat are still open, out of
+   scope for this pass. (Cross-LLM relay chaining was considered and
+   dropped — see section 4 above.)
 5. AI-written yearly recap (needs an AI module first)
 6. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of

@@ -46,9 +46,11 @@ Tier legend:
   your own action (a Settings test button, Daily Paper's "Send to
   Telegram"). No listener for incoming messages by design. Still open:
   - ChatGPT/Gemini panels alongside Claude's, each its own themed panel with
-    its own API key.
-  - Cross-LLM relay: chain one question across more than one AI in sequence
-    (Claude answers → GPT reacts → Gemini synthesizes both).
+    its own API key. (An automated cross-LLM relay chaining one question
+    across all three in sequence was considered and struck from the plan —
+    trades real signal for compounding drift/hedging without a human
+    deciding what to keep at each hop. Could still be built as a separate
+    standalone project later if wanted; just not part of the core app.)
   - Full two-way Telegram chat — needs a real backend webhook (a Supabase
     Edge Function) since a static PWA can't listen for incoming messages
     when it's not open; deliberately out of scope for the send-only pass.

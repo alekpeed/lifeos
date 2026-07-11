@@ -208,8 +208,9 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   called directly from the browser with your own API key (device-local,
   never synced). Telegram sends you a digest via a bot you create yourself,
   triggered by your own action (Settings test button, Daily Paper's "Send
-  to Telegram"). Still open: ChatGPT/Gemini panels, cross-LLM relay, and
-  full two-way Telegram chat (needs a backend webhook).
+  to Telegram"). Still open: ChatGPT/Gemini panels (own API key each, no
+  auto-chaining between them — considered and struck) and full two-way
+  Telegram chat (needs a backend webhook).
 - 🏗️ **AI-written yearly recap** — once an AI module exists, have it draft
   the actual narrative instead of just tallying numbers.
 
