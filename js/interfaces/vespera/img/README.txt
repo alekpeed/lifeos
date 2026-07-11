@@ -116,21 +116,25 @@ Extraction + recolor pipeline (re-run per new consred.png):
    RGBA PNG per row -- alpha = the blurred glow intensity (clipped/
    boosted so the sharp text hits full opacity and the halo fades to
    0), NOT a flat rectangle, so it composites with no visible hard edge.
-6. Hover recolor -- IMPORTANT, this went through several wrong turns:
-   do NOT bake a separate pink image and composite it over the teal
-   base. Pink-over-teal is always a blend (muddy), and forcing hard
-   alpha to avoid the blend just gives jagged sticker edges. Instead the
-   per-row overlay is an OPAQUE teal crop of the base itself (pixel-
-   identical, so invisible at rest), feathered at its rectangle edges
-   (RGBA cosine ramp ~22px so the boundary dissolves into the base), and
-   hover recolors it to pink with a CSS `filter: hue-rotate(126deg)
-   brightness(1.08)` -- rotating the existing teal pixels IN PLACE.
-   Because it's a recolor of one opaque layer, not a second translucent
-   layer, muddiness is structurally impossible, and the neon glow + anti-
-   aliased edges survive because they're the real pixels rotated. No
-   saturate() boost (warms the dark wall in the crop and seams its edge)
-   and no drop-shadow (glows around the rectangle, not the letters) --
-   the text's own baked glow rotates to pink for free.
+6. Hover overlay -- IMPORTANT, this went through many wrong turns; the
+   method below is the one that finally worked, for OUTLINE signage
+   (thin strokes, as in consredout.png). Do NOT bake a soft-alpha pink
+   halo and composite it over the teal base (pink-over-teal blends =
+   muddy), and do NOT use an opaque rectangular crop recolored by a
+   filter (any brightness/saturate/hue shift makes the crop's rectangle
+   visible as a box, and feathering only half-hides it). Instead: the
+   per-row overlay is a pink recolor of JUST THE STROKES -- its alpha IS
+   the stroke coverage (transparent everywhere else), so there is no
+   rectangle that could ever show. It's pre-colored pink (no recolor
+   filter needed) and sits invisibly (opacity 0) until hover, when it
+   fades in over the identical teal strokes beneath -- covering them --
+   and a CSS `drop-shadow` supplies the fuzzy pink glow, which hugs the
+   letters because the element's alpha is letter-shaped. Thin outlines
+   make this clean where filled glyphs did not: the only pink-over-teal
+   contact is the ~1px anti-aliased stroke rim, which is invisibly small.
+   (For FILLED glyph art, revisit -- the stroke-alpha trick still works
+   but the glow must come entirely from CSS since you're dropping the
+   baked halo.)
 7. Compute each crop's position as % of the full image (left, top,
    width, height) and wire it into the district's `room.links[id]`
    config in index.js -- position by construction, no rotation or

@@ -90,14 +90,15 @@ const DISTRICTS = [
     //
     // Regenerating this art requires re-running the red-text detection +
     // recolor + crop pipeline in img/README.txt against the new image --
-    // these numbers are tied to the current consred.png source.
+    // these numbers are tied to the current source (img/consredout.png,
+    // the outline-signage version).
     room: {
       image: 'img/conservatory.png',
       ratio: '1672 / 941',
       links: {
-        languages: { overlay: 'img/ops_row_languages.png', left: 5.38, top: 37.73, width: 26.32, height: 12.22 },
-        chords: { overlay: 'img/ops_row_chords.png', left: 5.38, top: 46.76, width: 26.32, height: 12.22 },
-        lifeasmusic: { overlay: 'img/ops_row_life.png', left: 5.38, top: 55.26, width: 26.32, height: 12.22 },
+        languages: { overlay: 'img/ops_row_languages.png', left: 3.83, top: 38.04, width: 17.46, height: 10.41 },
+        chords: { overlay: 'img/ops_row_chords.png', left: 3.77, top: 47.93, width: 18.06, height: 10.41 },
+        lifeasmusic: { overlay: 'img/ops_row_life.png', left: 3.47, top: 57.81, width: 20.16, height: 10.84 },
       },
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync'],
