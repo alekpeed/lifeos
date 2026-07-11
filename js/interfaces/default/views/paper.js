@@ -309,7 +309,7 @@ export function buildEditorialContext(data) {
 
   if (feed.length) {
     lines.push('Due and overdue items:');
-    for (const item of feed.slice(0, 15)) {
+    for (const item of feed) {
       const status = item.overdue ? 'overdue' : 'due soon';
       lines.push(`- [${MODULE_LABEL[item.module] || item.module}; ${status}; ${fmtDate(item.dueDate)}] ${item.title || '(untitled)'}`);
     }
