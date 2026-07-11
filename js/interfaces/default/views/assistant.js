@@ -1,23 +1,31 @@
-// AI Assistant — a chat with Gemini, using your own Gemini API key
-// (Settings has an "AI Assistant" section with the key field), called
-// directly from the browser. No server in between; the key never leaves
-// this device.
+// AI Assistant — a chat with whichever provider is active (Settings > AI
+// Assistant has a toggle, currently Gemini or Claude, plus the key field),
+// called directly from the browser. No server in between; the key never
+// leaves this device.
 
 import { el, fmtDate } from '../dom.js';
 
 let state = { selectedId: null, sending: false, error: null };
 
-function messageBubble(message) {
+// A conversation remembers which provider it was started with (see
+// createAiConversation in api.js), so its bubbles keep labeling replies
+// correctly even after you've since flipped the Settings toggle to a
+// different provider -- providerLabel is that conversation's own provider,
+// not necessarily today's active one.
+function messageBubble(message, providerLabel) {
   const isUser = message.role === 'user';
   return el('div', { class: isUser ? 'mer-person-card' : 'mer-task-detail' }, [
     el('div', { class: 'mer-person-info' }, [
-      el('div', { class: 'mer-person-name', text: isUser ? 'You' : 'Gemini' }),
+      el('div', { class: 'mer-person-name', text: isUser ? 'You' : providerLabel }),
       el('div', { class: 'mer-person-meta', text: message.content }),
     ]),
   ]);
 }
 
 async function renderConversation(canvas, conversation, ctx, rerender) {
+  const providerLabel = ctx.data.AI_PROVIDERS[conversation.provider]?.label || conversation.provider;
+  const activeLabel = (await ctx.data.getActiveAiProvider()).label;
+
   canvas.append(el('div', { class: 'mer-detail-header' }, [
     el('h1', { text: conversation.title || 'Conversation' }),
     el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.selectedId = null; state.error = null; rerender(); } }),
@@ -25,13 +33,13 @@ async function renderConversation(canvas, conversation, ctx, rerender) {
 
   const messages = await ctx.data.getAiMessages(conversation.id);
   const thread = el('div', { class: 'mer-people-list' });
-  for (const m of messages) thread.append(messageBubble(m));
+  for (const m of messages) thread.append(messageBubble(m, providerLabel));
   canvas.append(thread);
 
   if (state.error) canvas.append(el('p', { class: 'mer-muted mer-sync-error', text: state.error }));
-  if (state.sending) canvas.append(el('p', { class: 'mer-muted', text: 'Gemini is thinking…' }));
+  if (state.sending) canvas.append(el('p', { class: 'mer-muted', text: `${activeLabel} is thinking…` }));
 
-  const input = el('textarea', { rows: '2', placeholder: 'Message Gemini…' });
+  const input = el('textarea', { rows: '2', placeholder: `Message ${activeLabel}…` });
   const sendBtn = el('button', {
     type: 'button', text: 'Send',
     onclick: async () => {
@@ -77,10 +85,10 @@ function conversationRow(conversation, onSelect) {
 }
 
 export async function renderAssistant(canvas, ctx, rerender) {
-  const apiKey = await ctx.data.Settings.get('geminiApiKey');
+  const { label: activeLabel, apiKey } = await ctx.data.getActiveAiProvider();
   if (!apiKey) {
     canvas.append(el('h1', { text: 'AI Assistant' }));
-    canvas.append(el('p', { class: 'mer-muted', text: 'No Gemini API key set yet. Add one in Settings > AI Assistant to start chatting with Gemini.' }));
+    canvas.append(el('p', { class: 'mer-muted', text: `No ${activeLabel} API key set yet. Add one in Settings > AI Assistant to start chatting with ${activeLabel}.` }));
     canvas.append(el('button', { type: 'button', text: 'Go to Settings', onclick: () => ctx.navigate('settings') }));
     return;
   }

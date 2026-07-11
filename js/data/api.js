@@ -471,12 +471,12 @@ const SETTING_DEFAULTS = {
   cryptoPricesCache: null,
   // Last-fetched DJIA quote; see getDjiaPrice() below for staleness policy.
   djiaCache: null,
-  // AI Assistant: your own Gemini API key, kept device-local (Settings is
-  // excluded from Drive/cloud sync) and sent only to
-  // generativelanguage.googleapis.com, directly from the browser. Empty
-  // until you add one in Settings. (Active provider as of the Gemini
-  // switch -- see gemini-client.js. The Anthropic path below is kept
-  // dormant, not deleted, in case of a future switch back.)
+  // AI Assistant: which provider is active (see AI_PROVIDERS below) and each
+  // provider's own device-local key/model, kept out of Drive/cloud sync.
+  // Both providers' keys can be filled in at once -- the toggle in Settings
+  // just switches which one the app actually calls, so swapping back and
+  // forth never requires re-entering a key.
+  aiProvider: 'gemini',
   geminiApiKey: '',
   geminiModel: 'gemini-2.5-flash',
   anthropicApiKey: '',
@@ -727,22 +727,41 @@ export async function getDjiaPrice() {
   }
 }
 
-// --- AI Assistant (Gemini, direct browser-to-API) ---
+// --- AI Assistant (provider-switchable, direct browser-to-API) ---
 // Conversations/messages are regular synced data (aiConversations/aiMessages
-// above); the API key stays in Settings, device-local and unsynced.
+// above); each provider's own API key stays in Settings, device-local and
+// unsynced.
 //
-// Provider note: this was Claude-only originally; switched to Gemini so the
-// browser can call it directly with no backend (Anthropic and Gemini both
-// support direct-browser calls; OpenAI's API structurally does not -- it
-// sends no CORS headers for browser-origin requests at all, unlike
-// Anthropic's documented opt-in, so an OpenAI switch would need a proxy
-// server in front of it). claude-client.js is kept, not deleted, in case of
-// a future switch back or a second panel.
-
+// Provider note: this started Claude-only, then switched to Gemini so the
+// browser could keep calling it directly with no backend (Anthropic and
+// Gemini both support direct-browser calls; OpenAI's API structurally does
+// not -- it sends no CORS headers for browser-origin requests at all,
+// unlike Anthropic's documented opt-in, so an OpenAI entry here would need
+// a proxy server in front of it, not just a key). Rather than hardcode one
+// active provider, aiProvider in Settings picks between the two working
+// ones -- a small toggle in Settings > AI Assistant -- so switching back
+// and forth costs nothing and neither client needs deleting.
+import { sendClaudeMessage } from './claude-client.js';
 import { sendGeminiMessage } from './gemini-client.js';
 
+export const AI_PROVIDERS = {
+  gemini: { label: 'Gemini', send: sendGeminiMessage, keySetting: 'geminiApiKey', modelSetting: 'geminiModel', keyPlaceholder: 'AIza…', modelDefault: 'gemini-2.5-flash' },
+  claude: { label: 'Claude', send: sendClaudeMessage, keySetting: 'anthropicApiKey', modelSetting: 'anthropicModel', keyPlaceholder: 'sk-ant-…', modelDefault: 'claude-sonnet-5' },
+};
+
+// Resolves the active provider's id/label/send fn plus its own key+model, in
+// one call -- every AI-calling function below goes through this instead of
+// each re-reading Settings and re-picking a client.
+export async function getActiveAiProvider() {
+  const id = (await Settings.get('aiProvider')) || 'gemini';
+  const meta = AI_PROVIDERS[id] || AI_PROVIDERS.gemini;
+  const [apiKey, model] = await Promise.all([Settings.get(meta.keySetting), Settings.get(meta.modelSetting)]);
+  return { id, ...meta, apiKey, model };
+}
+
 export async function createAiConversation(title) {
-  return AiConversations.create({ title: title || 'New conversation', provider: 'gemini' });
+  const { id } = await getActiveAiProvider();
+  return AiConversations.create({ title: title || 'New conversation', provider: id });
 }
 
 export async function getAiMessages(conversationId) {
@@ -750,28 +769,28 @@ export async function getAiMessages(conversationId) {
   return messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-// Persists the user's message, calls Gemini with the full conversation
-// history, persists the reply, and returns the reply message. Throws
-// Gemini's own error (bad key, rate limit, ...) if the call fails -- the
-// user's message stays saved either way, so nothing is lost on a failure.
+// Persists the user's message, calls the active provider with the full
+// conversation history, persists the reply, and returns the reply message.
+// Throws the provider's own error (bad key, rate limit, ...) if the call
+// fails -- the user's message stays saved either way, so nothing is lost on
+// a failure.
 export async function sendAiMessage(conversationId, userText) {
   await AiMessages.create({ conversationId, role: 'user', content: userText });
 
-  const [apiKey, model, history] = await Promise.all([
-    Settings.get('geminiApiKey'),
-    Settings.get('geminiModel'),
+  const [{ send, apiKey, model }, history] = await Promise.all([
+    getActiveAiProvider(),
     getAiMessages(conversationId),
   ]);
-  const geminiMessages = history.map((m) => ({ role: m.role, content: m.content }));
-  const { text } = await sendGeminiMessage(apiKey, geminiMessages, { model });
+  const providerMessages = history.map((m) => ({ role: m.role, content: m.content }));
+  const { text } = await send(apiKey, providerMessages, { model });
 
   return AiMessages.create({ conversationId, role: 'assistant', content: text });
 }
 
 // --- Library of Babel: AI-generated stories, gated the same way as the
-// AI Assistant chat -- each device needs its own Gemini key in Settings
-// (no shared/sponsored path here), so this naturally stays per-person if
-// other people ever pick up the same pack. ---
+// AI Assistant chat -- each device needs the active provider's own key in
+// Settings (no shared/sponsored path here), so this naturally stays
+// per-person if other people ever pick up the same pack. ---
 
 function parseGeneratedStory(text) {
   const storyMatch = text.match(/STORY:\s*([\s\S]*?)(?:\nTRANSLATION:|$)/i);
@@ -789,15 +808,12 @@ function parseGeneratedStory(text) {
 // rate limit, etc.) rather than swallowing errors -- the caller decides how
 // to surface that.
 export async function generateLibraryStory(packName, level, recentTitles = []) {
-  const [apiKey, model] = await Promise.all([
-    Settings.get('geminiApiKey'),
-    Settings.get('geminiModel'),
-  ]);
+  const { send, apiKey, model } = await getActiveAiProvider();
   const avoid = recentTitles.length ? ` Avoid repeating these previous titles/themes: ${recentTitles.join(', ')}.` : '';
   const prompt = `Write a very short story in ${packName} for a ${level} learner of the language.${avoid} `
     + `Keep vocabulary and grammar appropriate for that level. Respond in exactly this format, nothing else:\n\n`
     + `TITLE: <short title in ${packName}>\nSTORY:\n<the story, in ${packName}>\nTRANSLATION:\n<full English translation>`;
-  const { text } = await sendGeminiMessage(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 1200 });
+  const { text } = await send(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 1200 });
   return parseGeneratedStory(text);
 }
 
@@ -811,24 +827,22 @@ export function adjustLevel(levels, currentLevel, feedback) {
   return levels[i];
 }
 
-// --- Daily Paper: AI-written editorial (Gemini, direct browser-to-API,
-// same per-device key as the Assistant chat -- no sponsored/shared path). ---
-// Caching (which local date it belongs to) lives in Settings and is handled
-// by the caller (views/paper.js), same as the checklist above -- this
-// function just does the one Gemini call given an already-built summary.
+// --- Daily Paper: AI-written editorial (provider-switchable, direct
+// browser-to-API, same per-device key as the Assistant chat -- no
+// sponsored/shared path). Caching (which local date it belongs to) lives in
+// Settings and is handled by the caller (views/paper.js), same as the
+// checklist above -- this function just does the one call given an
+// already-built summary.
 
 export async function generateDailyEditorial(summary) {
-  const [apiKey, model] = await Promise.all([
-    Settings.get('geminiApiKey'),
-    Settings.get('geminiModel'),
-  ]);
+  const { send, apiKey, model } = await getActiveAiProvider();
   const prompt = `You are writing the editorial at the top of a private personal daily paper. `
     + `Use only the facts in the source packet below. Never invent an event, deadline, habit result, weather condition, motive, feeling, or causal claim. `
     + `If data is unavailable, ignore it. Prioritize overdue work, today's concrete obligations, and genuine progress. `
     + `Be warm, perceptive, and concise—not chirpy, scolding, or generic. Write 3-5 sentences in second person ("you"). `
     + `Mention one or two exact specifics naturally, then offer a practical focus for the day. `
     + `Return plain prose only: no title, markdown, bullets, greeting, or sign-off.\n\nSOURCE PACKET\n${summary}`;
-  const { text } = await sendGeminiMessage(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 400 });
+  const { text } = await send(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 400 });
   return text.trim();
 }
 

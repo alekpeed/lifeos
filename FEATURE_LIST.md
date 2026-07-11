@@ -208,13 +208,15 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   device-local Gemini key as the AI Assistant, caches one issue per local
   date and signed-in account, and exposes retry/regenerate states.
 - 🏗️ **Per-user notifications** — depends on accounts.
-- ✅ **AI Assistant (Gemini) + Telegram (send-only)** — a chat with Gemini,
-  called directly from the browser with your own API key (device-local,
-  never synced). Originally built on Claude; switched to Gemini since it's
-  the only other provider (besides Anthropic) that supports a direct
-  browser-to-API call with no backend — OpenAI's API sends no CORS headers
-  for browser requests at all, so a GPT panel needs a proxy server, not
-  just a key. Telegram sends you a digest via a bot you create yourself,
+- ✅ **AI Assistant (provider-switchable) + Telegram (send-only)** — a chat
+  called directly from the browser, no backend, using your own API key per
+  provider (device-local, never synced). A toggle in Settings > AI Assistant
+  switches between Gemini and Claude — both providers' keys can stay filled
+  in at once so flipping the toggle costs nothing. Originally Claude-only;
+  Gemini added because it's the only other provider confirmed to support a
+  direct browser-to-API call with no backend — OpenAI's API sends no CORS
+  headers for browser requests at all, so a GPT panel needs a proxy server,
+  not just a key. Telegram sends you a digest via a bot you create yourself,
   triggered by your own action (Settings test button, Daily Paper's "Send
   to Telegram"). Still open: a separate ChatGPT panel (would need that
   proxy first) and full two-way Telegram chat (needs a backend webhook).

@@ -268,26 +268,37 @@ async function renderCalendarSection(canvas, ctx, rerender) {
   canvas.append(row, status);
 }
 
-// --- AI Assistant (Gemini, direct browser-to-API) ---
-// Switched from Claude to Gemini: both support a direct browser call with no
-// backend, but OpenAI's API does not (no CORS support for browser-origin
-// requests), so Gemini was picked over GPT for this. anthropicApiKey stays
-// in Settings' defaults, dormant, in case of a future switch back.
+// --- AI Assistant (provider-switchable, direct browser-to-API) ---
+// A toggle picks the active provider (ctx.data.AI_PROVIDERS -- currently
+// Gemini and Claude, both of which support calling straight from the
+// browser with no backend; OpenAI doesn't support that at all, no CORS
+// headers on browser-origin requests, so it's not offered here as a toggle
+// option until/unless a proxy server exists in front of it). Both
+// providers' key/model fields stay filled in even when inactive, so
+// flipping the toggle never requires re-entering a key.
 
 async function renderAiAssistantSection(canvas, ctx, rerender) {
-  const [apiKey, model] = await Promise.all([
-    ctx.data.Settings.get('geminiApiKey'),
-    ctx.data.Settings.get('geminiModel'),
-  ]);
+  const activeId = (await ctx.data.Settings.get('aiProvider')) || 'gemini';
 
   canvas.append(el('div', { class: 'mer-subsection-label', text: 'AI Assistant' }));
-  canvas.append(el('p', { class: 'mer-muted', text: 'Your own Gemini API key, used to chat with Gemini directly from this browser -- no server in between. Kept device-local (not synced to Drive or the cloud), sent only to generativelanguage.googleapis.com.' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Picks which model powers the AI Assistant chat, the Daily Paper editorial, and Library of Babel story generation. Each provider uses your own API key, called directly from this browser -- no server in between. Keys are device-local (not synced to Drive or the cloud).' }));
 
-  const keyInput = el('input', { type: 'password', value: apiKey, placeholder: 'AIza…', onchange: (e) => ctx.data.Settings.set('geminiApiKey', e.target.value.trim()) });
-  const modelInput = el('input', { type: 'text', value: model, placeholder: 'gemini-2.5-flash', onchange: (e) => ctx.data.Settings.set('geminiModel', e.target.value.trim() || 'gemini-2.5-flash') });
+  const group = el('div', { class: 'mer-toggle-group' }, Object.entries(ctx.data.AI_PROVIDERS).map(([id, meta]) => el('button', {
+    type: 'button', class: activeId === id ? 'is-active' : '', text: meta.label,
+    onclick: async () => { await ctx.data.Settings.set('aiProvider', id); rerender(); },
+  })));
+  canvas.append(group);
+
+  const active = ctx.data.AI_PROVIDERS[activeId];
+  const [apiKey, model] = await Promise.all([
+    ctx.data.Settings.get(active.keySetting),
+    ctx.data.Settings.get(active.modelSetting),
+  ]);
+  const keyInput = el('input', { type: 'password', value: apiKey, placeholder: active.keyPlaceholder, onchange: (e) => ctx.data.Settings.set(active.keySetting, e.target.value.trim()) });
+  const modelInput = el('input', { type: 'text', value: model, placeholder: active.modelDefault, onchange: (e) => ctx.data.Settings.set(active.modelSetting, e.target.value.trim() || active.modelDefault) });
 
   canvas.append(
-    el('label', { class: 'mer-setting' }, [el('span', { text: 'Gemini API key' }), keyInput]),
+    el('label', { class: 'mer-setting' }, [el('span', { text: `${active.label} API key` }), keyInput]),
     el('label', { class: 'mer-setting' }, [el('span', { text: 'Model' }), modelInput]),
   );
 }

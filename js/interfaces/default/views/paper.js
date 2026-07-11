@@ -166,7 +166,7 @@ function pickSection(ctx, rerender, forPrint) {
   return sectionCard("Editor's Pick", wrap);
 }
 
-function editorialSection(editorial, forPrint, onRegenerate) {
+function editorialSection(editorial, forPrint, onRegenerate, providerLabel) {
   if (!editorial) return null;
   // Printed issues contain finished editorial prose only—not setup guidance,
   // transient loading copy, or provider errors.
@@ -175,7 +175,7 @@ function editorialSection(editorial, forPrint, onRegenerate) {
   if (editorial.unavailable) {
     body = el('p', {
       class: 'mer-paper-none',
-      text: 'Add your Gemini API key in Settings to have Gemini write a private, data-grounded editorial for today.',
+      text: `Add your ${providerLabel} API key in Settings to have ${providerLabel} write a private, data-grounded editorial for today.`,
     });
   } else if (editorial.loading) {
     body = el('p', { class: 'mer-paper-none', text: 'Writing…' });
@@ -193,17 +193,17 @@ function editorialSection(editorial, forPrint, onRegenerate) {
   return sectionCard('The Editorial', wrap);
 }
 
-// Kicks off one Gemini call (fire-and-forget from the caller's perspective)
-// and caches the result under today's local date -- same reset-by-date
-// pattern as the checklist. Guarded by state.editorialGenerating so a
-// re-render mid-generation (e.g. ticking a habit while it's writing)
-// doesn't fire a second concurrent call.
+// Kicks off one AI call (fire-and-forget from the caller's perspective) to
+// whichever provider is active and caches the result under today's local
+// date -- same reset-by-date pattern as the checklist. Guarded by
+// state.editorialGenerating so a re-render mid-generation (e.g. ticking a
+// habit while it's writing) doesn't fire a second concurrent call.
 async function ensureEditorial(ctx, data, rerender) {
   state.editorialGenerating = true;
   state.editorialError = null;
   try {
     const text = await ctx.data.generateDailyEditorial(buildEditorialContext(data));
-    if (!text) throw new Error('Gemini returned an empty editorial. Please try again.');
+    if (!text) throw new Error(`${data.editorialProviderLabel} returned an empty editorial. Please try again.`);
     await Promise.all([
       ctx.data.Settings.set('paperEditorialDate', todayStr()),
       ctx.data.Settings.set('paperEditorialText', text),
@@ -251,9 +251,9 @@ function almanacSection({ feed, habits, logsByHabit, sleep }) {
 }
 
 function buildPaper(data, forPrint, ctx, rerender) {
-  const { feed, onThisDay, habits, logsByHabit, sleep, weather, checkedSet, editorial } = data;
+  const { feed, onThisDay, habits, logsByHabit, sleep, weather, checkedSet, editorial, editorialProviderLabel } = data;
   const sections = [
-    editorialSection(editorial, forPrint, () => regenerateEditorial(ctx, rerender)),
+    editorialSection(editorial, forPrint, () => regenerateEditorial(ctx, rerender), editorialProviderLabel),
     weatherSection(weather, ctx),
     agendaSection(feed, checkedSet, ctx, rerender, forPrint),
     onThisDaySection(onThisDay),
@@ -376,13 +376,14 @@ export async function renderPaper(canvas, ctx, rerender) {
   const accountUser = await ctx.data.Account.getCurrentUser().catch(() => null);
   const editorialOwner = accountUser?.id || 'local-anonymous';
   const weatherDescription = weather ? ctx.data.describeWeatherCode(weather.code).label : null;
-  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, weatherDescription, checkedSet, editorialOwner };
+  const { label: editorialProviderLabel, apiKey } = await ctx.data.getActiveAiProvider();
+  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, weatherDescription, checkedSet, editorialOwner, editorialProviderLabel };
 
   // AI editorial: visible as a setup state without a key, and generated with
   // the user's own key when configured. Cached by local date and account; a
-  // cache miss kicks off one Gemini call and shows
-  // "Writing…" until it resolves, rather than blocking the rest of the page.
-  const apiKey = await ctx.data.Settings.get('geminiApiKey');
+  // cache miss kicks off one call (to whichever provider is active) and
+  // shows "Writing…" until it resolves, rather than blocking the rest of
+  // the page.
   if (apiKey) {
     const [edDate, edText, edOwner] = await Promise.all([
       ctx.data.Settings.get('paperEditorialDate'),

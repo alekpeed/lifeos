@@ -400,12 +400,17 @@ Everything below came out of talking through what would actually feel
   relay chaining a question across all three in sequence — it trades real
   signal for compounding drift/hedging without a human deciding what to keep
   at each hop. Not built into the core app; nothing stops it from being a
-  separate standalone project later if wanted.) Current state: only one
-  panel is built so far, and it runs on Gemini (see Built ✅) — Claude was
-  the original provider, switched over since OpenAI's API can't be called
-  directly from a browser at all (see that entry for why). The
+  separate standalone project later if wanted.) Current state: only one AI
+  Assistant module is built (not three separate panels yet), but it's
+  provider-switchable — a toggle in Settings > AI Assistant (`aiProvider`)
+  picks between Gemini and Claude, with both providers' keys able to stay
+  filled in at once so switching costs nothing (see `AI_PROVIDERS` in
+  `js/data/api.js`). OpenAI isn't offered as a toggle option: its API sends
+  no CORS headers for browser-origin requests at all, so it can't be called
+  directly from the browser the way Gemini/Claude can -- adding it would
+  need a proxy server standing in front of it first. The
   three-separate-panels idea above is still the eventual shape; for now
-  there's one active AI Assistant, not three.
+  it's one panel with a provider switch, not three panels at once.
 - **Telegram integration** — both as a chat surface and as a notification
   channel (due bills/tasks pushed to Telegram, since that's more reliable
   than browser push notifications, especially on iPhone). Chosen deliberately
