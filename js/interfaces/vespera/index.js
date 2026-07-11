@@ -59,9 +59,9 @@ const DISTRICTS = [
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents', 'quartermaster'],
     hotspot: { cx: 14.14, cy: 78.11, w: 28.29, h: 20.19, clip: 'polygon(0% 0%, 100% 0%, 99.15% 100%, 0% 100%)' } },
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules', 'starters', 'dreamjournal'],
-    hotspot: { cx: 85.55, cy: 14.08, w: 27.93, h: 19.87, clip: 'polygon(3.85% 0%, 100% 0%, 100% 86.63%, 0% 100%)' } },
+    hotspot: { cx: 85.55, cy: 15.89, w: 27.93, h: 16.26, clip: 'polygon(3.21% 0%, 100% 0%, 100% 83.01%, 94.43% 87.58%, 0% 100%, 1.28% 83.01%)' } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
-    hotspot: { cx: 85.59, cy: 34.33, w: 28.83, h: 21.68, clip: 'polygon(0% 0%, 100% 1.96%, 100% 100%, 0.62% 97.06%)' },
+    hotspot: { cx: 85.59, cy: 36.82, w: 28.83, h: 17.75, clip: 'polygon(1.87% 0%, 100% 2.4%, 100% 94.61%, 94.19% 100%, 3.73% 100%, 0% 88.02%)' },
     // Immersive entry room (see renderRoom). `image` is a plain
     // establishing shot (no text, no markers) rendered on an aspect-locked
     // stage (same technique as the hub). `quad` is the wall plane the
@@ -86,7 +86,7 @@ const DISTRICTS = [
       quad: [[4.52, 20.72], [32.18, 29.49], [33.43, 62.11], [4.25, 64.45]],
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
-    hotspot: { cx: 85.91, cy: 56.64, w: 28.41, h: 21.25, clip: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' } },
+    hotspot: { cx: 85.91, cy: 58.55, w: 28.41, h: 17.43, clip: 'polygon(2.32% 0%, 100% 0%, 100% 92.07%, 94.53% 100%, 2.32% 100%, 0% 84.76%)' } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant', 'stationcat'],
     hotspot: { cx: 85.98, cy: 78.11, w: 28.05, h: 20.19, clip: 'polygon(0% 0%, 100% 0%, 100% 100%, 0.43% 100%)' } },
   // Added for Dashboard's due-soon feed to have a hub-level home. This
