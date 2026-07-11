@@ -412,7 +412,13 @@ const SETTING_DEFAULTS = {
   theme: 'dark',
   accent: 'brass',
   density: 'comfortable',
-  activeInterface: 'default',
+  // Temporary: default a no-preference session (new device, or a "Clear
+  // site data" that wiped IndexedDB along with the cache) into Vespera
+  // instead of Equator while it's the one being actively worked on -- flip
+  // back to 'default' once Vespera is done getting shaped. Anyone who has
+  // explicitly picked an interface via Settings has a real stored value
+  // here and is unaffected.
+  activeInterface: 'vespera',
   wordsPerPageDefault: 275,
   billDueSoonDays: 7,
   documentExpiryDays: 30,
