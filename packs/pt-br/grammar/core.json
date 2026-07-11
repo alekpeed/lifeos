@@ -52,6 +52,32 @@
     "relatedVocabulary": [
       "vocab.casa",
       "vocab.cafe"
+    ],
+    "ladders": [
+      {
+        "key": "ladder.estar-pronouns",
+        "title": "estar (to be, temporary) across pronouns",
+        "pattern": "{pronoun} ___ cansado.",
+        "steps": [
+          {
+            "prompt": "Eu ___ cansado. (I am tired)",
+            "answer": "estou"
+          },
+          {
+            "prompt": "Você ___ cansado? (are you tired?)",
+            "answer": "está"
+          },
+          {
+            "prompt": "Nós ___ cansados. (we are tired)",
+            "answer": "estamos",
+            "note": "nós takes the -amos ending"
+          },
+          {
+            "prompt": "Eles ___ cansados. (they are tired)",
+            "answer": "estão"
+          }
+        ]
+      }
     ]
   },
   {
@@ -103,6 +129,32 @@
     "relatedVocabulary": [
       "vocab.falar",
       "vocab.casa"
+    ],
+    "ladders": [
+      {
+        "key": "ladder.falar-pronouns",
+        "title": "falar (to speak) across pronouns",
+        "pattern": "{pronoun} ___ português.",
+        "steps": [
+          {
+            "prompt": "Eu ___ português. (I speak Portuguese)",
+            "answer": "falo"
+          },
+          {
+            "prompt": "Você ___ português? (do you speak Portuguese?)",
+            "answer": "fala",
+            "note": "você takes the third-person form"
+          },
+          {
+            "prompt": "Nós ___ português. (we speak Portuguese)",
+            "answer": "falamos"
+          },
+          {
+            "prompt": "Eles ___ português. (they speak Portuguese)",
+            "answer": "falam"
+          }
+        ]
+      }
     ]
   },
   {
@@ -156,6 +208,28 @@
       "vocab.agua",
       "vocab.cafe",
       "vocab.hoje"
+    ],
+    "ladders": [
+      {
+        "key": "ladder.querer-politeness",
+        "title": "querer (to want) across registers",
+        "pattern": "{register} form of 'do you want coffee?'",
+        "steps": [
+          {
+            "prompt": "Ask a friend casually if they want coffee, using você.",
+            "answer": "Você quer café?"
+          },
+          {
+            "prompt": "Ask an elderly stranger politely if they want coffee.",
+            "answer": "O senhor quer café?",
+            "note": "formal register with o senhor/a senhora"
+          },
+          {
+            "prompt": "Ask the same in the spoken, reduced form of você.",
+            "answer": "Cê quer café?"
+          }
+        ]
+      }
     ]
   },
   {

@@ -25,6 +25,12 @@ fn migrations() -> Vec<Migration> {
             sql: include_str!("../migrations/0003_pronunciation_rules.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "grammar_ladders",
+            sql: include_str!("../migrations/0004_grammar_ladders.sql"),
+            kind: MigrationKind::Up,
+        },
     ]
 }
 

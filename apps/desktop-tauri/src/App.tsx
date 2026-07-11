@@ -6,14 +6,25 @@ import { bootstrap } from "./app/bootstrap";
 import { Onboarding } from "./screens/Onboarding";
 import { Dashboard } from "./screens/Dashboard";
 import { Review } from "./screens/Review";
+import { Drill } from "./screens/Drill";
 import { Library } from "./screens/Library";
 import { Tutor } from "./screens/Tutor";
 import { Conversation } from "./screens/Conversation";
+import { Interpreter } from "./screens/Interpreter";
 import { Settings } from "./screens/Settings";
 import { Pronunciation } from "./screens/Pronunciation";
 import "./App.css";
 
-type View = "dashboard" | "review" | "library" | "tutor" | "conversation" | "settings" | "pronunciation";
+type View =
+  | "dashboard"
+  | "review"
+  | "drill"
+  | "library"
+  | "tutor"
+  | "conversation"
+  | "interpreter"
+  | "settings"
+  | "pronunciation";
 
 function App() {
   const [ready, setReady] = useState<{ repos: Repos; pack: LoadedPack } | null>(null);
@@ -58,6 +69,10 @@ function App() {
     return <Review repos={ready.repos} profile={profile} onDone={goHome} />;
   }
 
+  if (view === "drill") {
+    return <Drill repos={ready.repos} profile={profile} onDone={goHome} />;
+  }
+
   if (view === "library") {
     return <Library repos={ready.repos} profile={profile} onDone={goHome} />;
   }
@@ -77,6 +92,18 @@ function App() {
   if (view === "conversation") {
     return (
       <Conversation
+        repos={ready.repos}
+        profile={profile}
+        pack={ready.pack}
+        onDone={goHome}
+        onOpenSettings={() => setView("settings")}
+      />
+    );
+  }
+
+  if (view === "interpreter") {
+    return (
+      <Interpreter
         repos={ready.repos}
         profile={profile}
         pack={ready.pack}
@@ -107,9 +134,11 @@ function App() {
       repos={ready.repos}
       profile={profile}
       onStartReview={() => setView("review")}
+      onStartDrill={() => setView("drill")}
       onOpenLibrary={() => setView("library")}
       onOpenTutor={() => setView("tutor")}
       onOpenConversation={() => setView("conversation")}
+      onOpenInterpreter={() => setView("interpreter")}
       onOpenPronunciation={() => setView("pronunciation")}
       onOpenSettings={() => setView("settings")}
     />

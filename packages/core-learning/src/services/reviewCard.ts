@@ -39,6 +39,18 @@ export async function loadReviewCard(repos: Repos, item: ReviewItem): Promise<Re
     return { front: r.title, back: r.explanation_md };
   }
 
+  if (item.itemType === "grammar_ladder") {
+    const rows = await repos.db.all<{
+      prompt: string;
+      answer: string;
+      ladder_title: string;
+      note: string | null;
+    }>("SELECT prompt, answer, ladder_title, note FROM grammar_ladder_steps WHERE id = ?", [id]);
+    const r = rows[0];
+    if (!r) throw new Error(`grammar ladder step ${item.contentId} not found`);
+    return { front: r.prompt, back: r.answer, note: r.note ? `${r.ladder_title} — ${r.note}` : r.ladder_title };
+  }
+
   // real_speech
   const rows = await repos.db.all<{
     phrase: string;

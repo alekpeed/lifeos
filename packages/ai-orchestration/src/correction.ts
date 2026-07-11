@@ -29,7 +29,7 @@ Respond with ONLY a JSON object (no prose, no code fences) with these fields:
 `.trim();
 
 /** Strips markdown code fences if the model wrapped its JSON despite instructions. */
-function extractJson(raw: string): string {
+export function extractJson(raw: string): string {
   const trimmed = raw.trim();
   const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/m.exec(trimmed);
   return fenced?.[1] ?? trimmed;

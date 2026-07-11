@@ -69,12 +69,51 @@ export function grammarRow(packId: string, item: GrammarItem, now: string): Row 
     examples_json: JSON.stringify(item.examples),
     common_errors_json: JSON.stringify(item.commonErrors),
     drills_json: JSON.stringify(item.drills),
+    ladders_json: JSON.stringify(item.ladders),
     related_vocabulary_json: JSON.stringify(item.relatedVocabulary),
     data_json: "{}",
     schema_version: item.schemaVersion,
     created_at: now,
     updated_at: now,
   };
+}
+
+/** Item key for one flattened ladder step — unique within the pack, stable across re-import
+ * as long as the ladder key and step order don't change. */
+function ladderStepKey(grammarKey: string, ladderKey: string, stepIndex: number): string {
+  return `${grammarKey}::${ladderKey}::${stepIndex}`;
+}
+
+/** Flattens every grammar item's ladders into one row per step, so each step can carry its own
+ * FSRS review schedule (a ladder is a sequence of individually-reviewable prompts, not one
+ * atomic card). */
+export function grammarLadderStepRows(packId: string, items: GrammarItem[], now: string): Row[] {
+  const rows: Row[] = [];
+  for (const item of items) {
+    for (const ladder of item.ladders) {
+      ladder.steps.forEach((step, stepIndex) => {
+        const itemKey = ladderStepKey(item.key, ladder.key, stepIndex);
+        rows.push({
+          id: contentId(packId, itemKey),
+          pack_id: packId,
+          item_key: itemKey,
+          grammar_item_id: contentId(packId, item.key),
+          ladder_key: ladder.key,
+          ladder_title: ladder.title,
+          pattern: ladder.pattern,
+          step_index: stepIndex,
+          prompt: step.prompt,
+          answer: step.answer,
+          note: step.note ?? null,
+          data_json: "{}",
+          schema_version: item.schemaVersion,
+          created_at: now,
+          updated_at: now,
+        });
+      });
+    }
+  }
+  return rows;
 }
 
 export function realSpeechRow(packId: string, item: RealSpeechItem, now: string): Row {
