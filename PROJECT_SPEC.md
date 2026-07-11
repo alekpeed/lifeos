@@ -201,7 +201,11 @@ lets the whole app be redecorated later without rebuilding it:
   and a small Almanac of quick counts. A 🖨️ Print button lays the same
   content into a print-only sheet and hands it to the browser's
   print-to-PDF — no new library, reuses the same approach as the Chords
-  practice sheet. Not yet AI-written (see "Still to build" below).
+  practice sheet. When an Anthropic key is configured, Claude writes a short
+  editorial from a bounded packet of the day's actual LifeOS facts (due and
+  overdue items, habits, weather, sleep, history, and the Editor's Pick).
+  The prompt explicitly forbids invention; one issue is cached per local date
+  and signed-in account, with visible setup, retry, and regenerate states.
 - **Museum of Finished Things** — a trophy-case view over completions already
   scattered across other modules: done tasks/assignments, finished books
   (with covers), milestones, recipes ranked by times cooked, archived
@@ -353,9 +357,6 @@ lets the whole app be redecorated later without rebuilding it:
   token, which can't be tested from this environment.
 
 ### Still to build 📋
-- **AI-powered Daily Paper** — turn the current list-based brief into an
-  actual AI-written editorial (Claude/GPT/Gemini), once accounts exist to
-  scope it per user.
 - **Per-user notifications** — depends on accounts existing first.
 - **AI-written yearly recap** — needs a working AI module first (see above)
 
@@ -412,7 +413,8 @@ Everything below came out of talking through what would actually feel
 
 1. ~~Multi-user accounts (phase 1)~~ — DONE and live-verified: email/password
    + Google sign-in, password reset, profiles table (see Built ✅).
-2. AI-powered Daily Paper + per-user notifications (depend on accounts)
+2. ~~AI-powered Daily Paper~~ — DONE (Claude, device-local Anthropic key,
+   daily/account-scoped cache); per-user notifications remain open.
 3. ~~The four Tier-2 features~~ — DONE: Knowledge Graph, The Orrery,
    Time Machine, and QR Airgap Sync all shipped (see Built ✅)
 4. ~~AI Assistant (Claude) + Telegram (send-only)~~ — DONE (see Built ✅).

@@ -492,6 +492,7 @@ const SETTING_DEFAULTS = {
   // day doesn't re-call Claude each time. Empty/blank until generated.
   paperEditorialDate: '',
   paperEditorialText: '',
+  paperEditorialOwner: '',
 };
 
 export const Settings = {
@@ -808,10 +809,12 @@ export async function generateDailyEditorial(summary) {
     Settings.get('anthropicApiKey'),
     Settings.get('anthropicModel'),
   ]);
-  const prompt = `Here is today's data from someone's personal life-tracking app:\n\n${summary}\n\n`
-    + `Write a short, warm editorial paragraph (3-5 sentences) for the top of their daily paper. `
-    + `Reference specifics naturally rather than just listing them back. Second person ("you"). `
-    + `Plain prose, no headers, no markdown, no bullet points.`;
+  const prompt = `You are writing the editorial at the top of a private personal daily paper. `
+    + `Use only the facts in the source packet below. Never invent an event, deadline, habit result, weather condition, motive, feeling, or causal claim. `
+    + `If data is unavailable, ignore it. Prioritize overdue work, today's concrete obligations, and genuine progress. `
+    + `Be warm, perceptive, and concise—not chirpy, scolding, or generic. Write 3-5 sentences in second person ("you"). `
+    + `Mention one or two exact specifics naturally, then offer a practical focus for the day. `
+    + `Return plain prose only: no title, markdown, bullets, greeting, or sign-off.\n\nSOURCE PACKET\n${summary}`;
   const { text } = await sendClaudeMessage(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 400 });
   return text.trim();
 }

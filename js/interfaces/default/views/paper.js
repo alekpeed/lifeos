@@ -167,9 +167,17 @@ function pickSection(ctx, rerender, forPrint) {
 }
 
 function editorialSection(editorial, forPrint, onRegenerate) {
-  if (!editorial) return null; // no API key set -- section omitted entirely
+  if (!editorial) return null;
+  // Printed issues contain finished editorial prose only—not setup guidance,
+  // transient loading copy, or provider errors.
+  if (forPrint && (!editorial.text || editorial.loading || editorial.error || editorial.unavailable)) return null;
   let body;
-  if (editorial.loading) {
+  if (editorial.unavailable) {
+    body = el('p', {
+      class: 'mer-paper-none',
+      text: 'Add your Anthropic API key in Settings to have Claude write a private, data-grounded editorial for today.',
+    });
+  } else if (editorial.loading) {
     body = el('p', { class: 'mer-paper-none', text: 'Writing…' });
   } else if (editorial.error) {
     body = el('p', { class: 'mer-paper-none mer-sync-error', text: editorial.error });
@@ -179,7 +187,7 @@ function editorialSection(editorial, forPrint, onRegenerate) {
     return null;
   }
   const wrap = el('div', {}, [body]);
-  if (!forPrint && !editorial.loading) {
+  if (!forPrint && !editorial.loading && !editorial.unavailable) {
     wrap.append(el('button', { type: 'button', class: 'mer-reader-btn', text: editorial.error ? 'Retry' : '🔄 Regenerate', onclick: onRegenerate }));
   }
   return sectionCard('The Editorial', wrap);
@@ -192,11 +200,14 @@ function editorialSection(editorial, forPrint, onRegenerate) {
 // doesn't fire a second concurrent call.
 async function ensureEditorial(ctx, data, rerender) {
   state.editorialGenerating = true;
+  state.editorialError = null;
   try {
-    const text = await ctx.data.generateDailyEditorial(buildDigestText(data));
+    const text = await ctx.data.generateDailyEditorial(buildEditorialContext(data));
+    if (!text) throw new Error('Claude returned an empty editorial. Please try again.');
     await Promise.all([
       ctx.data.Settings.set('paperEditorialDate', todayStr()),
       ctx.data.Settings.set('paperEditorialText', text),
+      ctx.data.Settings.set('paperEditorialOwner', data.editorialOwner),
     ]);
   } catch (err) {
     state.editorialError = err.message || String(err);
@@ -277,6 +288,56 @@ function buildDigestText(data) {
   return lines.join('\n');
 }
 
+// A factual, bounded source packet for the AI. This is intentionally separate
+// from the Telegram digest: it includes enough context to write something
+// useful while making missing data explicit and never feeding an older
+// editorial back into the model.
+export function buildEditorialContext(data) {
+  const { feed, onThisDay, habits, logsByHabit, weather, weatherDescription, sleep } = data;
+  const lines = [`Date: ${longDate()}`];
+
+  if (weather) {
+    const temperatures = [
+      weather.tempF != null ? `current ${Math.round(weather.tempF)}°F` : null,
+      weather.highF != null ? `high ${Math.round(weather.highF)}°F` : null,
+      weather.lowF != null ? `low ${Math.round(weather.lowF)}°F` : null,
+    ].filter(Boolean).join(', ');
+    lines.push(`Weather: ${weatherDescription || 'condition unavailable'}${temperatures ? `; ${temperatures}` : ''}`);
+  } else {
+    lines.push('Weather: unavailable');
+  }
+
+  if (feed.length) {
+    lines.push('Due and overdue items:');
+    for (const item of feed.slice(0, 15)) {
+      const status = item.overdue ? 'overdue' : 'due soon';
+      lines.push(`- [${MODULE_LABEL[item.module] || item.module}; ${status}; ${fmtDate(item.dueDate)}] ${item.title || '(untitled)'}`);
+    }
+  } else {
+    lines.push('Due and overdue items: none in the next seven days');
+  }
+
+  if (habits.length) {
+    const done = habits.filter((habit) =>
+      (logsByHabit.get(habit.id) || []).some((log) => log.date === todayStr()));
+    lines.push(`Habits completed today (${done.length}/${habits.length}): ${done.map((habit) => habit.name || '(untitled)').join(', ') || 'none yet'}`);
+    const remaining = habits.filter((habit) => !done.includes(habit));
+    lines.push(`Habits remaining today: ${remaining.map((habit) => habit.name || '(untitled)').join(', ') || 'none'}`);
+  } else {
+    lines.push('Habits: none configured');
+  }
+
+  lines.push(`Most recent logged sleep: ${sleep != null ? `${sleep} hours` : 'unavailable'}`);
+  if (onThisDay.length) {
+    lines.push(`On this day: ${onThisDay.slice(0, 5).map((item) => `${item.title || '(untitled)'} (${item.year})`).join('; ')}`);
+  } else {
+    lines.push('On this day: no entries');
+  }
+  if (state.surprise) lines.push(`Editor's pick: ${state.surprise.kind} — ${state.surprise.title}`);
+
+  return lines.join('\n');
+}
+
 function printPaper(data, ctx) {
   const sheet = buildPaper(data, true, ctx, () => {});
   document.body.append(sheet);
@@ -312,18 +373,23 @@ export async function renderPaper(canvas, ctx, rerender) {
     .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
   const sleep = latest ? latest.sleepHours : null;
 
-  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, checkedSet };
+  const accountUser = await ctx.data.Account.getCurrentUser().catch(() => null);
+  const editorialOwner = accountUser?.id || 'local-anonymous';
+  const weatherDescription = weather ? ctx.data.describeWeatherCode(weather.code).label : null;
+  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, weatherDescription, checkedSet, editorialOwner };
 
-  // AI editorial: only if a key is set at all (omitted entirely otherwise).
-  // Cached per local date; a cache miss kicks off one Claude call and shows
+  // AI editorial: visible as a setup state without a key, and generated with
+  // the user's own key when configured. Cached by local date and account; a
+  // cache miss kicks off one Claude call and shows
   // "Writing…" until it resolves, rather than blocking the rest of the page.
   const apiKey = await ctx.data.Settings.get('anthropicApiKey');
   if (apiKey) {
-    const [edDate, edText] = await Promise.all([
+    const [edDate, edText, edOwner] = await Promise.all([
       ctx.data.Settings.get('paperEditorialDate'),
       ctx.data.Settings.get('paperEditorialText'),
+      ctx.data.Settings.get('paperEditorialOwner'),
     ]);
-    if (edDate === todayStr() && edText) {
+    if (edDate === todayStr() && edText && edOwner === editorialOwner) {
       data.editorial = { text: edText, loading: false, error: null };
     } else if (state.editorialGenerating) {
       data.editorial = { text: '', loading: true, error: null };
@@ -333,6 +399,8 @@ export async function renderPaper(canvas, ctx, rerender) {
       data.editorial = { text: '', loading: true, error: null };
       ensureEditorial(ctx, data, rerender);
     }
+  } else {
+    data.editorial = { unavailable: true, text: '', loading: false, error: null };
   }
 
   canvas.append(el('h1', { text: 'Daily Paper' }));

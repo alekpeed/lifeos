@@ -126,7 +126,9 @@ genuine moonshots.
   tickable habit checklist, an Editor's Pick (a random want-to-go
   place/unread book/untried recipe), a small Almanac of quick counts, and
   a 🖨️ Print button that lays it into a print-only sheet for browser
-  print-to-PDF.
+  print-to-PDF. With your device-local Anthropic key, Claude also writes a
+  concise daily editorial grounded only in those LifeOS facts. One issue is
+  cached per local date and signed-in account, with retry/regenerate controls.
 - **Dream Journal** — entries plus recurring-pattern detection: a
   word-frequency scan across every entry's body/tags surfacing what keeps
   recurring across your dreams.
@@ -201,8 +203,12 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   Settings' new Account section, shares one auth session with Sharebox v2.
   Live-verified end to end (SQL run, Google + email sign-up/sign-in all
   confirmed working).
-- 🏗️ **AI-powered Daily Paper** — an actual AI-written editorial instead of
-  the current list-based brief, once accounts exist to scope it per user.
+- ✅ **AI-powered Daily Paper (Claude)** — a 3–5 sentence editorial generated
+  from a bounded packet of the day's real LifeOS facts. It uses the same
+  device-local Anthropic key as the AI Assistant, caches one issue per local
+  date and signed-in account, and exposes retry/regenerate states. GPT and
+  Gemini remain future provider panels rather than a requirement for this
+  feature.
 - 🏗️ **Per-user notifications** — depends on accounts.
 - ✅ **AI Assistant (Claude) + Telegram (send-only)** — a chat with Claude,
   called directly from the browser with your own API key (device-local,
