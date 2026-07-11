@@ -21,6 +21,23 @@ Tier legend:
 
 ---
 
+## 0. ⏸️ Parked — deferred by Alek's own call
+
+Don't resurface these in status recaps / "what's open" summaries unless
+Alek asks about one by name or says the word to un-park it. Fully scoped
+already where relevant (see the ⏸️ marker at each one's full entry below) —
+parked means "not now," not "forgotten" or "cut."
+
+- **Financial Center (Plaid)** — bank/investment linking. Full pricing/
+  architecture detail in section 4.
+- **A separate ChatGPT panel** — needs a backend proxy first (OpenAI's API
+  doesn't support direct browser calls). Full detail in section 1.
+- **Bio-futurism/jungle interface theme** — a third, from-scratch interface
+  concept ("40th century meets the Amazon meets the far reaches of the
+  galaxy"), unrelated to Vespera. Mid-exploration: a typography/identity
+  round (Claude Design) and an environment-art round (GPT) were both
+  started, not finished or picked. Full detail in section 5.
+
 ## 1. The near-term core: accounts, AI, and notifications
 
 - ✅ **Multi-user accounts (phase 1)** — DONE and live-verified: email/password
@@ -52,8 +69,8 @@ Tier legend:
   messages you through a bot you create yourself (@BotFather), triggered by
   your own action (a Settings test button, Daily Paper's "Send to
   Telegram"). No listener for incoming messages by design. Still open:
-  - A separate ChatGPT panel/toggle option -- needs that proxy server
-    first, since OpenAI can't be called directly from the browser. (An
+  - ⏸️ PARKED — A separate ChatGPT panel/toggle option -- needs that proxy
+    server first, since OpenAI can't be called directly from the browser. (An
     automated cross-LLM relay chaining one question across all three in
     sequence was considered and struck from the plan — trades real signal
     for compounding drift/hedging without a human deciding what to keep at
@@ -94,8 +111,8 @@ All five routine builds identified here have shipped:
 
 Each of these is its own 🔑 go/no-go, not a routine add.
 
-- **Financial Center** — bank/investment linking via **Plaid**, plus a live
-  price-ticker panel.
+- ⏸️ PARKED — **Financial Center** — bank/investment linking via **Plaid**,
+  plus a live price-ticker panel.
   - Plaid Sandbox (fake data, for building) is free forever.
   - Plaid Production is usage-based: roughly **$0.30–$3 per connected
     account/month** for subscription-style products (Transactions,
@@ -128,12 +145,20 @@ screens out "personal archiving" as a use case anyway.)*
 
 ## 5. Additional interfaces
 
-- 🏗️ **Vespera** — a spatial interface (Life OS as an orbital station you
-  navigate through, not a dashboard). Fully planned in `VESPERA_SPEC.md`,
-  including the district/space-to-module mapping and v1 scope; not started.
-  Tier 2 (interface-registry design).
+- ✅ **Vespera** — STARTED and well underway (not a future idea anymore): a
+  spatial interface, Life OS as an orbital station you navigate through, not
+  a dashboard. Hub (Grand Concourse) with 9 district plaques, district rooms,
+  hotspot/portal geometry actively being refined. See `VESPERA_SPEC.md` and
+  the Built ✅ section of `PROJECT_SPEC.md` for current state.
 - **An LCARS-inspired mode** (Star Trek control-panel aesthetic, original
   execution, no copyrighted assets).
+- ⏸️ PARKED — **Bio-futurism/jungle interface** — a third, from-scratch
+  interface concept: a futuristic tropical/jungle theme ("40th century meets
+  the Amazon meets the far reaches of the galaxy"), unrelated to Vespera or
+  LCARS. Mid-exploration when parked: a typography/identity round (via
+  Claude Design, one direction returned so far) and an environment-art round
+  (via GPT, spec/prompt drafted) were both started but not finished or
+  committed to. Pick back up only when Alek brings it up by name.
 - Any others that come to mind along the way.
 
 ### Device philosophy — desktop-immersive, mobile-companion 🏗️

@@ -46,6 +46,16 @@ This is a vanilla-JS, local-first PWA (IndexedDB, no build step, no
 framework). Read `ARCHITECTURE.md` first for the technical shape, then
 `PROJECT_SPEC.md` / `FEATURE_LIST.md` for what's built and what's queued.
 
+## Parked items
+
+`FUTURE_FEATURES.md` has a "⏸️ Parked" section (§0) for things Alek has
+explicitly deferred — matching items elsewhere in that doc are marked
+⏸️ PARKED inline. **Don't bring parked items up in status recaps / "what's
+open" summaries unasked** — they're deferred, not forgotten or cut. Only
+discuss one again if Alek names it directly or says the word to un-park it.
+This applies across sessions/windows, not just the conversation where
+something got parked.
+
 Deploy: `main` branch via GitHub Pages. Routine convention this session:
 commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
 `main`, push `main`, checkout back to the dev branch.
