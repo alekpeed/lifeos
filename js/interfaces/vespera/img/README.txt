@@ -116,7 +116,22 @@ Extraction + recolor pipeline (re-run per new consred.png):
    RGBA PNG per row -- alpha = the blurred glow intensity (clipped/
    boosted so the sharp text hits full opacity and the halo fades to
    0), NOT a flat rectangle, so it composites with no visible hard edge.
-6. Compute each crop's position as % of the full image (left, top,
+6. Hover recolor -- IMPORTANT, this went through several wrong turns:
+   do NOT bake a separate pink image and composite it over the teal
+   base. Pink-over-teal is always a blend (muddy), and forcing hard
+   alpha to avoid the blend just gives jagged sticker edges. Instead the
+   per-row overlay is an OPAQUE teal crop of the base itself (pixel-
+   identical, so invisible at rest), feathered at its rectangle edges
+   (RGBA cosine ramp ~22px so the boundary dissolves into the base), and
+   hover recolors it to pink with a CSS `filter: hue-rotate(126deg)
+   brightness(1.08)` -- rotating the existing teal pixels IN PLACE.
+   Because it's a recolor of one opaque layer, not a second translucent
+   layer, muddiness is structurally impossible, and the neon glow + anti-
+   aliased edges survive because they're the real pixels rotated. No
+   saturate() boost (warms the dark wall in the crop and seams its edge)
+   and no drop-shadow (glows around the rectangle, not the letters) --
+   the text's own baked glow rotates to pink for free.
+7. Compute each crop's position as % of the full image (left, top,
    width, height) and wire it into the district's `room.links[id]`
    config in index.js -- position by construction, no rotation or
    perspective math needed since these are pixel-for-pixel crops of the

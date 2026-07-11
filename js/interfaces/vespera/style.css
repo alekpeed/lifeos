@@ -333,10 +333,14 @@
    The teal signage is baked directly into img/conservatory.png -- no
    code-drawn text at all. Each .vsp-room-link is an invisible click target
    sized to its signage row (left/top/width/height inline, from the room
-   config in index.js) holding a pink-recolored cutout of that exact row
-   (.vsp-room-link-overlay), pre-rendered with a soft bloom and transparent
-   everywhere else, that fades in on hover -- a real fuzzy glow because the
-   blur is baked into the image, not simulated with box-shadow. */
+   config in index.js) holding an OPAQUE teal crop of that exact row
+   (.vsp-room-link-overlay) -- pixel-identical to the base beneath it, so
+   invisible at rest. On hover it fades in AND a hue-rotate filter recolors
+   its teal to hot pink IN PLACE. Because the crop is opaque it replaces
+   the base pixels rather than blending over them (no muddy pink-over-teal),
+   and because it's the real teal pixels rotated, the neon glow and the
+   anti-aliased letter edges are preserved exactly. drop-shadow adds the
+   fuzzy pink bleed onto the wall. See img/README.txt. */
 [data-interface='vespera'] .vsp-room-link {
   position: absolute;
   cursor: pointer;
@@ -351,6 +355,13 @@
   height: 100%;
   object-fit: fill;
   opacity: 0;
+  /* Recolor teal -> hot pink by rotating the existing hue. No drop-shadow
+     (it would glow around the opaque crop's RECTANGLE, not the letters) and
+     no saturate boost (it warms the dark wall inside the crop and seams its
+     edge) -- the text's own baked neon glow rotates to pink for free, so
+     the fuzzy halo hugs the letters and the dark wall stays neutral, making
+     the crop's rectangular boundary invisible. */
+  filter: hue-rotate(126deg) brightness(1.08);
   transition: opacity 0.25s ease-out;
   pointer-events: none;
 }
