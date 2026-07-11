@@ -68,17 +68,26 @@ const DISTRICTS = [
     hotspot: { cx: 85.93, cy: 36.56, w: 13.43, h: 8.5, clip: 'polygon(0.0% 31.2%, 100.0% 0.0%, 99.1% 90.0%, 0.2% 100.0%)' },
     // Immersive entry room (see renderRoom). `image` is a full-bleed
     // establishing shot rendered on an aspect-locked stage (same technique
-    // as the hub). `quad` is the wall plane the signage is projected onto:
-    // the four corners (TL,TR,BR,BL as % of the image) of a quadrilateral
-    // measured off the art's blank wall, kept inside its trim lines. Text
-    // is laid out flat in a designW x designH box and mapped onto the quad
-    // with a true perspective homography (matrix3d) -- not an eyeballed
-    // rotate -- so it forshortens exactly like paint on that wall.
+    // as the hub). `quad` is the plane the signage is projected onto: four
+    // corners (TL,TR,BR,BL as % of the image) inside the art's blank wall,
+    // mapped from a flat designW x designH text box via a perspective
+    // homography (matrix3d).
+    //
+    // Deliberately NOT the wall's full physically-measured depth: that
+    // quad (1.76:1 foreshortening, in git history) put the perspective
+    // horizon inside the text block, so the title tilted down while the
+    // links tilted up -- geometrically exact, but on a featureless dark
+    // wall opposing tilts in one block just read as crooked text, not as
+    // a surface. What makes signage look GLUED here is following the
+    // wall's one dominant visible cue -- the ceiling trim running
+    // downhill toward the atrium: every text line flows gently down-right
+    // (top edge ~8 deg, bottom edge ~level, nothing uphill) while the far
+    // edge tapers smaller (1.17:1). One direction, one surface.
     room: {
       image: 'img/conservatory.png',
       ratio: '1672 / 941',
-      designW: 400, designH: 470,
-      quad: [[8.97, 23.91], [31.10, 30.29], [31.10, 63.76], [8.97, 82.89]],
+      designW: 400, designH: 370,
+      quad: [[8.97, 30.82], [31.10, 36.13], [31.10, 69.61], [8.97, 70.14]],
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync'],
     hotspot: { cx: 85.68, cy: 60.31, w: 12.8, h: 9.14, clip: 'polygon(0.2% 0.0%, 100.0% 22.7%, 100.0% 100.0%, 0.0% 64.0%)' } },
