@@ -126,7 +126,7 @@ genuine moonshots.
   tickable habit checklist, an Editor's Pick (a random want-to-go
   place/unread book/untried recipe), a small Almanac of quick counts, and
   a 🖨️ Print button that lays it into a print-only sheet for browser
-  print-to-PDF. With your device-local Anthropic key, Claude also writes a
+  print-to-PDF. With your device-local Gemini key, Gemini also writes a
   concise daily editorial grounded only in those LifeOS facts. One issue is
   cached per local date and signed-in account, with retry/regenerate controls.
 - **Dream Journal** — entries plus recurring-pattern detection: a
@@ -203,20 +203,21 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   Settings' new Account section, shares one auth session with Sharebox v2.
   Live-verified end to end (SQL run, Google + email sign-up/sign-in all
   confirmed working).
-- ✅ **AI-powered Daily Paper (Claude)** — a 3–5 sentence editorial generated
+- ✅ **AI-powered Daily Paper (Gemini)** — a 3–5 sentence editorial generated
   from a bounded packet of the day's real LifeOS facts. It uses the same
-  device-local Anthropic key as the AI Assistant, caches one issue per local
-  date and signed-in account, and exposes retry/regenerate states. GPT and
-  Gemini remain future provider panels rather than a requirement for this
-  feature.
+  device-local Gemini key as the AI Assistant, caches one issue per local
+  date and signed-in account, and exposes retry/regenerate states.
 - 🏗️ **Per-user notifications** — depends on accounts.
-- ✅ **AI Assistant (Claude) + Telegram (send-only)** — a chat with Claude,
+- ✅ **AI Assistant (Gemini) + Telegram (send-only)** — a chat with Gemini,
   called directly from the browser with your own API key (device-local,
-  never synced). Telegram sends you a digest via a bot you create yourself,
+  never synced). Originally built on Claude; switched to Gemini since it's
+  the only other provider (besides Anthropic) that supports a direct
+  browser-to-API call with no backend — OpenAI's API sends no CORS headers
+  for browser requests at all, so a GPT panel needs a proxy server, not
+  just a key. Telegram sends you a digest via a bot you create yourself,
   triggered by your own action (Settings test button, Daily Paper's "Send
-  to Telegram"). Still open: ChatGPT/Gemini panels (own API key each, no
-  auto-chaining between them — considered and struck) and full two-way
-  Telegram chat (needs a backend webhook).
+  to Telegram"). Still open: a separate ChatGPT panel (would need that
+  proxy first) and full two-way Telegram chat (needs a backend webhook).
 - 🏗️ **AI-written yearly recap** — once an AI module exists, have it draft
   the actual narrative instead of just tallying numbers.
 

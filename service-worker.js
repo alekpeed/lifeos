@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v98';
+const CACHE_VERSION = 'lifeos-v99';
 const APP_SHELL = [
   './',
   './index.html',
@@ -24,6 +24,7 @@ const APP_SHELL = [
   './js/data/sharebox-supabase.js',
   './js/data/profile-supabase.js',
   './js/data/claude-client.js',
+  './js/data/gemini-client.js',
   './js/data/telegram-client.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',

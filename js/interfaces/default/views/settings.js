@@ -268,22 +268,26 @@ async function renderCalendarSection(canvas, ctx, rerender) {
   canvas.append(row, status);
 }
 
-// --- AI Assistant (Claude, direct browser-to-API) ---
+// --- AI Assistant (Gemini, direct browser-to-API) ---
+// Switched from Claude to Gemini: both support a direct browser call with no
+// backend, but OpenAI's API does not (no CORS support for browser-origin
+// requests), so Gemini was picked over GPT for this. anthropicApiKey stays
+// in Settings' defaults, dormant, in case of a future switch back.
 
 async function renderAiAssistantSection(canvas, ctx, rerender) {
   const [apiKey, model] = await Promise.all([
-    ctx.data.Settings.get('anthropicApiKey'),
-    ctx.data.Settings.get('anthropicModel'),
+    ctx.data.Settings.get('geminiApiKey'),
+    ctx.data.Settings.get('geminiModel'),
   ]);
 
   canvas.append(el('div', { class: 'mer-subsection-label', text: 'AI Assistant' }));
-  canvas.append(el('p', { class: 'mer-muted', text: 'Your own Anthropic API key, used to chat with Claude directly from this browser -- no server in between. Kept device-local (not synced to Drive or the cloud), sent only to api.anthropic.com.' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Your own Gemini API key, used to chat with Gemini directly from this browser -- no server in between. Kept device-local (not synced to Drive or the cloud), sent only to generativelanguage.googleapis.com.' }));
 
-  const keyInput = el('input', { type: 'password', value: apiKey, placeholder: 'sk-ant-…', onchange: (e) => ctx.data.Settings.set('anthropicApiKey', e.target.value.trim()) });
-  const modelInput = el('input', { type: 'text', value: model, placeholder: 'claude-sonnet-5', onchange: (e) => ctx.data.Settings.set('anthropicModel', e.target.value.trim() || 'claude-sonnet-5') });
+  const keyInput = el('input', { type: 'password', value: apiKey, placeholder: 'AIza…', onchange: (e) => ctx.data.Settings.set('geminiApiKey', e.target.value.trim()) });
+  const modelInput = el('input', { type: 'text', value: model, placeholder: 'gemini-2.5-flash', onchange: (e) => ctx.data.Settings.set('geminiModel', e.target.value.trim() || 'gemini-2.5-flash') });
 
   canvas.append(
-    el('label', { class: 'mer-setting' }, [el('span', { text: 'Anthropic API key' }), keyInput]),
+    el('label', { class: 'mer-setting' }, [el('span', { text: 'Gemini API key' }), keyInput]),
     el('label', { class: 'mer-setting' }, [el('span', { text: 'Model' }), modelInput]),
   );
 }

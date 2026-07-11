@@ -175,7 +175,7 @@ function editorialSection(editorial, forPrint, onRegenerate) {
   if (editorial.unavailable) {
     body = el('p', {
       class: 'mer-paper-none',
-      text: 'Add your Anthropic API key in Settings to have Claude write a private, data-grounded editorial for today.',
+      text: 'Add your Gemini API key in Settings to have Gemini write a private, data-grounded editorial for today.',
     });
   } else if (editorial.loading) {
     body = el('p', { class: 'mer-paper-none', text: 'Writing…' });
@@ -193,7 +193,7 @@ function editorialSection(editorial, forPrint, onRegenerate) {
   return sectionCard('The Editorial', wrap);
 }
 
-// Kicks off one Claude call (fire-and-forget from the caller's perspective)
+// Kicks off one Gemini call (fire-and-forget from the caller's perspective)
 // and caches the result under today's local date -- same reset-by-date
 // pattern as the checklist. Guarded by state.editorialGenerating so a
 // re-render mid-generation (e.g. ticking a habit while it's writing)
@@ -203,7 +203,7 @@ async function ensureEditorial(ctx, data, rerender) {
   state.editorialError = null;
   try {
     const text = await ctx.data.generateDailyEditorial(buildEditorialContext(data));
-    if (!text) throw new Error('Claude returned an empty editorial. Please try again.');
+    if (!text) throw new Error('Gemini returned an empty editorial. Please try again.');
     await Promise.all([
       ctx.data.Settings.set('paperEditorialDate', todayStr()),
       ctx.data.Settings.set('paperEditorialText', text),
@@ -380,9 +380,9 @@ export async function renderPaper(canvas, ctx, rerender) {
 
   // AI editorial: visible as a setup state without a key, and generated with
   // the user's own key when configured. Cached by local date and account; a
-  // cache miss kicks off one Claude call and shows
+  // cache miss kicks off one Gemini call and shows
   // "Writing…" until it resolves, rather than blocking the rest of the page.
-  const apiKey = await ctx.data.Settings.get('anthropicApiKey');
+  const apiKey = await ctx.data.Settings.get('geminiApiKey');
   if (apiKey) {
     const [edDate, edText, edOwner] = await Promise.all([
       ctx.data.Settings.get('paperEditorialDate'),

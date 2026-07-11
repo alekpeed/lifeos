@@ -201,7 +201,7 @@ lets the whole app be redecorated later without rebuilding it:
   and a small Almanac of quick counts. A 🖨️ Print button lays the same
   content into a print-only sheet and hands it to the browser's
   print-to-PDF — no new library, reuses the same approach as the Chords
-  practice sheet. When an Anthropic key is configured, Claude writes a short
+  practice sheet. When a Gemini key is configured, Gemini writes a short
   editorial from a bounded packet of the day's actual LifeOS facts (due and
   overdue items, habits, weather, sleep, history, and the Editor's Pick).
   The prompt explicitly forbids invention; one issue is cached per local date
@@ -339,12 +339,17 @@ lets the whole app be redecorated later without rebuilding it:
   approach (see "Additional interfaces" section) keeps those modules
   local-first for now.
 
-- **AI Assistant (Claude) + Telegram (send-only)** — a new "AI Assistant"
-  module: a chat with Claude, called directly from the browser using your
-  own Anthropic API key (Settings, device-local, never synced). Confirmed
-  both api.anthropic.com and Gemini's API are actually reachable from this
-  environment's network (unlike Supabase and OpenAI, both blocked) — scoped
-  to Claude only for this pass per your call. Conversations/messages are
+- **AI Assistant (Gemini) + Telegram (send-only)** — a new "AI Assistant"
+  module: a chat with Gemini, called directly from the browser using your
+  own Gemini API key (Settings, device-local, never synced). Originally
+  built on Claude; switched to Gemini so it can keep calling straight from
+  the browser with no backend -- confirmed OpenAI's API sends no CORS
+  headers for browser-origin requests at all (unlike Anthropic's documented
+  direct-browser-access opt-in), so a GPT panel would need a proxy server in
+  front of it, while Gemini works the same direct-call way Claude did. The
+  Claude path (`claude-client.js`, the `anthropicApiKey`/`anthropicModel`
+  settings) is kept dormant, not deleted, in case of a future switch back or
+  a second panel. Conversations/messages are
   regular synced data (`aiConversations`/`aiMessages`). Telegram is
   send-only by design — the app messages you through a bot you create
   yourself (@BotFather), triggered by your own action (a "Send test
@@ -395,7 +400,12 @@ Everything below came out of talking through what would actually feel
   relay chaining a question across all three in sequence — it trades real
   signal for compounding drift/hedging without a human deciding what to keep
   at each hop. Not built into the core app; nothing stops it from being a
-  separate standalone project later if wanted.)
+  separate standalone project later if wanted.) Current state: only one
+  panel is built so far, and it runs on Gemini (see Built ✅) — Claude was
+  the original provider, switched over since OpenAI's API can't be called
+  directly from a browser at all (see that entry for why). The
+  three-separate-panels idea above is still the eventual shape; for now
+  there's one active AI Assistant, not three.
 - **Telegram integration** — both as a chat surface and as a notification
   channel (due bills/tasks pushed to Telegram, since that's more reliable
   than browser push notifications, especially on iPhone). Chosen deliberately
@@ -413,14 +423,14 @@ Everything below came out of talking through what would actually feel
 
 1. ~~Multi-user accounts (phase 1)~~ — DONE and live-verified: email/password
    + Google sign-in, password reset, profiles table (see Built ✅).
-2. ~~AI-powered Daily Paper~~ — DONE (Claude, device-local Anthropic key,
+2. ~~AI-powered Daily Paper~~ — DONE (Gemini, device-local Gemini key,
    daily/account-scoped cache); per-user notifications remain open.
 3. ~~The four Tier-2 features~~ — DONE: Knowledge Graph, The Orrery,
    Time Machine, and QR Airgap Sync all shipped (see Built ✅)
-4. ~~AI Assistant (Claude) + Telegram (send-only)~~ — DONE (see Built ✅).
-   ChatGPT/Gemini panels + full two-way Telegram chat are still open, out of
-   scope for this pass. (Cross-LLM relay chaining was considered and
-   dropped — see section 4 above.)
+4. ~~AI Assistant (Gemini) + Telegram (send-only)~~ — DONE (see Built ✅,
+   switched from Claude to Gemini). A separate ChatGPT panel + full two-way
+   Telegram chat are still open, out of scope for this pass. (Cross-LLM
+   relay chaining was considered and dropped — see section 4 above.)
 5. AI-written yearly recap (needs an AI module first)
 6. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of

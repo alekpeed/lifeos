@@ -1,4 +1,4 @@
-// AI Assistant — a chat with Claude, using your own Anthropic API key
+// AI Assistant — a chat with Gemini, using your own Gemini API key
 // (Settings has an "AI Assistant" section with the key field), called
 // directly from the browser. No server in between; the key never leaves
 // this device.
@@ -11,7 +11,7 @@ function messageBubble(message) {
   const isUser = message.role === 'user';
   return el('div', { class: isUser ? 'mer-person-card' : 'mer-task-detail' }, [
     el('div', { class: 'mer-person-info' }, [
-      el('div', { class: 'mer-person-name', text: isUser ? 'You' : 'Claude' }),
+      el('div', { class: 'mer-person-name', text: isUser ? 'You' : 'Gemini' }),
       el('div', { class: 'mer-person-meta', text: message.content }),
     ]),
   ]);
@@ -29,9 +29,9 @@ async function renderConversation(canvas, conversation, ctx, rerender) {
   canvas.append(thread);
 
   if (state.error) canvas.append(el('p', { class: 'mer-muted mer-sync-error', text: state.error }));
-  if (state.sending) canvas.append(el('p', { class: 'mer-muted', text: 'Claude is thinking…' }));
+  if (state.sending) canvas.append(el('p', { class: 'mer-muted', text: 'Gemini is thinking…' }));
 
-  const input = el('textarea', { rows: '2', placeholder: 'Message Claude…' });
+  const input = el('textarea', { rows: '2', placeholder: 'Message Gemini…' });
   const sendBtn = el('button', {
     type: 'button', text: 'Send',
     onclick: async () => {
@@ -77,10 +77,10 @@ function conversationRow(conversation, onSelect) {
 }
 
 export async function renderAssistant(canvas, ctx, rerender) {
-  const apiKey = await ctx.data.Settings.get('anthropicApiKey');
+  const apiKey = await ctx.data.Settings.get('geminiApiKey');
   if (!apiKey) {
     canvas.append(el('h1', { text: 'AI Assistant' }));
-    canvas.append(el('p', { class: 'mer-muted', text: 'No Anthropic API key set yet. Add one in Settings > AI Assistant to start chatting with Claude.' }));
+    canvas.append(el('p', { class: 'mer-muted', text: 'No Gemini API key set yet. Add one in Settings > AI Assistant to start chatting with Gemini.' }));
     canvas.append(el('button', { type: 'button', text: 'Go to Settings', onclick: () => ctx.navigate('settings') }));
     return;
   }

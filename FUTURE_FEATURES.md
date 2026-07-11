@@ -32,25 +32,32 @@ Tier legend:
   Places, Finance...) is deliberately not part of this phase — see the open
   architecture
   question in section 11.
-- 🏗️ **AI-powered Daily Paper** — turn the current list-based brief into an
-  actual AI-written editorial (Claude/GPT/Gemini), once accounts exist to
-  scope it per user.
+- ✅ **AI-powered Daily Paper** — DONE: an actual AI-written editorial (3-5
+  sentences, grounded only in that day's real LifeOS facts), generated with
+  the same device-local Gemini key as the AI Assistant below.
 - 🏗️ **Per-user notifications** — depends on accounts existing first.
-- ✅ **AI Assistant (Claude) + Telegram (send-only)** — DONE: a new AI
-  Assistant module, a chat with Claude called directly from the browser
-  with your own Anthropic API key (Settings, device-local, never synced).
-  Confirmed api.anthropic.com and Gemini's API are both actually reachable
-  from this dev environment (unlike Supabase and OpenAI, both blocked) —
-  scoped to Claude only per your call. Telegram is send-only: the app
+- ✅ **AI Assistant (Gemini) + Telegram (send-only)** — DONE: a new AI
+  Assistant module, a chat with Gemini called directly from the browser
+  with your own Gemini API key (Settings, device-local, never synced).
+  Originally built on Claude; switched to Gemini because it's the only
+  other provider confirmed to support a direct browser-to-API call with no
+  backend -- OpenAI's API sends no CORS headers for browser-origin requests
+  at all (unlike Anthropic's documented direct-browser-access opt-in), so a
+  GPT panel would need a proxy server in front of it, not just a key. The
+  Claude path (`claude-client.js`, the dormant `anthropicApiKey`/
+  `anthropicModel` settings) is kept, not deleted, in case of a future
+  switch back or a second panel. Telegram is send-only: the app
   messages you through a bot you create yourself (@BotFather), triggered by
   your own action (a Settings test button, Daily Paper's "Send to
   Telegram"). No listener for incoming messages by design. Still open:
-  - ChatGPT/Gemini panels alongside Claude's, each its own themed panel with
-    its own API key. (An automated cross-LLM relay chaining one question
-    across all three in sequence was considered and struck from the plan —
-    trades real signal for compounding drift/hedging without a human
-    deciding what to keep at each hop. Could still be built as a separate
-    standalone project later if wanted; just not part of the core app.)
+  - A separate ChatGPT panel alongside Gemini's, own API key, own themed
+    panel -- needs that proxy server first, since OpenAI can't be called
+    directly from the browser. (An automated cross-LLM relay chaining one
+    question across all three in sequence was considered and struck from
+    the plan — trades real signal for compounding drift/hedging without a
+    human deciding what to keep at each hop. Could still be built as a
+    separate standalone project later if wanted; just not part of the core
+    app.)
   - Full two-way Telegram chat — needs a real backend webhook (a Supabase
     Edge Function) since a static PWA can't listen for incoming messages
     when it's not open; deliberately out of scope for the send-only pass.

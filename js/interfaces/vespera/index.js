@@ -87,7 +87,7 @@ const DISTRICTS = [
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
     hotspot: { points: [[73.39, 57.7], [97.31, 56.32], [98.5, 57.39], [98.5, 62.81], [97.31, 64.93], [74.4, 64.93], [73.09, 63.12], [73.09, 59.3]] } },
-  { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant', 'stationcat'],
+  { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Gemini', icon: '🤖', modules: ['assistant', 'stationcat'],
     hotspot: { points: [[74.75, 75.15], [98.25, 79.69], [99.1, 81.13], [97.44, 87.29], [95.6, 89.1], [73.59, 83.21], [72.88, 81.04], [74.03, 76.72]] } },
   // Added for Dashboard's due-soon feed to have a hub-level home. This
   // art does paint a real Station News sign bottom-center, same as the

@@ -329,13 +329,13 @@ function storyCard(story, onSelect) {
   return card;
 }
 
-// Generate-a-story control: gated on the same per-device Anthropic key as
+// Generate-a-story control: gated on the same per-device Gemini key as
 // the AI Assistant chat -- no shared/sponsored path, so if this pack is
 // ever shared with someone else, they need their own key too, same as chat.
 function generateStoryControl(pack, stories, hasApiKey, ctx, rerender) {
   const status = el('span', { class: 'mer-muted' });
   if (!hasApiKey) {
-    return el('p', { class: 'mer-muted', text: 'Add your Anthropic API key in Settings > AI Assistant to generate stories.' });
+    return el('p', { class: 'mer-muted', text: 'Add your Gemini API key in Settings > AI Assistant to generate stories.' });
   }
   const btn = el('button', {
     type: 'button', text: '✨ Generate a story',
@@ -391,7 +391,7 @@ async function renderLibraryTab(container, ctx, rerender, pack) {
     state.storyId = null;
   }
 
-  const hasApiKey = !!(await ctx.data.Settings.get('anthropicApiKey'));
+  const hasApiKey = !!(await ctx.data.Settings.get('geminiApiKey'));
   container.append(el('div', { class: 'mer-subsection-label', text: 'Generate a story' }));
   container.append(generateStoryControl(pack, stories, hasApiKey, ctx, rerender));
 
