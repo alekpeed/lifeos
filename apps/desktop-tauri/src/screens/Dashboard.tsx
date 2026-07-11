@@ -6,11 +6,9 @@ interface Props {
   repos: Repos;
   profile: LearnerProfile;
   onStartReview: () => void;
-  onStartDrill: () => void;
   onOpenLibrary: () => void;
   onOpenTutor: () => void;
   onOpenConversation: () => void;
-  onOpenInterpreter: () => void;
   onOpenPronunciation: () => void;
   onOpenSettings: () => void;
 }
@@ -19,11 +17,9 @@ export function Dashboard({
   repos,
   profile,
   onStartReview,
-  onStartDrill,
   onOpenLibrary,
   onOpenTutor,
   onOpenConversation,
-  onOpenInterpreter,
   onOpenPronunciation,
   onOpenSettings,
 }: Props) {
@@ -79,12 +75,6 @@ export function Dashboard({
         </button>
         <button type="button" onClick={onOpenConversation}>
           Conversation
-        </button>
-        <button type="button" onClick={onOpenInterpreter}>
-          Live Interpreter
-        </button>
-        <button type="button" onClick={onStartDrill}>
-          Substitution Drills
         </button>
         <button type="button" onClick={onOpenPronunciation}>
           Pronunciation

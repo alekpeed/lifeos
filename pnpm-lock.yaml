@@ -72,9 +72,6 @@ importers:
       '@polyglotai/shared-types':
         specifier: workspace:*
         version: link:../shared-types
-      zod:
-        specifier: ^3.23.8
-        version: 3.25.76
     devDependencies:
       tsx:
         specifier: ^4.19.0

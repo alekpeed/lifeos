@@ -13,8 +13,7 @@
     "spike": "tsx bin/spike-adult-content.ts"
   },
   "dependencies": {
-    "@polyglotai/shared-types": "workspace:*",
-    "zod": "^3.23.8"
+    "@polyglotai/shared-types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

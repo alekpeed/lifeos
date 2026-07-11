@@ -3,19 +3,14 @@ import type { Database, SqlValue } from "../db/database.js";
 import { newId } from "../db/ids.js";
 
 /** Content kinds that get spaced-repetition review items in MVP (spec §16). Pronunciation is
- * practice, not SRS-scheduled (plan risk 9), so it is intentionally excluded.
- * `grammar_ladder` schedules individual substitution-ladder steps (rock-solid idea #9) — each
- * step is its own card, flattened from grammar_items.ladders at import time (packs/rows.ts). */
-export type ReviewItemType = "vocabulary" | "grammar" | "real_speech" | "grammar_ladder";
+ * practice, not SRS-scheduled (plan risk 9), so it is intentionally excluded. */
+export type ReviewItemType = "vocabulary" | "grammar" | "real_speech";
 
 const CONTENT_TABLE: Record<ReviewItemType, string> = {
   vocabulary: "vocabulary_items",
   grammar: "grammar_items",
   real_speech: "real_speech_items",
-  grammar_ladder: "grammar_ladder_steps",
 };
-
-const ALL_ITEM_TYPES: ReviewItemType[] = ["vocabulary", "grammar", "real_speech", "grammar_ladder"];
 
 export interface ReviewItem {
   id: string;
@@ -86,7 +81,7 @@ export class ReviewRepo {
   async generateForPack(
     profileId: string,
     packId: string,
-    itemTypes: ReviewItemType[] = ALL_ITEM_TYPES,
+    itemTypes: ReviewItemType[] = ["vocabulary", "grammar", "real_speech"],
   ): Promise<number> {
     const now = this.clock();
     const seed = this.scheduler.initialState(now);
@@ -137,18 +132,15 @@ export class ReviewRepo {
     return created;
   }
 
-  /** Items due for review at `now` (new items are due immediately), soonest first. Pass
-   * `itemTypes` to scope the queue to a subset (e.g. the ladder drill screen wants only
-   * `grammar_ladder`, since its fill-in-the-blank UI doesn't fit a flip card). */
-  async listDue(profileId: string, limit = 50, itemTypes?: ReviewItemType[]): Promise<ReviewItem[]> {
+  /** Items due for review at `now` (new items are due immediately), soonest first. */
+  async listDue(profileId: string, limit = 50): Promise<ReviewItem[]> {
     const now = this.clock().toISOString();
-    const typeFilter = itemTypes?.length ? `AND item_type IN (${itemTypes.map(() => "?").join(", ")})` : "";
     const rows = await this.db.all<ReviewItemRow>(
       `SELECT * FROM review_items
-        WHERE profile_id = ? AND (due_at IS NULL OR due_at <= ?) ${typeFilter}
+        WHERE profile_id = ? AND (due_at IS NULL OR due_at <= ?)
         ORDER BY due_at IS NULL DESC, due_at ASC
         LIMIT ?`,
-      [profileId, now, ...(itemTypes ?? []), limit],
+      [profileId, now, limit],
     );
     return rows.map(rowToReviewItem);
   }

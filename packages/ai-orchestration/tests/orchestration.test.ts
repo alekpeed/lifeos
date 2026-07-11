@@ -4,7 +4,6 @@ import {
   CONTENT_POLICY_CLAUSE,
   ConversationSession,
   CorrectionEngine,
-  InterpreterSession,
   MalformedModelOutput,
   OpenAIProvider,
   renderTemplate,
@@ -164,74 +163,5 @@ describe("ConversationSession", () => {
     const session = new ConversationSession(provider, { taskPrompt: "t", ctx: CTX });
     await session.send("abcd"); // request estimate > 0 + reply 2
     expect(session.tokensSpent).toBeGreaterThan(2);
-  });
-});
-
-describe("InterpreterSession", () => {
-  const dialogueJson = JSON.stringify({
-    turns: [
-      { speaker: "A", text: "Oi, tudo bem?" },
-      { speaker: "B", text: "I'm doing well, thanks." },
-      { speaker: "A", text: "Que bom!" },
-      { speaker: "B", text: "How about you?" },
-    ],
-  });
-  const gradeJson = JSON.stringify({ score: 4, feedback: "Close, natural phrasing.", modelAnswer: "Hi, all good?" });
-
-  it("generates a dialogue that strictly alternates A (target language) / B (English)", async () => {
-    const { provider, requests } = stubProvider([{ text: dialogueJson, tokensUsed: 50 }]);
-    const session = new InterpreterSession(provider, { topic: "greeting a coworker", ctx: CTX, turnCount: 4 });
-
-    const turns = await session.generateDialogue();
-    expect(turns).toHaveLength(4);
-    expect(turns.map((t) => t.speaker)).toEqual(["A", "B", "A", "B"]);
-    expect(turns.map((t) => t.language)).toEqual(["target", "native", "target", "native"]);
-    expect(turns[0]!.text).toBe("Oi, tudo bem?");
-
-    const system = requests[0]!.messages[0]!;
-    expect(system.content).toContain(CONTENT_POLICY_CLAUSE);
-    const user = requests[0]!.messages[1]!;
-    expect(user.content).toContain("greeting a coworker");
-    expect(user.content).toContain("Brazilian Portuguese");
-  });
-
-  it("caches the generated dialogue instead of re-requesting it", async () => {
-    const { provider, requests } = stubProvider([{ text: dialogueJson }]);
-    const session = new InterpreterSession(provider, { topic: "x", ctx: CTX });
-    await session.generateDialogue();
-    await session.generateDialogue();
-    expect(requests).toHaveLength(1);
-  });
-
-  it("grades a turn's interpretation via a separate bounded call", async () => {
-    const { provider, requests } = stubProvider([{ text: dialogueJson }, { text: gradeJson, tokensUsed: 30 }]);
-    const session = new InterpreterSession(provider, { topic: "x", ctx: CTX });
-    const [first] = await session.generateDialogue();
-
-    const grade = await session.gradeTurn(first!, "Hi, all good?");
-    expect(grade).toEqual({ score: 4, feedback: "Close, natural phrasing.", modelAnswer: "Hi, all good?" });
-    expect(session.tokensSpent).toBeGreaterThanOrEqual(30);
-
-    const gradeRequest = requests[1]!;
-    expect(gradeRequest.messages[1]!.content).toContain("Oi, tudo bem?");
-    expect(gradeRequest.messages[1]!.content).toContain("Hi, all good?");
-  });
-
-  it("throws MalformedModelOutput when the dialogue reply isn't valid JSON", async () => {
-    const { provider } = stubProvider([{ text: "not json" }]);
-    const session = new InterpreterSession(provider, { topic: "x", ctx: CTX });
-    await expect(session.generateDialogue()).rejects.toBeInstanceOf(MalformedModelOutput);
-  });
-
-  it("enforces the token ceiling across generation and grading calls", async () => {
-    const { provider } = stubProvider([
-      { text: dialogueJson, tokensUsed: 900 },
-      { text: gradeJson, tokensUsed: 200 },
-    ]);
-    const session = new InterpreterSession(provider, { topic: "x", ctx: CTX, tokenCeiling: 1000 });
-    const [first] = await session.generateDialogue(); // spent = 900 (< 1000, generation allowed)
-    await session.gradeTurn(first!, "anything"); // spent = 1100 (900 < 1000, grading still allowed)
-    expect(session.tokensSpent).toBe(1100);
-    await expect(session.gradeTurn(first!, "again")).rejects.toBeInstanceOf(TokenCeilingExceeded);
   });
 });
