@@ -45,22 +45,23 @@ function el(tag, attrs = {}, children = []) {
 // the truth.
 //
 // hotspot.clip is a clip-path polygon (percentages relative to that
-// district's own bounding box, not the full image) tracing each physical
-// sign band in the shipped Grand Concourse artwork. These measurements are
-// tied to img/hub.png: replacing the art means remeasuring every plaque.
+// district's own bounding box, not the full image) tracing each complete
+// destination portal in the shipped Grand Concourse artwork. These
+// measurements are tied to img/hub.png: replacing the art means
+// remeasuring every plaque.
 const DISTRICTS = [
   { id: 'ops', name: 'Operations Deck', tagline: 'Tasks & Projects', icon: '📋', modules: ['tasks', 'ideas', 'habits', 'museum', 'skilltree', 'health'],
-    hotspot: { cx: 16.51, cy: 11.05, w: 17.22, h: 8.71, clip: 'polygon(3.1% 0.0%, 100.0% 79.3%, 92.4% 100.0%, 0.0% 24.4%)' } },
+    hotspot: { cx: 14, cy: 14, w: 28, h: 20, clip: 'polygon(0% 0%, 96% 13%, 100% 100%, 0% 86%)' } },
   { id: 'navbay', name: 'Navigation Bay', tagline: 'Places & Maps', icon: '🧭', modules: ['places', 'packing'],
-    hotspot: { cx: 17.67, cy: 29.33, w: 15.49, h: 6.8, clip: 'polygon(0.0% 0.0%, 100.0% 68.0%, 99.0% 100.0%, 2.0% 39.0%)' } },
+    hotspot: { cx: 14.5, cy: 34.5, w: 29, h: 21, clip: 'polygon(0% 3%, 100% 0%, 98% 95%, 0% 100%)' } },
   { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', modules: ['links', 'books', 'education', 'knowledge', 'rabbitholes', 'collections'],
-    hotspot: { cx: 17.45, cy: 51.91, w: 15.73, h: 5.63, clip: 'polygon(0.0% 24.0%, 100.0% 0.0%, 98.0% 72.0%, 2.0% 100.0%)' } },
+    hotspot: { cx: 14.5, cy: 56.5, w: 29, h: 21, clip: 'polygon(0% 0%, 98% 0%, 98% 100%, 0% 100%)' } },
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents', 'quartermaster'],
-    hotspot: { cx: 17.55, cy: 72.42, w: 13.94, h: 5.84, clip: 'polygon(0.0% 44.0%, 100.0% 0.0%, 98.0% 56.0%, 2.0% 100.0%)' } },
+    hotspot: { cx: 14.5, cy: 78, w: 29, h: 20, clip: 'polygon(0% 0%, 98% 0%, 96% 100%, 0% 100%)' } },
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules', 'starters', 'dreamjournal'],
-    hotspot: { cx: 84.0, cy: 11.53, w: 16.0, h: 7.55, clip: 'polygon(4.0% 59.0%, 100.0% 0.0%, 99.0% 50.0%, 0.0% 100.0%)' } },
+    hotspot: { cx: 86, cy: 14, w: 28, h: 20, clip: 'polygon(4% 13%, 100% 0%, 100% 86%, 0% 100%)' } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
-    hotspot: { cx: 84.1, cy: 29.38, w: 16.81, h: 7.76, clip: 'polygon(0.0% 62.0%, 100.0% 0.0%, 99.0% 60.0%, 0.0% 100.0%)' },
+    hotspot: { cx: 85.5, cy: 35, w: 29, h: 22, clip: 'polygon(0% 0%, 100% 3%, 100% 100%, 2% 95%)' },
     // Immersive entry room (see renderRoom). `image` is a plain
     // establishing shot (no text, no markers) rendered on an aspect-locked
     // stage (same technique as the hub). `quad` is the wall plane the
@@ -85,14 +86,14 @@ const DISTRICTS = [
       quad: [[4.52, 20.72], [32.18, 29.49], [33.43, 62.11], [4.25, 64.45]],
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
-    hotspot: { cx: 84.03, cy: 51.49, w: 15.55, h: 5.42, clip: 'polygon(0.0% 24.0%, 100.0% 0.0%, 99.0% 73.0%, 1.0% 100.0%)' } },
+    hotspot: { cx: 85.5, cy: 56.5, w: 29, h: 21, clip: 'polygon(2% 0%, 100% 0%, 100% 100%, 2% 100%)' } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant', 'stationcat'],
-    hotspot: { cx: 83.28, cy: 72.26, w: 14.65, h: 6.38, clip: 'polygon(0.0% 42.0%, 100.0% 0.0%, 99.0% 57.0%, 1.0% 100.0%)' } },
+    hotspot: { cx: 85.5, cy: 78, w: 29, h: 20, clip: 'polygon(2% 0%, 100% 0%, 100% 100%, 4% 100%)' } },
   // Added for Dashboard's due-soon feed to have a hub-level home. This
   // art does paint a real Station News sign bottom-center, same as the
   // other 8 -- measured the same way, not a special case.
   { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', modules: ['paper', 'orrery', 'ghostdays'],
-    hotspot: { cx: 50.6, cy: 88.84, w: 24.4, h: 7.65, clip: 'polygon(10.0% 0.0%, 90.0% 0.0%, 100.0% 100.0%, 0.0% 100.0%)' } },
+    hotspot: { cx: 50, cy: 88, w: 32, h: 20, clip: 'polygon(15% 0%, 85% 0%, 100% 76%, 86% 100%, 14% 100%, 0% 76%)' } },
 ];
 
 let ctx = null;
