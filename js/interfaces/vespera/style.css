@@ -396,11 +396,16 @@
      behind a stacked list, so mobile drops the art (and the stage's
      aspect lock) entirely: the stage becomes a plain block and the hub's
      gradient shows through. */
+  /* !important is load-bearing: both the hub and any room set their art
+     via an inline background-image (index.js), which always outranks a
+     plain stylesheet rule regardless of media query -- without it, the
+     art bled through behind the mobile stacked list instead of being
+     replaced by the hub's plain gradient. */
   [data-interface='vespera'] .vsp-stage {
-    position: static;
-    height: auto;
-    aspect-ratio: auto;
-    background: none;
+    position: static !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+    background: none !important;
   }
 
   [data-interface='vespera'] .vsp-plaque-layer {
