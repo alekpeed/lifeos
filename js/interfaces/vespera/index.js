@@ -44,24 +44,24 @@ function el(tag, attrs = {}, children = []) {
 // generalized, "ChatGPT, Gemini" before they exist), the code label tells
 // the truth.
 //
-// hotspot.clip is a clip-path polygon (percentages relative to that
-// district's own bounding box, not the full image) tracing the actual
-// walk-through opening of each destination -- its sign rail and surrounding
-// wall are deliberately excluded. These measurements are tied to
-// img/hub.png: replacing the art means remeasuring every plaque.
+// hotspot.points are vertices in the full hub-image coordinate system.
+// Each traces only the walk-through aperture or usable room interior:
+// sign rails, portal frames, and surrounding structure are deliberately
+// excluded. These measurements are tied to img/hub.png, so new artwork
+// requires every polygon to be remeasured.
 const DISTRICTS = [
   { id: 'ops', name: 'Operations Deck', tagline: 'Tasks & Projects', icon: '📋', modules: ['tasks', 'ideas', 'habits', 'museum', 'skilltree', 'health'],
-    hotspot: { cx: 13.61, cy: 16.84, w: 27.21, h: 12.65, clip: 'polygon(7.69% 0%, 90.11% 31.09%, 98.46% 47.9%, 100% 82.35%, 92.53% 100%, 6.15% 85.71%, 0% 68.91%, 0% 20.17%)' } },
+    hotspot: { points: [[2.57, 12.33], [23.44, 15.41], [25.3, 17.11], [25.72, 20.09], [24.04, 21.15], [3.29, 19.45], [1.44, 17.85], [1.38, 14.24]] } },
   { id: 'navbay', name: 'Navigation Bay', tagline: 'Places & Maps', icon: '🧭', modules: ['places', 'packing'],
-    hotspot: { cx: 14.2, cy: 37.94, w: 25.66, h: 14.03, clip: 'polygon(2.56% 0%, 93.94% 0%, 100% 20.45%, 100% 79.55%, 93.01% 100%, 9.56% 100%, 0% 81.06%, 0% 21.97%)' } },
+    hotspot: { points: [[2.69, 32.94], [23.68, 32.94], [25.48, 35.6], [25.48, 40.81], [23.74, 43.25], [4.96, 43.25], [2.93, 41.23], [2.39, 35.81]] } },
   { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', modules: ['links', 'books', 'education', 'knowledge', 'rabbitholes', 'collections'],
-    hotspot: { cx: 13.67, cy: 60.63, w: 27.33, h: 13.07, clip: 'polygon(3.94% 0%, 94.97% 0%, 100% 17.07%, 100% 81.3%, 94.09% 100%, 6.13% 100%, 0% 79.67%, 0% 18.7%)' } },
+    hotspot: { points: [[1.85, 55.9], [24.88, 55.9], [26.2, 57.81], [26.2, 63.55], [24.7, 65.67], [2.69, 65.67], [1.32, 63.76], [1.32, 58.02]] } },
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents', 'quartermaster'],
-    hotspot: { cx: 13.94, cy: 81.67, w: 27.87, h: 13.07, clip: 'polygon(5.15% 0%, 92.7% 0%, 100% 18.7%, 99.36% 80.49%, 92.7% 100%, 6.01% 100%, 0% 82.93%, 0% 18.7%)' } },
+    hotspot: { points: [[2.03, 77.05], [24.82, 77.05], [26.44, 78.85], [26.32, 84.59], [24.82, 86.61], [2.87, 86.61], [1.44, 84.8], [1.44, 79.06]] } },
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules', 'starters', 'dreamjournal'],
-    hotspot: { cx: 86.16, cy: 16.79, w: 27.33, h: 10.41, clip: 'polygon(2.19% 21.4%, 95.6% 0%, 100% 15.3%, 100% 77.55%, 94.08% 100%, 3.29% 100%, 0% 82.65%, 0% 41.84%)' } },
+    hotspot: { points: [[74.16, 15.2], [97.31, 12.86], [98.39, 14.13], [98.39, 18.81], [97.19, 20.62], [74.64, 20.62], [73.74, 19.23], [73.74, 16.47]] } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
-    hotspot: { cx: 85.74, cy: 38, w: 28.53, h: 11.9, clip: 'polygon(2.93% 17.86%, 92.27% 0%, 100% 12.5%, 100% 77.68%, 93.73% 100%, 7.31% 100%, 0% 78.57%, 0% 34.82%)' },
+    hotspot: { points: [[73.33, 36.56], [96.77, 34.75], [98.21, 35.92], [98.21, 41.13], [96.89, 43.15], [74.34, 43.15], [72.79, 41.34], [72.79, 38.26]] },
     // Immersive entry room (see renderRoom). `image` is a plain
     // establishing shot (no text, no markers) rendered on an aspect-locked
     // stage (same technique as the hub). `quad` is the wall plane the
@@ -86,14 +86,14 @@ const DISTRICTS = [
       quad: [[4.52, 20.72], [32.18, 29.49], [33.43, 62.11], [4.25, 64.45]],
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
-    hotspot: { cx: 85.55, cy: 60.89, w: 27.93, h: 12.11, clip: 'polygon(3.43% 13.16%, 94.86% 0%, 100% 12.28%, 100% 77.19%, 94% 100%, 3.64% 100%, 0% 80.7%, 0% 30.7%)' } },
+    hotspot: { points: [[73.39, 57.7], [97.31, 56.32], [98.5, 57.39], [98.5, 62.81], [97.31, 64.93], [74.4, 64.93], [73.09, 63.12], [73.09, 59.3]] } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant', 'stationcat'],
-    hotspot: { cx: 85.55, cy: 81.51, w: 27.93, h: 13.39, clip: 'polygon(3.64% 15.87%, 94.86% 0%, 100% 11.11%, 100% 80.16%, 93.58% 100%, 3.64% 100%, 0% 82.54%, 0% 30.16%)' } },
+    hotspot: { points: [[73.44, 78.21], [97.31, 76.51], [98.5, 77.68], [98.5, 84.06], [97.19, 86.29], [74.4, 86.29], [73.15, 84.38], [73.15, 79.91]] } },
   // Added for Dashboard's due-soon feed to have a hub-level home. This
   // art does paint a real Station News sign bottom-center, same as the
   // other 8 -- measured the same way, not a special case.
   { id: 'news', name: 'Station News', tagline: 'The Daily Paper', icon: '📰', modules: ['paper', 'orrery', 'ghostdays'],
-    hotspot: { cx: 50, cy: 91.07, w: 32.18, h: 14.24, clip: 'polygon(12.64% 0%, 86.8% 0%, 100% 64.18%, 87.18% 99.25%, 13.75% 99.25%, 0% 64.18%)' } },
+    hotspot: { points: [[38.82, 85.76], [61.24, 85.76], [64.59, 92.14], [61.42, 96.28], [38.64, 96.28], [35.41, 92.24]] } },
 ];
 
 let ctx = null;
@@ -177,15 +177,31 @@ function travel(zoomEl, targetEl, done) {
 
 // --- Hub (Grand Concourse) ---
 
-// Each plaque is an invisible click target clipped to the real painted
-// sign's shape (see the DISTRICTS comment above) -- at rest it shows
+// Each plaque is an invisible click target clipped to the real portal
+// aperture (see the DISTRICTS comment above) -- at rest it shows
 // nothing but a faint outline, brightening to a glow on hover/focus so the
 // actual station art reads as the label.
+function hotspotStyle(hotspot) {
+  const points = hotspot?.points;
+  if (!points?.length) return '';
+
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const left = Math.min(...xs);
+  const top = Math.min(...ys);
+  const width = Math.max(...xs) - left;
+  const height = Math.max(...ys) - top;
+  const clip = points.map(([x, y]) => {
+    const px = ((x - left) / width) * 100;
+    const py = ((y - top) / height) * 100;
+    return `${px}% ${py}%`;
+  }).join(', ');
+
+  return `left:${left}%; top:${top}%; width:${width}%; height:${height}%; clip-path: polygon(${clip});`;
+}
+
 function plaque(district, hub) {
-  const h = district.hotspot;
-  const posStyle = h
-    ? `left:${h.cx}%; top:${h.cy}%; width:${h.w}%; height:${h.h}%; transform: translate(-50%, -50%); clip-path: ${h.clip};`
-    : '';
+  const posStyle = hotspotStyle(district.hotspot);
   const btn = el('button', {
     type: 'button',
     class: `vsp-plaque vsp-plaque--${district.id}`,
