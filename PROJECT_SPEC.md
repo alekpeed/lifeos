@@ -405,10 +405,15 @@ Everything below came out of talking through what would actually feel
   provider-switchable — a toggle in Settings > AI Assistant (`aiProvider`)
   picks between Gemini and Claude, with both providers' keys able to stay
   filled in at once so switching costs nothing (see `AI_PROVIDERS` in
-  `js/data/api.js`). OpenAI isn't offered as a toggle option: its API sends
-  no CORS headers for browser-origin requests at all, so it can't be called
-  directly from the browser the way Gemini/Claude can -- adding it would
-  need a proxy server standing in front of it first. The
+  `js/data/api.js`). The toggle itself is gated: tap the "AI Assistant"
+  section label 10 times to reveal it (Android-hidden-developer-options
+  style, in-memory only -- resets on reload). The active provider's own
+  key/model fields are NOT gated, so everyday setup never needs the tap
+  gesture, only actually switching providers does. OpenAI isn't offered as
+  a toggle option: its API sends no CORS headers for browser-origin
+  requests at all, so it can't be called directly from the browser the way
+  Gemini/Claude can -- adding it would need a proxy server standing in
+  front of it first. The
   three-separate-panels idea above is still the eventual shape; for now
   it's one panel with a provider switch, not three panels at once.
 - **Telegram integration** — both as a chat surface and as a notification

@@ -276,18 +276,36 @@ async function renderCalendarSection(canvas, ctx, rerender) {
 // option until/unless a proxy server exists in front of it). Both
 // providers' key/model fields stay filled in even when inactive, so
 // flipping the toggle never requires re-entering a key.
+//
+// The toggle itself is gated behind a tap gesture on the section label (10
+// clicks, Android-hidden-developer-options style) so it doesn't clutter the
+// page for normal use -- only the currently active provider's key/model
+// fields show unconditionally, since those are needed for everyday setup,
+// not just switching. devUnlocked is in-memory only (module state, not a
+// Settings value): it resets on reload by design, an actual "gate," not a
+// persisted preference.
+let aiAssistantState = { devTapCount: 0, devUnlocked: false };
 
 async function renderAiAssistantSection(canvas, ctx, rerender) {
   const activeId = (await ctx.data.Settings.get('aiProvider')) || 'gemini';
 
-  canvas.append(el('div', { class: 'mer-subsection-label', text: 'AI Assistant' }));
+  canvas.append(el('div', {
+    class: 'mer-subsection-label', text: 'AI Assistant',
+    onclick: () => {
+      if (aiAssistantState.devUnlocked) return;
+      aiAssistantState.devTapCount += 1;
+      if (aiAssistantState.devTapCount >= 10) { aiAssistantState.devUnlocked = true; rerender(); }
+    },
+  }));
   canvas.append(el('p', { class: 'mer-muted', text: 'Picks which model powers the AI Assistant chat, the Daily Paper editorial, and Library of Babel story generation. Each provider uses your own API key, called directly from this browser -- no server in between. Keys are device-local (not synced to Drive or the cloud).' }));
 
-  const group = el('div', { class: 'mer-toggle-group' }, Object.entries(ctx.data.AI_PROVIDERS).map(([id, meta]) => el('button', {
-    type: 'button', class: activeId === id ? 'is-active' : '', text: meta.label,
-    onclick: async () => { await ctx.data.Settings.set('aiProvider', id); rerender(); },
-  })));
-  canvas.append(group);
+  if (aiAssistantState.devUnlocked) {
+    const group = el('div', { class: 'mer-toggle-group' }, Object.entries(ctx.data.AI_PROVIDERS).map(([id, meta]) => el('button', {
+      type: 'button', class: activeId === id ? 'is-active' : '', text: meta.label,
+      onclick: async () => { await ctx.data.Settings.set('aiProvider', id); rerender(); },
+    })));
+    canvas.append(group);
+  }
 
   const active = ctx.data.AI_PROVIDERS[activeId];
   const [apiKey, model] = await Promise.all([

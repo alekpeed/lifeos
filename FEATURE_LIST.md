@@ -212,7 +212,9 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   called directly from the browser, no backend, using your own API key per
   provider (device-local, never synced). A toggle in Settings > AI Assistant
   switches between Gemini and Claude — both providers' keys can stay filled
-  in at once so flipping the toggle costs nothing. Originally Claude-only;
+  in at once so flipping the toggle costs nothing. The toggle is gated
+  behind tapping the "AI Assistant" label 10 times (everyday key/model
+  fields aren't gated, only the switch itself). Originally Claude-only;
   Gemini added because it's the only other provider confirmed to support a
   direct browser-to-API call with no backend — OpenAI's API sends no CORS
   headers for browser requests at all, so a GPT panel needs a proxy server,

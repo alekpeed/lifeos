@@ -42,6 +42,9 @@ Tier legend:
   a Settings > AI Assistant toggle (`aiProvider`) now switches between
   Gemini and Claude, with both providers' keys able to stay filled in at
   once so flipping it costs nothing (see `AI_PROVIDERS` in `js/data/api.js`).
+  The toggle is gated behind tapping the "AI Assistant" section label 10
+  times, in-memory only (resets on reload) -- everyday key/model fields
+  stay unconditionally visible, only the provider switch itself is hidden.
   OpenAI isn't a toggle option -- its API sends no CORS headers for
   browser-origin requests at all (unlike Anthropic's documented
   direct-browser-access opt-in), so a GPT entry would need a proxy server in
