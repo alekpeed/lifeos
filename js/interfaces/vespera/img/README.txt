@@ -150,3 +150,59 @@ into pixels -- it can drift from the district's real `name`/`tagline`/
 `moduleLabel` strings in code (e.g. "AND" vs "&", wording differences)
 with no way to correct it except regenerating the art. Worth a glance
 at district name/tagline consistency before commissioning a new room.
+
+## SUPERSEDED AGAIN -- current method: CSS homography onto a marker-verified quad
+
+Everything above (baking real or outline text into the art, recoloring
+it in place for hover) was tried and worked visually, but Alek called it
+after enough rounds of hover-glow debugging: "that method clearly
+doesn't work, do it with CSS." The Conservatory room's actual shipped
+signage is now real DOM text again -- the same technique the very first
+attempt used and that got called "not glued to the wall" -- but this
+time the difference is the wall quad is MEASURED, not eyeballed, and
+that turned out to be the actual fix.
+
+Method:
+1. Commission a plain, marker-only reference image: ask the image tool
+   to take the existing room art and add ONLY four small solid red
+   squares (#FF0000-ish) at the four corners of the blank wall area
+   where signage should go -- no text, nothing else changed.
+2. Detect the 4 markers (color threshold, connected-component labeling,
+   same techniques as the hub's marker extraction) and read their exact
+   pixel positions. Convert to % of image width/height.
+3. Judge the resulting box size/placement BEFORE generating anything
+   further: overlay the quad on the image and compare against known
+   safe boundaries (where does the floor trim start, where does the
+   wall give way to architecture) -- measured via brightness-profile
+   scans across the image, not guessed. If the box is too small or
+   ill-placed, give the image tool corrected target percentages for
+   each corner and iterate. This step alone caught a first attempt that
+   was ~27% shorter than what actually fit the content.
+4. Once a good quad is confirmed, inpaint the 4 markers out (dilate +
+   replace with surrounding median color, same as the hub) to get the
+   final clean background image -- no text, no dots.
+5. In index.js, set `room.quad` to the four corner percentages
+   (TL, TR, BR, BL order) and `room.designW`/`designH` to a box whose
+   aspect ratio roughly matches the quad's (avoids uneven stretching).
+   `quadTransform()` computes the matrix3d that maps that flat design
+   box onto the quad -- a real 4-point perspective homography, not an
+   eyeballed rotateY. Real DOM text (title/subtitle/links) is laid out
+   in the design box and given that transform.
+6. Hover is plain `color` + `text-shadow` change on the DOM text --
+   no pixel compositing, no baked images, no muddy blending or box
+   artifacts possible, because there's nothing to composite.
+7. VERIFY THE MATH, not just the look: read back the actual rendered
+   screen position of the design box's 4 corners (a temporary marker
+   element positioned via the same transform, then getBoundingClientRect)
+   and confirm they match the measured quad to within rounding error
+   before trusting the visual result. This is what finally confirmed
+   the "not glued" complaints from earlier attempts were a bad-corner-
+   data problem, not a bad-math problem -- a true homography against
+   accurate corners has no freedom to look wrong.
+8. Bump CACHE_VERSION, screenshot rest + hover, verify click-through
+   navigation and the mobile fallback (real DOM text degrades cleanly
+   to a flat stacked list when the mobile media query drops the art --
+   no image-crop-specific mobile handling needed this time).
+
+This is the current, shipped method. If a future room's signage looks
+wrong again, suspect the quad measurement first, not the homography math.

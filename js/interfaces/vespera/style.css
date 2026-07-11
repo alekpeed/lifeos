@@ -330,51 +330,108 @@
 /* .vsp-room reuses .vsp-hub (sizing + is-depart zoom) and .vsp-room-stage
    reuses .vsp-stage (aspect-lock to the room image, set inline).
 
-   The teal signage is baked directly into img/conservatory.png -- no
-   code-drawn text at all. Each .vsp-room-link is an invisible click target
-   sized to its signage row (left/top/width/height inline, from the room
-   config in index.js) holding an OPAQUE teal crop of that exact row
-   (.vsp-room-link-overlay) -- pixel-identical to the base beneath it, so
-   invisible at rest. On hover it fades in AND a hue-rotate filter recolors
-   its teal to hot pink IN PLACE. Because the crop is opaque it replaces
-   the base pixels rather than blending over them (no muddy pink-over-teal),
-   and because it's the real teal pixels rotated, the neon glow and the
-   anti-aliased letter edges are preserved exactly. drop-shadow adds the
-   fuzzy pink bleed onto the wall. See img/README.txt. */
+   The room art (img/conservatory.png) is a plain establishing shot with NO
+   text baked in. All signage is real DOM text (.vsp-room-quad and its
+   children), laid out flat in a fixed design box, then mapped onto the
+   wall's measured quad by a matrix3d homography computed in index.js.
+   Hover is plain color + text-shadow -- no pixel compositing anywhere, so
+   none of the muddy-blend/box-artifact failure modes that came up baking
+   signage into the image can happen here. Font sizes are fixed px relative
+   to the design box: the matrix scales them with the wall at every
+   viewport. */
+[data-interface='vespera'] .vsp-room-quad {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 26px;
+}
+
+[data-interface='vespera'] .vsp-room-title {
+  font-family: 'Oxanium', var(--font-display);
+  font-weight: 600;
+  font-size: 38px;
+  letter-spacing: 0.05em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: #54e6ff;
+  text-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.85),
+    0 0 12px rgba(64, 200, 255, 0.75),
+    0 0 32px rgba(64, 180, 255, 0.35);
+}
+
+[data-interface='vespera'] .vsp-room-sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-top: 8px;
+  color: #6fb8e6;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+[data-interface='vespera'] .vsp-room-links {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-evenly;
+}
+
 [data-interface='vespera'] .vsp-room-link {
-  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
   cursor: pointer;
   background: transparent;
   border: none;
-  padding: 0;
+  border-bottom: 1px solid rgba(90, 200, 255, 0.22);
+  padding: 0 4px 10px;
+  transition: border-color 0.3s;
 }
 
-[data-interface='vespera'] .vsp-room-link-overlay {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  opacity: 0;
-  /* The overlay's alpha is the STROKE SHAPE itself (transparent
-     everywhere else), so no rectangle can appear -- it covers the teal
-     strokes beneath exactly and, being pink already, needs no recolor
-     filter. drop-shadow adds the fuzzy pink glow, hugging the letters
-     because the element's alpha is letter-shaped. */
-  filter: drop-shadow(0 0 3px rgba(255, 80, 190, 0.9))
-    drop-shadow(0 0 9px rgba(255, 45, 160, 0.55));
-  transition: opacity 0.25s ease-out;
-  pointer-events: none;
+[data-interface='vespera'] .vsp-room-link-name {
+  font-family: 'Oxanium', var(--font-display);
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #49dbff;
+  text-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.85),
+    0 0 10px rgba(64, 190, 255, 0.55);
+  transition: color 0.3s, text-shadow 0.3s;
 }
 
-[data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-overlay,
-[data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-overlay {
-  opacity: 1;
+[data-interface='vespera'] .vsp-room-link-sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #6f9fc8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  transition: color 0.3s;
 }
 
-/* Hidden on desktop -- the art (or its hover overlay) already says this.
-   Mobile (below) turns it back on since the art itself is dropped there. */
-[data-interface='vespera'] .vsp-room-link-fallback {
-  display: none;
+/* Hover/focus: plain color + text-shadow change, no image compositing --
+   there is nothing underneath to blend with or seam against. */
+[data-interface='vespera'] .vsp-room-link:hover,
+[data-interface='vespera'] .vsp-room-link:focus-visible {
+  border-bottom-color: rgba(255, 90, 190, 0.7);
+}
+[data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-name,
+[data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-name {
+  color: #ff5cc0;
+  text-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.85),
+    0 0 6px rgba(255, 80, 190, 0.95),
+    0 0 18px rgba(255, 50, 165, 0.85),
+    0 0 38px rgba(255, 30, 150, 0.65);
+}
+[data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-sub,
+[data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-sub {
+  color: #ff9ad6;
 }
 
 /* --- Hosted module content --- */
@@ -473,47 +530,21 @@
   [data-interface='vespera'] .vsp-doors { padding: 1rem; }
 
   /* Room: the stage drops its art (shared .vsp-stage rule above), so the
-     baked-in signage isn't visible -- links flatten into a normal stacked
-     list with plain text instead of image cutouts. !important overrides
-     the inline left/top/width/height from index.js (they position against
-     art that isn't rendered here). */
-  [data-interface='vespera'] .vsp-room-link {
+     signage plane flattens into a normal stacked list -- no absolute
+     positioning, no homography against art that isn't there. !important
+     overrides the inline width/height/transform from index.js (they are
+     inline, kept atomic with the matrix on purpose -- only an !important
+     stylesheet rule can outrank an inline style). */
+  [data-interface='vespera'] .vsp-room-quad {
     position: static !important;
-    left: auto !important;
-    top: auto !important;
     width: auto !important;
     height: auto !important;
-    display: block;
-    padding: 0.9rem 1rem;
-    margin: 0 1rem;
-    border-bottom: 1px solid rgba(90, 200, 255, 0.22);
-    text-align: left;
+    transform: none !important;
+    margin: 0.5rem 1rem 1rem;
+    padding: 0;
   }
-  [data-interface='vespera'] .vsp-room-link-overlay { display: none; }
-  [data-interface='vespera'] .vsp-room-link-fallback {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-  [data-interface='vespera'] .vsp-room-link-fallback-name {
-    font-family: 'Oxanium', var(--font-display);
-    font-weight: 600;
-    font-size: 1.05rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: #49dbff;
-  }
-  [data-interface='vespera'] .vsp-room-link-fallback-sub {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.7rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #6f9fc8;
-  }
-  [data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-fallback-name,
-  [data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-fallback-name {
-    color: #ff5cc0;
-  }
+  [data-interface='vespera'] .vsp-room-title { font-size: 1.6rem; }
+  [data-interface='vespera'] .vsp-room-link-name { font-size: 1.05rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

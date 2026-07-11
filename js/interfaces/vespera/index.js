@@ -66,40 +66,28 @@ const DISTRICTS = [
     hotspot: { cx: 86.99, cy: 13.02, w: 12.62, h: 14.35, clip: 'polygon(0.0% 58.1%, 100.0% 0.0%, 100.0% 58.5%, 0.2% 100.0%)' } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
     hotspot: { cx: 85.93, cy: 36.56, w: 13.43, h: 8.5, clip: 'polygon(0.0% 31.2%, 100.0% 0.0%, 99.1% 90.0%, 0.2% 100.0%)' },
-    // Immersive entry room (see renderRoom). `image` is the establishing
-    // shot rendered on an aspect-locked stage (same technique as the hub).
-    //
-    // Superseded the CSS-projected signage (homography onto a measured
-    // wall quad, see git history) with baked-in art: Alek had the image
-    // generator itself render the real title/link text directly on the
-    // wall in solid red (#FF0000-ish, with some anti-aliased/darker-red
-    // variance), at whatever perspective and lighting it chose -- solving
-    // the "glued to the wall" problem at the only layer that actually can
-    // (the render), not at the CSS layer. img/conservatory.png is that art
-    // with every detected red pixel recolored teal in place (brightness
-    // preserved, soft bloom added) -- that's the always-visible rest
-    // state, no code-drawn box or text at all.
-    //
-    // `links[].overlay` is a small pre-cropped RGBA cutout of just that
-    // link's pixels (icon+name+description together), recolored hot pink
-    // with a stronger fuzzy bloom and transparent everywhere else --
-    // revealed on hover by absolute-positioning it (left/top/width/height
-    // as % of the image, from the same crop) over the teal base. No
-    // rotation or perspective math anywhere: the overlay is pixel-for-
-    // pixel from the same photo, so it can't help lining up.
-    //
-    // Regenerating this art requires re-running the red-text detection +
-    // recolor + crop pipeline in img/README.txt against the new image --
-    // these numbers are tied to the current source (img/consredout.png,
-    // the outline-signage version).
+    // Immersive entry room (see renderRoom). `image` is a plain
+    // establishing shot (no text, no markers) rendered on an aspect-locked
+    // stage (same technique as the hub). `quad` is the wall plane the
+    // signage is projected onto: four corners (TL,TR,BR,BL as % of the
+    // image), measured -- not eyeballed -- from a GPT-placed 4-marker
+    // reference image (Alek iterated the marker placement twice; these are
+    // the corners that used the most of the wall while staying clear of
+    // the floor trim and the architecture on the right, verified by pixel-
+    // detecting the actual marker centers before the markers were inpainted
+    // out for the shipped image). Real DOM text (title/subtitle/links,
+    // rendered in renderRoom) is mapped onto this quad via a 4-point
+    // perspective homography (matrix3d) -- this superseded a prior CSS
+    // attempt that used an eyeballed quad and looked "not glued to the
+    // wall"; the theory is that was a bad-data problem, not a bad-math one,
+    // since a true homography against accurate corners has no freedom to
+    // look wrong. Verify that theory with a screenshot before trusting it
+    // twice.
     room: {
       image: 'img/conservatory.png',
       ratio: '1672 / 941',
-      links: {
-        languages: { overlay: 'img/ops_row_languages.png', left: 3.83, top: 38.04, width: 17.46, height: 10.41 },
-        chords: { overlay: 'img/ops_row_chords.png', left: 3.77, top: 47.93, width: 18.06, height: 10.41 },
-        lifeasmusic: { overlay: 'img/ops_row_life.png', left: 3.47, top: 57.81, width: 20.16, height: 10.84 },
-      },
+      designW: 460, designH: 348,
+      quad: [[4.52, 20.72], [32.18, 29.49], [33.43, 62.11], [4.25, 64.45]],
     } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync'],
     hotspot: { cx: 85.68, cy: 60.31, w: 12.8, h: 9.14, clip: 'polygon(0.2% 0.0%, 100.0% 22.7%, 100.0% 100.0%, 0.0% 64.0%)' } },
@@ -144,6 +132,35 @@ function moduleTagline(id) {
 
 function districtOf(moduleId) {
   return DISTRICTS.find((d) => d.modules.includes(moduleId)) || null;
+}
+
+// Perspective homography: the matrix3d that maps a flat wDesign x hDesign
+// box onto an arbitrary destination quadrilateral (TL,TR,BR,BL in px).
+// Standard 4-point projective solve (8x8 Gaussian elimination). Used to
+// project real DOM signage onto a wall plane measured from reference
+// markers in the room art (see the `quad` comment on DISTRICTS.room).
+function quadTransform(wDesign, hDesign, dst) {
+  const src = [[0, 0], [wDesign, 0], [wDesign, hDesign], [0, hDesign]];
+  const A = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = src[i];
+    const [X, Y] = dst[i];
+    A.push([x, y, 1, 0, 0, 0, -x * X, -y * X, X]);
+    A.push([0, 0, 0, x, y, 1, -x * Y, -y * Y, Y]);
+  }
+  for (let col = 0; col < 8; col++) {
+    let piv = col;
+    for (let r = col + 1; r < 8; r++) if (Math.abs(A[r][col]) > Math.abs(A[piv][col])) piv = r;
+    [A[col], A[piv]] = [A[piv], A[col]];
+    if (Math.abs(A[col][col]) < 1e-12) return ''; // degenerate quad
+    for (let r = 0; r < 8; r++) {
+      if (r === col) continue;
+      const f = A[r][col] / A[col][col];
+      for (let c = col; c < 9; c++) A[r][c] -= f * A[col][c];
+    }
+  }
+  const h = A.map((row, i) => row[8] / A[i][i]); // [a,b,c,d,e,f,g,h]
+  return `matrix3d(${h[0]},${h[3]},0,${h[6]},${h[1]},${h[4]},0,${h[7]},0,0,1,0,${h[2]},${h[5]},0,1)`;
 }
 
 // Shared zoom-travel: aim the transform-origin at the clicked target, add
@@ -289,46 +306,63 @@ function renderRoom(root, district) {
   ]));
 
   const zoom = el('div', { class: 'vsp-hub vsp-room' });
-  // Resolve art paths against THIS module's URL, not the document base: an
-  // inline background-image/img url() would otherwise resolve relative to
+  // Resolve the art path against THIS module's URL, not the document base:
+  // an inline background-image url() would otherwise resolve relative to
   // index.html (wrong folder, and wrong again under GitHub Pages' subpath).
-  const resolve = (rel) => new URL(rel, import.meta.url).href;
+  const imgUrl = new URL(room.image, import.meta.url).href;
   const stage = el('div', {
     class: 'vsp-stage vsp-room-stage',
-    style: `aspect-ratio: ${room.ratio}; background-image: url('${resolve(room.image)}');`,
+    style: `aspect-ratio: ${room.ratio}; background-image: url('${imgUrl}');`,
   });
 
-  // Each link is an invisible click target the size of its signage row,
-  // holding an absolutely-positioned pink-recolored cutout of that exact
-  // row (see the room config comment) that's transparent until hover. No
-  // rotation or perspective math: it's a pixel-for-pixel crop of the same
-  // photo, so it is the correct shape and position by construction.
+  // The signage plane: real DOM text laid out flat in a designW x designH
+  // box, then projected onto the measured wall quad via a matrix3d
+  // homography (computed below, kept in sync with the stage's rendered
+  // size). position/left/top/transform-origin ship INLINE (not in the
+  // stylesheet) so a stale cached stylesheet can never detach them from
+  // the matrix -- that exact mismatch shipped once already.
+  const panel = el('div', {
+    class: 'vsp-room-quad',
+    style: `position:absolute; left:0; top:0; transform-origin:0 0;`
+      + ` width:${room.designW}px; height:${room.designH}px;`,
+  }, [
+    el('div', { class: 'vsp-room-title', text: district.name }),
+    el('div', { class: 'vsp-room-sub', text: district.tagline }),
+  ]);
+  const links = el('div', { class: 'vsp-room-links' });
   for (const id of district.modules) {
-    const spec = room.links[id];
     const link = el('button', {
       type: 'button', class: 'vsp-room-link',
-      style: `left:${spec.left}%; top:${spec.top}%; width:${spec.width}%; height:${spec.height}%;`,
-      'aria-label': `${moduleLabel(id)} — ${moduleTagline(id)}`,
       onclick: () => travel(zoom, link, () => ctx.navigate(id)),
     }, [
-      el('img', {
-        class: 'vsp-room-link-overlay', src: resolve(spec.overlay), alt: '', draggable: 'false',
-      }),
-      // Mobile drops the background art (see .vsp-stage's mobile override),
-      // so the baked-in signage isn't visible there either -- this text is
-      // visually hidden on desktop (the art already says it) and shown as
-      // a plain stacked label on mobile so the room stays usable without
-      // the photo.
-      el('span', { class: 'vsp-room-link-fallback' }, [
-        el('span', { class: 'vsp-room-link-fallback-name', text: moduleLabel(id) }),
-        el('span', { class: 'vsp-room-link-fallback-sub', text: moduleTagline(id) }),
-      ]),
+      el('span', { class: 'vsp-room-link-name', text: moduleLabel(id) }),
+      el('span', { class: 'vsp-room-link-sub', text: moduleTagline(id) }),
     ]);
-    stage.append(link);
+    links.append(link);
   }
+  panel.append(links);
+  stage.append(panel);
   zoom.append(stage);
   screen.append(zoom);
   root.append(screen);
+
+  // Project the text plane onto the wall, and keep it projected: the quad
+  // is stored as % of the image, so the matrix depends on the stage's
+  // rendered size and must be recomputed whenever that changes. (Mobile
+  // overrides the inline transform with !important and falls back to a
+  // flat stacked list -- recomputing here is a harmless no-op there.)
+  const apply = () => {
+    // clientWidth/Height, not getBoundingClientRect: layout size is immune
+    // to ancestor transforms (the arrive/depart scale animations would
+    // otherwise bake a stale scale into the matrix).
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+    if (!w || !h) { requestAnimationFrame(apply); return; }
+    const dst = room.quad.map(([qx, qy]) => [(qx / 100) * w, (qy / 100) * h]);
+    panel.style.transform = quadTransform(room.designW, room.designH, dst);
+  };
+  new ResizeObserver(apply).observe(stage);
+  requestAnimationFrame(apply);
 }
 
 // --- Space (module content inside station chrome) ---
