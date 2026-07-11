@@ -49,3 +49,9 @@ framework). Read `ARCHITECTURE.md` first for the technical shape, then
 Deploy: `main` branch via GitHub Pages. Routine convention this session:
 commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
 `main`, push `main`, checkout back to the dev branch.
+
+`service-worker.js`'s `CACHE_VERSION` must bump on every shipped change
+(forces the service worker to fetch fresh files instead of serving a stale
+cache). Format switched from integer (`lifeos-v101`) to decimal
+(`lifeos-v1.01`) at v101 — bump the hundredths place per commit
+(`v1.01` → `v1.02` → … → `v1.99` → `v2.00`), not the integer scheme.
