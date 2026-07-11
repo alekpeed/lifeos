@@ -59,7 +59,7 @@ const DISTRICTS = [
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents', 'quartermaster'],
     hotspot: { points: [[2.03, 77.05], [24.82, 77.05], [26.44, 78.85], [26.32, 84.59], [24.82, 86.61], [2.87, 86.61], [1.44, 84.8], [1.44, 79.06]] } },
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules', 'starters', 'dreamjournal'],
-    hotspot: { points: [[74.16, 15.2], [97.31, 12.86], [98.39, 14.13], [98.39, 18.81], [97.19, 20.62], [74.64, 20.62], [73.74, 19.23], [73.74, 16.47]] } },
+    hotspot: { points: [[74.03, 18.32], [95.79, 10.07], [97.16, 11.02], [98.37, 15.54], [97.68, 17.59], [75.9, 23.43], [74.67, 22.32], [73.96, 19.66]] } },
   { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
     hotspot: { points: [[73.33, 36.56], [96.77, 34.75], [98.21, 35.92], [98.21, 41.13], [96.89, 43.15], [74.34, 43.15], [72.79, 41.34], [72.79, 38.26]] },
     // Immersive entry room (see renderRoom). `image` is a plain
@@ -88,7 +88,7 @@ const DISTRICTS = [
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
     hotspot: { points: [[73.39, 57.7], [97.31, 56.32], [98.5, 57.39], [98.5, 62.81], [97.31, 64.93], [74.4, 64.93], [73.09, 63.12], [73.09, 59.3]] } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Claude', icon: '🤖', modules: ['assistant', 'stationcat'],
-    hotspot: { points: [[73.44, 78.21], [97.31, 76.51], [98.5, 77.68], [98.5, 84.06], [97.19, 86.29], [74.4, 86.29], [73.15, 84.38], [73.15, 79.91]] } },
+    hotspot: { points: [[74.75, 75.15], [98.25, 79.69], [99.1, 81.13], [97.44, 87.29], [95.6, 89.1], [73.59, 83.21], [72.88, 81.04], [74.03, 76.72]] } },
   // Added for Dashboard's due-soon feed to have a hub-level home. This
   // art does paint a real Station News sign bottom-center, same as the
   // other 8 -- measured the same way, not a special case.
