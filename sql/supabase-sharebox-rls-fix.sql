@@ -209,3 +209,25 @@ create policy "delete files in your spaces" on storage.objects
     bucket_id = 'sharebox-files'
     and public.is_space_member(((storage.foldername(name))[1])::uuid)
   );
+
+-- ------------------------------------------------------------
+-- 6. Backfill: repair pre-existing orphaned spaces.
+-- ------------------------------------------------------------
+-- The fix above corrects the POLICIES going forward, but any space created
+-- before create_space() existed (i.e. via a plain insert, from whatever code
+-- path predated the RPC) may have a sharebox_spaces row with no matching
+-- sharebox_members row for its own creator. The spaces SELECT policy still
+-- shows such a space to its creator (it allows created_by = auth.uid()), so
+-- it looks fine in the UI -- but the items INSERT policy requires
+-- is_space_member(), which is false with no membership row, so every post
+-- fails with 42501 even after the policy fix above is applied. Confirmed:
+-- this is exactly the failure Alek hit posting to a space that predated the
+-- RPC (2026-07-11). Safe to re-run -- only inserts rows that don't exist yet.
+insert into public.sharebox_members (space_id, user_id, display_name)
+select s.id, s.created_by, 'Me'
+from public.sharebox_spaces s
+where not exists (
+  select 1 from public.sharebox_members m
+  where m.space_id = s.id and m.user_id = s.created_by
+)
+on conflict (space_id, user_id) do nothing;

@@ -1722,16 +1722,189 @@
   margin-top: var(--space-md);
 }
 
-[data-interface='default'] .mer-stationcat-face {
-  font-size: 3rem;
-  font-family: var(--font-mono);
-  margin-bottom: var(--space-sm);
-}
-
 [data-interface='default'] .mer-stationcat-line {
   font-size: var(--text-lg);
   font-family: var(--font-display);
   margin-bottom: var(--space-xs);
+}
+
+/* Cat face -- pure CSS shapes, no image/emoji. The head is a solid
+   accent-colored blob; eyes/nose/mouth are "cut out" in the card's own
+   background color so they read as negative space regardless of theme or
+   accent choice. Mood is expressed by swapping the eye/mouth shapes via the
+   mer-cat--<key> modifier on the root element (see stationcat.js). */
+[data-interface='default'] .mer-cat {
+  position: relative;
+  width: 108px;
+  height: 92px;
+  margin: 0 auto var(--space-sm);
+}
+
+[data-interface='default'] .mer-cat-ear {
+  position: absolute;
+  top: -16px;
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 28px solid var(--accent);
+}
+[data-interface='default'] .mer-cat-ear--l { left: 4px; transform: rotate(-16deg); }
+[data-interface='default'] .mer-cat-ear--r { right: 4px; transform: rotate(16deg); }
+[data-interface='default'] .mer-cat--bored .mer-cat-ear--l,
+[data-interface='default'] .mer-cat--missing .mer-cat-ear--l { transform: rotate(-30deg) translateY(3px); }
+[data-interface='default'] .mer-cat--bored .mer-cat-ear--r,
+[data-interface='default'] .mer-cat--missing .mer-cat-ear--r { transform: rotate(30deg) translateY(3px); }
+
+[data-interface='default'] .mer-cat-head {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 50% 50% 46% 46%;
+}
+
+[data-interface='default'] .mer-cat-eye {
+  position: absolute;
+  top: 40%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-bg-raised);
+}
+[data-interface='default'] .mer-cat-eye--l { left: 25%; }
+[data-interface='default'] .mer-cat-eye--r { right: 25%; }
+
+/* purring / content: closed happy eyes (an upward arc, not a full circle) */
+[data-interface='default'] .mer-cat--purring .mer-cat-eye,
+[data-interface='default'] .mer-cat--content .mer-cat-eye {
+  width: 14px;
+  height: 7px;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: transparent;
+  border-top: 3px solid var(--color-bg-raised);
+}
+
+/* dozing: half-lidded, flattened */
+[data-interface='default'] .mer-cat--dozing .mer-cat-eye {
+  height: 5px;
+  top: 42%;
+}
+
+/* bored: narrowed and glanced to one side */
+[data-interface='default'] .mer-cat--bored .mer-cat-eye {
+  height: 8px;
+  transform: translateX(2px);
+}
+
+/* missing: droopy, sad downward arc */
+[data-interface='default'] .mer-cat--missing .mer-cat-eye {
+  width: 14px;
+  height: 7px;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  background: transparent;
+  border-bottom: 3px solid var(--color-bg-raised);
+  top: 44%;
+}
+
+[data-interface='default'] .mer-cat-nose {
+  position: absolute;
+  top: 53%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--color-bg-raised);
+}
+
+[data-interface='default'] .mer-cat-mouth {
+  position: absolute;
+  top: 61%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 8px;
+  border-bottom: 2px solid var(--color-bg-raised);
+  border-radius: 0 0 50% 50%;
+}
+
+/* dozing / bored: flat, unbothered line */
+[data-interface='default'] .mer-cat--dozing .mer-cat-mouth,
+[data-interface='default'] .mer-cat--bored .mer-cat-mouth {
+  width: 12px;
+  height: 0;
+  border-radius: 0;
+}
+
+/* missing: frown -- same arc, flipped to curve the other way */
+[data-interface='default'] .mer-cat--missing .mer-cat-mouth {
+  border-bottom: none;
+  border-top: 2px solid var(--color-bg-raised);
+  border-radius: 50% 50% 0 0;
+  top: 58%;
+}
+
+[data-interface='default'] .mer-cat-whisker {
+  position: absolute;
+  top: 57%;
+  width: 20px;
+  height: 1px;
+  background: var(--color-text-faint);
+}
+[data-interface='default'] .mer-cat-whisker--l1 { left: -16px; transform: rotate(-6deg); }
+[data-interface='default'] .mer-cat-whisker--l2 { left: -16px; top: 63%; transform: rotate(6deg); }
+[data-interface='default'] .mer-cat-whisker--r1 { right: -16px; transform: rotate(6deg); }
+[data-interface='default'] .mer-cat-whisker--r2 { right: -16px; top: 63%; transform: rotate(-6deg); }
+
+[data-interface='default'] .mer-cat-tear {
+  display: none;
+  position: absolute;
+  top: 46%;
+  left: 33%;
+  width: 6px;
+  height: 9px;
+  background: var(--accent-teal);
+  border-radius: 0 60% 60% 60%;
+  opacity: 0.85;
+}
+[data-interface='default'] .mer-cat--missing .mer-cat-tear {
+  display: block;
+  animation: mer-cat-tear-drop 1.8s ease-in infinite;
+}
+
+[data-interface='default'] .mer-cat--purring .mer-cat-head {
+  animation: mer-cat-purr 1.6s ease-in-out infinite;
+}
+[data-interface='default'] .mer-cat--dozing .mer-cat-eye {
+  animation: mer-cat-blink 3.2s ease-in-out infinite;
+}
+
+@keyframes mer-cat-purr {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+@keyframes mer-cat-blink {
+  0%, 82%, 100% { opacity: 1; }
+  90% { opacity: 0.35; }
+}
+@keyframes mer-cat-tear-drop {
+  0% { transform: translateY(0); opacity: 0.9; }
+  80% { transform: translateY(11px); opacity: 0.15; }
+  100% { transform: translateY(11px); opacity: 0; }
+}
+
+[data-interface='default'] .mer-cat-sound-btn {
+  margin-top: var(--space-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-interface='default'] .mer-cat--purring .mer-cat-head,
+  [data-interface='default'] .mer-cat--dozing .mer-cat-eye,
+  [data-interface='default'] .mer-cat--missing .mer-cat-tear {
+    animation: none;
+  }
 }
 
 /* --- Ghost Days --- */
