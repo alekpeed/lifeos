@@ -193,8 +193,10 @@ function addFormV1(ctx, name, rerender) {
       type: 'button', text: 'Share link',
       onclick: async () => {
         if (!urlIn.value.trim()) return;
-        await ctx.data.ShareboxItems.create({ kind: 'link', url: normalizeUrl(urlIn.value), title: titleIn.value.trim(), urgency: state.urgency, postedBy });
-        rerender();
+        try {
+          await ctx.data.ShareboxItems.create({ kind: 'link', url: normalizeUrl(urlIn.value), title: titleIn.value.trim(), urgency: state.urgency, postedBy });
+          rerender();
+        } catch (err) { alert(`Could not share link: ${err.message || err}`); }
       },
     }));
   } else if (state.kind === 'note') {
@@ -203,8 +205,10 @@ function addFormV1(ctx, name, rerender) {
       type: 'button', text: 'Share note',
       onclick: async () => {
         if (!bodyIn.value.trim()) return;
-        await ctx.data.ShareboxItems.create({ kind: 'note', body: bodyIn.value.trim(), urgency: state.urgency, postedBy });
-        rerender();
+        try {
+          await ctx.data.ShareboxItems.create({ kind: 'note', body: bodyIn.value.trim(), urgency: state.urgency, postedBy });
+          rerender();
+        } catch (err) { alert(`Could not share note: ${err.message || err}`); }
       },
     }));
   } else {
@@ -214,9 +218,11 @@ function addFormV1(ctx, name, rerender) {
       onclick: async () => {
         const file = fileIn.files[0];
         if (!file) return;
-        const item = await ctx.data.ShareboxItems.create({ kind: 'file', title: file.name, urgency: state.urgency, postedBy });
-        await ctx.data.createShareboxFile(file, item.id);
-        rerender();
+        try {
+          const item = await ctx.data.ShareboxItems.create({ kind: 'file', title: file.name, urgency: state.urgency, postedBy });
+          await ctx.data.createShareboxFile(file, item.id);
+          rerender();
+        } catch (err) { alert(`Could not share file: ${err.message || err}`); }
       },
     }));
   }
@@ -313,8 +319,10 @@ function addFormV2(ctx, space, rerender) {
       type: 'button', text: 'Share link',
       onclick: async () => {
         if (!urlIn.value.trim()) return;
-        await ctx.data.ShareboxV2.addItem({ spaceId: space.id, kind: 'link', url: normalizeUrl(urlIn.value), title: titleIn.value.trim(), urgency: state.urgency });
-        rerender();
+        try {
+          await ctx.data.ShareboxV2.addItem({ spaceId: space.id, kind: 'link', url: normalizeUrl(urlIn.value), title: titleIn.value.trim(), urgency: state.urgency });
+          rerender();
+        } catch (err) { alert(`Could not share link: ${err.message || err}`); }
       },
     }));
   } else if (state.kind === 'note') {
@@ -323,8 +331,10 @@ function addFormV2(ctx, space, rerender) {
       type: 'button', text: 'Share note',
       onclick: async () => {
         if (!bodyIn.value.trim()) return;
-        await ctx.data.ShareboxV2.addItem({ spaceId: space.id, kind: 'note', body: bodyIn.value.trim(), urgency: state.urgency });
-        rerender();
+        try {
+          await ctx.data.ShareboxV2.addItem({ spaceId: space.id, kind: 'note', body: bodyIn.value.trim(), urgency: state.urgency });
+          rerender();
+        } catch (err) { alert(`Could not share note: ${err.message || err}`); }
       },
     }));
   } else {
