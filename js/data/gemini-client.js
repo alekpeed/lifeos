@@ -7,17 +7,30 @@
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-// `messages` is [{ role: 'user' | 'assistant', content: string }, ...] in
+// `content` is either a plain string (the common case) or an array of
+// segments -- [{ type: 'text', text }, { type: 'image', mimeType,
+// dataBase64 }] -- for multimodal calls like Documents' camera capture.
+// Mapped here to Gemini's own part shape; a same-shaped array is mapped in
+// claude-client.js to Anthropic's block shape, so api.js callers build one
+// content array without knowing which provider is active.
+function toGeminiParts(content) {
+  if (typeof content === 'string') return [{ text: content }];
+  return content.map((seg) => (seg.type === 'image'
+    ? { inline_data: { mime_type: seg.mimeType, data: seg.dataBase64 } }
+    : { text: seg.text }));
+}
+
+// `messages` is [{ role: 'user' | 'assistant', content }, ...] in
 // chronological order, same shape callers already use for Claude -- mapped
-// here to Gemini's own { role: 'user' | 'model', parts: [{ text }] } shape
-// so api.js doesn't need to know the difference. Returns { text }. Throws
-// with Gemini's own error message on failure (bad key, rate limit, etc.) so
-// the UI can show it as-is.
+// here to Gemini's own { role: 'user' | 'model', parts } shape so api.js
+// doesn't need to know the difference. Returns { text }. Throws with
+// Gemini's own error message on failure (bad key, rate limit, etc.) so the
+// UI can show it as-is.
 export async function sendGeminiMessage(apiKey, messages, { model, maxTokens = 1024 } = {}) {
   if (!apiKey) throw new Error('No Gemini API key set -- add one in Settings.');
   const contents = messages.map((m) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
+    parts: toGeminiParts(m.content),
   }));
   const res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent`, {
     method: 'POST',

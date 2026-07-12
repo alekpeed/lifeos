@@ -135,6 +135,16 @@ parked means "not now," not "forgotten" or "cut."
   indices from it, so it can't invent a connection to something that
   doesn't exist. Manual/button-triggered, not automatic, to keep the API
   call opt-in. See `suggestGraphEdges` in `js/data/api.js`.
+- ✅ **Camera-to-data capture** — DONE, scoped to Documents (not Finance, for
+  this pass): a "📷 Scan a document" photo/file input sends the image to
+  the active AI provider's vision input, which drafts
+  title/category/issuer/policy-number/expiry/notes — never guessing, null
+  for anything not clearly legible — and opens the result as a normal
+  editable record (the photo attaches automatically) rather than a
+  silently-trusted final save. Required extending the multimodal `content`
+  shape (text + image segments) into both `gemini-client.js` and
+  `claude-client.js` so either active provider works. See
+  `extractDocumentFromImage` in `js/data/api.js`.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -297,8 +307,6 @@ for a stripped-down version.)
   automatically instead of one silently clobbering the other.
 
 **Capture & reach**
-- **Camera-to-data capture** — photograph a receipt, bill, or ID and have
-  vision extraction auto-fill Documents/Finance fields instead of typing.
 - **Real background push** — true background sync/Web Push (not just
   foreground-only PWA behavior) so alerts land with the app closed, on
   platforms that genuinely support it.

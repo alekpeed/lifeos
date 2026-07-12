@@ -46,7 +46,9 @@ genuine moonshots.
   combining bill payments with subscriptions by category.
 - **Documents vault** — leases, insurance, warranties, category/issuer/
   policy-number fields, attachments, and an expiry-soon/expired alert
-  surfaced on the Dashboard.
+  surfaced on the Dashboard. Plus **camera-to-data capture**: photograph a
+  document and the active AI provider's vision input drafts the fields —
+  never guessing, opens as a normal editable record, never silently saved.
 - **Contacts** — a full address book: phones, emails, company/title,
   relationship, birthday, tags, notes, a photo, search and tag filtering.
   The single source of truth for people app-wide — other modules link to
@@ -355,8 +357,6 @@ rather than needing to also work as a small-screen experience.
 - **Event-sourced core** — every change becomes an immutable event,
   unlocking full undo/redo and making Time Machine trivial.
 - **CRDT-based sync** — conflict-free merges replacing last-write-wins.
-- **Camera-to-data capture** — photograph a receipt/bill/ID, vision
-  extraction auto-fills the record.
 - **Real background push** — true background sync/Web Push, not just
   foreground PWA behavior.
 - **Natural-language command bar** — type or speak a command, it parses

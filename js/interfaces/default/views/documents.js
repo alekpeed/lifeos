@@ -3,6 +3,8 @@ import { el, fmtDate, isPast, contactLinkField } from '../dom.js';
 let state = {
   categoryFilter: 'all',
   selectedId: null,
+  scanning: false,
+  scanError: null,
 };
 
 function isExpiringSoon(dateStr, days) {
@@ -98,6 +100,37 @@ function detailEditor(doc, ctx, rerender, allContacts) {
   return detail;
 }
 
+// Camera-to-data capture: photograph a document and have the active AI
+// provider's vision input draft a new record instead of typing it. The
+// draft always opens as a normal, editable, unsaved-until-you-touch-it
+// record (via state.selectedId) -- nothing here is trusted silently.
+async function scanDocument(file, ctx, rerender) {
+  state.scanning = true;
+  state.scanError = null;
+  rerender();
+  try {
+    const draft = await ctx.data.extractDocumentFromImage(file);
+    const doc = await ctx.data.Documents.create(draft);
+    await ctx.data.createAttachment(file, 'documents', doc.id);
+    state.selectedId = doc.id;
+  } catch (err) {
+    state.scanError = err.message || String(err);
+  }
+  state.scanning = false;
+  rerender();
+}
+
+function scanControl(ctx, rerender) {
+  if (state.scanning) return el('span', { class: 'mer-muted', text: 'Scanning…' });
+  return el('label', { class: 'mer-setting' }, [
+    el('span', { text: '📷 Scan a document' }),
+    el('input', {
+      type: 'file', accept: 'image/*', capture: 'environment',
+      onchange: (e) => { if (e.target.files[0]) scanDocument(e.target.files[0], ctx, rerender); e.target.value = ''; },
+    }),
+  ]);
+}
+
 function toolbar(ctx, documents, rerender) {
   const categories = [...new Set(documents.map((d) => d.category).filter(Boolean))];
 
@@ -128,6 +161,8 @@ export async function renderDocuments(canvas, ctx, rerender) {
   ]);
   const contactsById = new Map(allContacts.map((c) => [c.id, c]));
   canvas.append(toolbar(ctx, documents, rerender));
+  canvas.append(el('div', { class: 'mer-toolbar' }, [scanControl(ctx, rerender)]));
+  if (state.scanError) canvas.append(el('p', { class: 'mer-muted mer-sync-error', text: state.scanError }));
 
   const area = el('div', { class: 'mer-task-list-area' });
   canvas.append(area);

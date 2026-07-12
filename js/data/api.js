@@ -1139,6 +1139,65 @@ export async function suggestGraphEdges(focusKey) {
   return suggestions.slice(0, 5);
 }
 
+// --- Camera-to-data capture: photograph a document/bill/ID and have the
+// active AI provider's vision input auto-fill a new Documents record
+// instead of typing it by hand. Same closed-input discipline as everywhere
+// else the AI touches this app: the model only ever sees the one image and
+// is told explicitly to use null for anything not clearly legible, never to
+// guess -- the caller (documents.js) always shows the result as an editable
+// draft, not a silently-trusted final record.
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = () => reject(reader.error || new Error('Could not read the image.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function parseJsonLoosely(text) {
+  const stripped = text.trim().replace(/^```(?:json)?\n?/i, '').replace(/```$/, '');
+  try {
+    return JSON.parse(stripped);
+  } catch {
+    return null;
+  }
+}
+
+// Returns a Documents-shaped draft: { title, category, issuer, policyNumber,
+// expiryDate, notes }, each null if not clearly present in the image.
+// Throws if no AI key is configured or the provider/parse fails -- the
+// caller decides how to surface that (same pattern as generateDailyEditorial).
+export async function extractDocumentFromImage(file) {
+  const { send, apiKey, model } = await getActiveAiProvider();
+  if (!apiKey) throw new Error('Add an API key in Settings > AI Assistant to scan documents.');
+
+  const dataBase64 = await fileToBase64(file);
+  const prompt = `This is a photo of a personal document (a bill, ID, insurance card, lease, warranty, etc.). `
+    + `Extract only what is clearly legible in the image. Never guess or invent a value -- use null for anything not clearly present. `
+    + `Respond with JSON only, no markdown fences, no commentary, in exactly this shape:\n`
+    + `{"title": string|null, "category": string|null, "issuer": string|null, "policyNumber": string|null, "expiryDate": "YYYY-MM-DD"|null, "notes": string|null}\n`
+    + `"category" should be a short word like "lease", "insurance", "warranty", "ID", "medical", "utility" -- whatever best fits. `
+    + `"notes" is anything else useful on the document that doesn't fit the other fields (one or two sentences, or null).`;
+
+  const { text } = await send(apiKey, [{
+    role: 'user',
+    content: [{ type: 'text', text: prompt }, { type: 'image', mimeType: file.type || 'image/jpeg', dataBase64 }],
+  }], { model, maxTokens: 400 });
+
+  const parsed = parseJsonLoosely(text);
+  if (!parsed) throw new Error(`${(await getActiveAiProvider()).label} returned something that wasn't valid JSON. Try again.`);
+  return {
+    title: parsed.title || '',
+    category: parsed.category || '',
+    issuer: parsed.issuer || '',
+    policyNumber: parsed.policyNumber || '',
+    expiryDate: parsed.expiryDate || null,
+    notes: parsed.notes || '',
+  };
+}
+
 // --- Recall: the Languages module's SRS engine generalized to resurface any
 // record -- reuses the exact same addressing (graphKey/resolveGraphNode) as
 // the Knowledge Graph, so "what's schedulable" is "what Search can find,"

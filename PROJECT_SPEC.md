@@ -61,7 +61,16 @@ lets the whole app be redecorated later without rebuilding it:
   prototyped and then shelved for now — may return later.
 - **Documents vault** — leases, insurance, warranties, category/issuer/
   policy-number fields, PDF/image attachments, and an expiry-soon/expired
-  alert (configurable window) surfaced on the Dashboard's due-soon feed
+  alert (configurable window) surfaced on the Dashboard's due-soon feed.
+  Plus **camera-to-data capture**: a "📷 Scan a document" photo/file input
+  sends the image to the active AI provider's vision input, which drafts
+  title/category/issuer/policy-number/expiry/notes — never guessing, using
+  null for anything not clearly legible — and opens the result as a normal
+  editable record (the photo itself attaches automatically) rather than a
+  silently-trusted final save. Extends the multimodal `content` shape (text
+  + image segments) down into both `gemini-client.js` and
+  `claude-client.js`, so either active provider can be used. Scoped to
+  Documents only for this pass, not Finance.
 - **Contacts** — a full address book, not just a service-people list: phones,
   emails, company/job title, relationship, birthday, tags, notes, and a
   photo, with search and tag filtering. This is the single source of truth
@@ -508,11 +517,12 @@ Everything below came out of talking through what would actually feel
 10. ~~What-if simulation sandbox~~ — DONE (see Built ✅, Almanac What If).
 11. ~~AI-suggested knowledge-graph edges~~ — DONE (see Built ✅, Knowledge
     Graph).
-12. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+12. ~~Camera-to-data capture~~ — DONE, scoped to Documents (see Built ✅).
+13. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
     Conversation Starters, Ghost Days, The Almanac, Life as Music, Library
     of Babel, Theme-from-photo)
-13. Additional interfaces (Vespera, LCARS)
-14. Someday: a standalone music-practice app (progressions, play-along,
+14. Additional interfaces (Vespera, LCARS)
+15. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
@@ -552,8 +562,6 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   automatically instead of one silently clobbering the other.
 
 **Capture & reach**
-- **Camera-to-data capture** — photograph a receipt, bill, or ID and have
-  vision extraction auto-fill Documents/Finance fields instead of typing.
 - **Real background push** — true background sync / Web Push (not just
   foreground-only PWA behavior) so bill-due and streak-at-risk alerts land
   with the app closed, on platforms that genuinely support it.
@@ -659,6 +667,8 @@ own Tier 2 flag, not a routine add)**
   above).
 - ~~AI-suggested knowledge-graph edges~~ — DONE (see Built ✅, Knowledge
   Graph entry above).
+- ~~Camera-to-data capture~~ — DONE, scoped to Documents (see Built ✅,
+  Documents vault entry above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
 history / Watch Later sync — both deprecated from the YouTube Data API in
