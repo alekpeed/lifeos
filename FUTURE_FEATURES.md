@@ -264,7 +264,11 @@ Plaid/Financial Center staying parked above.)*
   hotspot/portal geometry actively being refined. See `VESPERA_SPEC.md` and
   the Built ✅ section of `PROJECT_SPEC.md` for current state.
 - **An LCARS-inspired mode** (Star Trek control-panel aesthetic, original
-  execution, no copyrighted assets).
+  execution, no copyrighted assets). Scoped (2026-07): mobile-first for v1
+  (desktop deferred), whole app reachable at chrome level, real motion +
+  sound, alert-styling tied to actual due/overdue data. One open
+  architecture fork not yet decided — chrome/skin over Equator's existing
+  layout vs. a new Vespera-scale spatial interface. See `LCARS_SPEC.md`.
 - ⏸️ PARKED — **Bio-futurism/jungle interface** — a third, from-scratch
   interface concept: a futuristic tropical/jungle theme ("40th century meets
   the Amazon meets the far reaches of the galaxy"), unrelated to Vespera or

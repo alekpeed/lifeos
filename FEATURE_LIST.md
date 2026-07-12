@@ -313,7 +313,9 @@ bug).
   Still open from `VESPERA_SPEC.md`: per-district room art, richer
   per-space chrome.
 - **LCARS-inspired mode** — Star Trek control-panel aesthetic, original
-  execution.
+  execution. Scoped, not built — see `LCARS_SPEC.md`: mobile-first v1,
+  whole app at chrome level, real motion/sound, functional alert-styling,
+  one open architecture fork (chrome-skin vs. new spatial interface).
 
 ## Device philosophy: desktop-immersive, mobile-companion 🏗️
 

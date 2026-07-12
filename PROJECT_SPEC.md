@@ -459,11 +459,15 @@ lets the whole app be redecorated later without rebuilding it:
 
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you
-  navigate through, not a dashboard). Fully planned in `VESPERA_SPEC.md`,
-  including the district/space-to-module mapping and v1 scope; not
-  started. Building it is Tier 2 (interface-registry design).
+  navigate through, not a dashboard). Started and well underway — see the
+  Built ✅ section above and `VESPERA_SPEC.md` for current state, not the
+  "not started" this note used to say.
 - An LCARS-inspired mode (Star Trek control-panel aesthetic, original
-  execution — no copyrighted assets)
+  execution — no copyrighted assets). Scoped, not built — see
+  `LCARS_SPEC.md` for the handoff doc: mobile-first v1, whole app at
+  chrome level, real motion/sound, functional alert-styling, and one open
+  architecture fork (chrome-skin vs. a new spatial interface) still
+  awaiting a decision.
 - Any others that come to mind along the way
 
 **Device philosophy — desktop-immersive, mobile-companion 🏗️:** desktop is
