@@ -1,10 +1,13 @@
 # LCARS Interface — Handoff Doc
 
-Status: **not started — scoping only.** This is the brief for whoever builds
-it (future Claude session, GPT, or Alek by hand), not an implementation.
-Original execution throughout — no Okuda font, no ripped assets, nothing
-that could get flagged as a copyright issue. The goal is "unmistakably
-LCARS-flavored," not "a prop replica."
+Status: **plumbing in progress, visual interface on hold.** Alek is
+bringing a design package for the actual LCARS chrome later — until then,
+the interface-agnostic groundwork (device detection, module curation, APK
+packaging groundwork) is being built now, since none of it depends on what
+the interface ends up looking like. Original execution throughout once the
+visual work starts — no Okuda font, no ripped assets, nothing that could
+get flagged as a copyright issue. The goal is "unmistakably LCARS-flavored,"
+not "a prop replica."
 
 **Revised 2026-07-12:** this is no longer "an LCARS skin over the existing
 app." LCARS is now confirmed as the visual language for a new, separate
@@ -14,6 +17,46 @@ experience, not a second complete copy of the desktop app. No Vespera, no
 spatial "living world," no attempt at parity with desktop. Just the
 modules genuinely useful away from your desk, LCARS-styled, syncing
 through the same backend as everything else.
+
+## Plumbing built so far (2026-07-12)
+
+All interface-agnostic — none of it depends on the eventual visual design,
+so it's correct regardless of what the design package says.
+
+- **Device detection** — `js/data/device-context.js`, `isMobileRemoteContext()`.
+  Requires *both* an installed-app launch context (`display-mode: standalone`
+  /`fullscreen`/`minimal-ui`, or iOS Safari's legacy `navigator.standalone`)
+  *and* a touch-primary device (coarse pointer, no hover). Standalone alone
+  isn't enough — installing the PWA on a desktop also reports
+  `display-mode: standalone`, and would wrongly trigger the remote if that
+  were the only signal. A regular browser tab, on any device, is never
+  treated as the remote — only an actual installed-app launch is.
+- **Module curation** — `js/modules.js` now carries a `remote: true` flag on
+  each module in the draft list below, plus `getRemoteModules()` /
+  `isRemoteModule(id)` helpers. Not yet wired into any interface's actual
+  navigation (there's no remote-facing interface to wire it into yet) —
+  this is the source of truth waiting to be consumed once one exists.
+- **APK packaging groundwork** — `.well-known/assetlinks.json` scaffolded
+  with placeholder values (real ones need a package name and signing-cert
+  fingerprint that don't exist until there's an actual Android project).
+  `manifest.json` was already TWA-ready going in: `display: standalone`,
+  full icon set including maskable 192/512.
+
+**A real blocker found while scaffolding this, worth flagging rather than
+quietly working around:** Digital Asset Links verification (the file
+above) has to be served from the **origin root** — `https://<domain>/
+.well-known/assetlinks.json` — not from within a sub-path. If LifeOS
+deploys the default GitHub Pages way for a repo named `lifeos`
+(`https://alekpeed.github.io/lifeos/`), the origin root is
+`alekpeed.github.io/`, which this repo doesn't control — that's whatever
+publishes to the *account's* root Pages site, a different repo (if one
+even exists) or nothing at all. No CNAME file was found in this repo
+either, so there's currently no custom domain in play. Practically: **a
+real installable TWA needs either a custom domain for LifeOS specifically
+(so this repo controls its own origin root), or the asset-links file
+placed in whatever repo actually owns `alekpeed.github.io`'s root** — it
+can't just live here as-is and work. Filed as an open question below
+rather than guessed at.
 
 ## Decisions already made
 
@@ -83,25 +126,29 @@ Education, Milestones' Yearly Recap, Collections, and Rabbit Holes are
 judgment calls either way — left off the draft to keep v1 lean, easy to
 add back in.
 
-## Open: how does the app know it's the remote?
+## Resolved: how does the app know it's the remote?
 
-Not decided — laid out straight rather than picked.
+**Decided:** a real installable Android package via **Trusted Web
+Activity (TWA)** — not a Capacitor-style separate build. A TWA wraps the
+*existing* PWA (same code, same URL) in a thin native shell for the Play
+Store; it doesn't bundle a second copy of the app or need a build step,
+which matters for a codebase that's been deliberately zero-build-step
+throughout. Distribution (real APK) and behavior (curated nav) are two
+separate axes, not one either/or:
+- **Distribution** — TWA, so it installs as a real app with a home-screen
+  icon, no browser chrome, Play-Store-submittable.
+- **Behavior** — `isMobileRemoteContext()` (built, see above), requiring
+  both an installed-app launch context *and* a touch-primary device. This
+  means a desktop PWA install still correctly gets the full app, and only
+  an actual phone-installed launch gets the curated remote — regardless of
+  whether that install came through the Play Store TWA or a plain "Add to
+  Home Screen."
 
-**Option A — same PWA, viewport detects it.** One codebase, no separate
-build. A phone-sized screen automatically gets the curated nav instead of
-the full module list — the app already treats mobile layout differently
-today, this extends that. Simplest to ship and keep in sync with the main
-app, but "stripped down" becomes a responsive behavior rather than a
-genuinely distinct product — someone resizing a browser window on desktop
-would also see the remote.
-
-**Option B — a real separate packaged build.** A distinct entry point/
-config baked in specifically for the APK, independent of screen size —
-same underlying view code, but its own module manifest shipped only in
-that build target. Cleaner conceptually ("the phone app" is really its own
-thing), but is new territory for a codebase that currently has zero build
-step — needs its own packaging story (Bubblewrap/PWABuilder/Capacitor,
-still an open question in its own right).
+Still open: the origin-root blocker above (needs a custom domain or the
+right repo before a real TWA can be Digital-Asset-Links-verified), and the
+actual Bubblewrap/keystore/Play Console steps, which are manual and
+external to this environment (no Android SDK or Play Console access here)
+— tracked as a to-do, not attempted.
 
 ## Visual direction — two starting points
 
@@ -163,6 +210,13 @@ numbers that already exist.
 
 In scope: a boot/power-up sequence on switching into the interface, panel
 highlight/slide transitions on navigation, and short button-press tones.
+
+**Decided: sound is generated, not sourced.** The Chords module already
+has a full Web Audio synthesis engine (oscillators, ADSR, EQ) — reused
+here for simple procedural UI tones and a boot chime rather than sourcing
+external audio files. No licensing question, no new assets, reuses infra
+that already works.
+
 Two hard constraints, non-negotiable regardless of how "full console" this
 gets:
 - **Respects `prefers-reduced-motion`** — same as every other animated
@@ -174,24 +228,29 @@ gets:
 
 ## What "v1" concretely means
 
-In scope: the curated module list above (or Alek's edited version of it),
-restyled chrome and navigation, the alert-color behavior above, motion/
-sound per the constraints above, mobile only.
+In scope: the curated module list above (confirmed as-is), restyled
+chrome and navigation once the design package lands, the alert-color
+behavior above, generated motion/sound per the constraints above, mobile
+only.
 
 Out of scope for v1: desktop entirely, every module *not* on the curated
 list, any custom illustration/room art (this is a chrome build, not a
-Vespera-style art project), and any change to a module's actual
-underlying functionality — views behave identically to their desktop
-counterparts, they just live in a smaller, LCARS-styled shell and there
-are fewer of them.
+Vespera-style art project), any change to a module's actual underlying
+functionality — views behave identically to their desktop counterparts,
+they just live in a smaller, LCARS-styled shell and there are fewer of
+them — and, for now, the Station Computer itself (reserved a spot on the
+list, stubbed as "coming soon" until it gets its own real build pass).
 
-## Still needs a decision before building starts
+## Still open
 
-1. **Edit the module list** — cut/add from the draft above.
-2. **Same-PWA-viewport-detection vs. a real separate packaged build**
-   (Option A vs. B above) — the packaging question, separate from anything
-   visual.
-3. **Deck Nine vs. Red Squad** vs. some merge of the two.
-4. Confirm the alert-color mapping, or adjust it.
-5. Confirm reusing Oxanium/Rajdhani for typography, or say if something
-   else should be sourced.
+1. **The visual design package itself** — palette (Deck Nine vs. Red
+   Squad vs. a merge), typography (default: reuse Oxanium/Rajdhani, no new
+   assets), the alert-color mapping above (confirm or adjust) — all on
+   hold pending what Alek brings back.
+2. **The origin-root blocker** — a real TWA needs either a custom domain
+   for LifeOS, or the asset-links file living in whatever repo actually
+   controls `alekpeed.github.io`'s root. Not resolved.
+3. **The actual packaging steps** — keystore generation, Bubblewrap CLI,
+   Play Console setup. Manual/external, not attempted in this environment.
+4. **The Station Computer's real build** — wake word, token-mint backend,
+   WebRTC session — tracked separately, not part of this pass.

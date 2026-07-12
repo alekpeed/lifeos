@@ -3,51 +3,58 @@
 // however it wants (rail, ring, control panel...). Adding a module to the app
 // means adding it here (plus its data stores in js/data/schema.js) — no
 // interface code needs to know in advance.
+//
+// `remote: true` marks a module as part of the mobile remote's curated
+// on-the-go set (see LCARS_SPEC.md's "Draft: what actually ships on the
+// remote" -- this flag is that list, encoded). Modules without it still
+// exist and work identically everywhere else; they're just not offered in
+// the remote's nav. Purely a UI-surface distinction, not a data one -- see
+// PROJECT_SPEC.md's "Device philosophy" section for why.
 
 export const MODULES = [
-  { id: 'dashboard', label: 'Today', group: 'core' },
+  { id: 'dashboard', label: 'Today', group: 'core', remote: true },
   { id: 'orrery', label: 'Orrery', group: 'core' },
-  { id: 'paper', label: 'Daily Paper', group: 'core' },
-  { id: 'tasks', label: 'Tasks', group: 'core' },
-  { id: 'ideas', label: 'Ideas', group: 'core' },
-  { id: 'places', label: 'Places', group: 'core' },
-  { id: 'links', label: 'Links', group: 'core' },
+  { id: 'paper', label: 'Daily Paper', group: 'core', remote: true },
+  { id: 'tasks', label: 'Tasks', group: 'core', remote: true },
+  { id: 'ideas', label: 'Ideas', group: 'core', remote: true },
+  { id: 'places', label: 'Places', group: 'core', remote: true },
+  { id: 'links', label: 'Links', group: 'core', remote: true },
   { id: 'education', label: 'Education', group: 'core' },
   { id: 'finance', label: 'Finance', group: 'core' },
   { id: 'books', label: 'Books', group: 'life' },
-  { id: 'recipes', label: 'Recipes', group: 'life' },
-  { id: 'documents', label: 'Documents', group: 'life' },
-  { id: 'contacts', label: 'Contacts', group: 'life' },
+  { id: 'recipes', label: 'Recipes', group: 'life', remote: true },
+  { id: 'documents', label: 'Documents', group: 'life', remote: true },
+  { id: 'contacts', label: 'Contacts', group: 'life', remote: true },
   { id: 'milestones', label: 'Milestones', group: 'life' },
-  { id: 'photos', label: 'Photos', group: 'life' },
+  { id: 'photos', label: 'Photos', group: 'life', remote: true },
   { id: 'sharebox', label: 'Sharebox', group: 'life' },
   { id: 'museum', label: 'Museum', group: 'life' },
   { id: 'timecapsules', label: 'Time Capsules', group: 'life' },
   { id: 'collections', label: 'Collections', group: 'life' },
-  { id: 'packing', label: 'Packing Lists', group: 'life' },
-  { id: 'quartermaster', label: 'Quartermaster', group: 'life' },
+  { id: 'packing', label: 'Packing Lists', group: 'life', remote: true },
+  { id: 'quartermaster', label: 'Quartermaster', group: 'life', remote: true },
   { id: 'ghostdays', label: 'Ghost Days', group: 'life' },
-  { id: 'starters', label: 'Conversation Starters', group: 'life' },
+  { id: 'starters', label: 'Conversation Starters', group: 'life', remote: true },
   { id: 'rabbitholes', label: 'Rabbit Holes', group: 'life' },
-  { id: 'languages', label: 'Languages', group: 'study' },
+  { id: 'languages', label: 'Languages', group: 'study', remote: true },
   { id: 'chords', label: 'Chords', group: 'study' },
   { id: 'lifeasmusic', label: 'Life as Music', group: 'study' },
-  { id: 'habits', label: 'Habits', group: 'health' },
-  { id: 'health', label: 'Health', group: 'health' },
+  { id: 'habits', label: 'Habits', group: 'health', remote: true },
+  { id: 'health', label: 'Health', group: 'health', remote: true },
   { id: 'skilltree', label: 'Skill Trees', group: 'health' },
   { id: 'dreamjournal', label: 'Dream Journal', group: 'health' },
   { id: 'almanac', label: 'The Almanac', group: 'health' },
   { id: 'assistant', label: 'AI Assistant', group: 'utility' },
   { id: 'knowledge', label: 'Knowledge Graph', group: 'utility' },
-  { id: 'recall', label: 'Recall', group: 'utility' },
+  { id: 'recall', label: 'Recall', group: 'utility', remote: true },
   { id: 'timemachine', label: 'Time Machine', group: 'utility' },
-  { id: 'qrsync', label: 'QR Sync', group: 'utility' },
+  { id: 'qrsync', label: 'QR Sync', group: 'utility', remote: true },
   { id: 'entropy', label: 'Entropy', group: 'utility' },
   { id: 'stationcat', label: 'Station Cat', group: 'utility' },
   { id: 'themefromphoto', label: 'Theme from Photo', group: 'utility' },
-  { id: 'tools', label: 'Tools', group: 'utility' },
-  { id: 'search', label: 'Search', group: 'utility' },
-  { id: 'settings', label: 'Settings', group: 'utility' },
+  { id: 'tools', label: 'Tools', group: 'utility', remote: true },
+  { id: 'search', label: 'Search', group: 'utility', remote: true },
+  { id: 'settings', label: 'Settings', group: 'utility', remote: true },
 ];
 
 export const MODULE_GROUPS = [
@@ -62,4 +69,13 @@ export const DEFAULT_MODULE = 'dashboard';
 
 export function isValidModule(id) {
   return MODULES.some((m) => m.id === id);
+}
+
+// The mobile remote's curated module set -- see the `remote` flag above.
+export function getRemoteModules() {
+  return MODULES.filter((m) => m.remote);
+}
+
+export function isRemoteModule(id) {
+  return MODULES.some((m) => m.id === id && m.remote);
 }
