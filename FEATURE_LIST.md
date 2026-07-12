@@ -110,7 +110,9 @@ genuine moonshots.
 - **Habits** — a shared streak mechanic (daily check-in, current streak,
   total check-ins) usable for anything — workouts, practice, water intake.
 - **Health** — manual sleep/workout/water/weight log with a 7-day rolling
-  average.
+  average. Plus a one-time **Apple Health import** (raw export.xml or the
+  .zip): parses the real Apple XML schema, aggregates down to one row per
+  day, always previews first, merges field-by-field into existing logs.
 - **Skill Trees** — an RPG-style character sheet computed entirely from
   real activity (tasks completed, habit check-ins, books finished, chord
   concepts mastered, language reviews done) — five skills, each with a
@@ -367,7 +369,8 @@ rather than needing to also work as a small-screen experience.
   intent and creates the record itself (offline Whisper for voice).
 - **Real financial ingestion & reconciliation** — import bank/card
   statements, auto-categorize, reconcile against Finance.
-- **Health-device ingestion** — parse Apple Health/Garmin/Fitbit exports.
+- **Garmin/Fitbit health ingestion** — Apple Health import shipped (see
+  Built ✅); Garmin/Fitbit need their own OAuth/API research first.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest.
 - **Personal local API + plugin SDK** — a documented interface to build on
   without touching core.

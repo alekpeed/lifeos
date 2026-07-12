@@ -2,6 +2,10 @@ import { el, fmtDate, todayStr } from '../dom.js';
 
 let state = {
   selectedId: null,
+  importStatus: null,   // text shown while reading/parsing
+  importError: null,
+  importPreview: null,  // parsed days, awaiting confirm
+  importResult: null,   // { created, updated } after a confirmed import
 };
 
 function isWithinLastDays(dateStr, days) {
@@ -62,6 +66,75 @@ function detailEditor(log, ctx, rerender) {
   ]);
 }
 
+// Apple Health import: a one-time manual file pick (raw export.xml, or the
+// .zip containing it), parsed client-side, then a preview + explicit
+// confirm before anything is written -- an import can overwrite fields on
+// existing logs for the same dates, so it's never silent.
+async function handleAppleHealthFile(file, ctx, rerender) {
+  state.importError = null;
+  state.importPreview = null;
+  state.importResult = null;
+  state.importStatus = 'Reading…';
+  rerender();
+  try {
+    const days = await ctx.data.parseAppleHealthExport(file, { onStatus: (s) => { state.importStatus = s; rerender(); } });
+    if (!days.length) {
+      state.importError = 'No sleep, workout, water, or weight data found in that file.';
+    } else {
+      state.importPreview = days;
+    }
+  } catch (err) {
+    state.importError = err.message || String(err);
+  }
+  state.importStatus = null;
+  rerender();
+}
+
+async function confirmAppleHealthImport(ctx, rerender) {
+  state.importStatus = 'Importing…';
+  rerender();
+  try {
+    state.importResult = await ctx.data.importAppleHealthDays(state.importPreview);
+  } catch (err) {
+    state.importError = err.message || String(err);
+  }
+  state.importPreview = null;
+  state.importStatus = null;
+  rerender();
+}
+
+function appleHealthImportSection(ctx, rerender) {
+  const parts = [el('div', { class: 'mer-subsection-label', text: 'Import from Apple Health' })];
+  parts.push(el('p', { class: 'mer-muted', text: 'A one-time import of an Apple Health export (Health app → profile picture → Export All Health Data). Aggregates sleep, workouts, water, and weight down to one entry per day, filling in matching fields on existing logs and creating new ones as needed -- not a live sync.' }));
+
+  if (state.importStatus) {
+    parts.push(el('p', { class: 'mer-muted', text: state.importStatus }));
+    return el('div', {}, parts);
+  }
+  if (state.importError) {
+    parts.push(el('p', { class: 'mer-muted mer-sync-error', text: state.importError }));
+  }
+  if (state.importResult) {
+    parts.push(el('p', {}, [el('strong', { text: `Imported: ${state.importResult.created} new day(s), ${state.importResult.updated} updated.` })]));
+  }
+  if (state.importPreview) {
+    parts.push(
+      el('p', {}, [el('strong', { text: `Found ${state.importPreview.length} day(s) of data.` }), document.createTextNode(' This will fill in matching fields on existing logs for those dates and create new ones otherwise.')]),
+      el('div', { class: 'mer-toolbar' }, [
+        el('button', { type: 'button', text: 'Confirm import', onclick: () => confirmAppleHealthImport(ctx, rerender) }),
+        el('button', { type: 'button', class: 'mer-reader-btn', text: 'Cancel', onclick: () => { state.importPreview = null; rerender(); } }),
+      ]),
+    );
+    return el('div', {}, parts);
+  }
+
+  parts.push(el('input', {
+    type: 'file', accept: '.xml,.zip,application/xml,application/zip',
+    onchange: (e) => { if (e.target.files[0]) handleAppleHealthFile(e.target.files[0], ctx, rerender); e.target.value = ''; },
+  }));
+  return el('div', {}, parts);
+}
+
 export async function renderHealth(canvas, ctx, rerender) {
   canvas.append(el('h1', { text: 'Health' }));
 
@@ -108,4 +181,6 @@ export async function renderHealth(canvas, ctx, rerender) {
     const log = logs.find((l) => l.id === state.selectedId);
     if (log) canvas.append(detailEditor(log, ctx, rerender));
   }
+
+  canvas.append(appleHealthImportSection(ctx, rerender));
 }

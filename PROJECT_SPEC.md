@@ -97,7 +97,18 @@ lets the whole app be redecorated later without rebuilding it:
   instead of separate one-offs per module
 - **Health** — manual-entry sleep/workout/water/weight log with a 7-day
   rolling average. No live Garmin API (none exists cleanly) — hand-entered,
-  possibly from a CSV export down the road
+  possibly from a CSV export down the road. Plus a one-time **Apple Health
+  import**: pick a raw `export.xml` or the `.zip` Apple's Health app
+  produces (unzipped client-side with the already-vendored fflate), parses
+  the real, publicly documented Apple Health XML schema, and aggregates
+  the many fine-grained `<Record>`/`<Workout>` elements down to this
+  module's one-row-per-day shape (sleep from actual-asleep time, not
+  in-bed; workouts summed + type-labeled; water and weight unit-converted).
+  Always previews a day count before writing anything, and merges
+  field-by-field into any existing log for that date rather than
+  overwriting the whole record, so a manually-added note survives. Garmin/
+  Fitbit "clean APIs where they exist" would each need their own OAuth/API
+  research pass first — not attempted. See `js/data/apple-health-import.js`.
 - **Photos/Gallery** — albums with a grid + lightbox (prev/next/close), plus
   a "📥 Import from Google Photos" option per album via the Photos Picker
   API: opens Google's own hosted picker UI in a new tab, downloads exactly
@@ -534,11 +545,12 @@ Everything below came out of talking through what would actually feel
 12. ~~Camera-to-data capture~~ — DONE, scoped to Documents (see Built ✅).
 13. ~~Rules & automation engine~~ — DONE, scoped to 2 built-in rules (see
     Built ✅).
-14. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+14. ~~Health-device ingestion~~ — DONE, Apple Health only (see Built ✅).
+15. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
     Conversation Starters, Ghost Days, The Almanac, Life as Music, Library
     of Babel, Theme-from-photo)
-15. Additional interfaces (Vespera, LCARS)
-16. Someday: a standalone music-practice app (progressions, play-along,
+16. Additional interfaces (Vespera, LCARS)
+17. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
@@ -588,10 +600,11 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   statements (CSV/OFX), auto-categorize transactions, reconcile against
   logged bills/subscriptions. Turns Finance from all-manual into something
   that mirrors reality.
-- **Health-device ingestion** — parse Apple Health / Garmin / Fitbit
-  exports (and clean APIs where they exist) so Health stops being hand-typed
-  — also gives The Almanac real signal to correlate instead of sparse
-  manual entries.
+- **Garmin/Fitbit health ingestion** — Apple Health export import shipped
+  (see Built ✅, Health module entry). Garmin/Fitbit would each need their
+  own OAuth/API research pass first (same "verify before building"
+  treatment already given to Spotify/YouTube/Google Photos) — not
+  attempted yet.
 
 **Privacy & security**
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest, so
@@ -682,6 +695,8 @@ own Tier 2 flag, not a routine add)**
   Documents vault entry above).
 - ~~Rules & automation engine~~ — DONE, scoped to 2 built-in rules (see
   Built ✅, Knowledge-Graph-adjacent entry above).
+- ~~Health-device ingestion~~ — DONE, Apple Health only (see Built ✅,
+  Health entry above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
 history / Watch Later sync — both deprecated from the YouTube Data API in

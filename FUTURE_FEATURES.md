@@ -160,6 +160,17 @@ parked means "not now," not "forgotten" or "cut."
   renewal rule is the "surface + act" example instead, since it creates a
   genuinely new record rather than re-showing something already shown. See
   `runAutomations` in `js/data/api.js`.
+- ✅ **Health-device ingestion** — DONE, Apple Health only (Garmin/Fitbit
+  each need their own OAuth/API research pass first, same treatment
+  already given Spotify/YouTube/Google Photos — not attempted). A one-time
+  import: pick a raw `export.xml` or the `.zip` Apple's Health app
+  produces (unzipped client-side with the already-vendored fflate), parses
+  the real, publicly documented Apple Health XML schema, and aggregates
+  the many fine-grained `<Record>`/`<Workout>` elements down to Health's
+  one-row-per-day shape. Always previews a day count before writing
+  anything, and merges field-by-field into any existing log for that date
+  rather than overwriting the whole record. See
+  `js/data/apple-health-import.js`.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -334,9 +345,10 @@ for a stripped-down version.)
 - **Real financial ingestion & reconciliation** — import bank/card
   statements (CSV/OFX), auto-categorize transactions, reconcile against
   logged bills/subscriptions.
-- **Health-device ingestion** — parse Apple Health/Garmin/Fitbit exports
-  (and clean APIs where they exist) so Health stops being hand-typed — also
-  gives The Almanac real signal instead of sparse manual entries.
+- **Garmin/Fitbit health ingestion** — Apple Health export import shipped
+  (see Built ✅ below); Garmin/Fitbit would each need their own OAuth/API
+  research pass first (same "verify before building" treatment already
+  given to Spotify/YouTube/Google Photos) — not attempted yet.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest, so
   data synced to Drive/Supabase is stored as ciphertext only — even the
   server can't read it. Pairs naturally with multi-user accounts.

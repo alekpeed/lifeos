@@ -21,6 +21,7 @@ export { connectCalendar, syncCalendarNow, disconnectCalendar, getCalendarState 
 // persistent connection like Drive/Calendar (see photos-picker.js for why).
 export { pickGooglePhotos } from './photos-picker.js';
 export { isAppLockAvailable, enrollAppLock, verifyAppLock } from './applock.js';
+export { parseAppleHealthExport } from './apple-health-import.js';
 
 // Sharebox: a space shared with a friend through a Drive folder you both pick.
 // Synced separately from personal data through that shared folder.
@@ -1298,6 +1299,31 @@ export async function runAutomations() {
   } catch (err) {
     console.error('runAutomations failed', err);
   }
+}
+
+// --- Health-device ingestion: a one-time manual import of an Apple Health
+// export (see apple-health-import.js for the parser), aggregated down to
+// this app's one-row-per-day HealthLogs shape. Merges field-by-field rather
+// than overwriting a whole record -- an imported day fills in only the
+// fields Apple actually had a value for, so a manually-added note or a
+// field Apple doesn't cover on an existing log survives the import.
+
+export async function importAppleHealthDays(days) {
+  let created = 0, updated = 0;
+  for (const day of days) {
+    const patch = {};
+    if (day.sleepHours != null) patch.sleepHours = day.sleepHours;
+    if (day.workoutType) patch.workoutType = day.workoutType;
+    if (day.workoutMinutes != null) patch.workoutMinutes = day.workoutMinutes;
+    if (day.waterOz != null) patch.waterOz = day.waterOz;
+    if (day.weight != null) patch.weight = day.weight;
+    if (!Object.keys(patch).length) continue;
+
+    const existing = (await HealthLogs.byIndex('date', day.date))[0];
+    if (existing) { await HealthLogs.update(existing.id, patch); updated++; }
+    else { await HealthLogs.create({ date: day.date, ...patch }); created++; }
+  }
+  return { created, updated };
 }
 
 // --- Recall: the Languages module's SRS engine generalized to resurface any
