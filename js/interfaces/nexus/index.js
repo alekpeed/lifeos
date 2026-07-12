@@ -185,7 +185,13 @@ function renderHome(canvas) {
   // elements' box computations. An <image> inside the same <svg> as the
   // <polygon>s can't drift from them; there's only one transform to get
   // wrong instead of two that have to agree.
-  const svg = svgEl('svg', { class: 'nxs-petal-layer', viewBox: `0 0 ${IMG_W} ${IMG_H}` });
+  // preserveAspectRatio="none": the stage now fills the real viewport
+  // rather than being locked to the image's own 941:1672 ratio (see the
+  // .nxs-stage comment in style.css), so the box it's stretching to fill
+  // usually isn't that exact ratio. "none" stretches non-uniformly to
+  // match it exactly -- mild distortion, but the image and the <polygon>
+  // hotspots share this one transform, so they stay aligned regardless.
+  const svg = svgEl('svg', { class: 'nxs-petal-layer', viewBox: `0 0 ${IMG_W} ${IMG_H}`, preserveAspectRatio: 'none' });
   const img = svgEl('image', { href: hubImgUrl(), x: 0, y: 0, width: IMG_W, height: IMG_H });
   svg.append(img);
   for (const p of WHEEL_PETALS) {

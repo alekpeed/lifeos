@@ -63,15 +63,17 @@
   position: relative;
   width: 100%;
   max-width: 480px;
-  /* Fit within whatever viewport the phone actually has, not just cap by
-     width -- aspect-ratio + max-height together shrink the box to whichever
-     constraint (width or height) is tighter, the same idea as
-     object-fit:contain but for the whole element. Without this, a fixed
-     aspect-ratio box sized only by width can end up taller than the
-     screen on a lot of phones, forcing a scroll to see the whole wheel. */
-  max-height: calc(100dvh - var(--space-sm, 0.5rem) * 2);
+  /* Fill the actual viewport instead of fitting the image's own 941:1672
+     ratio inside it -- locking to that fixed ratio (the previous approach)
+     leaves black bars on any phone whose screen ratio doesn't match the
+     source image exactly, which is most of them. The image and its hotspot
+     polygons live in one <svg> with preserveAspectRatio="none" (see
+     renderHome in index.js), so they stretch together to fill this box --
+     mild non-uniform scaling, but zero wasted space and nothing cropped
+     off-screen, which matters more here since every pixel is a real
+     hotspot, not just decoration. */
+  height: calc(100dvh - var(--space-sm, 0.5rem) * 2);
   margin: 0 auto;
-  aspect-ratio: 941 / 1672;
   overflow: hidden;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
