@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.18';
+const CACHE_VERSION = 'lifeos-v1.19';
 const APP_SHELL = [
   './',
   './index.html',
@@ -45,6 +45,7 @@ const APP_SHELL = [
   './vendor/fonts/oxanium-600.woff2',
   './vendor/fonts/rajdhani-600.woff2',
   './js/interfaces/default/dom.js',
+  './js/interfaces/default/icons.js',
   './js/interfaces/default/knob.js',
   './js/interfaces/default/leaflet-loader.js',
   './js/interfaces/default/style.css',

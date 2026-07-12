@@ -7,6 +7,7 @@
 import { registerInterface } from '../registry.js';
 import { VIEWS } from '../view-library.js';
 import { el } from './dom.js';
+import { moduleIconMarkup } from './icons.js';
 
 let ctx = null;
 let els = null; // { nav, canvas }
@@ -44,8 +45,10 @@ function buildNav() {
           class: 'mer-nav-item',
           href: '#/' + mod.id,
           'data-module': mod.id,
-          text: mod.label,
-        })
+        }, [
+          el('span', { class: 'mer-nav-icon', html: moduleIconMarkup(mod.id) }),
+          el('span', { class: 'mer-nav-label', text: mod.label }),
+        ])
       );
     }
   }

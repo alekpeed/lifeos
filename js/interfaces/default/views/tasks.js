@@ -171,7 +171,7 @@ function detailEditor(task, ctx, projects, rerender) {
     ]));
   }
   const newSubtaskInput = el('input', {
-    type: 'text', placeholder: 'Add checklist item and press Enter',
+    type: 'text', class: 'mer-subtask-add', placeholder: 'Add checklist item and press Enter',
     onkeydown: (e) => {
       if (e.key !== 'Enter' || !e.target.value.trim()) return;
       const subtasks = [...(task.subtasks || []), { id: crypto.randomUUID(), text: e.target.value.trim(), done: false }];
