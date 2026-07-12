@@ -5,6 +5,14 @@
   display: grid;
   grid-template-columns: 15rem 1fr;
   min-height: 100vh;
+  /* Grid rows stretch to fill min-height by default (align-content:normal
+     behaves as stretch here) -- fine on desktop where nav/canvas content
+     is usually tall enough to fill the screen anyway, but on a short page
+     (e.g. a sparse mobile Dashboard: collapsed nav bar + "nothing due yet")
+     it pulls the nav bar and canvas apart with dead space above and below
+     instead of packing them at the top. Any leftover height should just be
+     trailing background under the content, not injected into the rows. */
+  align-content: start;
 }
 
 [data-interface='default'] .mer-nav {
