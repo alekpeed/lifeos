@@ -75,7 +75,9 @@ genuine moonshots.
   spines on shelves, grouped by status, taller for longer books.
 - **Recipes** — ingredients with scalable servings, steps, a "made it" cook
   log, grocery list generator.
-- **Photos/Gallery** — albums with a grid + lightbox (prev/next/close).
+- **Photos/Gallery** — albums with a grid + lightbox (prev/next/close), plus
+  a Google Photos import per album via the Picker API (opens Google's own
+  picker UI, downloads exactly what you select — not a live sync).
 - **Time Capsules** — write a note to your future self, sealed until a date
   you choose; hidden ("🔒 Sealed" with a countdown) until then, then
   surfaces on its own.
@@ -261,13 +263,13 @@ bug).
   token exchange — the most security-sensitive item here.
 - **Spotify listening stats** — recently played/top artists/listening
   time, via Spotify's free Web API. Needs its own new OAuth flow.
-- **YouTube real watch history** — upgrades manual "watch later" links to
-  real history via the YouTube Data API, reusing Google sign-in with a new
-  scope.
-- **Google Photos import** — same pattern, another new scope.
 - *(Ruled out: WhatsApp/Instagram personal DMs — their Business APIs only
   cover new messages to a business presence, not existing personal chat
-  history, and converting your account doesn't change that.)*
+  history, and converting your account doesn't change that. Also ruled out:
+  YouTube watch history/Watch Later sync — both deprecated from the API in
+  2016, no workaround exists; only Liked Videos is readable, and that's a
+  different, noisier signal than the deliberate manual queue already in
+  Links, not worth building.)*
 
 ## Additional interfaces
 

@@ -1,6 +1,7 @@
 // Google Identity Services token acquisition + minimal Google REST helpers
-// (Drive and Calendar). Isolated here so sync.js / calendar.js deal in
-// "get/put files" and "insert/patch events" rather than OAuth and HTTP details.
+// (Drive, Calendar, and the Photos Picker). Isolated here so sync.js /
+// calendar.js / photos-picker.js deal in "get/put files", "insert/patch
+// events", and "create a picking session" rather than OAuth and HTTP details.
 //
 // Network-only by design: the GIS script and all googleapis.com calls are
 // cross-origin, so the service worker's fetch handler ignores them (it
@@ -8,11 +9,12 @@
 // the offline app shell. The app runs fully without ever loading any of it;
 // sync (Drive or Calendar) is purely additive.
 //
-// Tokens are managed per-scope: Drive and Calendar each get their own token
-// client and their own in-memory access token, so the two features are
-// independent — granting one never implies the other, matching least-privilege.
+// Tokens are managed per-scope: Drive, Calendar, and Photos Picker each get
+// their own token client and their own in-memory access token, so the
+// features are independent — granting one never implies another, matching
+// least-privilege.
 
-import { GOOGLE_CLIENT_ID, DRIVE_SCOPE, CALENDAR_SCOPES, GIS_SCRIPT_URL } from './sync-config.js';
+import { GOOGLE_CLIENT_ID, DRIVE_SCOPE, CALENDAR_SCOPES, PHOTOS_PICKER_SCOPE, GIS_SCRIPT_URL } from './sync-config.js';
 
 let gisLoaded = null; // Promise that resolves once the GIS script is ready
 
@@ -216,4 +218,50 @@ export async function deleteEvent(calendarId, eventId) {
   await authFetch(CALENDAR_SCOPES, `${CAL}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
     method: 'DELETE',
   });
+}
+
+// --- Photos Picker REST (scope: photospicker.mediaitems.readonly) ---
+//
+// Google retired third-party read access to a user's whole Photos library in
+// March 2025; the Picker is the sanctioned replacement. It's a session-based
+// flow, not a simple client-side widget like the Drive Picker: create a
+// session, send the user to Google's own hosted picker UI in a new tab, poll
+// the session until they're done, then list exactly the items they picked
+// (nothing else in their library is ever visible to this app).
+
+const PHOTOS_PICKER = 'https://photospicker.googleapis.com/v1';
+
+export async function createPickerSession() {
+  const resp = await authFetch(PHOTOS_PICKER_SCOPE, `${PHOTOS_PICKER}/sessions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  return resp.json(); // { id, pickerUri, pollingConfig: { pollInterval, timeoutIn }, expireTime, mediaItemsSet }
+}
+
+export async function getPickerSession(sessionId) {
+  const resp = await authFetch(PHOTOS_PICKER_SCOPE, `${PHOTOS_PICKER}/sessions/${encodeURIComponent(sessionId)}`);
+  return resp.json();
+}
+
+export async function deletePickerSession(sessionId) {
+  await authFetch(PHOTOS_PICKER_SCOPE, `${PHOTOS_PICKER}/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+}
+
+// Items the user picked in a completed session -- only call once
+// getPickerSession(sessionId).mediaItemsSet is true.
+export async function listPickedMediaItems(sessionId) {
+  const resp = await authFetch(PHOTOS_PICKER_SCOPE, `${PHOTOS_PICKER}/mediaItems?sessionId=${encodeURIComponent(sessionId)}&pageSize=100`);
+  const { mediaItems } = await resp.json();
+  return mediaItems || [];
+}
+
+// A picked item's mediaFile.baseUrl is a temporary (60-minute) URL for the
+// raw bytes -- it needs a download-size suffix (=d for images, =dv for
+// video) AND the same bearer token as everything else here, so it goes
+// through authFetch like any other call rather than a bare fetch.
+export async function downloadPickedMediaBytes(baseUrl, isVideo) {
+  const resp = await authFetch(PHOTOS_PICKER_SCOPE, `${baseUrl}${isVideo ? '=dv' : '=d'}`);
+  return resp.blob();
 }

@@ -17,6 +17,10 @@ export { connectDrive, syncNow, disconnectDrive, getSyncState } from './sync.js'
 // surface. Independent of Drive sync — either can be used without the other.
 export { connectCalendar, syncCalendarNow, disconnectCalendar, getCalendarState } from './calendar.js';
 
+// Google Photos import via the Picker API — a one-shot pick, not a
+// persistent connection like Drive/Calendar (see photos-picker.js for why).
+export { pickGooglePhotos } from './photos-picker.js';
+
 // Sharebox: a space shared with a friend through a Drive folder you both pick.
 // Synced separately from personal data through that shared folder.
 export { connectSharebox, syncShareboxNow, disconnectSharebox, getShareboxState } from './sharebox-sync.js';

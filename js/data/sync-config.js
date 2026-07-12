@@ -33,6 +33,16 @@ export const CALENDAR_SCOPES = `${CALENDAR_SCOPE} ${CALENDAR_LIST_SCOPE}`;
 
 export const GIS_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 
+// Google Photos import: photospicker.mediaitems.readonly is the narrowest
+// scope for this -- it grants access ONLY to whatever the user explicitly
+// selects in Google's own picker UI during one session, nothing else in
+// their library, and no visibility into anything they don't pick. Same
+// least-privilege shape as drive.file. The old Library API's broad
+// mediaItems.list/search (read the whole library) was retired for
+// third-party apps in March 2025; the Picker is Google's sanctioned
+// replacement, not a LifeOS design choice.
+export const PHOTOS_PICKER_SCOPE = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
+
 // Sharebox (the shared-with-a-friend space) reuses the drive.file scope. The
 // friend's shared folder isn't created by this app, so drive.file can't see it
 // on its own — but selecting it through the Google Picker grants per-folder

@@ -132,17 +132,23 @@ Each of these is its own 🔑 go/no-go, not a routine add.
 - **Spotify listening stats** — a "recently played / top artists /
   listening time" page via Spotify's free Web API. Needs its own new OAuth
   flow (a third, alongside Google and Supabase).
-- **YouTube real watch history** — upgrades the current manual "watch
-  later" links to real watch history/liked videos via the YouTube Data
-  API. Reuses the existing Google sign-in, but needs a new scope added.
-- **Google Photos import** — same deal: reuses existing Google auth, needs
-  its own new scope.
+- ✅ **Google Photos import** — DONE: a "📥 Import from Google Photos"
+  option per album (Photos/Gallery), via the Photos Picker API. Reuses the
+  existing Google sign-in with a new scope. Not a live sync — Google
+  retired third-party bulk read access to a user's whole library in March
+  2025, so this opens Google's own picker UI and downloads only what you
+  explicitly select each time. See `js/data/photos-picker.js`.
 
 *(Ruled out: WhatsApp and Instagram personal DMs. Their Business/Messaging
 APIs only handle new messages sent to a business-designated presence —
 they don't expose existing personal chat history, converting your account
 to Business doesn't change that, and Meta's App Review process actively
-screens out "personal archiving" as a use case anyway.)*
+screens out "personal archiving" as a use case anyway. Also ruled out:
+YouTube real watch history / Watch Later sync — both were deprecated from
+the YouTube Data API in 2016 for privacy reasons, no workaround exists at
+the API level. Only Liked Videos is still readable, and Alek's call was
+that it's a different, noisier signal than the deliberate manual
+watch-later queue already in Links — not worth building.)*
 
 ## 5. Additional interfaces
 

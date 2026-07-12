@@ -89,7 +89,14 @@ lets the whole app be redecorated later without rebuilding it:
 - **Health** — manual-entry sleep/workout/water/weight log with a 7-day
   rolling average. No live Garmin API (none exists cleanly) — hand-entered,
   possibly from a CSV export down the road
-- **Photos/Gallery** — albums with a grid + lightbox (prev/next/close)
+- **Photos/Gallery** — albums with a grid + lightbox (prev/next/close), plus
+  a "📥 Import from Google Photos" option per album via the Photos Picker
+  API: opens Google's own hosted picker UI in a new tab, downloads exactly
+  what you select, no live sync and no visibility into anything you don't
+  pick. (Not a full-library sync — Google retired third-party bulk read
+  access to a user's whole Photos library in March 2025; the Picker is
+  Google's sanctioned replacement, the only option left. See
+  `js/data/photos-picker.js`.)
 - **Languages** — plug-and-play: language learning is built as installable
   "packs" (name, code, TTS locale). Two tabs per pack: **Decks** (spaced-
   repetition flashcards, Again/Good/Easy, browser TTS, a study streak) and
@@ -604,11 +611,16 @@ own Tier 2 flag, not a routine add)**
 - **Spotify listening stats** — a "recently played / top artists / listening
   time" page via Spotify's Web API. Free API; needs its own new OAuth flow
   (a third, alongside Google and Supabase).
-- **YouTube real watch history** — upgrades the current manual "watch later"
-  links to real watch history/liked videos via the YouTube Data API. Reuses
-  the existing Google sign-in, but needs a new scope added to it.
-- **Google Photos import** — same deal: reuses existing Google auth, needs
-  its own new scope.
+- ~~Google Photos import~~ — DONE (see Built ✅, Photos/Gallery entry).
+
+*(Ruled out: YouTube real watch history / Watch Later sync. Both were
+deprecated from the YouTube Data API in 2016 for privacy reasons and have
+no path back — the watchHistory/watchLater playlist IDs return empty
+placeholders, there's no OAuth scope for either, and no third-party
+workaround exists at the API level. Only Liked Videos is still readable,
+and Alek's call was that it's a different, messier signal than the
+deliberate manual watch-later queue already in Links — not worth building.
+Scrapped outright, not parked.)
 
 **Paid API pricing, as researched (verify at signup — these change often):**
 - **Alpha Vantage** (stock tickers): free tier is 25 requests/day; paid

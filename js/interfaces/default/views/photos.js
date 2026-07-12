@@ -3,6 +3,8 @@ import { el } from '../dom.js';
 let state = {
   selectedAlbumId: null,
   lightboxIndex: null,
+  pickerBusy: false,
+  pickerStatus: null, // { text, isError } | null
 };
 
 // --- Albums list ---
@@ -115,6 +117,38 @@ async function renderAlbumDetail(container, ctx, rerender) {
     }),
   ]));
   container.append(grid);
+
+  // Google Photos import: a one-shot pick (see photos-picker.js), not a
+  // persistent connection, so this is just a button + status line, not a
+  // connect/disconnect toggle like Drive/Calendar in Settings.
+  const importBtn = el('button', {
+    type: 'button', class: 'mer-reader-btn', text: state.pickerBusy ? 'Importing…' : '📥 Import from Google Photos',
+    disabled: state.pickerBusy,
+    onclick: async () => {
+      state.pickerBusy = true;
+      state.pickerStatus = null;
+      rerender();
+      try {
+        const files = await ctx.data.pickGooglePhotos({
+          onStatus: (text) => { state.pickerStatus = { text, isError: false }; rerender(); },
+        });
+        if (files.length) {
+          for (const file of files) await ctx.data.createAttachment(file, 'albums', album.id);
+          state.pickerStatus = { text: `Imported ${files.length} item${files.length === 1 ? '' : 's'}.`, isError: false };
+        } else {
+          state.pickerStatus = { text: 'Nothing was picked.', isError: false };
+        }
+      } catch (err) {
+        state.pickerStatus = { text: err.message || String(err), isError: true };
+      }
+      state.pickerBusy = false;
+      rerender();
+    },
+  });
+  const statusEl = state.pickerStatus
+    ? el('span', { class: state.pickerStatus.isError ? 'mer-muted mer-sync-error' : 'mer-muted', text: state.pickerStatus.text })
+    : null;
+  container.append(el('div', { class: 'mer-toolbar' }, [importBtn, statusEl]));
 
   if (state.lightboxIndex !== null && photos[state.lightboxIndex]) {
     container.append(lightbox(photos, ctx, rerender));
