@@ -603,9 +603,8 @@ own Tier 2 flag, not a routine add)**
 - **Financial Center** — bank/investment linking via **Plaid** (Sandbox is
   free; Production is usage-based, roughly $0.30-$3/connected account/month
   depending on product, with per-call fees on top for some products and
-  negotiated enterprise minimums at scale — see pricing note below) plus a
-  live price-ticker panel (crypto via CoinGecko is free/keyless; stocks need
-  a paid key — Alpha Vantage or Finnhub, both priced below). Needs its own
+  negotiated enterprise minimums at scale — see pricing note below), plus a
+  live crypto price-ticker panel (CoinGecko, free/keyless). Needs its own
   backend token exchange (rides on the Supabase backend, can't be
   client-only) — this is the most security-sensitive item on either list.
 - **Spotify listening stats** — a "recently played / top artists / listening
@@ -613,20 +612,16 @@ own Tier 2 flag, not a routine add)**
   (a third, alongside Google and Supabase).
 - ~~Google Photos import~~ — DONE (see Built ✅, Photos/Gallery entry).
 
-*(Ruled out: YouTube real watch history / Watch Later sync. Both were
-deprecated from the YouTube Data API in 2016 for privacy reasons and have
-no path back — the watchHistory/watchLater playlist IDs return empty
-placeholders, there's no OAuth scope for either, and no third-party
-workaround exists at the API level. Only Liked Videos is still readable,
-and Alek's call was that it's a different, messier signal than the
-deliberate manual watch-later queue already in Links — not worth building.
-Scrapped outright, not parked.)
+*(Ruled out — dead, not parked, don't resurface: YouTube real watch
+history / Watch Later sync — both deprecated from the YouTube Data API in
+2016 for privacy reasons, no path back (empty placeholder playlists, no
+OAuth scope, no third-party workaround); Liked Videos is a different,
+messier signal than the manual watch-later queue already in Links, not
+worth building instead. Stock tickers (Alpha Vantage/Finnhub) — not
+wanted, killed outright, independent of Plaid/Financial Center staying
+parked above.)*
 
 **Paid API pricing, as researched (verify at signup — these change often):**
-- **Alpha Vantage** (stock tickers): free tier is 25 requests/day; paid
-  tiers start at $49.99/mo (75 req/min) up to $249.99/mo (1,200 req/min).
-- **Finnhub** (stock tickers): free tier is a generous 60 calls/min; paid
-  tiers run roughly $50-$100+/mo depending on data bundle/coverage.
 - **Plaid** (bank/investment linking): Sandbox (fake data, for building) is
   free. Production is usage-based — commonly cited around $0.30-$3 per
   connected account/month for subscription-style products (Transactions,

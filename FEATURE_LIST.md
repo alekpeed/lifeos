@@ -257,19 +257,14 @@ bug).
 
 - **Financial Center** — bank/investment linking via **Plaid** (Sandbox
   free; Production ~$0.30-$3/connected account/month or $0.10-$0.60/call
-  depending on product) plus live price tickers (crypto free via
-  CoinGecko; stocks need a paid key — **Alpha Vantage** $0-$249.99/mo or
-  **Finnhub** free-60-calls/min up to ~$50-100+/mo). Needs its own backend
-  token exchange — the most security-sensitive item here.
+  depending on product) plus a live crypto price ticker (free via
+  CoinGecko). Needs its own backend token exchange — the most
+  security-sensitive item here.
 - **Spotify listening stats** — recently played/top artists/listening
   time, via Spotify's free Web API. Needs its own new OAuth flow.
-- *(Ruled out: WhatsApp/Instagram personal DMs — their Business APIs only
-  cover new messages to a business presence, not existing personal chat
-  history, and converting your account doesn't change that. Also ruled out:
-  YouTube watch history/Watch Later sync — both deprecated from the API in
-  2016, no workaround exists; only Liked Videos is readable, and that's a
-  different, noisier signal than the deliberate manual queue already in
-  Links, not worth building.)*
+- *(Ruled out — dead, not parked: WhatsApp/Instagram personal DMs, YouTube
+  watch history/Watch Later sync, and stock tickers. Not shown in status
+  recaps.)*
 
 ## Additional interfaces
 

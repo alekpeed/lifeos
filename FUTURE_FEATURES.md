@@ -124,11 +124,6 @@ Each of these is its own 🔑 go/no-go, not a routine add.
     backend — the secret key can never touch the browser). The most
     security-sensitive item on this whole document.
   - Crypto tickers: CoinGecko, free/keyless.
-  - Stock tickers need a paid key:
-    - **Alpha Vantage** — free tier 25 requests/day; paid from **$49.99/mo**
-      (75 req/min) up to **$249.99/mo** (1,200 req/min).
-    - **Finnhub** — free tier is a genuinely usable 60 calls/min; paid tiers
-      roughly **$50–$100+/mo** depending on data bundle/coverage.
 - **Spotify listening stats** — a "recently played / top artists /
   listening time" page via Spotify's free Web API. Needs its own new OAuth
   flow (a third, alongside Google and Supabase).
@@ -139,16 +134,16 @@ Each of these is its own 🔑 go/no-go, not a routine add.
   2025, so this opens Google's own picker UI and downloads only what you
   explicitly select each time. See `js/data/photos-picker.js`.
 
-*(Ruled out: WhatsApp and Instagram personal DMs. Their Business/Messaging
-APIs only handle new messages sent to a business-designated presence —
-they don't expose existing personal chat history, converting your account
-to Business doesn't change that, and Meta's App Review process actively
-screens out "personal archiving" as a use case anyway. Also ruled out:
-YouTube real watch history / Watch Later sync — both were deprecated from
-the YouTube Data API in 2016 for privacy reasons, no workaround exists at
-the API level. Only Liked Videos is still readable, and Alek's call was
-that it's a different, noisier signal than the deliberate manual
-watch-later queue already in Links — not worth building.)*
+*(Ruled out — dead, not parked, don't resurface: WhatsApp and Instagram
+personal DMs (their Business/Messaging APIs only handle new messages sent
+to a business-designated presence, don't expose existing personal chat
+history, and Meta's App Review screens out "personal archiving" as a use
+case anyway). YouTube real watch history / Watch Later sync (both
+deprecated from the API in 2016 for privacy reasons, no workaround exists;
+Liked Videos is a different, noisier signal than the manual watch-later
+queue already in Links, not worth building instead). Stock tickers
+(Alpha Vantage/Finnhub) — not wanted, killed outright, independent of
+Plaid/Financial Center staying parked above.)*
 
 ## 5. Additional interfaces
 

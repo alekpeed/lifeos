@@ -56,6 +56,13 @@ discuss one again if Alek names it directly or says the word to un-park it.
 This applies across sessions/windows, not just the conversation where
 something got parked.
 
+**Dead/ruled-out items are stricter: never list them at all, not even as a
+footnote**, unless Alek explicitly asks what's been ruled out. Each doc's
+"Ruled out" note (e.g. YouTube watch history, stock tickers, WhatsApp/
+Instagram DMs) is the historical record — that's enough. A "what's open"
+answer should read as if dead items don't exist; parked items can get a
+one-line mention that they're parked, dead items get none.
+
 Deploy: `main` branch via GitHub Pages. Routine convention this session:
 commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
 `main`, push `main`, checkout back to the dev branch.
