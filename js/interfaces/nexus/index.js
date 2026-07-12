@@ -177,7 +177,23 @@ async function handleSurprise(stage) {
 
 function renderHome(canvas) {
   const stage = el('div', { class: 'nxs-stage' });
-  stage.append(el('img', { class: 'nxs-stage-img', src: hubImgUrl(), alt: 'NEXUS', draggable: 'false' }));
+  // The picture and the petal hotspots live in ONE svg, sharing a single
+  // viewBox/coordinate transform -- putting the <img> and the petal <svg> as
+  // two separately-laid-out elements (each independently computing "100% of
+  // .nxs-stage") looked right in testing but drifted out of alignment on a
+  // real device, almost certainly subpixel rounding between the two
+  // elements' box computations. An <image> inside the same <svg> as the
+  // <polygon>s can't drift from them; there's only one transform to get
+  // wrong instead of two that have to agree.
+  const svg = svgEl('svg', { class: 'nxs-petal-layer', viewBox: `0 0 ${IMG_W} ${IMG_H}` });
+  const img = svgEl('image', { href: hubImgUrl(), x: 0, y: 0, width: IMG_W, height: IMG_H });
+  svg.append(img);
+  for (const p of WHEEL_PETALS) {
+    const poly = svgEl('polygon', { points: p.points, class: 'nxs-petal' });
+    poly.addEventListener('click', () => ctx.navigate(p.module));
+    svg.append(poly);
+  }
+  stage.append(svg);
 
   for (const h of HOTSPOTS) {
     stage.append(el('button', {
@@ -187,14 +203,6 @@ function renderHome(canvas) {
       onclick: () => (h.special === 'surprise' ? handleSurprise(stage) : ctx.navigate(h.module)),
     }));
   }
-
-  const svg = svgEl('svg', { class: 'nxs-petal-layer', viewBox: `0 0 ${IMG_W} ${IMG_H}`, preserveAspectRatio: 'none' });
-  for (const p of WHEEL_PETALS) {
-    const poly = svgEl('polygon', { points: p.points, class: 'nxs-petal' });
-    poly.addEventListener('click', () => ctx.navigate(p.module));
-    svg.append(poly);
-  }
-  stage.append(svg);
 
   canvas.append(stage);
 }
