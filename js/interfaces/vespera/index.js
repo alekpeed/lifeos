@@ -459,11 +459,12 @@ registerInterface({
   name: 'Vespera',
   description: 'The orbital station — Life OS as a place you navigate.',
   stylesheet: 'js/interfaces/vespera/style.css',
-  // Desktop only (see PROJECT_SPEC.md's "Device philosophy" section) — the
-  // mobile remote is a stripped-down controller, not a living world. The
-  // shell falls back to 'default' if this would otherwise be selected on
-  // the installed mobile remote.
-  remoteSafe: false,
+  // Non-touch only (see PROJECT_SPEC.md's "Device philosophy" section) —
+  // the spatial hub navigation genuinely doesn't work on a small
+  // touchscreen, browser tab or installed. The shell falls back to
+  // 'default' (still the full module set, just not this interface) on any
+  // touch-primary device -- see js/data/device-context.js.
+  touchSafe: false,
 
   async mount(container, context) {
     ctx = context;

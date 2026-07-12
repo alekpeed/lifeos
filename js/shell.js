@@ -8,7 +8,7 @@ import * as data from './data/api.js';
 import { events } from './data/events.js';
 import { getInterface, listInterfaces } from './interfaces/registry.js';
 import { MODULES, MODULE_GROUPS, DEFAULT_MODULE, isValidModule, getRemoteModules, isRemoteModule } from './modules.js';
-import { isMobileRemoteContext } from './data/device-context.js';
+import { isMobileRemoteContext, isTouchPrimaryDevice } from './data/device-context.js';
 
 const appEl = document.getElementById('app');
 let active = null;
@@ -85,12 +85,13 @@ function buildContext() {
     isMobileRemote: remote,     // interfaces can adapt further (density, copy, etc.) if needed
     navigate,                   // request a route change
     parseRoute,                 // read the current route
-    // On the remote, desktop-only interfaces (e.g. Vespera) aren't offered
+    // On any touch-primary device (installed remote or a plain phone
+    // browser tab), touch-unsafe interfaces (e.g. Vespera) aren't offered
     // as a switch target in the first place -- not just rejected on pick.
     listInterfaces: () => {
       const all = listInterfaces();
-      if (!remote) return all;
-      return all.filter((i) => getInterface(i.id)?.remoteSafe !== false);
+      if (!isTouchPrimaryDevice()) return all;
+      return all.filter((i) => getInterface(i.id)?.touchSafe !== false);
     },
     switchInterface: (id) => switchInterface(id),
   };
@@ -99,12 +100,12 @@ function buildContext() {
 async function doSwitch(id, { persist }) {
   let def = getInterface(id) || getInterface('default');
   if (!def) throw new Error('No interfaces registered.');
-  // A remote-context fallback is a display-only override, not a real
+  // A touch-primary fallback is a display-only override, not a real
   // preference change -- activeInterface is a synced setting, so persisting
   // the fallback here would silently overwrite the user's real (desktop)
   // choice the next time it syncs back down.
   let forcedFallback = false;
-  if (def.remoteSafe === false && isMobileRemoteContext()) {
+  if (def.touchSafe === false && isTouchPrimaryDevice()) {
     def = getInterface('default');
     forcedFallback = true;
   }

@@ -18,29 +18,52 @@ spatial "living world," no attempt at parity with desktop. Just the
 modules genuinely useful away from your desk, LCARS-styled, syncing
 through the same backend as everything else.
 
-## Plumbing built so far (2026-07-12)
+## Plumbing built so far (2026-07-12, updated 2026-07-12)
 
 All interface-agnostic — none of it depends on the eventual visual design,
 so it's correct regardless of what the design package says.
 
-- **Device detection** — `js/data/device-context.js`, `isMobileRemoteContext()`.
-  Requires *both* an installed-app launch context (`display-mode: standalone`
-  /`fullscreen`/`minimal-ui`, or iOS Safari's legacy `navigator.standalone`)
-  *and* a touch-primary device (coarse pointer, no hover). Standalone alone
-  isn't enough — installing the PWA on a desktop also reports
-  `display-mode: standalone`, and would wrongly trigger the remote if that
-  were the only signal. A regular browser tab, on any device, is never
-  treated as the remote — only an actual installed-app launch is.
-- **Module curation** — `js/modules.js` now carries a `remote: true` flag on
-  each module in the draft list below, plus `getRemoteModules()` /
-  `isRemoteModule(id)` helpers. Not yet wired into any interface's actual
-  navigation (there's no remote-facing interface to wire it into yet) —
-  this is the source of truth waiting to be consumed once one exists.
+- **Device detection** — `js/data/device-context.js` exports two separate
+  signals, used for two separate questions:
+  - `isTouchPrimaryDevice()` — coarse pointer, no hover. Any touch-first
+    device, installed or not, browser tab or not.
+  - `isMobileRemoteContext()` — `isTouchPrimaryDevice()` *and* an
+    installed-app launch context (`display-mode: standalone`/`fullscreen`/
+    `minimal-ui`, or iOS Safari's legacy `navigator.standalone`).
+    Standalone alone isn't enough — installing the PWA on a desktop also
+    reports `display-mode: standalone`, and would wrongly narrow the
+    module set if that were the only signal.
+- **Module curation, wired live** — `js/modules.js` carries a `remote: true`
+  flag on each module in the draft list below, plus `getRemoteModules()` /
+  `isRemoteModule(id)` helpers. `js/shell.js` now actually consumes this:
+  `ctx.modules` is filtered to the remote set, and hash navigation to a
+  non-remote module redirects to the dashboard, but **only** when
+  `isMobileRemoteContext()` is true (installed + touch). A phone browser
+  tab that isn't installed deliberately keeps the full module list — the
+  escape hatch back to full functionality when you're on a phone but
+  haven't set up the dedicated remote.
+- **Vespera gated on touch, not install state** (2026-07-12, revised same
+  day after Alek caught Vespera loading in phone Chrome) — Vespera is
+  marked `touchSafe: false`; the shell falls back to Equator (the plain
+  default interface, still the full module list) on **any**
+  `isTouchPrimaryDevice()`, not just the installed remote. Vespera's
+  spatial hub navigation genuinely doesn't work on a small touchscreen
+  regardless of install state, which is a different question from module
+  *scope* — that's still gated on the narrower `isMobileRemoteContext()`
+  above. The fallback never persists over your real (synced)
+  `activeInterface` preference.
 - **APK packaging groundwork** — `.well-known/assetlinks.json` scaffolded
   with placeholder values (real ones need a package name and signing-cert
   fingerprint that don't exist until there's an actual Android project).
   `manifest.json` was already TWA-ready going in: `display: standalone`,
   full icon set including maskable 192/512.
+- **Mobile layout bug fixed along the way** — Equator's `.mer-root` grid
+  had `min-height: 100vh` with no `align-content`, so its two rows (nav
+  bar, canvas) stretched to fill the screen by default on short content
+  (a sparse Dashboard: collapsed nav + "nothing due yet"), pulling content
+  apart with dead space above and below. `align-content: start` fixes it;
+  desktop is unaffected since its nav column is normally taller than any
+  realistic viewport anyway.
 
 **A real blocker found while scaffolding this, worth flagging rather than
 quietly working around:** Digital Asset Links verification (the file
