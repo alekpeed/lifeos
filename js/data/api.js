@@ -160,6 +160,54 @@ export const Links = entities.links;
 export const Semesters = entities.semesters;
 export const Courses = entities.courses;
 export const Assignments = entities.assignments;
+export const AssignmentProgressLogs = entities.assignmentProgressLogs;
+
+// --- Academic pacing check: compares real logged progress
+// (AssignmentProgressLogs) against a self-set pacing checkpoint stored
+// directly on the assignment (paceCheckpoints -- your own stated intention,
+// e.g. "6 pages by March 3"; the app never invents one). Pure/synchronous
+// so both the Education view and the Daily Paper's source packet can share
+// the exact same gap calculation. ---
+
+function localTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// The most recent checkpoint whose date has already passed, compared
+// against everything logged so far. Returns null if there's no checkpoint
+// due yet (nothing to compare against). A non-positive gap means on track
+// or ahead -- callers decide whether that's worth surfacing.
+export function pacingStatusFor(assignment, logs) {
+  const due = (assignment.paceCheckpoints || [])
+    .filter((cp) => cp.date <= localTodayStr())
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (!due.length) return null;
+  const checkpoint = due[0];
+  const loggedTotal = logs.reduce((sum, l) => sum + (Number(l.unitsAdded) || 0), 0);
+  return { checkpoint, loggedTotal, gap: checkpoint.targetByThen - loggedTotal };
+}
+
+// Every open (not-done) assignment with a real, positive gap against its
+// own most recent past checkpoint. Used by the Daily Paper's source packet --
+// only ever a real logged number vs. a number you typed in yourself, never
+// an invented pacing curve.
+export async function getAssignmentPacingGaps() {
+  const [assignments, allLogs, courses] = await Promise.all([Assignments.list(), AssignmentProgressLogs.list(), Courses.list()]);
+  const courseById = new Map(courses.map((c) => [c.id, c]));
+  const logsByAssignment = new Map();
+  for (const log of allLogs) {
+    if (!logsByAssignment.has(log.assignmentId)) logsByAssignment.set(log.assignmentId, []);
+    logsByAssignment.get(log.assignmentId).push(log);
+  }
+  const gaps = [];
+  for (const a of assignments) {
+    if (a.status === 'done') continue;
+    const status = pacingStatusFor(a, logsByAssignment.get(a.id) || []);
+    if (status && status.gap > 0) gaps.push({ assignment: a, course: courseById.get(a.courseId), ...status });
+  }
+  return gaps;
+}
+
 export const Bills = entities.bills;
 export const BillPayments = entities.billPayments;
 export const Books = entities.books;

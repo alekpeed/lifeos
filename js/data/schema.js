@@ -27,9 +27,12 @@ export const DB_NAME = 'lifeos';
 // local date + owner, kept so a new editorial can reference recent ones for
 // continuity). v14 adds `resurfaceItems`/`resurfaceReviewLogs` (Recall — the
 // language-flashcard SRS engine generalized to resurface any record in the
-// app). runUpgrade in db.js creates any store that doesn't yet exist, so
-// these bumps are non-destructive for existing data.
-export const DB_VERSION = 14;
+// app). v15 adds `assignmentProgressLogs` (the academic pacing check's
+// dated progress log, one entry per logging session -- pacing target/unit/
+// checkpoints themselves live directly on the assignment record, no schema
+// change needed there). runUpgrade in db.js creates any store that doesn't
+// yet exist, so these bumps are non-destructive for existing data.
+export const DB_VERSION = 15;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -61,6 +64,16 @@ export const STORES = [
     { name: 'courseId', keyPath: 'courseId' },
     { name: 'dueDate', keyPath: 'dueDate' },
     { name: 'status', keyPath: 'status' },
+  ] },
+  // Academic pacing check: dated progress-log entries for a writing-type
+  // assignment (pages/words added in one logging session). The target/unit/
+  // self-set checkpoints ("6 pages by March 3") live directly on the
+  // assignment record itself (pacingTarget/pacingUnit/paceCheckpoints) --
+  // only the session-by-session history needs its own store, same shape as
+  // readingLogs/cookLogs/habitLogs.
+  { name: 'assignmentProgressLogs', keyPath: 'id', indexes: [
+    { name: 'assignmentId', keyPath: 'assignmentId' },
+    { name: 'date', keyPath: 'date' },
   ] },
 
   { name: 'bills', keyPath: 'id', indexes: [

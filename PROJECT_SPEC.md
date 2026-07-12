@@ -39,7 +39,15 @@ lets the whole app be redecorated later without rebuilding it:
   with a note" flag
 - **Education** — Semesters → Courses → Assignments, grades and a running
   GPA, % complete + time spent per assignment, a time-invested-vs-grade view,
-  course notes and key dates
+  course notes and key dates. Plus an **academic pacing check**: an
+  optional target + unit (pages/words) and self-set pacing checkpoints
+  ("6 pages by March 3" — you state your own intention, the app never
+  invents a curve) on any assignment, with a dated progress log
+  (`assignmentProgressLogs`). Past a checkpoint, a real gap between what
+  you logged and what you said you'd have done surfaces as a "behind
+  pace" chip on the assignment row and, when genuinely relevant, as a
+  grounded fact in the Daily Paper's AI editorial — never an invented
+  number, always your own logged total vs. your own stated checkpoint.
 - **Books** — currently reading / to read / finished, reading streaks, pages
   and estimated word counts, genre breakdown, author tracking, ratings/notes.
   Also a real **library**: attach the actual book file (EPUB / PDF / text) to
@@ -537,27 +545,7 @@ Everything below came out of talking through what would actually feel
   a friend who doesn't run full Life OS. Alek's call: anyone he'd actually
   share with already has the full app.)*
 - ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
-- **Academic pacing check — real progress vs. your own stated plan**
-  (2026-07). Assignments today track a single manually-set
-  `percentComplete` slider (see `js/interfaces/default/views/education.js`)
-  — a current-state snapshot, not a history. This extends that with, for
-  writing-type assignments specifically: a **target** (total pages/words
-  due), a **self-set pacing checkpoint** (you state your own intention —
-  "6 pages by March 3" — the app never invents a pacing curve on your
-  behalf), and a **dated progress log** (same shape as ReadingLogs/
-  CookLogs/HabitLogs — one entry per logging session, pages/words added
-  that day). On any day past a checkpoint, compare what you actually
-  logged against what you said you wanted done by then, and if there's a
-  real gap, surface it — not as an accusation, as a genuine question,
-  grounded only in the real logged numbers: *"You said you wanted 6 pages
-  done by now on the 20-page paper — you've logged 3 so far. Still on
-  track, or did you just forget to log recent work?"* That phrasing is
-  deliberately AI-editorial voice, not a silent automation — the natural
-  home is the Daily Paper's editorial, which already has exactly this
-  "grounded in real facts, references what you told it before" shape now
-  that it has continuity (see the AI-with-continuity Built ✅ entry
-  above) — this would be one more fact folded into that same bounded
-  packet, not new AI infrastructure.
+- ~~Academic pacing check~~ — DONE (see Built ✅, Education entry).
 
 ## 5. Rough order of what's left
 

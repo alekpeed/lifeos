@@ -408,26 +408,8 @@ for a stripped-down version.)
   anywhere near that much detail. Worth retrofitting onto the existing
   Documents camera-to-data scan too, which currently sends full
   resolution.
-- **Academic pacing check — real progress vs. your own stated plan**
-  (2026-07). Assignments today track a single manually-set
-  `percentComplete` slider (see `js/interfaces/default/views/education.js`)
-  — a current-state snapshot, not a history. This extends that with, for
-  writing-type assignments specifically: a **target** (total pages/words
-  due), a **self-set pacing checkpoint** (you state your own intention —
-  "6 pages by March 3" — the app never invents a pacing curve on your
-  behalf), and a **dated progress log** (same shape as ReadingLogs/
-  CookLogs/HabitLogs — one entry per logging session, pages/words added
-  that day). On any day past a checkpoint, compare what you actually
-  logged against what you said you wanted done by then, and if there's a
-  real gap, surface it — not as an accusation, as a genuine question,
-  grounded only in the real logged numbers: *"You said you wanted 6 pages
-  done by now on the 20-page paper — you've logged 3 so far. Still on
-  track, or did you just forget to log recent work?"* That phrasing is
-  deliberately AI-editorial voice, not a silent automation — the natural
-  home is the Daily Paper's editorial, which already has exactly this
-  "grounded in real facts, references what you told it before" shape now
-  that it has continuity — one more fact folded into that same bounded
-  packet, not new AI infrastructure.
+- ~~Academic pacing check~~ — DONE (2026-07, see FEATURE_LIST.md's Built
+  section, Education entry).
 
 ## 9. Far tier 🪐 — round 3: scale-and-space swings
 

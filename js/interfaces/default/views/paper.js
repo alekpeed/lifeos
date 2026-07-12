@@ -294,7 +294,7 @@ function buildDigestText(data) {
 // useful while making missing data explicit and never feeding an older
 // editorial back into the model.
 export function buildEditorialContext(data) {
-  const { feed, onThisDay, habits, logsByHabit, weather, weatherDescription, sleep, recentIssues } = data;
+  const { feed, onThisDay, habits, logsByHabit, weather, weatherDescription, sleep, recentIssues, pacingGaps } = data;
   const lines = [`Date: ${longDate()}`];
 
   if (weather) {
@@ -316,6 +316,14 @@ export function buildEditorialContext(data) {
     }
   } else {
     lines.push('Due and overdue items: none in the next seven days');
+  }
+
+  if (pacingGaps?.length) {
+    lines.push('Academic pacing (your own stated checkpoints vs. what you actually logged -- only mention this if it genuinely adds something):');
+    for (const g of pacingGaps) {
+      const unit = g.assignment.pacingUnit || 'pages';
+      lines.push(`- "${g.assignment.title || '(untitled)'}"${g.course?.name ? ` (${g.course.name})` : ''}: you said ${g.checkpoint.targetByThen} ${unit} done by ${fmtDate(g.checkpoint.date)}, you've logged ${g.loggedTotal} so far — ${g.gap} ${unit} short.`);
+    }
   }
 
   if (habits.length) {
@@ -358,7 +366,7 @@ export async function renderPaper(canvas, ctx, rerender) {
     ctx.data.Settings.get('billDueSoonDays'),
     ctx.data.Settings.get('documentExpiryDays'),
   ]);
-  const [feed, onThisDay, habits, allLogs, healthLogs, weather, checkedSet] = await Promise.all([
+  const [feed, onThisDay, habits, allLogs, healthLogs, weather, checkedSet, pacingGaps] = await Promise.all([
     ctx.data.getDueSoonFeed(7, billDays, docDays),
     ctx.data.getOnThisDay(),
     ctx.data.Habits.list(),
@@ -366,6 +374,7 @@ export async function renderPaper(canvas, ctx, rerender) {
     ctx.data.HealthLogs.list(),
     ctx.data.getWeather(),
     currentChecklist(ctx),
+    ctx.data.getAssignmentPacingGaps(),
   ]);
   if (state.surprise === undefined) state.surprise = await ctx.data.getSurpriseMe();
 
@@ -384,7 +393,7 @@ export async function renderPaper(canvas, ctx, rerender) {
   const weatherDescription = weather ? ctx.data.describeWeatherCode(weather.code).label : null;
   const { id: editorialProviderId, label: editorialProviderLabel, apiKey } = await ctx.data.getActiveAiProvider();
   const recentIssues = await ctx.data.getRecentEditorials(editorialOwner, todayStr());
-  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, weatherDescription, checkedSet, editorialOwner, editorialProviderId, editorialProviderLabel, recentIssues };
+  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, weatherDescription, checkedSet, editorialOwner, editorialProviderId, editorialProviderLabel, recentIssues, pacingGaps };
 
   // AI editorial: visible as a setup state without a key, and generated with
   // the user's own key when configured. Cached by local date and account; a

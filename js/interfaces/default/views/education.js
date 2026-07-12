@@ -1,4 +1,4 @@
-import { el, fmtDate, isPast } from '../dom.js';
+import { el, fmtDate, isPast, todayStr } from '../dom.js';
 
 const ASSIGNMENT_STATUSES = [
   { value: 'not_started', label: 'Not Started' },
@@ -216,7 +216,7 @@ async function renderCourses(container, ctx, rerender) {
 
 // --- Assignments level ---
 
-function assignmentRow(assignment, ctx, onSelect) {
+function assignmentRow(assignment, pacingGap, ctx, onSelect) {
   const meta = el('div', { class: 'mer-task-meta' });
   if (assignment.dueDate) {
     meta.append(el('span', {
@@ -227,6 +227,12 @@ function assignmentRow(assignment, ctx, onSelect) {
   if (assignment.status === 'in_progress') meta.append(el('span', { class: 'mer-chip', text: `${assignment.percentComplete || 0}%` }));
   if (assignment.timeSpentMinutes) meta.append(el('span', { class: 'mer-chip', text: `${(assignment.timeSpentMinutes / 60).toFixed(1)}h` }));
   if (typeof assignment.grade === 'number') meta.append(el('span', { class: 'mer-chip', text: `${assignment.grade}%` }));
+  if (pacingGap) {
+    meta.append(el('span', {
+      class: 'mer-chip is-overdue',
+      text: `${pacingGap.gap} ${assignment.pacingUnit || 'pages'} behind pace`,
+    }));
+  }
 
   const row = el('div', { class: 'mer-task-row' }, [
     el('input', {
@@ -240,7 +246,112 @@ function assignmentRow(assignment, ctx, onSelect) {
   return row;
 }
 
-function assignmentDetail(assignment, ctx, rerender) {
+// --- Academic pacing check: a target + unit, self-set checkpoints ("6
+// pages by March 3"), and a dated progress log -- see PROJECT_SPEC.md's
+// "Academic pacing check" entry. Checkpoints have no id of their own
+// (same convention as courseDetail's keyDatesEditor above): deletion
+// filters by reference equality within the array pulled from this same
+// render pass, not a stored id.
+
+function pacingCheckpointsEditor(assignment, ctx, rerender) {
+  const unit = assignment.pacingUnit || 'pages';
+  const list = el('div', { class: 'mer-visit-dates' });
+  for (const cp of (assignment.paceCheckpoints || []).slice().sort((a, b) => a.date.localeCompare(b.date))) {
+    list.append(el('span', { class: 'mer-chip' }, [
+      document.createTextNode(`By ${fmtDate(cp.date)}: ${cp.targetByThen} ${unit} `),
+      el('button', {
+        type: 'button', class: 'mer-icon-btn', text: '×',
+        onclick: async () => {
+          const paceCheckpoints = (assignment.paceCheckpoints || []).filter((c) => c !== cp);
+          await ctx.data.Assignments.update(assignment.id, { paceCheckpoints });
+          rerender();
+        },
+      }),
+    ]));
+  }
+  const dateInput = el('input', { type: 'date' });
+  const targetInput = el('input', { type: 'number', min: '0', step: '1', placeholder: `${unit} by then` });
+  const addBtn = el('button', {
+    type: 'button', text: '+ Add checkpoint',
+    onclick: async () => {
+      if (!dateInput.value || !targetInput.value) return;
+      const paceCheckpoints = [...(assignment.paceCheckpoints || []), { date: dateInput.value, targetByThen: Number(targetInput.value) }];
+      await ctx.data.Assignments.update(assignment.id, { paceCheckpoints });
+      rerender();
+    },
+  });
+  return el('div', {}, [list, el('div', { class: 'mer-person-form' }, [dateInput, targetInput, addBtn])]);
+}
+
+function progressLogEditor(assignment, logs, ctx, rerender) {
+  const unit = assignment.pacingUnit || 'pages';
+  const total = logs.reduce((sum, l) => sum + (Number(l.unitsAdded) || 0), 0);
+  const list = el('div', { class: 'mer-people-list' });
+  for (const log of logs.slice().sort((a, b) => (a.date < b.date ? 1 : -1))) {
+    list.append(el('div', { class: 'mer-person-card' }, [
+      el('div', { class: 'mer-person-info' }, [
+        el('div', { class: 'mer-person-name', text: `+${log.unitsAdded} ${unit}` }),
+        el('div', { class: 'mer-person-meta', text: fmtDate(log.date) }),
+      ]),
+      el('button', {
+        type: 'button', class: 'mer-icon-btn', text: '×',
+        onclick: async () => { await ctx.data.AssignmentProgressLogs.remove(log.id); rerender(); },
+      }),
+    ]));
+  }
+  const unitsInput = el('input', { type: 'number', min: '1', placeholder: `${unit} added today` });
+  const logBtn = el('button', {
+    type: 'button', text: 'Log session',
+    onclick: async () => {
+      const unitsAdded = Number(unitsInput.value);
+      if (!unitsAdded || unitsAdded < 1) return;
+      await ctx.data.AssignmentProgressLogs.create({ assignmentId: assignment.id, date: todayStr(), unitsAdded });
+      rerender();
+    },
+  });
+  return el('div', {}, [
+    el('p', { class: 'mer-muted', text: `${total} ${unit} logged so far.` }),
+    logs.length ? list : null,
+    el('div', { class: 'mer-person-form' }, [unitsInput, logBtn]),
+  ].filter(Boolean));
+}
+
+function pacingSection(assignment, logs, ctx, rerender) {
+  const patch = (fields) => ctx.data.Assignments.update(assignment.id, fields).then(rerender);
+  const unit = assignment.pacingUnit || 'pages';
+  const targetInput = el('input', {
+    type: 'number', min: '0', value: assignment.pacingTarget ?? '', placeholder: 'Total due',
+    onchange: (e) => patch({ pacingTarget: e.target.value === '' ? null : Number(e.target.value) }),
+  });
+  const unitSelect = el('select', { onchange: (e) => patch({ pacingUnit: e.target.value }) }, [
+    el('option', { value: 'pages', text: 'pages', selected: unit === 'pages' }),
+    el('option', { value: 'words', text: 'words', selected: unit === 'words' }),
+  ]);
+
+  const status = ctx.data.pacingStatusFor(assignment, logs);
+  const statusLine = status
+    ? el('p', {
+        class: status.gap > 0 ? 'mer-sync-error' : 'mer-muted',
+        text: status.gap > 0
+          ? `You said you wanted ${status.checkpoint.targetByThen} ${unit} done by ${fmtDate(status.checkpoint.date)} — you've logged ${status.loggedTotal} so far. ${status.gap} ${unit} short. Still on track, or did you just forget to log recent work?`
+          : `On track — ${status.loggedTotal} ${unit} logged, ${status.checkpoint.targetByThen} ${unit} was the target by ${fmtDate(status.checkpoint.date)}.`,
+      })
+    : null;
+
+  return el('div', {}, [
+    el('div', { class: 'mer-field-grid' }, [
+      el('label', { class: 'mer-field' }, [el('span', { text: 'Total due' }), targetInput]),
+      el('label', { class: 'mer-field' }, [el('span', { text: 'Unit' }), unitSelect]),
+    ]),
+    statusLine,
+    el('div', { class: 'mer-subsection-label', text: 'Pacing checkpoints (your own intention)' }),
+    pacingCheckpointsEditor(assignment, ctx, rerender),
+    el('div', { class: 'mer-subsection-label', text: 'Progress log' }),
+    progressLogEditor(assignment, logs, ctx, rerender),
+  ].filter(Boolean));
+}
+
+function assignmentDetail(assignment, logs, ctx, rerender) {
   const patch = (fields) => ctx.data.Assignments.update(assignment.id, fields).then(rerender);
   const field = (labelText, inputEl) => el('label', { class: 'mer-field' }, [el('span', { text: labelText }), inputEl]);
 
@@ -271,6 +382,8 @@ function assignmentDetail(assignment, ctx, rerender) {
     ]),
     el('div', { class: 'mer-subsection-label', text: '% complete' }),
     el('div', { class: 'mer-snooze-row' }, [percentInput, percentLabel]),
+    el('div', { class: 'mer-subsection-label', text: 'Pacing' }),
+    pacingSection(assignment, logs, ctx, rerender),
     el('button', {
       type: 'button', class: 'mer-danger-btn', text: 'Delete assignment',
       onclick: async () => { await ctx.data.Assignments.remove(assignment.id); state.selectedAssignmentId = null; rerender(); },
@@ -298,18 +411,23 @@ async function renderAssignments(container, ctx, rerender) {
 
   const assignments = (await ctx.data.Assignments.byIndex('courseId', state.courseId))
     .sort((a, b) => (a.dueDate || '9999') < (b.dueDate || '9999') ? -1 : 1);
+  const pacingGaps = await ctx.data.getAssignmentPacingGaps();
+  const gapByAssignment = new Map(pacingGaps.map((g) => [g.assignment.id, g]));
 
   if (!assignments.length) {
     container.append(el('p', { class: 'mer-muted', text: 'No assignments yet.' }));
   } else {
     for (const a of assignments) {
-      container.append(assignmentRow(a, ctx, (id) => { state.selectedAssignmentId = state.selectedAssignmentId === id ? null : id; rerender(); }));
+      container.append(assignmentRow(a, gapByAssignment.get(a.id), ctx, (id) => { state.selectedAssignmentId = state.selectedAssignmentId === id ? null : id; rerender(); }));
     }
   }
 
   if (state.selectedAssignmentId) {
     const a = assignments.find((x) => x.id === state.selectedAssignmentId);
-    if (a) container.append(assignmentDetail(a, ctx, rerender));
+    if (a) {
+      const logs = await ctx.data.AssignmentProgressLogs.byIndex('assignmentId', a.id);
+      container.append(assignmentDetail(a, logs, ctx, rerender));
+    }
   }
 }
 

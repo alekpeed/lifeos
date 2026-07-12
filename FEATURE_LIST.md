@@ -40,7 +40,14 @@ genuine moonshots.
   with a note" flag.
 - **Education** — Semesters → Courses → Assignments, grades and a running
   GPA, % complete + time spent per assignment, a time-vs-grade view, course
-  notes and key dates.
+  notes and key dates. Plus an **academic pacing check**: set an optional
+  target + unit (pages/words) and your own pacing checkpoints ("6 pages by
+  March 3") on any assignment, then log dated progress sessions. Past a
+  checkpoint, a real gap between what you logged and what you said you'd
+  have done shows as a "behind pace" chip on the assignment, and — only
+  when it genuinely adds something — as a grounded line in the Daily
+  Paper's AI editorial, always your own real numbers, never an invented
+  pacing curve.
 - **Finance** — a Bills tab (recurring or one-time, amount/due
   date/paid/autopay, PDF attachments, payment history, a configurable
   "remind me N days before"), a Subscriptions tab (monthly/yearly/weekly
@@ -386,11 +393,6 @@ mobile remote itself exists.
   vision-AI pattern already shipped for Documents' camera scan. Images
   compressed client-side (long edge ~1000-1500px) before sending, for
   cost.
-- **Academic pacing check** — for writing assignments, a target + a
-  self-set pacing checkpoint ("6 pages by March 3") + a dated progress
-  log, so the Daily Paper's AI editorial can compare what you actually
-  logged against your own stated plan and ask, grounded in real numbers,
-  whether you're on track or just forgot to log recent work.
 
 ## Far tier 🪐 — scale-and-space swings
 
