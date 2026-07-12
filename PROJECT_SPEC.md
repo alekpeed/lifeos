@@ -609,9 +609,9 @@ own Tier 2 flag, not a routine add)**
   live crypto price-ticker panel (CoinGecko, free/keyless). Needs its own
   backend token exchange (rides on the Supabase backend, can't be
   client-only) — this is the most security-sensitive item on either list.
-- **Spotify listening stats** — a "recently played / top artists / listening
-  time" page via Spotify's Web API. Free API; needs its own new OAuth flow
-  (a third, alongside Google and Supabase).
+- ⏸️ PARKED — **Spotify listening stats** — fully scoped (real API limits,
+  Premium requirement, the export+polling path to real history) but not
+  started. See `FUTURE_FEATURES.md` §4 for the full writeup.
 - ~~Google Photos import~~ — DONE (see Built ✅, Photos/Gallery entry).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch

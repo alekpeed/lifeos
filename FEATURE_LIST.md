@@ -260,8 +260,8 @@ bug).
   depending on product) plus a live crypto price ticker (free via
   CoinGecko). Needs its own backend token exchange — the most
   security-sensitive item here.
-- **Spotify listening stats** — recently played/top artists/listening
-  time, via Spotify's free Web API. Needs its own new OAuth flow.
+- ⏸️ PARKED — **Spotify listening stats** — fully scoped, not started. See
+  `FUTURE_FEATURES.md` §4.
 - *(Ruled out — dead, not parked: WhatsApp/Instagram personal DMs, YouTube
   watch history/Watch Later sync, and stock tickers. Not shown in status
   recaps.)*

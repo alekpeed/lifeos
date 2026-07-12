@@ -37,6 +37,8 @@ parked means "not now," not "forgotten" or "cut."
   galaxy"), unrelated to Vespera. Mid-exploration: a typography/identity
   round (Claude Design) and an environment-art round (GPT) were both
   started, not finished or picked. Full detail in section 5.
+- **Spotify listening stats** — fully scoped, not started. Full detail in
+  section 4, including what's actually buildable given real API limits.
 
 ## 1. The near-term core: accounts, AI, and notifications
 
@@ -124,9 +126,32 @@ Each of these is its own 🔑 go/no-go, not a routine add.
     backend — the secret key can never touch the browser). The most
     security-sensitive item on this whole document.
   - Crypto tickers: CoinGecko, free/keyless.
-- **Spotify listening stats** — a "recently played / top artists /
-  listening time" page via Spotify's free Web API. Needs its own new OAuth
-  flow (a third, alongside Google and Supabase).
+- ⏸️ PARKED — **Spotify listening stats** — needs its own new OAuth flow (a
+  third, alongside Google and Supabase). Scoped in detail (2026-07) before
+  parking, so this doesn't need re-researching later:
+  - As of Feb 2026, Development Mode requires a **Spotify Premium
+    account** on the developer's own account just to use the API at all.
+  - Real-time API access is thinner than it used to be. Available: Recently
+    Played (last 50 tracks only, rolling window), Top Items (ranked
+    artists/tracks across 3 time windows — ~4wk/~6mo/years — but ranking
+    only, no counts attached), Currently Playing, saved/liked
+    tracks+albums, own playlists (read).
+  - **Dead, no workaround**: Audio Features/Analysis (danceability,
+    energy, valence, tempo) — killed for all new apps in Nov 2024. No
+    "your music got sadder in March" style analysis is buildable by
+    anyone anymore, not a LifeOS-specific gap.
+  - **No raw totals via API at all** — no total minutes listened, no
+    per-track play counts, no full listening history. This has been a
+    top-requested, permanently-denied feature on Spotify's own developer
+    forum for years.
+  - The real path to genuine "all-time" stats (confirmed by how stats.fm/
+    Spotistats actually does it, not speculation): a ONE-TIME manual
+    import of Spotify's own "Extended Streaming History" data export
+    (Privacy settings → Download your data → up to 30 days to arrive as a
+    ZIP) for real historical backfill, same shape as LifeOS's existing
+    manual JSON import elsewhere, PLUS ongoing periodic polling of
+    Recently Played to keep it current going forward. Live API alone can
+    never give more than rankings + a thin recent window.
 - ✅ **Google Photos import** — DONE: a "📥 Import from Google Photos"
   option per album (Photos/Gallery), via the Photos Picker API. Reuses the
   existing Google sign-in with a new scope. Not a live sync — Google
