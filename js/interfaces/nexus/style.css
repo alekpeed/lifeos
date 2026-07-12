@@ -31,7 +31,13 @@
 
 .nxs-root {
   font-family: var(--font-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
-  min-height: 100vh;
+  /* 100vh, not 100dvh, is pinned to the LARGEST possible viewport (address
+     bar hidden) -- taller than the actual visible area whenever the address
+     bar is showing, which is most of the time. That mismatch against the
+     stage's own 100dvh sizing below was exactly why the page still had a
+     sliver of forced scroll even though the stage itself fit correctly. */
+  min-height: 100dvh;
+  overscroll-behavior: none;
   background:
     radial-gradient(ellipse at 15% 0%, rgba(255, 61, 148, 0.10), transparent 55%),
     radial-gradient(ellipse at 85% 15%, rgba(43, 227, 255, 0.08), transparent 50%),
@@ -52,9 +58,14 @@
    the viewport space the stage needs to size itself against. */
 .nxs-canvas--home {
   padding: var(--space-sm, 0.5rem);
-  min-height: calc(100dvh - var(--space-sm, 0.5rem) * 2);
+  height: calc(100dvh - var(--space-sm, 0.5rem) * 2);
   align-items: center;
   justify-content: center;
+  /* Safety net: the stage is sized to exactly fill this box, so nothing
+     should ever overflow it -- but if anything does (a subpixel rounding
+     difference, a browser quirk), clip it instead of producing a scrollbar.
+     The home route should never scroll, full stop. */
+  overflow: hidden;
 }
 
 /* Dashboard: the mockup image + real click regions */
