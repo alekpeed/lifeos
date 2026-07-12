@@ -52,7 +52,9 @@ genuine moonshots.
   The single source of truth for people app-wide — other modules link to
   (or quick-create) a real Contacts entry rather than duplicating one.
 - **Milestones** — a life-events timeline grouped by year, plus a Yearly
-  Recap tab aggregating stats from every other module for a given year.
+  Recap tab aggregating stats from every other module for a given year, with
+  an AI-written narrative on top (whichever provider's active), grounded
+  only in that year's real stats/milestones, cached per year and account.
 - **Global Search** — one query across every module, results grouped by
   module, click jumps you there.
 - **Backup** — manual JSON export/import, round-trips attachments
@@ -222,8 +224,6 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   triggered by your own action (Settings test button, Daily Paper's "Send
   to Telegram"). Still open: a separate ChatGPT panel (would need that
   proxy first) and full two-way Telegram chat (needs a backend webhook).
-- 🏗️ **AI-written yearly recap** — once an AI module exists, have it draft
-  the actual narrative instead of just tallying numbers.
 
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 

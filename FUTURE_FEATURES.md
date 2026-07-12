@@ -79,9 +79,10 @@ parked means "not now," not "forgotten" or "cut."
   - Full two-way Telegram chat — needs a real backend webhook (a Supabase
     Edge Function) since a static PWA can't listen for incoming messages
     when it's not open; deliberately out of scope for the send-only pass.
-- 🏗️ **AI-written yearly recap** — once an AI module can read your data,
-  have it draft the actual recap narrative instead of just tallying
-  numbers (the numbers-driven aggregation already exists in Milestones).
+- ✅ **AI-written yearly recap** — DONE: Milestones' Yearly Recap now has an
+  AI-drafted narrative (whichever provider is active) on top of the
+  numbers-driven aggregation, grounded only in that year's real stats and
+  named milestones, cached per year and signed-in account.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 

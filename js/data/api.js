@@ -498,6 +498,13 @@ const SETTING_DEFAULTS = {
   paperEditorialDate: '',
   paperEditorialText: '',
   paperEditorialOwner: '',
+  // Milestones' AI-written yearly recap narrative -- cached per year (not
+  // per day like the Daily Paper) and per account, same reasoning as above:
+  // don't re-call the AI provider every time the Yearly Recap tab renders,
+  // only when the selected year or signed-in account actually changes.
+  recapNarrativeYear: '',
+  recapNarrativeText: '',
+  recapNarrativeOwner: '',
 };
 
 export const Settings = {
@@ -843,6 +850,24 @@ export async function generateDailyEditorial(summary) {
     + `Mention one or two exact specifics naturally, then offer a practical focus for the day. `
     + `Return plain prose only: no title, markdown, bullets, greeting, or sign-off.\n\nSOURCE PACKET\n${summary}`;
   const { text } = await send(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 400 });
+  return text.trim();
+}
+
+// --- Milestones: AI-written yearly recap narrative (provider-switchable,
+// same reasoning as the Daily Paper editorial above -- a bounded, factual
+// packet in, a grounded narrative out, no invention). Caching (which year/
+// account it belongs to) lives in Settings and is handled by the caller
+// (views/milestones.js), same shape as the Daily Paper's date-based cache.
+
+export async function generateYearlyRecapNarrative(summary) {
+  const { send, apiKey, model } = await getActiveAiProvider();
+  const prompt = `You are writing the opening narrative for someone's personal year-in-review, drawn from their own life-tracking app. `
+    + `Use only the facts in the source packet below. Never invent an event, achievement, feeling, or detail not explicitly present. `
+    + `If a milestone list is present, weave in one or two of the most notable ones by name naturally -- don't just recite the stat totals back. `
+    + `If data is sparse or a category is empty, don't dwell on it or apologize for it. `
+    + `Be warm and reflective, not a corporate "wrapped" summary and not overly sentimental. Write 4-6 sentences in second person ("you"). `
+    + `Return plain prose only: no title, markdown, bullets, greeting, or sign-off.\n\nSOURCE PACKET\n${summary}`;
+  const { text } = await send(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 500 });
   return text.trim();
 }
 

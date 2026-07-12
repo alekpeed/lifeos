@@ -4,6 +4,8 @@ let state = {
   tab: 'timeline', // timeline | recap
   selectedId: null,
   recapYear: new Date().getFullYear(),
+  narrativeGenerating: false,
+  narrativeError: null,
 };
 
 // --- Timeline ---
@@ -125,14 +127,126 @@ function statRow(label, value) {
   ]);
 }
 
+// A factual, bounded source packet for the AI -- same discipline as the
+// Daily Paper's buildEditorialContext: numbers and named milestones only,
+// nothing for the model to embellish beyond what's actually here.
+function buildRecapContext(recap) {
+  const lines = [`Year: ${recap.year}`];
+  lines.push(`Tasks completed: ${recap.tasksCompleted}`);
+  lines.push(`Assignments completed: ${recap.assignmentsCompleted}`);
+  lines.push(`Places visited: ${recap.placesVisitedCount} places across ${recap.totalVisits} visits`);
+  lines.push(`Books finished: ${recap.booksFinished} (${recap.pagesRead} pages read)`);
+  lines.push(`Recipes cooked: ${recap.recipesCookedCount} recipes across ${recap.cookSessions} cook sessions`);
+  lines.push(`Bills paid: $${recap.billsPaidTotal.toFixed(2)} total`);
+  lines.push(`Documents added: ${recap.documentsAdded}`);
+  lines.push(`Contacts added: ${recap.contactsAdded}`);
+  lines.push(`Habit check-ins: ${recap.habitCheckIns}`);
+  lines.push(`Health logs: ${recap.healthLogCount}${recap.avgSleepHours != null ? `, average sleep ${recap.avgSleepHours.toFixed(1)} hours` : ''}`);
+  lines.push(recap.milestones.length
+    ? `Milestones this year (chronological): ${recap.milestones.map((m) => `${m.title || '(untitled)'} (${m.date})`).join('; ')}`
+    : 'Milestones this year: none logged');
+  return lines.join('\n');
+}
+
+function narrativeSection(narrative, onRegenerate, providerLabel) {
+  if (!narrative) return null;
+  let body;
+  if (narrative.unavailable) {
+    body = el('p', { class: 'mer-muted', text: `Add your ${providerLabel} API key in Settings to have ${providerLabel} write a narrative for this year.` });
+  } else if (narrative.loading) {
+    body = el('p', { class: 'mer-muted', text: 'Writing…' });
+  } else if (narrative.error) {
+    body = el('p', { class: 'mer-muted mer-sync-error', text: narrative.error });
+  } else if (narrative.text) {
+    body = el('p', {}, [document.createTextNode(narrative.text)]);
+  } else {
+    return null;
+  }
+  const wrap = el('div', {}, [body]);
+  if (!narrative.loading && !narrative.unavailable) {
+    wrap.append(el('button', { type: 'button', class: 'mer-reader-btn', text: narrative.error ? 'Retry' : '🔄 Regenerate', onclick: onRegenerate }));
+  }
+  return wrap;
+}
+
+// Kicks off one AI call to whichever provider is active and caches the
+// result under the selected year + signed-in account -- same reset-by-key
+// pattern as the Daily Paper editorial (views/paper.js), just year-scoped
+// instead of date-scoped since a recap is naturally per-year. Guarded by
+// state.narrativeGenerating so a re-render mid-generation doesn't fire a
+// second concurrent call.
+async function ensureNarrative(ctx, recap, narrativeOwner, rerender) {
+  state.narrativeGenerating = true;
+  state.narrativeError = null;
+  try {
+    const text = await ctx.data.generateYearlyRecapNarrative(buildRecapContext(recap));
+    if (!text) throw new Error('The AI returned an empty narrative. Please try again.');
+    await Promise.all([
+      ctx.data.Settings.set('recapNarrativeYear', String(recap.year)),
+      ctx.data.Settings.set('recapNarrativeText', text),
+      ctx.data.Settings.set('recapNarrativeOwner', narrativeOwner),
+    ]);
+  } catch (err) {
+    state.narrativeError = err.message || String(err);
+  }
+  state.narrativeGenerating = false;
+  rerender();
+}
+
+async function regenerateNarrative(ctx, rerender) {
+  await Promise.all([
+    ctx.data.Settings.set('recapNarrativeYear', ''),
+    ctx.data.Settings.set('recapNarrativeText', ''),
+  ]);
+  state.narrativeError = null;
+  rerender();
+}
+
 async function renderRecap(container, ctx, rerender) {
   const yearInput = el('input', {
     type: 'number', value: state.recapYear,
-    onchange: (e) => { state.recapYear = Number(e.target.value) || new Date().getFullYear(); rerender(); },
+    onchange: (e) => {
+      state.recapYear = Number(e.target.value) || new Date().getFullYear();
+      // A generation error belongs to the year it happened for -- carrying
+      // it over to a freshly-selected year would show the wrong year's
+      // error before that year's own cache/generation has even been checked.
+      state.narrativeError = null;
+      rerender();
+    },
   });
   container.append(el('div', { class: 'mer-toolbar' }, [el('label', { class: 'mer-field' }, [el('span', { text: 'Year' }), yearInput])]));
 
   const recap = await ctx.data.getYearInReview(state.recapYear);
+  container.append(el('h3', { text: `${recap.year} in review` }));
+
+  // AI narrative: visible as a setup state without a key, generated with
+  // whichever provider is active. Cached by year and account; a cache miss
+  // kicks off one call and shows "Writing…" until it resolves.
+  const accountUser = await ctx.data.Account.getCurrentUser().catch(() => null);
+  const narrativeOwner = accountUser?.id || 'local-anonymous';
+  const { label: providerLabel, apiKey } = await ctx.data.getActiveAiProvider();
+  let narrative;
+  if (apiKey) {
+    const [ryYear, ryText, ryOwner] = await Promise.all([
+      ctx.data.Settings.get('recapNarrativeYear'),
+      ctx.data.Settings.get('recapNarrativeText'),
+      ctx.data.Settings.get('recapNarrativeOwner'),
+    ]);
+    if (ryYear === String(recap.year) && ryText && ryOwner === narrativeOwner) {
+      narrative = { text: ryText, loading: false, error: null };
+    } else if (state.narrativeGenerating) {
+      narrative = { text: '', loading: true, error: null };
+    } else if (state.narrativeError) {
+      narrative = { text: '', loading: false, error: state.narrativeError };
+    } else {
+      narrative = { text: '', loading: true, error: null };
+      ensureNarrative(ctx, recap, narrativeOwner, rerender);
+    }
+  } else {
+    narrative = { unavailable: true, text: '', loading: false, error: null };
+  }
+  container.append(narrativeSection(narrative, () => regenerateNarrative(ctx, rerender), providerLabel));
+
   const stats = el('div', { class: 'mer-people-list' }, [
     statRow('Tasks completed', recap.tasksCompleted),
     statRow('Assignments completed', recap.assignmentsCompleted),
@@ -147,7 +261,7 @@ async function renderRecap(container, ctx, rerender) {
     statRow('Health logs', recap.healthLogCount),
     recap.avgSleepHours !== null ? statRow('Avg. sleep (hrs)', recap.avgSleepHours.toFixed(1)) : null,
   ]);
-  container.append(el('h3', { text: `${recap.year} in review` }), stats);
+  container.append(stats);
 
   container.append(el('div', { class: 'mer-subsection-label', text: 'Milestones this year' }));
   if (!recap.milestones.length) {

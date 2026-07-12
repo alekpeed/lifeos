@@ -70,8 +70,11 @@ lets the whole app be redecorated later without rebuilding it:
 - **Milestones** — a life-events timeline (grouped by year) plus a Yearly
   Recap tab that aggregates stats from every other module (tasks completed,
   places visited, books finished, bills paid, habit check-ins, etc.) for a
-  given year. The recap is numbers-driven for now; an AI-written narrative
-  version is still on the list, waiting on an AI module.
+  given year, now with an AI-written narrative on top of the numbers
+  (whichever provider is active in AI Assistant's Settings toggle) —
+  grounded only in that year's real stats/milestones, cached per year and
+  signed-in account, with setup/loading/error/retry states matching the
+  Daily Paper editorial's pattern.
 - **Search** — one query across every module with a title-like field
   (tasks, places, links, books, recipes, bills, contacts, milestones,
   habits, decks...), results grouped by module, click jumps you there
@@ -363,7 +366,6 @@ lets the whole app be redecorated later without rebuilding it:
 
 ### Still to build 📋
 - **Per-user notifications** — depends on accounts existing first.
-- **AI-written yearly recap** — needs a working AI module first (see above)
 
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you
@@ -425,9 +427,7 @@ Everything below came out of talking through what would actually feel
   remaining idea is a separate *lightweight companion app* for a friend who
   doesn't run full Life OS, reading/writing the same shared folder — plus a
   possible friend-mesh version (several friends, pairwise shared folders).
-- **AI-written yearly recap** — once an AI module can read your data, have it
-  draft the actual recap narrative, not just tally up numbers (the recap's
-  numbers-driven aggregation already exists in Milestones)
+- ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
 
 ## 5. Rough order of what's left
 
@@ -441,7 +441,7 @@ Everything below came out of talking through what would actually feel
    switched from Claude to Gemini). A separate ChatGPT panel + full two-way
    Telegram chat are still open, out of scope for this pass. (Cross-LLM
    relay chaining was considered and dropped — see section 4 above.)
-5. AI-written yearly recap (needs an AI module first)
+5. ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
 6. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of
    Babel, Theme-from-photo)
