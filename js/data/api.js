@@ -517,6 +517,12 @@ const SETTING_DEFAULTS = {
   // is the enrolled passkey's ID, empty until enrollment.
   appLockEnabled: false,
   appLockCredentialId: '',
+  // Rules & automation engine v1: a small, fixed set of built-in rules
+  // (not a general rule-builder), each off by default -- an automation
+  // mutates your data on your behalf, so it should never turn itself on.
+  // See runAutomations() below.
+  automationHabitMilestoneEnabled: false,
+  automationDocumentRenewalEnabled: false,
 };
 
 export const Settings = {
@@ -1196,6 +1202,102 @@ export async function extractDocumentFromImage(file) {
     expiryDate: parsed.expiryDate || null,
     notes: parsed.notes || '',
   };
+}
+
+// --- Rules & automation engine v1: "IFTTT for your own life," scoped down
+// to a small, fixed set of built-in rules rather than a general
+// rule-builder/DSL (that's a bigger, more open-ended commitment for
+// later). Each rule is off by default -- an automation mutates your data on
+// your own behalf, so it should never turn itself on -- and is idempotent
+// per its own trigger condition (a specific streak threshold, a specific
+// expiry date), so re-running the check on every boot never double-fires.
+// Runs once per app boot (see runAutomations, called from app.js) -- there
+// is no background execution while the app isn't open, same limitation as
+// the rest of this local-first PWA (see "Real background push" in
+// FUTURE_FEATURES.md for the not-yet-built alternative).
+//
+// Deliberately does NOT include an automatic Telegram send for the classic
+// "bill due soon and unpaid" example: telegram-client.js is explicitly
+// user-triggered-only by design ("never automatically... same
+// foreground/user-triggered philosophy as the geolocation nudges in
+// Places"), and Dashboard already surfaces due-soon unpaid bills
+// unconditionally, so automating that display again would add nothing new.
+// The document-renewal rule below is the "surface + act" example instead:
+// it creates a genuinely new record (a Task) rather than re-showing
+// something already shown.
+
+const HABIT_STREAK_MILESTONES = [7, 30, 100, 365];
+
+function computeHabitStreak(dates) {
+  const days = new Set(dates);
+  let streak = 0;
+  const cursor = new Date(nowIso().slice(0, 10) + 'T00:00:00');
+  if (!days.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1);
+  while (days.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+// When a habit's streak crosses a milestone it hasn't been logged for yet,
+// creates a Milestones entry and records the threshold on the habit itself
+// so crossing it again (or re-running this on the next boot) never
+// double-logs. Exact match for the doc's own "streak hits 30 -> log a
+// milestone" example.
+async function runHabitMilestoneAutomation() {
+  if (!(await Settings.get('automationHabitMilestoneEnabled'))) return;
+  const [habits, logs] = await Promise.all([Habits.list(), HabitLogs.list()]);
+  const logsByHabit = new Map();
+  for (const log of logs) {
+    if (!logsByHabit.has(log.habitId)) logsByHabit.set(log.habitId, []);
+    logsByHabit.get(log.habitId).push(log);
+  }
+  for (const habit of habits) {
+    const streak = computeHabitStreak((logsByHabit.get(habit.id) || []).map((l) => l.date));
+    const already = habit.lastStreakMilestoneLogged || 0;
+    // Highest threshold the current streak satisfies, not the lowest
+    // unlogged one -- a streak that's already well past several thresholds
+    // when this is first turned on should jump straight to the right one
+    // in a single boot, not trickle in one milestone per app-open.
+    const next = [...HABIT_STREAK_MILESTONES].reverse().find((m) => m > already && streak >= m);
+    if (!next) continue;
+    await Milestones.create({ title: `🔥 ${next}-day streak: ${habit.name || '(untitled habit)'}`, date: nowIso().slice(0, 10) });
+    await Habits.update(habit.id, { lastStreakMilestoneLogged: next });
+  }
+}
+
+// When a document is expired or expiring within the configured window and
+// no renewal task has been created for THIS expiry date yet, creates one.
+// Updating the document's own expiryDate (what actually happens when you
+// renew something) naturally clears the guard, so the next expiry cycle
+// can fire again on its own.
+async function runDocumentRenewalAutomation() {
+  if (!(await Settings.get('automationDocumentRenewalEnabled'))) return;
+  const documentExpiryDays = await Settings.get('documentExpiryDays');
+  const documents = await Documents.list();
+  for (const doc of documents) {
+    if (!doc.expiryDate) continue;
+    if (!(isOverdue(doc.expiryDate) || isWithinDays(doc.expiryDate, documentExpiryDays))) continue;
+    if (doc.lastRenewalTaskExpiryDate === doc.expiryDate) continue;
+    await Tasks.create({ title: `Renew: ${doc.title || '(untitled document)'}`, dueDate: doc.expiryDate, status: 'open' });
+    await Documents.update(doc.id, { lastRenewalTaskExpiryDate: doc.expiryDate });
+  }
+}
+
+// Runs every built-in automation once. Each is independently gated by its
+// own Settings toggle and safe to call repeatedly -- a no-op if disabled or
+// nothing currently satisfies its trigger. Never throws -- called once from
+// app.js's boot sequence, and a bug in an automation must never be able to
+// brick the whole app's startup (same "self-contained, never throws"
+// discipline as completePendingRedirectIfAny).
+export async function runAutomations() {
+  try {
+    await runHabitMilestoneAutomation();
+    await runDocumentRenewalAutomation();
+  } catch (err) {
+    console.error('runAutomations failed', err);
+  }
 }
 
 // --- Recall: the Languages module's SRS engine generalized to resurface any

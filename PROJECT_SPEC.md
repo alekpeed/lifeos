@@ -343,6 +343,20 @@ lets the whole app be redecorated later without rebuilding it:
   something that doesn't exist. Manual/button-triggered rather than
   automatic, to keep the API call opt-in. See `suggestGraphEdges` in
   `js/data/api.js`.
+- **Rules & automation engine** — scoped to a small fixed set of built-in
+  rules rather than a general rule-builder/DSL: (1) log a Milestone when a
+  habit streak crosses 7/30/100/365 days, and (2) create a "Renew: <title>"
+  Task when a Document is expiring or expired and no renewal task exists
+  yet for that specific expiry date. Both off by default (Settings >
+  Automations) since they mutate your data on your own behalf, and both
+  idempotent — re-running the check on every app open never double-fires.
+  Deliberately does NOT include an automatic Telegram send for the classic
+  "bill due soon and unpaid" example: `telegram-client.js` is explicitly
+  user-triggered-only by design, and Dashboard already surfaces due-soon
+  unpaid bills unconditionally, so automating that display again would add
+  nothing new — the document-renewal rule is the "surface + act" example
+  instead, since it creates a genuinely new record rather than re-showing
+  something already shown. See `runAutomations` in `js/data/api.js`.
 - **The Orrery** — the dashboard as a solar system, shipped as an alternate
   view (its own nav entry; the Dashboard stays the default). Every visual
   property encodes a real signal: orbit radius = neglect (fresh areas hug
@@ -518,11 +532,13 @@ Everything below came out of talking through what would actually feel
 11. ~~AI-suggested knowledge-graph edges~~ — DONE (see Built ✅, Knowledge
     Graph).
 12. ~~Camera-to-data capture~~ — DONE, scoped to Documents (see Built ✅).
-13. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+13. ~~Rules & automation engine~~ — DONE, scoped to 2 built-in rules (see
+    Built ✅).
+14. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
     Conversation Starters, Ghost Days, The Almanac, Life as Music, Library
     of Babel, Theme-from-photo)
-14. Additional interfaces (Vespera, LCARS)
-15. Someday: a standalone music-practice app (progressions, play-along,
+15. Additional interfaces (Vespera, LCARS)
+16. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
@@ -582,11 +598,6 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   data synced to Drive/Supabase is stored as ciphertext only — even the
   server can't read it. Pairs naturally with the multi-user accounts work.
 
-**Making the app smarter about itself**
-- **Rules & automation engine — "IFTTT for your own life"** — "when a bill
-  is 3 days out AND unpaid → surface it + notify"; "when a habit streak
-  hits 30 → log a milestone." Connective tissue so modules can react to
-  each other instead of sitting in silos.
 **Platform & payoff**
 - **Personal local API + plugin SDK** — expose your own data through a
   documented local interface so you (or scripts) can build on it without
@@ -669,6 +680,8 @@ own Tier 2 flag, not a routine add)**
   Graph entry above).
 - ~~Camera-to-data capture~~ — DONE, scoped to Documents (see Built ✅,
   Documents vault entry above).
+- ~~Rules & automation engine~~ — DONE, scoped to 2 built-in rules (see
+  Built ✅, Knowledge-Graph-adjacent entry above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
 history / Watch Later sync — both deprecated from the YouTube Data API in

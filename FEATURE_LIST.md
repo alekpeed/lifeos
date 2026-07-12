@@ -256,6 +256,10 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   focused record. The AI only ever gets a closed, numbered candidate list
   of real records and can only pick indices from it, never free text, so
   it can't invent a connection to something that doesn't exist.
+- ✅ **Rules & automation engine** — a small fixed set of built-in rules
+  (Settings > Automations, both off by default): log a Milestone at habit
+  streak milestones (7/30/100/365 days), and create a "Renew" Task when a
+  Document is expiring or expired. Both idempotent per their own trigger.
 
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
@@ -365,8 +369,6 @@ rather than needing to also work as a small-screen experience.
   statements, auto-categorize, reconcile against Finance.
 - **Health-device ingestion** — parse Apple Health/Garmin/Fitbit exports.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest.
-- **Rules & automation engine** — "IFTTT for your own life," modules
-  reacting to each other.
 - **Personal local API + plugin SDK** — a documented interface to build on
   without touching core.
 - **Generative "Year in Review" film** — an auto-produced montage scored

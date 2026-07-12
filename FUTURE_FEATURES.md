@@ -145,6 +145,21 @@ parked means "not now," not "forgotten" or "cut."
   shape (text + image segments) into both `gemini-client.js` and
   `claude-client.js` so either active provider works. See
   `extractDocumentFromImage` in `js/data/api.js`.
+- ✅ **Rules & automation engine** — DONE, scoped to a small fixed set of
+  built-in rules rather than a general rule-builder/DSL: (1) log a
+  Milestone when a habit streak crosses 7/30/100/365 days, and (2) create a
+  "Renew: <title>" Task when a Document is expiring or expired and no
+  renewal task exists yet for that specific expiry date. Both off by
+  default (Settings > Automations) since they mutate your data on your own
+  behalf, and both idempotent — re-running the check on every app open
+  never double-fires. Deliberately does NOT include an automatic Telegram
+  send for the classic "bill due soon and unpaid" example:
+  `telegram-client.js` is explicitly user-triggered-only by design, and
+  Dashboard already surfaces due-soon unpaid bills unconditionally, so
+  automating that display again would add nothing new — the document-
+  renewal rule is the "surface + act" example instead, since it creates a
+  genuinely new record rather than re-showing something already shown. See
+  `runAutomations` in `js/data/api.js`.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -325,9 +340,6 @@ for a stripped-down version.)
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest, so
   data synced to Drive/Supabase is stored as ciphertext only — even the
   server can't read it. Pairs naturally with multi-user accounts.
-- **Rules & automation engine — "IFTTT for your own life"** — "when a bill
-  is 3 days out AND unpaid → surface it + notify"; "when a habit streak
-  hits 30 → log a milestone." Connective tissue between modules.
 - **Personal local API + plugin SDK** — expose your own data through a
   documented local interface so you (or scripts) can build on it without
   touching core — the same registry philosophy that already governs

@@ -371,6 +371,36 @@ async function renderAppLockSection(canvas, ctx, rerender) {
   ]));
 }
 
+// --- Rules & automation engine v1 ---
+
+function automationToggle(label, description, key, checked, ctx, rerender) {
+  return el('label', { class: 'mer-setting' }, [
+    el('span', {}, [
+      el('input', {
+        type: 'checkbox', checked,
+        onchange: async (e) => { await ctx.data.Settings.set(key, e.target.checked); rerender(); },
+      }),
+      document.createTextNode(` ${label}`),
+    ]),
+    el('span', { class: 'mer-muted', text: description }),
+  ]);
+}
+
+async function renderAutomationsSection(canvas, ctx, rerender) {
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Automations' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'A small, fixed set of built-in automations -- not a general rule-builder. Each is off by default, since it mutates your data on your own behalf. Runs once each time the app opens (no background execution while it\'s closed).' }));
+
+  const [habitOn, docOn] = await Promise.all([
+    ctx.data.Settings.get('automationHabitMilestoneEnabled'),
+    ctx.data.Settings.get('automationDocumentRenewalEnabled'),
+  ]);
+
+  canvas.append(
+    automationToggle('Log a Milestone when a habit streak hits 7 / 30 / 100 / 365 days', 'Creates a Milestones entry once per threshold, per habit.', 'automationHabitMilestoneEnabled', !!habitOn, ctx, rerender),
+    automationToggle('Create a "Renew" task when a document is expiring or expired', 'Creates a Task due on the document\'s expiry date; updating the document\'s expiry (i.e. actually renewing it) lets the next cycle fire again.', 'automationDocumentRenewalEnabled', !!docOn, ctx, rerender),
+  );
+}
+
 // --- Telegram (send-only) ---
 
 async function renderTelegramSection(canvas, ctx, rerender) {
@@ -513,5 +543,6 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderCalendarSection(canvas, ctx, rerender || (() => {}));
   await renderAiAssistantSection(canvas, ctx, rerender || (() => {}));
   await renderAppLockSection(canvas, ctx, rerender || (() => {}));
+  await renderAutomationsSection(canvas, ctx, rerender || (() => {}));
   await renderTelegramSection(canvas, ctx, rerender || (() => {}));
 }
