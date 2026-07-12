@@ -537,6 +537,27 @@ Everything below came out of talking through what would actually feel
   a friend who doesn't run full Life OS. Alek's call: anyone he'd actually
   share with already has the full app.)*
 - ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
+- **Academic pacing check — real progress vs. your own stated plan**
+  (2026-07). Assignments today track a single manually-set
+  `percentComplete` slider (see `js/interfaces/default/views/education.js`)
+  — a current-state snapshot, not a history. This extends that with, for
+  writing-type assignments specifically: a **target** (total pages/words
+  due), a **self-set pacing checkpoint** (you state your own intention —
+  "6 pages by March 3" — the app never invents a pacing curve on your
+  behalf), and a **dated progress log** (same shape as ReadingLogs/
+  CookLogs/HabitLogs — one entry per logging session, pages/words added
+  that day). On any day past a checkpoint, compare what you actually
+  logged against what you said you wanted done by then, and if there's a
+  real gap, surface it — not as an accusation, as a genuine question,
+  grounded only in the real logged numbers: *"You said you wanted 6 pages
+  done by now on the 20-page paper — you've logged 3 so far. Still on
+  track, or did you just forget to log recent work?"* That phrasing is
+  deliberately AI-editorial voice, not a silent automation — the natural
+  home is the Daily Paper's editorial, which already has exactly this
+  "grounded in real facts, references what you told it before" shape now
+  that it has continuity (see the AI-with-continuity Built ✅ entry
+  above) — this would be one more fact folded into that same bounded
+  packet, not new AI infrastructure.
 
 ## 5. Rough order of what's left
 
@@ -635,6 +656,43 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 - **Generative "Year in Review" film** — an auto-produced montage from your
   photos + milestones + stats, scored by the Life-as-Music synth engine
   you already have. The emotional payoff piece.
+- **Camera-vision cataloging (Quartermaster)** — confirmed direction
+  (2026-07), not yet built, moved down from the far tier: photograph a
+  shelf/pantry/garage and have it catalog items into Quartermaster.
+  Simpler than the original framing — no attempt at detecting *quantity*
+  or "running low" from the photo (fill-level estimation is a genuinely
+  harder vision problem, and "low" is subjective anyway); that stays a
+  manual flag on the item, same as everything else in Quartermaster
+  today, UNLESS labeled via the few-shot flow below.
+  **Confirmed in scope (2026-07): a few-shot/in-context-learning version
+  of low-stock detection.** Not model retraining — a labeled-example
+  flow. When logging an item, you can tag a reference photo with your own
+  label ("low," "full," whatever vocabulary makes sense to you). Judging
+  a later photo of that item sends the new photo *plus* your 5 most
+  recent labeled examples to the vision model as calibration references,
+  asking it to place the new photo relative to them. 5 is a flat cap, not
+  a range — the cost difference between 3 and 5 reference images is
+  negligible, especially once they're compressed/low-res (see below), so
+  there's no reason to skimp. Approximate placement ("low" vs. "full") is
+  the goal, not precise quantity ("how much milk is in the gallon") —
+  that's a genuinely harder vision problem and not what this is for.
+  Accuracy improves as your label library grows — not because the model
+  changed, but because each judgment has more of your own examples to
+  work from. More buildable than the far-tier framing implied either
+  way: it's an extension of the multimodal vision-AI pattern already
+  shipped for Documents' camera-to-data scan (`extractDocumentFromImage`
+  in `js/data/api.js`), not a new capability. Once built, pairs naturally
+  with a third Rules & Automation rule: an item flagged low auto-creates
+  a "buy X" task, same off-by-default/opt-in shape as the
+  habit-milestone and document-renewal rules already shipped.
+  **Confirmed cost approach (2026-07):** resize/compress client-side
+  before sending to the vision API — cap the long edge around
+  1000-1500px, no reason to send a full-resolution native photo when
+  object recognition doesn't need anywhere near that much detail. Real
+  cost savings (vision API pricing scales with image resolution/tiles).
+  Worth retrofitting onto the existing Documents camera-to-data scan too
+  — it currently sends the photographed file as-is, full resolution,
+  same easy win available there.
 
 **Far tier — scale-and-space swings (each closer to its own product than a
 feature; heavy on either engineering, storage, or compute)**
@@ -665,9 +723,6 @@ feature; heavy on either engineering, storage, or compute)**
   local generative image/video pipeline and render what you dreamed — short
   animated scenes or stills per entry, with generated ambient audio. Heavy
   compute and storage (every dream becomes a media file).
-- **Camera-vision auto-cataloging** — point your phone at a bookshelf or a
-  garage full of stuff; on-device vision recognizes and catalogs everything
-  into Books or Quartermaster automatically, no manual entry.
 - **A real trained ML pattern engine, not just correlation** — The Almanac
   does simple Pearson correlation on curated pairs; this would be an actual
   model that continuously retrains on your entire history and surfaces

@@ -377,6 +377,20 @@ mobile remote itself exists.
   without touching core.
 - **Generative "Year in Review" film** — an auto-produced montage scored
   by the Life-as-Music engine.
+- **Camera-vision cataloging (Quartermaster)** — confirmed direction, not
+  yet built: photograph a shelf/pantry and catalog items automatically.
+  Manual low-stock flag by default (fill-level from a photo is a harder
+  vision problem), UNLESS labeled via few-shot: tag a reference photo
+  ("low"/"full"), later judgments compare against your 5 most recent
+  labeled examples per item, capped flat for cost — extends the same
+  vision-AI pattern already shipped for Documents' camera scan. Images
+  compressed client-side (long edge ~1000-1500px) before sending, for
+  cost.
+- **Academic pacing check** — for writing assignments, a target + a
+  self-set pacing checkpoint ("6 pages by March 3") + a dated progress
+  log, so the Daily Paper's AI editorial can compare what you actually
+  logged against your own stated plan and ask, grounded in real numbers,
+  whether you're on track or just forgot to log recent work.
 
 ## Far tier 🪐 — scale-and-space swings
 
@@ -392,8 +406,6 @@ mobile remote itself exists.
   Obsidian/Roam-style note system with backlinks and a graph view.
 - **Generative dream visualization** — Dream Journal entries rendered as
   actual generated images/video/audio.
-- **Camera-vision auto-cataloging** — point a camera at a shelf, it
-  catalogs everything automatically.
 - **A real trained ML pattern engine** — beyond simple correlation, a
   model that continuously retrains to surface non-linear patterns.
 - **A full multi-generational family archive** — real genealogy, oral
