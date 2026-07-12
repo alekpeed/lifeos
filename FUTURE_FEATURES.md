@@ -102,6 +102,15 @@ parked means "not now," not "forgotten" or "cut."
   callback adds value — never forced, never inventing what a past entry
   said beyond what's shown. See `saveEditorialIssue`/`getRecentEditorials`
   in `js/data/api.js`.
+- ✅ **App-wide spaced repetition** — DONE: a new **Recall** module
+  generalizes the Languages module's flashcard SRS engine to resurface any
+  record in the app — a task, a book, a contact, a place, anything Search
+  can find. Reuses the Knowledge Graph's own foundations rather than
+  duplicating them: schedulable = searchable (same `globalSearch` picker
+  grammar as the graph's "add a connection"), and titles resolve live via
+  `resolveGraphNode` instead of a second lookup table. Grading uses the
+  identical interval scheme as language cards (again/good/easy). See
+  `js/interfaces/default/views/recall.js`.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -294,9 +303,6 @@ for a stripped-down version.)
 - **Rules & automation engine — "IFTTT for your own life"** — "when a bill
   is 3 days out AND unpaid → surface it + notify"; "when a habit streak
   hits 30 → log a milestone." Connective tissue between modules.
-- **App-wide spaced repetition** — generalize the SRS engine beyond
-  language flashcards to resurface *anything* — a book highlight, a person
-  you haven't contacted in months, a place you meant to revisit.
 - **What-if simulation sandbox** — model decisions against your own data:
   "cancel these 3 subscriptions → save $X/year," "sleep +30 min →
   projected effect on habit adherence."

@@ -1076,6 +1076,46 @@ export async function resolveGraphNode(key) {
   return { key, store, id, title: titleOf(record) || '(untitled)', module: SEARCH_MODULE_ROUTE[store], exists: true };
 }
 
+// --- Recall: the Languages module's SRS engine generalized to resurface any
+// record -- reuses the exact same addressing (graphKey/resolveGraphNode) as
+// the Knowledge Graph, so "what's schedulable" is "what Search can find,"
+// same reasoning that already governs the graph. Grading uses the identical
+// interval scheme as languageCards' review flow (views/languages.js):
+// again resets to 1 day, good doubles, easy triples.
+
+export const ResurfaceItems = entities.resurfaceItems;
+export const ResurfaceReviewLogs = entities.resurfaceReviewLogs;
+
+function addDaysFromNow(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Schedules a record for recall, or returns its existing item if one's
+// already scheduled (mirrors createGraphLink's anti-dupe pattern).
+export async function addResurfaceItem(store, id) {
+  const key = graphKey(store, id);
+  const existing = await ResurfaceItems.byIndex('key', key);
+  if (existing.length) return existing[0];
+  return ResurfaceItems.create({ key, srs: { interval: 1, dueDate: nowIso().slice(0, 10) } });
+}
+
+export async function getDueResurfaceItems() {
+  const today = nowIso().slice(0, 10);
+  const items = await ResurfaceItems.list();
+  return items.filter((item) => (item.srs?.dueDate || today) <= today);
+}
+
+export async function gradeResurfaceItem(itemId, quality) {
+  const item = await ResurfaceItems.get(itemId);
+  if (!item) return;
+  const prevInterval = item.srs?.interval || 1;
+  const nextInterval = quality === 'again' ? 1 : quality === 'good' ? prevInterval * 2 : prevInterval * 3;
+  await ResurfaceItems.update(itemId, { srs: { interval: nextInterval, dueDate: addDaysFromNow(nextInterval) } });
+  await ResurfaceReviewLogs.create({ itemId, date: nowIso().slice(0, 10), quality });
+}
+
 // --- Manual JSON export/import: a Drive-independent backup. Attachments'
 // Blob fields aren't JSON-serializable, so they're round-tripped through
 // data: URLs (readAsDataURL / fetch().blob()) rather than raw base64 math.

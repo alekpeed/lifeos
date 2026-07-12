@@ -54,6 +54,7 @@ import { renderTimeMachine } from './default/views/timemachine.js';
 import { renderQrSync } from './default/views/qrsync.js';
 import { renderAssistant } from './default/views/assistant.js';
 import { renderIdeas } from './default/views/ideas.js';
+import { renderRecall } from './default/views/recall.js';
 
 export const VIEWS = {
   dashboard: renderDashboard,
@@ -98,4 +99,5 @@ export const VIEWS = {
   qrsync: renderQrSync,
   assistant: renderAssistant,
   ideas: renderIdeas,
+  recall: renderRecall,
 };

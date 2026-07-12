@@ -25,9 +25,11 @@ export const DB_NAME = 'lifeos';
 // `ideas` (a broad, unstructured capture-anything notes list). v13 adds
 // `paperIssues` (the Daily Paper's AI editorial history, one record per
 // local date + owner, kept so a new editorial can reference recent ones for
-// continuity). runUpgrade in db.js creates any store that doesn't yet
-// exist, so these bumps are non-destructive for existing data.
-export const DB_VERSION = 13;
+// continuity). v14 adds `resurfaceItems`/`resurfaceReviewLogs` (Recall — the
+// language-flashcard SRS engine generalized to resurface any record in the
+// app). runUpgrade in db.js creates any store that doesn't yet exist, so
+// these bumps are non-destructive for existing data.
+export const DB_VERSION = 14;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -284,6 +286,22 @@ export const STORES = [
   { name: 'paperIssues', keyPath: 'id', indexes: [
     { name: 'date', keyPath: 'date' },
     { name: 'owner', keyPath: 'owner' },
+  ] },
+
+  // Recall: the language-flashcard SRS engine generalized to resurface any
+  // record in the app -- a book highlight, a contact you haven't reached out
+  // to, a place you meant to revisit. `key` is the same "<store>:<id>"
+  // composite addressing the Knowledge Graph uses (graphKey/resolveGraphNode
+  // in api.js), so anything Search can find is schedulable here, reusing
+  // that resolution instead of a second title-lookup table. `srs` is the
+  // exact { interval, dueDate } shape languageCards already uses.
+  { name: 'resurfaceItems', keyPath: 'id', indexes: [
+    { name: 'key', keyPath: 'key' },
+    { name: 'srsDueDate', keyPath: 'srs.dueDate' },
+  ] },
+  { name: 'resurfaceReviewLogs', keyPath: 'id', indexes: [
+    { name: 'itemId', keyPath: 'itemId' },
+    { name: 'date', keyPath: 'date' },
   ] },
 ];
 

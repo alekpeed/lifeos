@@ -54,7 +54,7 @@ const DISTRICTS = [
     hotspot: { points: [[2.57, 12.33], [23.44, 15.41], [25.3, 17.11], [25.72, 20.09], [24.04, 21.15], [3.29, 19.45], [1.44, 17.85], [1.38, 14.24]] } },
   { id: 'navbay', name: 'Navigation Bay', tagline: 'Places & Maps', icon: '🧭', modules: ['places', 'packing'],
     hotspot: { points: [[2.69, 32.94], [23.68, 32.94], [25.48, 35.6], [25.48, 40.81], [23.74, 43.25], [4.96, 43.25], [2.93, 41.23], [2.39, 35.81]] } },
-  { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', modules: ['links', 'books', 'education', 'knowledge', 'rabbitholes', 'collections'],
+  { id: 'archive', name: 'The Archive', tagline: 'Links, Books & Education', icon: '📚', modules: ['links', 'books', 'education', 'knowledge', 'recall', 'rabbitholes', 'collections'],
     hotspot: { points: [[1.85, 55.9], [24.88, 55.9], [26.2, 57.81], [26.2, 63.55], [24.7, 65.67], [2.69, 65.67], [1.32, 63.76], [1.32, 58.02]] } },
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents', 'quartermaster'],
     hotspot: { points: [[2.03, 77.05], [24.82, 77.05], [26.44, 78.85], [26.32, 84.59], [24.82, 86.61], [2.87, 86.61], [1.44, 84.8], [1.44, 79.06]] } },

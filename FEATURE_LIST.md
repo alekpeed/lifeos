@@ -235,6 +235,11 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   finalized issue is saved (one per local date + owner), and the last few
   are handed back to the AI next time so it can reference a genuine
   callback when one adds value — never forced, never invented.
+- ✅ **App-wide spaced repetition** — a new **Recall** module generalizes the
+  Languages module's flashcard SRS engine to resurface any record in the
+  app (tasks, books, contacts, places, anything Search can find), reusing
+  the Knowledge Graph's own picker and title-resolution instead of
+  duplicating them.
 
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
@@ -351,8 +356,6 @@ rather than needing to also work as a small-screen experience.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest.
 - **Rules & automation engine** — "IFTTT for your own life," modules
   reacting to each other.
-- **App-wide spaced repetition** — the SRS engine generalized to resurface
-  anything, not just flashcards.
 - **What-if simulation sandbox** — fork projected outcomes against your
   own data.
 - **Personal local API + plugin SDK** — a documented interface to build on

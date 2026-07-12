@@ -39,6 +39,7 @@ export const MODULES = [
   { id: 'almanac', label: 'The Almanac', group: 'health' },
   { id: 'assistant', label: 'AI Assistant', group: 'utility' },
   { id: 'knowledge', label: 'Knowledge Graph', group: 'utility' },
+  { id: 'recall', label: 'Recall', group: 'utility' },
   { id: 'timemachine', label: 'Time Machine', group: 'utility' },
   { id: 'qrsync', label: 'QR Sync', group: 'utility' },
   { id: 'entropy', label: 'Entropy', group: 'utility' },

@@ -232,6 +232,16 @@ lets the whole app be redecorated later without rebuilding it:
   explicit instructions to reference one only when a genuine callback adds
   value — never forced, never inventing what a past entry said beyond what's
   shown. See `saveEditorialIssue`/`getRecentEditorials` in `js/data/api.js`.
+- **App-wide spaced repetition** — a new **Recall** module generalizes the
+  Languages module's flashcard SRS engine to resurface any record in the
+  app — a task, a book, a contact, a place, anything Search can find.
+  Reuses the Knowledge Graph's own foundations rather than duplicating
+  them: schedulable = searchable (same `globalSearch` picker grammar as
+  the graph's "add a connection"), and titles resolve live via
+  `resolveGraphNode` instead of a second lookup table, so a renamed or
+  deleted record never leaves a stale label here either. Grading uses the
+  identical interval scheme as language cards (again resets to 1 day, good
+  doubles, easy triples). See `js/interfaces/default/views/recall.js`.
 - **Museum of Finished Things** — a trophy-case view over completions already
   scattered across other modules: done tasks/assignments, finished books
   (with covers), milestones, recipes ranked by times cooked, archived
@@ -470,11 +480,12 @@ Everything below came out of talking through what would actually feel
 5. ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
 6. ~~Passkey/biometric app lock~~ — DONE (see Built ✅).
 7. ~~AI with continuity~~ — DONE (see Built ✅).
-8. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+8. ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall).
+9. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of
    Babel, Theme-from-photo)
-9. Additional interfaces (Vespera, LCARS)
-10. Someday: a standalone music-practice app (progressions, play-along,
+10. Additional interfaces (Vespera, LCARS)
+11. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
@@ -547,9 +558,6 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   is 3 days out AND unpaid → surface it + notify"; "when a habit streak
   hits 30 → log a milestone." Connective tissue so modules can react to
   each other instead of sitting in silos.
-- **App-wide spaced repetition** — generalize the SRS engine beyond
-  language flashcards to resurface *anything*: a book highlight, a person
-  you haven't contacted in months, a place you meant to revisit.
 - **What-if simulation sandbox** — model decisions against your own data:
   "cancel these 3 subscriptions → save $X/year," "sleep +30 min →
   projected effect on habit adherence." Forecasting (above) predicts the
@@ -628,6 +636,7 @@ own Tier 2 flag, not a routine add)**
 - ~~Passkey/biometric app lock~~ — DONE (see Built ✅, Milestones-adjacent
   entry above).
 - ~~AI with continuity~~ — DONE (see Built ✅, Daily Paper entry above).
+- ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall entry above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
 history / Watch Later sync — both deprecated from the YouTube Data API in
