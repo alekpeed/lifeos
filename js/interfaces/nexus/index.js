@@ -235,9 +235,10 @@ async function renderModuleScreen(canvas, route) {
 async function doRender(route) {
   if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
   els.root.innerHTML = '';
-  const canvas = el('div', { class: 'nxs-canvas' });
+  const isHome = route.module === 'dashboard';
+  const canvas = el('div', { class: isHome ? 'nxs-canvas nxs-canvas--home' : 'nxs-canvas' });
   els.root.append(canvas);
-  if (route.module === 'dashboard') {
+  if (isHome) {
     renderHome(canvas);
   } else {
     await renderModuleScreen(canvas, route);

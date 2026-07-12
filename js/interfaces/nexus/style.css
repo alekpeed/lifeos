@@ -47,12 +47,29 @@
   gap: var(--space-md, 1rem);
 }
 
+/* The dashboard route is just the stage -- the module-screen padding
+   (generous bottom padding for a normal scrolling card list) would eat into
+   the viewport space the stage needs to size itself against. */
+.nxs-canvas--home {
+  padding: var(--space-sm, 0.5rem);
+  min-height: calc(100dvh - var(--space-sm, 0.5rem) * 2);
+  align-items: center;
+  justify-content: center;
+}
+
 /* Dashboard: the mockup image + real click regions */
 
 .nxs-stage {
   position: relative;
   width: 100%;
   max-width: 480px;
+  /* Fit within whatever viewport the phone actually has, not just cap by
+     width -- aspect-ratio + max-height together shrink the box to whichever
+     constraint (width or height) is tighter, the same idea as
+     object-fit:contain but for the whole element. Without this, a fixed
+     aspect-ratio box sized only by width can end up taller than the
+     screen on a lot of phones, forcing a scroll to see the whole wheel. */
+  max-height: calc(100dvh - var(--space-sm, 0.5rem) * 2);
   margin: 0 auto;
   aspect-ratio: 941 / 1672;
   overflow: hidden;
