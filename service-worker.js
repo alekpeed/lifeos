@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.19';
+const CACHE_VERSION = 'lifeos-v1.20';
 const APP_SHELL = [
   './',
   './index.html',
@@ -40,6 +40,8 @@ const APP_SHELL = [
   // the image hasn't been uploaded. It gets runtime-cached on first view.
   './js/interfaces/vespera/index.js',
   './js/interfaces/vespera/style.css',
+  './js/interfaces/nexus/index.js',
+  './js/interfaces/nexus/style.css',
   // Vespera room signage faces (small; load-bearing for the look, so unlike
   // the optional room art these ARE precached).
   './vendor/fonts/oxanium-600.woff2',

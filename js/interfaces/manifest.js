@@ -5,3 +5,4 @@
 
 import './default/index.js';
 import './vespera/index.js';
+import './nexus/index.js';
