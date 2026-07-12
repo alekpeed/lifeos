@@ -1,19 +1,25 @@
-// "NEXUS" — a dense, card-based mobile dashboard interface, built from a
-// user-supplied mockup (see the project's NEXUS-mockup coordinate-precision
-// exercise). Visually distinct from Equator (calm rail-and-canvas) and
-// Vespera (spatial station) — this one is a control-panel-style home screen
-// plus a persistent slim header everywhere else, closer to a phone widget
-// board than either.
+// "NEXUS" — the user's own Figma mockup, shipped close to literally: the
+// mockup image (img/hub.png) is the actual home-screen background art, with
+// real, precisely-positioned click regions mapped onto it — the same
+// technique Vespera uses for its hub (img/hub.png + hotspot polygons), and
+// the direct continuation of this project's NEXUS-mockup coordinate-
+// precision exercise (nexustest.png / nexusred.png at the repo root): those
+// hotspot coordinates, extracted from a GPT-drawn trace and corrected twice
+// against direct user feedback, are reused here verbatim.
 //
-// Every widget below is backed by a real ctx.data call. Where the mockup
-// showed something the app has no data for (a live heart-rate reading, a
-// "focus %" score, an hourly weather forecast, a timed daily-schedule
-// agenda, a "send wishes" action, a distinct "notes" concept), that element
-// was either dropped or re-mapped to the closest real feature rather than
-// invented — see the commit that introduced this file for the full mapping
-// rationale. The radial wheel's geometry is fresh math (six equal donut
-// sectors), not the mockup's hand-traced petals: those were art-specific to
-// a raster image this app doesn't ship.
+// The image is decorative chrome, not a live data surface — its baked-in
+// numbers (a specific temperature, specific fake task titles) are mockup
+// content, not real app data. Every hotspot is real, wired to ctx.navigate()
+// (or, for "Surprise me", the actual getSurpriseMe() call). Where the
+// mockup's hotspot had no matching real destination (a live heart-rate
+// reading, an hourly forecast, a "send wishes" action, a timed daily
+// schedule), it's mapped to the closest real module rather than left dead —
+// see the HOTSPOTS table below for the exact mapping.
+//
+// Away from the dashboard route, there's no mockup art for other screens,
+// so those get a plain slim header (brand/clock/back) hosting the real
+// module views from the shared view library — same pattern as Vespera's
+// Space screens.
 
 import { registerInterface } from '../registry.js';
 import { VIEWS } from '../view-library.js';
@@ -55,7 +61,8 @@ function moduleLabel(id) {
   return ctx.modules.find((m) => m.id === id)?.label || id;
 }
 
-// --- Header (persistent on every screen) ---
+// --- Slim header (module screens only -- the dashboard route's header is
+// baked into the mockup art itself) ---
 
 function timeParts() {
   const now = new Date();
@@ -64,15 +71,7 @@ function timeParts() {
   return { time, date };
 }
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 5) return 'Still up, Operator';
-  if (h < 12) return 'Good morning, Operator';
-  if (h < 18) return 'Good afternoon, Operator';
-  return 'Good evening, Operator';
-}
-
-async function renderHeader(dueSoonCount) {
+function renderHeader() {
   const { time, date } = timeParts();
   const timeEl = el('span', { class: 'nxs-clock-time', text: time });
   clockTimer = setInterval(() => { timeEl.textContent = timeParts().time; }, 30_000);
@@ -88,321 +87,122 @@ async function renderHeader(dueSoonCount) {
       ]),
     ]),
     el('div', { class: 'nxs-clock' }, [timeEl, el('span', { class: 'nxs-clock-date', text: date })]),
-    el('div', { class: 'nxs-header-actions' }, [
-      el('button', {
-        type: 'button', class: 'nxs-icon-btn', title: 'Due soon', 'aria-label': `${dueSoonCount} due soon`,
-        onclick: () => ctx.navigate('tasks'),
-      }, [
-        el('span', { text: '🔔' }),
-        dueSoonCount > 0 ? el('span', { class: 'nxs-badge', text: String(dueSoonCount) }) : null,
-      ]),
-      el('button', {
-        type: 'button', class: 'nxs-icon-btn', title: 'Settings', 'aria-label': 'Settings',
-        onclick: () => ctx.navigate('settings'),
-      }, [el('span', { text: '⚙' })]),
-    ]),
+    el('button', {
+      type: 'button', class: 'nxs-icon-btn', title: 'Settings', 'aria-label': 'Settings',
+      onclick: () => ctx.navigate('settings'),
+    }, [el('span', { text: '⚙' })]),
   ]);
 }
 
-// --- Home screen widgets ---
+// --- Dashboard: the mockup image itself, with real click regions ---
 
-function card(label, body, { wide = false } = {}) {
-  return el('section', { class: wide ? 'nxs-card nxs-card--wide' : 'nxs-card' }, [
-    el('h2', { class: 'nxs-card-label', text: label }),
-    body,
-  ]);
-}
+const IMG_W = 941;
+const IMG_H = 1672;
 
-function greetingBar() {
-  return el('section', { class: 'nxs-greet' }, [
-    el('div', { class: 'nxs-greet-text' }, [
-      el('p', { class: 'nxs-greet-title', text: greeting().toUpperCase() }),
-      el('p', { class: 'nxs-greet-sub', text: "Let's make today count." }),
-    ]),
-    el('div', { class: 'nxs-greet-actions' }, [
-      el('button', { type: 'button', class: 'nxs-pill', onclick: () => ctx.navigate('search') }, [
-        el('span', { text: '🔍' }), el('span', { text: 'Search' }),
-      ]),
-      el('button', {
-        type: 'button', class: 'nxs-pill', onclick: () => ctx.navigate('ideas'),
-        title: 'Capture by typing or voice (Ideas has a mic button)',
-      }, [
-        el('span', { text: '🎙' }), el('span', { text: 'Capture' }),
-      ]),
-      el('button', { type: 'button', class: 'nxs-pill', onclick: () => ctx.navigate('assistant') }, [
-        el('span', { text: '✨' }), el('span', { text: 'AI Assist' }),
-      ]),
-    ]),
-  ]);
-}
-
-function dueSoonCard(feed) {
-  if (!feed.length) {
-    return card('Due Soon', el('p', { class: 'nxs-muted', text: 'Nothing due in the next 7 days.' }));
-  }
-  const list = el('ul', { class: 'nxs-list' });
-  for (const item of feed.slice(0, 5)) {
-    list.append(el('li', { class: item.overdue ? 'nxs-list-row is-overdue' : 'nxs-list-row' }, [
-      el('span', { class: 'nxs-list-tag', text: item.module }),
-      el('span', { class: 'nxs-list-title', text: item.title || '(untitled)' }),
-    ]));
-  }
-  return card(`Due Soon (${feed.length})`, list);
-}
-
-function weatherCard(weather) {
-  if (!weather) {
-    return card('Weather', el('p', { class: 'nxs-muted', text: 'No location set — add one in Settings.' }));
-  }
-  const { icon, label } = ctx.data.describeWeatherCode(weather.code);
-  return card('Weather', el('div', { class: 'nxs-weather' }, [
-    el('span', { class: 'nxs-weather-temp', text: `${icon} ${Math.round(weather.tempF)}°F` }),
-    el('span', { class: 'nxs-muted', text: label }),
-    weather.highF != null
-      ? el('span', { class: 'nxs-muted', text: `H:${Math.round(weather.highF)}° L:${Math.round(weather.lowF)}°` })
-      : null,
-  ]));
-}
-
-function onThisDayCard(items) {
-  if (!items.length) return null;
-  const list = el('ul', { class: 'nxs-list' });
-  for (const item of items.slice(0, 4)) {
-    list.append(el('li', { class: 'nxs-list-row' }, [
-      el('span', { class: 'nxs-list-tag', text: item.kind }),
-      el('span', { class: 'nxs-list-title', text: item.title || '(untitled)' }),
-      el('span', { class: 'nxs-list-meta', text: item.year }),
-    ]));
-  }
-  return card('On This Day', list);
-}
-
-function surpriseCard(surprise, rerender) {
-  const button = el('button', {
-    type: 'button', class: 'nxs-action-btn',
-    onclick: async () => { surprise.value = await ctx.data.getSurpriseMe(); rerender(); },
-    text: '🎲 Surprise me',
-  });
-  if (surprise.value === undefined) return card('Not sure what to do?', button);
-  if (!surprise.value) {
-    return card('Not sure what to do?', el('div', {}, [
-      button,
-      el('p', { class: 'nxs-muted', text: 'Nothing in the queue yet.' }),
-    ]));
-  }
-  return card('Not sure what to do?', el('div', {}, [
-    button,
-    el('p', { class: 'nxs-muted' }, [
-      el('span', { class: 'nxs-list-tag', text: surprise.value.kind }),
-      el('span', { text: ` ${surprise.value.title}` }),
-    ]),
-    el('button', { type: 'button', class: 'nxs-link-btn', text: 'Go there →', onclick: () => ctx.navigate(surprise.value.module) }),
-  ]));
-}
-
-function taskProgressCard(tasks) {
-  const counts = { done: 0, in_progress: 0, not_started: 0, waiting: 0 };
-  for (const t of tasks) counts[t.status] = (counts[t.status] || 0) + 1;
-  const total = tasks.length;
-  const pct = total ? Math.round((counts.done / total) * 100) : 0;
-  return card('Task Progress', el('div', { class: 'nxs-progress' }, [
-    el('div', { class: 'nxs-progress-ring', style: `--pct: ${pct}` }, [el('span', { text: `${pct}%` })]),
-    el('div', { class: 'nxs-progress-breakdown' }, [
-      el('span', { text: `${counts.done} done` }),
-      el('span', { text: `${counts.in_progress} in progress` }),
-      el('span', { text: `${counts.not_started} not started` }),
-    ]),
-  ]));
-}
-
-function habitsCard(habits, allLogs) {
-  const today = new Date().toISOString().slice(0, 10);
-  const doneToday = habits.filter((h) => allLogs.some((l) => l.habitId === h.id && l.date === today)).length;
-  const body = el('div', {}, [
-    el('p', { class: 'nxs-muted', text: habits.length ? `${doneToday} / ${habits.length} done today` : 'No habits yet.' }),
-    el('button', { type: 'button', class: 'nxs-link-btn', text: 'View Habit Tracker →', onclick: () => ctx.navigate('habits') }),
-  ]);
-  return card('Habits', body);
-}
-
-function quickActionsRow() {
-  const actions = [
-    { icon: '✅', label: 'Add Task', module: 'tasks' },
-    { icon: '💡', label: 'Capture Idea', module: 'ideas' },
-    { icon: '📎', label: 'Scan Doc', module: 'documents' },
-    { icon: '🔗', label: 'Save Link', module: 'links' },
-  ];
-  const row = el('div', { class: 'nxs-quick-actions' });
-  for (const a of actions) {
-    row.append(el('button', {
-      type: 'button', class: 'nxs-quick-btn', onclick: () => ctx.navigate(a.module),
-    }, [el('span', { text: a.icon }), el('span', { text: a.label })]));
-  }
-  return row;
-}
-
-async function reviewsDueCard() {
-  const due = await ctx.data.getDueResurfaceItems();
-  if (!due.length) {
-    return card('Reviews Due', el('p', { class: 'nxs-muted', text: 'Nothing due for recall right now.' }));
-  }
-  const nodes = (await Promise.all(due.slice(0, 4).map((item) => ctx.data.resolveGraphNode(item.key))))
-    .filter((n) => n.exists);
-  const list = el('ul', { class: 'nxs-list' });
-  for (const n of nodes) {
-    list.append(el('li', { class: 'nxs-list-row' }, [el('span', { class: 'nxs-list-title', text: n.title })]));
-  }
-  return card(`Reviews Due (${due.length})`, el('div', {}, [
-    list,
-    el('button', { type: 'button', class: 'nxs-link-btn', text: 'Review all →', onclick: () => ctx.navigate('recall') }),
-  ]), { wide: true });
-}
-
-async function pacingInsightsCard() {
-  const [assignments, allLogs] = await Promise.all([ctx.data.Assignments.list(), ctx.data.AssignmentProgressLogs.list()]);
-  const logsByAssignment = new Map();
-  for (const log of allLogs) {
-    if (!logsByAssignment.has(log.assignmentId)) logsByAssignment.set(log.assignmentId, []);
-    logsByAssignment.get(log.assignmentId).push(log);
-  }
-  let ahead = 0, onTrack = 0, behind = 0;
-  for (const a of assignments) {
-    if (a.status === 'done') continue;
-    const status = ctx.data.pacingStatusFor(a, logsByAssignment.get(a.id) || []);
-    if (!status) continue;
-    if (status.gap < 0) ahead++;
-    else if (status.gap === 0) onTrack++;
-    else behind++;
-  }
-  const tracked = ahead + onTrack + behind;
-  const body = !tracked
-    ? el('p', { class: 'nxs-muted', text: 'No assignments with a pacing checkpoint due yet.' })
-    : el('div', { class: 'nxs-pacing-counts' }, [
-      el('span', { class: 'nxs-pacing-count is-ahead', text: `${ahead} ahead` }),
-      el('span', { class: 'nxs-pacing-count is-ontrack', text: `${onTrack} on track` }),
-      el('span', { class: 'nxs-pacing-count is-behind', text: `${behind} behind` }),
-    ]);
-  return card('Pacing Insights', el('div', {}, [
-    body,
-    el('button', { type: 'button', class: 'nxs-link-btn', text: 'View insights →', onclick: () => ctx.navigate('education') }),
-  ]));
-}
-
-function ideaSparkCard(ideas) {
-  const open = ideas.filter((i) => !i.archived);
-  const body = !open.length
-    ? el('p', { class: 'nxs-muted', text: 'No ideas captured yet.' })
-    : el('p', { class: 'nxs-muted', text: open[Math.floor(Math.random() * open.length)].text || '(untitled)' });
-  return card('Idea Spark', el('div', {}, [
-    body,
-    el('button', { type: 'button', class: 'nxs-link-btn', text: 'More ideas →', onclick: () => ctx.navigate('ideas') }),
-  ]));
-}
-
-// --- Radial wheel: six equal donut sectors, fresh geometry (not the
-// mockup's hand-traced petals -- those were tied to a raster image this app
-// doesn't ship). NEXUS CORE at the center is deliberately non-interactive:
-// the reference trace this interface was built from has no hub hotspot,
-// only the six petals.
-const WHEEL = [
-  { module: 'dashboard', label: 'Today', icon: '🌅', start: -30, end: 30 },
-  { module: 'tasks', label: 'Tasks', icon: '✅', start: 30, end: 90 },
-  { module: 'settings', label: 'Settings', icon: '⚙', start: 90, end: 150 },
-  { module: 'search', label: 'Search', icon: '🔍', start: 150, end: 210 },
-  { module: 'places', label: 'Places', icon: '📍', start: 210, end: 270 },
-  { module: 'ideas', label: 'Ideas', icon: '💡', start: 270, end: 330 },
+// Rectangular hotspots: left/top/width/height as % of the 941x1672 mockup,
+// pixel-detected from the GPT-drawn reference trace (nexusred.png) and
+// corrected against direct user review (see this file's history / the
+// nexus-test scratch work this session). `module` is the real destination;
+// `special` marks the one hotspot ("Surprise me") that's a real action, not
+// pure navigation.
+const HOTSPOTS = [
+  { id: 'header.logo', left: 2.444, top: 0.957, width: 28.905, height: 6.639, module: 'dashboard' },
+  // No live heart-rate data exists anywhere in the app (see Health module) --
+  // routed to Health as the closest real destination rather than left dead.
+  { id: 'header.heartrate', left: 73.007, top: 2.572, width: 7.439, height: 4.127, module: 'health' },
+  { id: 'header.notifications', left: 80.553, top: 2.572, width: 8.289, height: 4.127, module: 'tasks' },
+  { id: 'header.settings', left: 89.054, top: 2.572, width: 7.120, height: 4.127, module: 'settings' },
+  { id: 'voice.chevron', left: 89.586, top: 9.809, width: 6.270, height: 3.589, module: 'assistant' },
+  // Ideas has a real mic-capture button (browser speech recognition) --
+  // "Voice Link" and "Quick Note" both land there, same as Capture Idea.
+  { id: 'voice.voiceLink', left: 31.456, top: 14.892, width: 21.573, height: 4.306, module: 'ideas' },
+  { id: 'voice.quickNote', left: 53.454, top: 14.892, width: 20.935, height: 4.306, module: 'ideas' },
+  { id: 'voice.aiAssist', left: 74.601, top: 14.833, width: 20.723, height: 4.366, module: 'assistant' },
+  // No "send a message" feature exists -- Contacts is the closest real place
+  // to reach a person.
+  { id: 'onthisday.sendWishes', left: 72.476, top: 39.653, width: 10.733, height: 2.033, module: 'contacts' },
+  { id: 'duesoon.viewAll', left: 3.294, top: 42.165, width: 29.862, height: 3.409, module: 'tasks' },
+  // No hourly-forecast data exists -- Settings is where the weather location
+  // that drives the real (current-conditions-only) weather lives.
+  { id: 'weather.hourlyForecast', left: 36.876, top: 42.165, width: 26.355, height: 3.409, module: 'settings' },
+  { id: 'onthisday.viewAllMemories', left: 67.375, top: 42.165, width: 29.224, height: 3.409, module: 'milestones' },
+  { id: 'habits.edit', left: 90.967, top: 46.890, width: 6.589, height: 2.811, module: 'habits' },
+  { id: 'surpriseme.planIt', left: 3.188, top: 60.586, width: 28.480, height: 3.409, special: 'surprise' },
+  { id: 'habits.viewHabitTracker', left: 66.950, top: 60.586, width: 30.074, height: 3.529, module: 'habits' },
+  { id: 'quickactions.addTask', left: 2.869, top: 66.029, width: 19.554, height: 3.589, module: 'tasks' },
+  { id: 'quickactions.newNote', left: 23.486, top: 66.029, width: 18.172, height: 3.589, module: 'ideas' },
+  { id: 'quickactions.captureIdea', left: 41.658, top: 66.029, width: 18.491, height: 3.589, module: 'ideas' },
+  { id: 'quickactions.scanDoc', left: 60.149, top: 66.029, width: 18.172, height: 3.589, module: 'documents' },
+  { id: 'quickactions.saveLink', left: 78.427, top: 66.029, width: 18.491, height: 3.589, module: 'links' },
+  { id: 'reviewsdue.reviewAll', left: 2.976, top: 81.579, width: 25.824, height: 3.170, module: 'recall' },
+  // No timed daily-schedule/calendar concept exists -- Tasks is the closest
+  // real "what's on for today" destination.
+  { id: 'focusschedule.viewCalendar', left: 32.625, top: 82.656, width: 19.872, height: 2.990, module: 'tasks' },
+  { id: 'pacinginsights.viewInsights', left: 2.763, top: 95.634, width: 22.848, height: 3.050, module: 'education' },
+  { id: 'ideaspark.moreIdeas', left: 29.649, top: 95.754, width: 22.848, height: 3.110, module: 'ideas' },
 ];
-const WHEEL_R_INNER = 34;
-const WHEEL_R_OUTER = 96;
 
-function polar(cx, cy, r, deg) {
-  const rad = (deg * Math.PI) / 180;
-  return [cx + r * Math.sin(rad), cy - r * Math.cos(rad)];
+// The radial wheel's six true traced petal polygons (vertices in the full
+// 941x1672 image coordinate system -- see the nexus-test scratch work this
+// session for the contour-extraction method). No separate hotspot exists
+// for the wheel's center hub, confirmed against the reference trace.
+const WHEEL_PETALS = [
+  { id: 'today', module: 'dashboard', points: '729,1353.5 702,1348.5 672,1350.5 649.5,1347 638.5,1326 628.5,1304 618,1282.5 608,1260.5 597.5,1239 589,1216.5 604,1199.5 625,1188.5 652,1183.5 680,1179.5 710,1179.5 739,1182.5 766,1187.5 787,1198.5 800.5,1217 791.5,1240 781,1261.5 770,1282.5 759.5,1304 748.5,1325 737.5,1346' },
+  { id: 'tasks', module: 'tasks', points: '796,1418.5 783.5,1403 774,1384.5 761,1369.5 746.5,1356 751.5,1337 760.5,1318 770,1299.5 779.5,1281 789,1262.5 798.5,1244 817.5,1242 833.5,1254 849,1266.5 863.5,1280 876,1295.5 887.5,1312 897.5,1330 905.5,1350 900.5,1371 891.5,1390 875,1401.5 852,1406.5 829,1411.5 806,1416.5' },
+  { id: 'settings', module: 'settings', points: '592,1417.5 569,1413.5 547,1408.5 525.5,1403 505,1396.5 496,1378.5 488.5,1359 492,1339.5 500.5,1321 510,1303.5 522,1288.5 534.5,1274 548.5,1261 563.5,1249 581,1239.5 593,1254.5 602,1272.5 610.5,1291 619.5,1309 628,1327.5 637.5,1345 633.5,1362 620,1375.5 608.5,1391 599.5,1409' },
+  { id: 'ideas', module: 'ideas', points: '829,1603.5 812.5,1591 801,1573.5 789,1556.5 777,1539.5 765,1522.5 767,1504.5 779.5,1488 787.5,1467 791.5,1442 805.5,1427 829.5,1422 854,1417.5 879,1413.5 896,1421.5 909.5,1437 917.5,1458 914.5,1484 910,1508.5 902.5,1530 893.5,1550 883,1568.5 870.5,1585 855,1598.5 830,1602.5' },
+  { id: 'places', module: 'places', points: '567,1603.5 542,1600.5 523.5,1591 512,1574.5 501.5,1557 491.5,1539 484.5,1518 479,1495.5 476.5,1470 478.5,1446 491,1430.5 504,1415.5 527.5,1416 551,1420.5 574,1425.5 592.5,1435 593.5,1460 600,1481.5 610.5,1499 624.5,1513 617,1529.5 609,1543.5 597.5,1560 586.5,1577 575.5,1594' },
+  { id: 'search', module: 'search', points: '710,1660.5 679,1660.5 652,1656.5 627.5,1650 605,1641.5 590.5,1625 585.5,1607 597.5,1588 610,1569.5 622.5,1551 634.5,1532 655,1525.5 680,1531.5 710,1530.5 734.5,1524 753.5,1531 766,1549.5 778.5,1568 791,1586.5 803,1605.5 799.5,1624 784.5,1640 763,1649.5 738.5,1656 711,1659.5' },
+];
+
+function hubImgUrl() {
+  return new URL('./img/hub.png', import.meta.url).href;
 }
 
-function sectorPath(cx, cy, rInner, rOuter, startDeg, endDeg) {
-  const [ox0, oy0] = polar(cx, cy, rOuter, startDeg);
-  const [ox1, oy1] = polar(cx, cy, rOuter, endDeg);
-  const [ix1, iy1] = polar(cx, cy, rInner, endDeg);
-  const [ix0, iy0] = polar(cx, cy, rInner, startDeg);
-  return `M ${ox0} ${oy0} A ${rOuter} ${rOuter} 0 0 1 ${ox1} ${oy1} L ${ix1} ${iy1} A ${rInner} ${rInner} 0 0 0 ${ix0} ${iy0} Z`;
+function showToast(stage, text) {
+  const toast = el('div', { class: 'nxs-toast', text });
+  stage.append(toast);
+  requestAnimationFrame(() => toast.classList.add('is-visible'));
+  setTimeout(() => {
+    toast.classList.remove('is-visible');
+    setTimeout(() => toast.remove(), 250);
+  }, 2600);
 }
 
-function renderWheel() {
-  const cx = 100, cy = 100;
-  const svg = svgEl('svg', { class: 'nxs-wheel', viewBox: '0 0 200 200' });
-  for (const sector of WHEEL) {
-    const mid = (sector.start + sector.end) / 2;
-    const [labelX, labelY] = polar(cx, cy, (WHEEL_R_INNER + WHEEL_R_OUTER) / 2, mid);
-    const g = svgEl('g', { class: 'nxs-wheel-sector' });
-    const path = svgEl('path', {
-      d: sectorPath(cx, cy, WHEEL_R_INNER, WHEEL_R_OUTER, sector.start, sector.end),
-      class: 'nxs-wheel-hit',
-    });
-    const iconText = svgEl('text', { x: labelX, y: labelY - 6, class: 'nxs-wheel-icon', 'text-anchor': 'middle' });
-    iconText.textContent = sector.icon;
-    const labelText = svgEl('text', { x: labelX, y: labelY + 12, class: 'nxs-wheel-label', 'text-anchor': 'middle' });
-    labelText.textContent = sector.label;
-    g.append(path, iconText, labelText);
-    g.addEventListener('click', () => ctx.navigate(sector.module));
-    svg.append(g);
+async function handleSurprise(stage) {
+  const result = await ctx.data.getSurpriseMe();
+  if (result) { ctx.navigate(result.module); return; }
+  showToast(stage, 'Nothing in the queue — add a want-to-go place, an unread book, an untried recipe, or a bucket-list goal.');
+}
+
+function renderHome(canvas) {
+  const stage = el('div', { class: 'nxs-stage' });
+  stage.append(el('img', { class: 'nxs-stage-img', src: hubImgUrl(), alt: 'NEXUS', draggable: 'false' }));
+
+  for (const h of HOTSPOTS) {
+    stage.append(el('button', {
+      type: 'button', class: 'nxs-hotspot',
+      style: `left:${h.left}%; top:${h.top}%; width:${h.width}%; height:${h.height}%;`,
+      title: moduleLabel(h.module) || 'Surprise me',
+      onclick: () => (h.special === 'surprise' ? handleSurprise(stage) : ctx.navigate(h.module)),
+    }));
   }
-  const centerCircle = svgEl('circle', { cx, cy, r: WHEEL_R_INNER, class: 'nxs-wheel-core' });
-  const centerText = svgEl('text', { x: cx, y: cy, class: 'nxs-wheel-core-label', 'text-anchor': 'middle' });
-  centerText.textContent = 'NEXUS CORE';
-  const wrap = el('div', { class: 'nxs-wheel-wrap' });
-  svg.append(centerCircle, centerText);
-  wrap.append(svg);
-  return wrap;
-}
 
-// --- Home (dashboard route) ---
+  const svg = svgEl('svg', { class: 'nxs-petal-layer', viewBox: `0 0 ${IMG_W} ${IMG_H}`, preserveAspectRatio: 'none' });
+  for (const p of WHEEL_PETALS) {
+    const poly = svgEl('polygon', { points: p.points, class: 'nxs-petal' });
+    poly.addEventListener('click', () => ctx.navigate(p.module));
+    svg.append(poly);
+  }
+  stage.append(svg);
 
-async function renderHome(canvas, rerender) {
-  const [billDueSoonDays, documentExpiryDays] = await Promise.all([
-    ctx.data.Settings.get('billDueSoonDays'),
-    ctx.data.Settings.get('documentExpiryDays'),
-  ]);
-  const [onThisDay, weather, dueSoonFeed, tasks, habits, habitLogs, ideas] = await Promise.all([
-    ctx.data.getOnThisDay(),
-    ctx.data.getWeather(),
-    ctx.data.getDueSoonFeed(7, billDueSoonDays, documentExpiryDays),
-    ctx.data.Tasks.list(),
-    ctx.data.Habits.list(),
-    ctx.data.HabitLogs.list(),
-    ctx.data.Ideas.list(),
-  ]);
-
-  canvas.append(await renderHeader(dueSoonFeed.length));
-  canvas.append(greetingBar());
-
-  const grid = el('div', { class: 'nxs-grid' });
-  grid.append(dueSoonCard(dueSoonFeed));
-  grid.append(weatherCard(weather));
-  const otd = onThisDayCard(onThisDay);
-  if (otd) grid.append(otd);
-
-  const surprise = { value: undefined };
-  grid.append(surpriseCard(surprise, rerender));
-  grid.append(taskProgressCard(tasks));
-  grid.append(habitsCard(habits, habitLogs));
-  canvas.append(grid);
-
-  canvas.append(quickActionsRow());
-
-  const grid2 = el('div', { class: 'nxs-grid' });
-  grid2.append(await reviewsDueCard());
-  grid2.append(await pacingInsightsCard());
-  grid2.append(ideaSparkCard(ideas));
-  canvas.append(grid2);
-
-  canvas.append(renderWheel());
+  canvas.append(stage);
 }
 
 // --- Any other module (persistent slim header + hosted view) ---
 
 async function renderModuleScreen(canvas, route) {
-  canvas.append(await renderHeader(0));
+  canvas.append(renderHeader());
   const bar = el('div', { class: 'nxs-subbar' }, [
     el('button', { type: 'button', class: 'nxs-back', text: '◂ Home', onclick: () => ctx.navigate('dashboard') }),
     el('span', { class: 'nxs-subbar-title', text: moduleLabel(route.module) }),
@@ -430,7 +230,7 @@ async function doRender(route) {
   const canvas = el('div', { class: 'nxs-canvas' });
   els.root.append(canvas);
   if (route.module === 'dashboard') {
-    await renderHome(canvas, () => requestRender(route));
+    renderHome(canvas);
   } else {
     await renderModuleScreen(canvas, route);
   }
@@ -461,7 +261,7 @@ function scheduleRerender() {
 registerInterface({
   id: 'nexus',
   name: 'NEXUS',
-  description: 'Dense card-based mobile dashboard with a radial quick-nav wheel.',
+  description: "The user's own mockup, mapped: real click regions on the actual design.",
   stylesheet: 'js/interfaces/nexus/style.css',
 
   async mount(container, context) {
@@ -469,6 +269,10 @@ registerInterface({
     const root = el('div', { class: 'nxs-root' });
     container.append(root);
     els = { root };
+    // Module screens host real views that need to react to data changes
+    // from elsewhere (sync, another tab). The dashboard route's hotspots
+    // are static navigation, so a rerender there just rebuilds the same
+    // image+hotspot layer -- cheap, and the browser has the image cached.
     unsubscribe = ctx.events.on('*', ({ topic }) => {
       if (topic !== 'settings') scheduleRerender();
     });
