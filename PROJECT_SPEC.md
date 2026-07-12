@@ -430,10 +430,13 @@ Everything below came out of talking through what would actually feel
   than browser push notifications, especially on iPhone). Chosen deliberately
   over WhatsApp/Google Messages/iMessage, which don't have a clean, personal,
   automatable API.
-- **Sharebox** — the in-app module is now BUILT (see Built ✅ above); the
-  remaining idea is a separate *lightweight companion app* for a friend who
-  doesn't run full Life OS, reading/writing the same shared folder — plus a
-  possible friend-mesh version (several friends, pairwise shared folders).
+- **Sharebox** — the in-app module is now BUILT (see Built ✅ above).
+  Friend-mesh (several friends in one space, not just a pair) already works
+  with zero extra code — `sharebox_members` is a plain many-to-many table
+  and nothing assumes exactly 2 people, just never exercised with 3+ real
+  people yet. *(Ruled out — dead: a separate lightweight companion app for
+  a friend who doesn't run full Life OS. Alek's call: anyone he'd actually
+  share with already has the full app.)*
 - ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
 
 ## 5. Rough order of what's left
@@ -453,8 +456,7 @@ Everything below came out of talking through what would actually feel
    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of
    Babel, Theme-from-photo)
 7. Additional interfaces (Vespera, LCARS)
-8. Sharebox companion app / friend-mesh (the in-app Sharebox itself is built)
-9. Someday: a standalone music-practice app (progressions, play-along,
+8. Someday: a standalone music-practice app (progressions, play-along,
    melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,

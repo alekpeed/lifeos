@@ -184,10 +184,16 @@ real future target" device-priority note into a deliberate two-tier design.
 ## 6. Sharebox, beyond the in-app module
 
 The in-app Sharebox module is built (Supabase v2, RLS fixed, working).
-What's left:
-- A separate, lightweight **companion app** for a friend who doesn't run
-  full Life OS — reading/writing the same shared space.
-- A possible **friend-mesh** version: several friends, not just one.
+✅ **Friend-mesh already works, no build needed** — `sharebox_members` is a
+plain many-to-many table (space_id + user_id), `joinSpace()` just adds
+whoever calls it with a known space ID, and RLS scopes by membership, not
+by pair. Nothing in the schema or code assumes exactly 2 people; it's just
+never been exercised with 3+ real people yet.
+
+(Ruled out — dead, not parked: a separate lightweight companion app for a
+friend who doesn't run full Life OS. Alek's call: anyone he'd actually
+share with already has the full app anyway, so there's no real audience
+for a stripped-down version.)
 
 ## 7. Moonshot tier — round 1: AI, rearchitecture, capture
 

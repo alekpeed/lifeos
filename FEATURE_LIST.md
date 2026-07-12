@@ -311,8 +311,10 @@ rather than needing to also work as a small-screen experience.
 
 ## Sharebox, further out
 
-- A lightweight **companion app** for a friend who doesn't run full Life OS.
-- A possible **friend-mesh** version (several friends, not just one).
+- ✅ Friend-mesh (several friends in one space) already works, no build
+  needed — the schema never assumed exactly 2 people.
+- *(Ruled out — dead: a lightweight companion app for a friend who doesn't
+  run full Life OS. Not shown in status recaps.)*
 
 ## Moonshot tier 🌙 — AI, rearchitecture, capture, privacy, platform
 
