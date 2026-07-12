@@ -7,7 +7,8 @@
 import * as data from './data/api.js';
 import { events } from './data/events.js';
 import { getInterface, listInterfaces } from './interfaces/registry.js';
-import { MODULES, MODULE_GROUPS, DEFAULT_MODULE, isValidModule } from './modules.js';
+import { MODULES, MODULE_GROUPS, DEFAULT_MODULE, isValidModule, getRemoteModules, isRemoteModule } from './modules.js';
+import { isMobileRemoteContext } from './data/device-context.js';
 
 const appEl = document.getElementById('app');
 let active = null;
@@ -18,8 +19,9 @@ let switching = Promise.resolve();
 export function parseRoute() {
   const hash = location.hash.replace(/^#\/?/, '');
   const [module, ...rest] = hash.split('/').filter(Boolean);
+  const eligible = isValidModule(module) && (!isMobileRemoteContext() || isRemoteModule(module));
   return {
-    module: isValidModule(module) ? module : DEFAULT_MODULE,
+    module: eligible ? module : DEFAULT_MODULE,
     rest,
   };
 }
@@ -68,21 +70,44 @@ function setInterfaceStylesheet(href) {
 }
 
 function buildContext() {
+  // On the installed mobile remote, nav is curated to the `remote: true`
+  // subset (see modules.js) -- everywhere else (desktop, a plain browser
+  // tab) sees the full canonical list. This is a UI-surface distinction
+  // only; the underlying data isn't segregated, so a module left off the
+  // remote's nav is still reachable data-wise (e.g. via Search/Recall),
+  // just not offered as a destination in its own right.
+  const remote = isMobileRemoteContext();
   return {
     data,                       // the shared data API — the only data doorway
     events,                     // subscribe to data-change topics
-    modules: MODULES,           // canonical module list for building navigation
+    modules: remote ? getRemoteModules() : MODULES,  // curated for building navigation
     moduleGroups: MODULE_GROUPS,
+    isMobileRemote: remote,     // interfaces can adapt further (density, copy, etc.) if needed
     navigate,                   // request a route change
     parseRoute,                 // read the current route
-    listInterfaces,             // for interface pickers
+    // On the remote, desktop-only interfaces (e.g. Vespera) aren't offered
+    // as a switch target in the first place -- not just rejected on pick.
+    listInterfaces: () => {
+      const all = listInterfaces();
+      if (!remote) return all;
+      return all.filter((i) => getInterface(i.id)?.remoteSafe !== false);
+    },
     switchInterface: (id) => switchInterface(id),
   };
 }
 
 async function doSwitch(id, { persist }) {
-  const def = getInterface(id) || getInterface('default');
+  let def = getInterface(id) || getInterface('default');
   if (!def) throw new Error('No interfaces registered.');
+  // A remote-context fallback is a display-only override, not a real
+  // preference change -- activeInterface is a synced setting, so persisting
+  // the fallback here would silently overwrite the user's real (desktop)
+  // choice the next time it syncs back down.
+  let forcedFallback = false;
+  if (def.remoteSafe === false && isMobileRemoteContext()) {
+    def = getInterface('default');
+    forcedFallback = true;
+  }
   if (active === def) return;
 
   if (active) {
@@ -101,7 +126,7 @@ async function doSwitch(id, { persist }) {
   await def.mount(appEl, buildContext());
   await def.renderRoute?.(parseRoute());
 
-  if (persist) await data.Settings.set('activeInterface', def.id);
+  if (persist && !forcedFallback) await data.Settings.set('activeInterface', def.id);
 }
 
 export function switchInterface(id, { persist = true } = {}) {

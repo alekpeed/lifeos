@@ -459,6 +459,11 @@ registerInterface({
   name: 'Vespera',
   description: 'The orbital station — Life OS as a place you navigate.',
   stylesheet: 'js/interfaces/vespera/style.css',
+  // Desktop only (see PROJECT_SPEC.md's "Device philosophy" section) — the
+  // mobile remote is a stripped-down controller, not a living world. The
+  // shell falls back to 'default' if this would otherwise be selected on
+  // the installed mobile remote.
+  remoteSafe: false,
 
   async mount(container, context) {
     ctx = context;
