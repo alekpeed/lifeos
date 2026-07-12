@@ -262,13 +262,17 @@ Plaid/Financial Center staying parked above.)*
   spatial interface, Life OS as an orbital station you navigate through, not
   a dashboard. Hub (Grand Concourse) with 9 district plaques, district rooms,
   hotspot/portal geometry actively being refined. See `VESPERA_SPEC.md` and
-  the Built ✅ section of `PROJECT_SPEC.md` for current state.
+  the Built ✅ section of `PROJECT_SPEC.md` for current state. **Desktop
+  only** — not part of the mobile/APK experience, see the device
+  philosophy note below.
 - **An LCARS-inspired mode** (Star Trek control-panel aesthetic, original
-  execution, no copyrighted assets). Scoped (2026-07): mobile-first for v1
-  (desktop deferred), whole app reachable at chrome level, real motion +
-  sound, alert-styling tied to actual due/overdue data. One open
-  architecture fork not yet decided — chrome/skin over Equator's existing
-  layout vs. a new Vespera-scale spatial interface. See `LCARS_SPEC.md`.
+  execution, no copyrighted assets) — now confirmed as **the mobile
+  remote's** visual language specifically, not a desktop reskin. Scoped
+  (2026-07): mobile-first v1, a new dedicated interface (not a filtered
+  Equator — that fork is resolved), a curated on-the-go module set rather
+  than the whole app, real motion + sound, alert-styling tied to actual
+  due/overdue data. See `LCARS_SPEC.md` for the draft module list and
+  remaining open questions.
 - ⏸️ PARKED — **Bio-futurism/jungle interface** — a third, from-scratch
   interface concept: a futuristic tropical/jungle theme ("40th century meets
   the Amazon meets the far reaches of the galaxy"), unrelated to Vespera or
@@ -278,23 +282,29 @@ Plaid/Financial Center staying parked above.)*
   committed to. Pick back up only when Alek brings it up by name.
 - Any others that come to mind along the way.
 
-### Device philosophy — desktop-immersive, mobile-companion 🏗️
+### Device philosophy — desktop is the full app, mobile is a remote (revised 2026-07-12)
 
-Desktop is the primary immersive canvas (Vespera's real home); mobile is a
-genuinely different, lighter surface, not the same UI at a smaller
-breakpoint.
-- **Baseline (standalone):** mobile is fully capable on its own, using the
-  same offline-first synced data as everything else — no dependency on
-  desktop being open or reachable.
-- **Enhanced (progressive, when desktop is live):** mobile detects an
-  active desktop session via a presence signal (Supabase Realtime presence
-  — already wired in for Sharebox) and unlocks extras: casting a view to
-  the big screen, using the phone as a remote input (e.g. camera capture
-  with the result shown on desktop), and live handoff (desktop picks up
-  exactly where you left off on mobile, not just "synced eventually").
+Desktop is the complete app — every module, through either Equator
+(rail+canvas default) or Vespera (the spatial alternative). Mobile is
+deliberately **not** a second complete copy of it: a genuinely
+stripped-down "controller in your pocket," built around what's actually
+useful away from a desk — quick capture, on-the-go actions, glanceable
+status — not full parity. No Vespera, no spatial "living world" on
+mobile; that register stays desktop's. Mobile gets its own purpose-built
+interface, styled LCARS (`LCARS_SPEC.md`), not a filtered version of
+Equator.
 
-This reframes the existing "mobile = occasional check-in, tablet/desktop =
-real future target" device-priority note into a deliberate two-tier design.
+Sync model: the same underlying data everywhere (Drive/Supabase, exactly
+as it already works today) — this is a UI-surface decision, not a
+data-sync restriction. Every device stays fully synced regardless of
+which modules its interface chooses to show.
+
+This replaces the earlier "mobile is fully capable standalone, same UI at
+a smaller breakpoint, unlocks casting/remote-input extras when desktop's
+live" framing below it used to have — superseded after further
+conversation. The presence-based casting idea isn't part of the current
+plan, but nothing rules out revisiting it later once the mobile remote
+itself exists.
 
 ## 6. Sharebox, beyond the in-app module
 

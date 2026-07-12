@@ -460,28 +460,40 @@ lets the whole app be redecorated later without rebuilding it:
 ## 3. Additional interfaces 📋
 - **Vespera** — a spatial interface (LifeOS as an orbital station you
   navigate through, not a dashboard). Started and well underway — see the
-  Built ✅ section above and `VESPERA_SPEC.md` for current state, not the
-  "not started" this note used to say.
-- An LCARS-inspired mode (Star Trek control-panel aesthetic, original
-  execution — no copyrighted assets). Scoped, not built — see
-  `LCARS_SPEC.md` for the handoff doc: mobile-first v1, whole app at
-  chrome level, real motion/sound, functional alert-styling, and one open
-  architecture fork (chrome-skin vs. a new spatial interface) still
-  awaiting a decision.
+  Built ✅ section above and `VESPERA_SPEC.md` for current state.
+  **Desktop only** — not part of the mobile/APK experience (see the device
+  philosophy note below).
+- **LCARS-inspired mode** — now confirmed as the visual language for **the
+  mobile remote** specifically, not a desktop reskin (see device
+  philosophy below). Scoped, not built — see `LCARS_SPEC.md`: mobile-first
+  v1, a new dedicated interface (not a filtered Equator), a curated
+  on-the-go module set (draft list in the doc, not the whole app), real
+  motion/sound, functional alert-styling. The chrome-skin-vs-spatial-
+  interface fork from the first scoping round is resolved: it's a new
+  dedicated interface.
 - Any others that come to mind along the way
 
-**Device philosophy — desktop-immersive, mobile-companion 🏗️:** desktop is
-the primary immersive canvas (this is Vespera's real home); mobile is a
-genuinely different, lighter surface, not the same UI at a smaller
-breakpoint. Baseline: mobile is fully capable standalone, using the same
-offline-first synced data as everything else — no dependency on desktop
-being open. Enhanced (progressive, when desktop is live): mobile detects an
-active desktop session via a presence signal (Supabase Realtime presence,
-already wired in for Sharebox) and unlocks extras — cast a view to the big
-screen, use the phone as a remote input (camera capture → result shown on
-desktop), live handoff (pick up on desktop exactly where you left off on
-mobile). Reframes the existing device-priority note into a deliberate
-two-tier design rather than an afterthought.
+**Device philosophy — desktop is the full app, mobile is a remote
+(revised 2026-07-12):** Desktop is the complete app — every module,
+through either Equator (rail+canvas default) or Vespera (the spatial
+alternative). Mobile is deliberately **not** a second complete copy of it:
+a genuinely stripped-down "controller in your pocket," built around what's
+actually useful away from a desk — quick capture, on-the-go actions,
+glanceable status — not full parity. No Vespera, no spatial "living
+world" on mobile; that register stays desktop's. Mobile gets its own
+purpose-built interface, styled LCARS (`LCARS_SPEC.md`), not a filtered
+version of Equator.
+
+Sync model: the same underlying data everywhere (Drive/Supabase, exactly
+as it already works today) — this is a UI-surface decision, not a
+data-sync restriction. Every device stays fully synced regardless of which
+modules its interface chooses to show.
+
+This replaces the earlier "mobile is fully capable standalone, same UI at
+a smaller breakpoint, unlocks casting/remote-input extras when desktop's
+live" framing — superseded after further conversation. The
+presence-based casting idea isn't part of the current plan, but nothing
+rules out revisiting it later once the mobile remote itself exists.
 
 ## 4. New ideas from later conversations 📋
 

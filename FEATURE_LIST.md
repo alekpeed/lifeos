@@ -19,10 +19,12 @@ genuine moonshots.
 
 - **Installable, offline-first app** — works with no internet connection
   day to day; nothing requires a live connection to function.
-- **Swappable interfaces** — the whole app can be redecorated without a
-  rebuild. The default ("Equator," a calm sidebar + content layout) is
-  built; a structurally different mode and a Star-Trek-style LCARS mode are
-  planned (Part 2).
+- **Swappable interfaces** — the whole desktop app can be redecorated
+  without a rebuild. The default ("Equator," a calm sidebar + content
+  layout) is built, alongside Vespera (a full spatial alternative, Part 2).
+  A Star-Trek-style LCARS mode is planned too, but as something different
+  in kind: a separate, stripped-down mobile remote with its own curated
+  module set, not a third full-parity desktop skin (Part 2).
 - **Light/dark mode, accent colors, density toggle** — independent of which
   interface is active.
 
@@ -311,41 +313,38 @@ bug).
   shared view library. Switch in Settings → Interface. Hub art loads from
   `js/interfaces/vespera/img/hub.png` (CSS starfield until uploaded).
   Still open from `VESPERA_SPEC.md`: per-district room art, richer
-  per-space chrome.
+  per-space chrome. **Desktop only** — not part of the mobile/APK
+  experience.
 - **LCARS-inspired mode** — Star Trek control-panel aesthetic, original
-  execution. Scoped, not built — see `LCARS_SPEC.md`: mobile-first v1,
-  whole app at chrome level, real motion/sound, functional alert-styling,
-  one open architecture fork (chrome-skin vs. new spatial interface).
+  execution. Now confirmed as **the mobile remote's** visual language
+  specifically, not a desktop reskin. Scoped, not built — see
+  `LCARS_SPEC.md`: mobile-first v1, a new dedicated interface (not a
+  filtered Equator — that fork is resolved), a curated on-the-go module
+  set rather than the whole app, real motion/sound, functional
+  alert-styling.
 
-## Device philosophy: desktop-immersive, mobile-companion 🏗️
+## Device philosophy: desktop is the full app, mobile is a remote (revised 2026-07-12)
 
-A named architecture direction, not yet built: **desktop is the primary,
-immersive canvas** (Vespera-style spatial navigation, rich graphics,
-interaction) — **mobile is a genuinely different, lighter surface**, not
-just the same interface at a smaller breakpoint.
+Desktop is the complete app — every module, through either Equator
+(rail+canvas default) or Vespera (the spatial alternative). Mobile is
+deliberately **not** a second complete copy of it: a genuinely
+stripped-down "controller in your pocket," built around what's actually
+useful away from a desk — quick capture, on-the-go actions, glanceable
+status — not full parity. No Vespera, no spatial "living world" on
+mobile; that register stays desktop's. Mobile gets its own purpose-built
+interface, styled LCARS (`LCARS_SPEC.md`), not a filtered version of
+Equator.
 
-- **Baseline (mobile standalone):** fully capable on its own, using the
-  same offline-first, locally-synced data every other module already has.
-  No dependency on desktop being open or online — mobile never degrades if
-  desktop isn't reachable.
-- **Enhanced (progressive, when desktop is live):** mobile detects an
-  active desktop session via a presence signal (Supabase Realtime already
-  has a presence feature built for exactly this, and it's already wired
-  into the app for Sharebox) and unlocks extra capability on top:
-  - **Cast a view to the big screen** — pull up the Harmony Map or a book
-    on your phone, send it to display on desktop, phone becomes the
-    controller.
-  - **Phone as remote input** — camera-based features (Theme-from-Photo,
-    future camera-vision cataloging) capture on the phone, result appears
-    live on the desktop screen.
-  - **Live handoff** — reading in Library of Babel on the couch on your
-    phone, desktop picks up at the same spot the moment you sit down —
-    genuinely live, not just "synced eventually."
+Sync model: the same underlying data everywhere (Drive/Supabase, exactly
+as it already works) — a UI-surface decision, not a data-sync
+restriction. Every device stays fully synced regardless of which modules
+its interface chooses to show.
 
-This reframes the existing "mobile = occasional check-in, tablet/desktop =
-real future target" device-priority note into a deliberate two-tier
-design, and gives Vespera's immersive spatial concept a clear home (desktop)
-rather than needing to also work as a small-screen experience.
+This replaces the earlier "mobile is fully capable standalone, unlocks
+casting/remote-input extras when desktop's live" framing — superseded
+after further conversation. The presence-based casting idea isn't part of
+the current plan, but nothing rules out revisiting it later once the
+mobile remote itself exists.
 
 ## Sharebox, further out
 
