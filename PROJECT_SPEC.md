@@ -225,6 +225,13 @@ lets the whole app be redecorated later without rebuilding it:
   private key never leaves the device's secure enclave/TPM either way. Off
   by default; gracefully hides the option on devices/browsers with no
   platform authenticator. See `js/data/applock.js`.
+- **AI with continuity** — the Daily Paper's editorial is no longer stateless
+  day-to-day: each finalized issue is saved to a new `paperIssues` store (one
+  per local date + owner), and the last few (oldest first) are handed back
+  to the AI as part of its source packet the next time it writes, with
+  explicit instructions to reference one only when a genuine callback adds
+  value — never forced, never inventing what a past entry said beyond what's
+  shown. See `saveEditorialIssue`/`getRecentEditorials` in `js/data/api.js`.
 - **Museum of Finished Things** — a trophy-case view over completions already
   scattered across other modules: done tasks/assignments, finished books
   (with covers), milestones, recipes ranked by times cooked, archived
@@ -462,12 +469,13 @@ Everything below came out of talking through what would actually feel
    relay chaining was considered and dropped — see section 4 above.)
 5. ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
 6. ~~Passkey/biometric app lock~~ — DONE (see Built ✅).
-7. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+7. ~~AI with continuity~~ — DONE (see Built ✅).
+8. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of
    Babel, Theme-from-photo)
-8. Additional interfaces (Vespera, LCARS)
-9. Someday: a standalone music-practice app (progressions, play-along,
-   melody-aware voicing) — deliberately out of LifeOS scope
+9. Additional interfaces (Vespera, LCARS)
+10. Someday: a standalone music-practice app (progressions, play-along,
+    melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
 places, finance, etc. — currently local-first in IndexedDB) eventually move
@@ -496,9 +504,6 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 - **Autonomous daily chief-of-staff** — an agent that reviews everything each
   morning, drafts a prioritized brief (bills at risk, streaks about to break,
   rabbit holes gone cold), and can act on pre-approved simple tasks itself.
-- **AI with continuity** — the Daily Paper stops being stateless day-to-day;
-  it remembers what it told you last week and writes with callbacks ("did you
-  end up going to that place you bookmarked?").
 - **AI-suggested knowledge-graph edges** — beyond manual linking: a model
   reads across every module and proposes non-obvious connections you'd never
   have drawn yourself.
@@ -622,6 +627,7 @@ own Tier 2 flag, not a routine add)**
 - ~~Google Photos import~~ — DONE (see Built ✅, Photos/Gallery entry).
 - ~~Passkey/biometric app lock~~ — DONE (see Built ✅, Milestones-adjacent
   entry above).
+- ~~AI with continuity~~ — DONE (see Built ✅, Daily Paper entry above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
 history / Watch Later sync — both deprecated from the YouTube Data API in

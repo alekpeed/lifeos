@@ -208,6 +208,7 @@ async function ensureEditorial(ctx, data, rerender) {
       ctx.data.Settings.set('paperEditorialDate', todayStr()),
       ctx.data.Settings.set('paperEditorialText', text),
       ctx.data.Settings.set('paperEditorialOwner', data.editorialOwner),
+      ctx.data.saveEditorialIssue(todayStr(), data.editorialOwner, text, data.editorialProviderId),
     ]);
   } catch (err) {
     state.editorialError = err.message || String(err);
@@ -293,7 +294,7 @@ function buildDigestText(data) {
 // useful while making missing data explicit and never feeding an older
 // editorial back into the model.
 export function buildEditorialContext(data) {
-  const { feed, onThisDay, habits, logsByHabit, weather, weatherDescription, sleep } = data;
+  const { feed, onThisDay, habits, logsByHabit, weather, weatherDescription, sleep, recentIssues } = data;
   const lines = [`Date: ${longDate()}`];
 
   if (weather) {
@@ -334,6 +335,11 @@ export function buildEditorialContext(data) {
     lines.push('On this day: no entries');
   }
   if (state.surprise) lines.push(`Editor's pick: ${state.surprise.kind} — ${state.surprise.title}`);
+
+  if (recentIssues?.length) {
+    lines.push('', 'Your own recent past editorials (oldest first, for continuity only):');
+    for (const issue of recentIssues) lines.push(`- [${fmtDate(issue.date)}] ${issue.text}`);
+  }
 
   return lines.join('\n');
 }
@@ -376,8 +382,9 @@ export async function renderPaper(canvas, ctx, rerender) {
   const accountUser = await ctx.data.Account.getCurrentUser().catch(() => null);
   const editorialOwner = accountUser?.id || 'local-anonymous';
   const weatherDescription = weather ? ctx.data.describeWeatherCode(weather.code).label : null;
-  const { label: editorialProviderLabel, apiKey } = await ctx.data.getActiveAiProvider();
-  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, weatherDescription, checkedSet, editorialOwner, editorialProviderLabel };
+  const { id: editorialProviderId, label: editorialProviderLabel, apiKey } = await ctx.data.getActiveAiProvider();
+  const recentIssues = await ctx.data.getRecentEditorials(editorialOwner, todayStr());
+  const data = { feed, onThisDay, habits, logsByHabit, sleep, weather, weatherDescription, checkedSet, editorialOwner, editorialProviderId, editorialProviderLabel, recentIssues };
 
   // AI editorial: visible as a setup state without a key, and generated with
   // the user's own key when configured. Cached by local date and account; a

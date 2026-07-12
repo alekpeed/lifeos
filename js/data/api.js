@@ -234,6 +234,7 @@ export const PlaceNotes = entities.placeNotes;
 export const AiConversations = entities.aiConversations;
 export const AiMessages = entities.aiMessages;
 export const Ideas = entities.ideas;
+export const PaperIssues = entities.paperIssues;
 
 // --- Attachments: binary assets (place photos, bill/document PDFs, ...) ---
 // Stored locally as a Blob for now; the Drive sync layer will populate
@@ -859,9 +860,36 @@ export async function generateDailyEditorial(summary) {
     + `If data is unavailable, ignore it. Prioritize overdue work, today's concrete obligations, and genuine progress. `
     + `Be warm, perceptive, and concise—not chirpy, scolding, or generic. Write 3-5 sentences in second person ("you"). `
     + `Mention one or two exact specifics naturally, then offer a practical focus for the day. `
+    + `The packet may include a handful of your own recent past editorials, oldest first, purely for continuity. `
+    + `Only reference one when a genuine callback adds real value — a promise kept, a pattern continuing, follow-through on something flagged before. `
+    + `Most days should stand entirely on their own with no callback at all; never force one, never repeat old phrasing verbatim, and never invent what a past entry said beyond what's shown. `
     + `Return plain prose only: no title, markdown, bullets, greeting, or sign-off.\n\nSOURCE PACKET\n${summary}`;
   const { text } = await send(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 400 });
   return text.trim();
+}
+
+// Persists (or updates, if regenerated) the finalized editorial for one
+// local date + owner into the durable history used for continuity, kept
+// separate from the Settings-based "today" cache above (which just tracks
+// what to show right now without re-calling the AI). One record per
+// date+owner -- a same-day regenerate replaces it rather than appending a
+// duplicate.
+export async function saveEditorialIssue(date, owner, text, provider) {
+  const existing = (await PaperIssues.byIndex('date', date)).find((r) => r.owner === owner);
+  if (existing) return PaperIssues.update(existing.id, { text, provider });
+  return PaperIssues.create({ date, owner, text, provider });
+}
+
+// The last `limit` editorials for this owner, oldest first, excluding
+// today's (there isn't one yet when this is called, but excluding it keeps
+// this safe to call from anywhere).
+export async function getRecentEditorials(owner, excludeDate, limit = 5) {
+  const all = await PaperIssues.byIndex('owner', owner);
+  return all
+    .filter((r) => r.date !== excludeDate && r.text)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, limit)
+    .reverse();
 }
 
 // --- Milestones: AI-written yearly recap narrative (provider-switchable,

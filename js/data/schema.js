@@ -22,10 +22,12 @@ export const DB_NAME = 'lifeos';
 // stats). v11 adds `aiConversations`/`aiMessages` (the AI Assistant module --
 // the API key itself lives in Settings, device-local and unsynced; the
 // conversation text is regular synced data like everything else). v12 adds
-// `ideas` (a broad, unstructured capture-anything notes list). runUpgrade
-// in db.js creates any store that doesn't yet exist, so these bumps are
-// non-destructive for existing data.
-export const DB_VERSION = 12;
+// `ideas` (a broad, unstructured capture-anything notes list). v13 adds
+// `paperIssues` (the Daily Paper's AI editorial history, one record per
+// local date + owner, kept so a new editorial can reference recent ones for
+// continuity). runUpgrade in db.js creates any store that doesn't yet
+// exist, so these bumps are non-destructive for existing data.
+export const DB_VERSION = 13;
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -272,6 +274,16 @@ export const STORES = [
   // thoughts from getting captured at all.
   { name: 'ideas', keyPath: 'id', indexes: [
     { name: 'archived', keyPath: 'archived' },
+  ] },
+
+  // Daily Paper editorial history: one record per local date + owner (same
+  // owner scoping as the Settings-based "today" cache — a signed-in
+  // account's id, or 'local-anonymous'), so a new editorial can be given a
+  // handful of recent ones for continuity/callbacks without re-reading
+  // every module's raw data again.
+  { name: 'paperIssues', keyPath: 'id', indexes: [
+    { name: 'date', keyPath: 'date' },
+    { name: 'owner', keyPath: 'owner' },
   ] },
 ];
 

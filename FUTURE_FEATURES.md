@@ -94,6 +94,14 @@ parked means "not now," not "forgotten" or "cut."
   and the private key never leaves the device's secure enclave/TPM either
   way. Off by default; gracefully hides the option on devices/browsers with
   no platform authenticator. See `js/data/applock.js`.
+- ✅ **AI with continuity** — DONE: the Daily Paper's editorial is no longer
+  stateless day to day. Each finalized issue is saved to a new `paperIssues`
+  store (one per local date + owner), and the last few (oldest first) are
+  handed back to the AI as part of its source packet the next time it
+  writes, with explicit instructions to reference one only when a genuine
+  callback adds value — never forced, never inventing what a past entry
+  said beyond what's shown. See `saveEditorialIssue`/`getRecentEditorials`
+  in `js/data/api.js`.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -247,8 +255,6 @@ for a stripped-down version.)
   each morning, drafts a prioritized brief (bills at risk, streaks about to
   break, rabbit holes gone cold), and can act on pre-approved simple tasks
   itself.
-- **AI with continuity** — the Daily Paper stops being stateless day to
-  day; it remembers what it told you last week and writes with callbacks.
 - **AI-suggested knowledge-graph edges** — beyond manual linking: a model
   reads across every module and proposes non-obvious connections you'd
   never have drawn yourself.

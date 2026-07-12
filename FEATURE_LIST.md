@@ -231,6 +231,10 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   device PIN); once on, the whole app is gated behind it before any data
   renders. A local device gate, not encryption — off by default, and hides
   itself on devices with no platform authenticator.
+- ✅ **AI with continuity** — the Daily Paper's editorial now has memory: each
+  finalized issue is saved (one per local date + owner), and the last few
+  are handed back to the AI next time so it can reference a genuine
+  callback when one adds value — never forced, never invented.
 
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
@@ -329,8 +333,6 @@ rather than needing to also work as a small-screen experience.
   natural-language questions return real answers from your own history.
 - **Autonomous daily chief-of-staff** — an agent that reviews everything
   each morning and drafts a prioritized brief.
-- **AI with continuity** — the Daily Paper remembers past issues and
-  writes with callbacks.
 - **AI-suggested knowledge-graph edges** — a model proposes non-obvious
   connections across modules.
 - **Predictive forecasting** — real trend modeling on your own data.
