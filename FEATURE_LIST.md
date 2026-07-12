@@ -394,6 +394,9 @@ mobile remote itself exists.
 
 ## Far tier 🪐 — scale-and-space swings
 
+*(Excluded from default "what's on our list" recaps as of 2026-07 — Alek's
+call, see CLAUDE.md. Stays fully written here; just not surfaced unasked.)*
+
 - **A true 3D Memory Palace** — a walkable, rendered 3D space, not flat
   districts.
 - **A local, continuous "life recorder"** — periodic screen capture + OCR,

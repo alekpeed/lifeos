@@ -695,7 +695,9 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   same easy win available there.
 
 **Far tier — scale-and-space swings (each closer to its own product than a
-feature; heavy on either engineering, storage, or compute)**
+feature; heavy on either engineering, storage, or compute)** *(excluded from
+default "what's on our list" recaps as of 2026-07 — Alek's call, see
+CLAUDE.md; stays fully written here, just not surfaced unasked)*
 - **A true 3D Memory Palace** — not flat districts (Vespera) but a fully
   rendered, walkable 3D space (Three.js/WebGL): rooms per module, physical
   objects representing records, real lighting/physics. Game-engine-scale

@@ -431,6 +431,9 @@ for a stripped-down version.)
 
 ## 9. Far tier 🪐 — round 3: scale-and-space swings
 
+*(Excluded from default "what's on our list" recaps as of 2026-07 — Alek's
+call, see CLAUDE.md. Stays fully written here; just not surfaced unasked.)*
+
 Each of these is closer to its own product than a feature — heavy on
 engineering, storage, or compute, and genuinely speculative.
 

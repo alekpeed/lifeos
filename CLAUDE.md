@@ -63,6 +63,13 @@ Instagram DMs) is the historical record — that's enough. A "what's open"
 answer should read as if dead items don't exist; parked items can get a
 one-line mention that they're parked, dead items get none.
 
+**Far Tier (2026-07):** same suppression as parked items, but for the whole
+tier at once — `FUTURE_FEATURES.md` §9 / `PROJECT_SPEC.md`'s far-tier
+section stay fully written and in the spec, just excluded by default from
+"what's on our list" / status-recap answers. Mention it again only if Alek
+asks what's further out, names a far-tier item directly, or says the word
+to bring the tier back into view.
+
 Deploy: `main` branch via GitHub Pages. Routine convention this session:
 commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
 `main`, push `main`, checkout back to the dev branch.
