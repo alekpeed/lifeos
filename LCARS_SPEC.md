@@ -126,6 +126,99 @@ Education, Milestones' Yearly Recap, Collections, and Rabbit Holes are
 judgment calls either way — left off the draft to keep v1 lean, easy to
 add back in.
 
+## Functional requirements — what each screen has to do
+
+**Division of labor, settled 2026-07-12:** Alek owns the visual design
+end to end — shapes, sizes, coordinates, everything about *how* this
+looks, placed by hand in Figma (irregular/non-uniform shapes ruled out
+deriving a clean spacing "system," so exact per-element coordinates are
+the right call here, not an inferred rule set). This section is the other
+half: what each screen has to be *capable of*, with zero opinion about
+how any of it looks. No shapes, no colors, no coordinates below — just
+the contract each screen has to fulfill. Grounded in what each module
+actually does today, not new functionality invented for this pass.
+
+**Global requirements, apply everywhere:**
+- **Minimum tap target: 44×44 CSS px**, with real spacing between
+  adjacent targets — the standard accessibility floor (iOS HIG / Android
+  Material both land near here), non-negotiable regardless of how dense
+  a screen's layout gets.
+- **All text is real, live DOM text — never baked into an image.**
+  Almost everything below shows dynamic, personal data; a picture can't
+  do that.
+- **A way back to Home, reachable in one tap, from anywhere.** Every
+  screen needs it; where exactly it sits is Alek's call.
+- **Alert-color states** (nominal / caution / critical, per the mapping
+  already in this doc) apply specifically to: Dashboard's and Daily
+  Paper's due-soon items, Documents' expiring-soon items, and Tasks'
+  overdue items — driven by the same due-soon/overdue thresholds already
+  computed elsewhere in the app, nothing new to calculate.
+
+**Per-screen contract:**
+
+- **Today (Dashboard)** — *Shows:* due-soon agenda with overdue items
+  flagged, an on-this-day flashback, one "Surprise me" pick. *Does:* tap
+  a due item to jump to its module; tap Surprise Me for a new pick and a
+  way to jump to it.
+- **Daily Paper** — *Shows:* today's agenda, on-this-day, a tickable
+  habit checklist, the editor's pick, weather, the AI editorial (when a
+  key's configured), a small almanac of counts. *Does:* tick a habit off
+  the checklist; retry/regenerate the editorial. *Not needed here:* the
+  Print button (no printer on a phone) — Send-to-Telegram may still be
+  worth keeping, genuinely useful on the go.
+- **Tasks** — *Shows:* task list — title, due date, priority, overdue
+  flag, "waiting on someone" state. *Does:* quick-add a task, check one
+  off, snooze it, mark it waiting-on-someone.
+- **Ideas** — *Shows:* the running idea list. *Does:* capture a new idea
+  in as close to one tap as possible — this is the core reason this
+  screen exists — and archive/mark one handled.
+- **Places** — *Shows:* place list, a map pin, the "check nearby places"
+  nudge. *Does:* trigger the nearby-places check, log a visit, flag
+  something to revisit, add a new place on the spot.
+- **Links** — *Shows:* watch-later and read-later lists. *Does:*
+  quick-add a link (paste a URL), mark something watched/read.
+- **Recipes** — *Shows:* recipe list, a selected recipe's ingredients and
+  steps, the grocery list. *Does:* reference a recipe hands-on while
+  cooking, log "made it," generate/view the grocery list.
+- **Documents** — *Shows:* document list. *Does:* the camera-to-data scan
+  flow — photograph a document, review the AI-drafted fields, save. This
+  is the headline reason this module belongs on a phone at all.
+- **Contacts** — *Shows:* contact list and detail (phone, email, notes).
+  *Does:* look someone up, jot a note right after a call.
+- **Photos** — *Shows:* albums, a photo grid. *Does:* import from Google
+  Photos, browse an album.
+- **Trip Packing Lists** — *Shows:* a trip's checklist. *Does:* check off
+  packed items, add a freeform item, start a list from a template.
+- **Quartermaster** — *Shows:* inventory and the lending ledger. *Does:*
+  mark something lent or returned, look up who has something.
+- **Conversation Starters** — *Shows:* openers for a picked contact.
+  *Does:* pick a contact, get openers.
+- **Languages** — *Shows:* a flashcard deck, how many cards are due.
+  *Does:* run a study session — show a card, reveal the answer, grade
+  Again/Good/Easy.
+- **Habits** — *Shows:* habit list with today's check-in state and
+  current streak. *Does:* check a habit in or out for today.
+- **Health** — *Shows:* recent logs, 7-day rolling averages. *Does:*
+  quick-log today's sleep, workout, water, or weight.
+- **Recall** — *Shows:* today's due-for-review queue. *Does:* run a
+  review — show the item, grade Again/Good/Easy — and schedule a new item
+  via search.
+- **QR Airgap Sync** — *Shows:* pairing status. *Does:* scan a QR to
+  pair, or generate one to be scanned.
+- **Tools** — *Shows:* currency/unit converter, saved timezones. *Does:*
+  convert a value, compare a saved timezone against local time.
+- **Search** — *Shows:* results grouped by module. *Does:* run a query,
+  tap a result to jump to it. Edge case worth flagging: a result can
+  belong to a desktop-only module (Chords, Knowledge Graph, etc.) — needs
+  *some* honest handling (even just "this lives on desktop"), not a dead
+  tap.
+- **Settings, trimmed** — *Shows:* App Lock status, sync status, account.
+  *Does:* toggle App Lock, trigger a sync, sign in/out. Explicitly not
+  here: AI provider config, Automations tuning — those stay desktop-side.
+- **The Station Computer** — reserve a spot in the nav and a persistent
+  trigger control, but it's a "coming soon" stub for this pass — no real
+  function yet, tracked separately.
+
 ## Resolved: how does the app know it's the remote?
 
 **Decided:** a real installable Android package via **Trusted Web
@@ -243,14 +336,44 @@ list, stubbed as "coming soon" until it gets its own real build pass).
 
 ## Still open
 
-1. **The visual design package itself** — palette (Deck Nine vs. Red
-   Squad vs. a merge), typography (default: reuse Oxanium/Rajdhani, no new
-   assets), the alert-color mapping above (confirm or adjust) — all on
-   hold pending what Alek brings back.
-2. **The origin-root blocker** — a real TWA needs either a custom domain
+1. **The visual design itself** — Alek owns this end to end: palette,
+   shapes, sizes, exact placement, all hand-placed in Figma against the
+   functional requirements above. Not a GPT-coordinate-extraction
+   workflow (see the design-process discussion below) — AI image
+   generation isn't precise enough for exact per-element geometry, and
+   this design has enough irregular/non-uniform shapes that deriving a
+   clean spacing "system" instead of placing things by hand wouldn't
+   hold up anyway. Typography default (Oxanium/Rajdhani reuse) and the
+   alert-color mapping above are still just proposals, confirm or adjust
+   whenever the design is far enough along to say.
+2. **Coordinate handoff format** — once Alek has real coordinates from
+   Figma, they get converted from raw pixels to percentages (matching
+   Vespera's existing hotspot-percentage convention, so positions stay
+   correct across different phone screen sizes) before landing in code.
+   Trivial conversion, not attempted yet since there's nothing to convert.
+3. **The origin-root blocker** — a real TWA needs either a custom domain
    for LifeOS, or the asset-links file living in whatever repo actually
    controls `alekpeed.github.io`'s root. Not resolved.
-3. **The actual packaging steps** — keystore generation, Bubblewrap CLI,
+4. **The actual packaging steps** — keystore generation, Bubblewrap CLI,
    Play Console setup. Manual/external, not attempted in this environment.
-4. **The Station Computer's real build** — wake word, token-mint backend,
+5. **The Station Computer's real build** — wake word, token-mint backend,
    WebRTC session — tracked separately, not part of this pass.
+
+## Design process note (2026-07-12)
+
+Worth recording since it shaped the plan above: the original idea was
+"GPT designs the images, then reports back exact coordinates for every
+button." Ruled out — AI-generated images aren't geometrically precise
+(wobbly edges, drifting alignment at the pixel level), and asking a model
+to then extract exact coordinates from its own imprecise image compounds
+the problem rather than solving it. A concrete, already-lived example:
+Vespera's door hotspots were genuinely painful to get right because the
+art had real perspective (depth, a vanishing point), which meant the
+click regions needed true polygons matching that distortion, not simple
+rectangles — and getting those polygon points right meant guessing
+blind against a fixed image with no way to read out real coordinates.
+LCARS chrome doesn't have that specific problem (it's flat, orthographic,
+no perspective — a rectangle viewed head-on really is just a rectangle),
+but the deeper lesson held: don't make anyone reverse-engineer precision
+out of an image. Alek placing exact coordinates by hand in a real design
+tool (Figma) sidesteps the whole failure mode.
