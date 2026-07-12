@@ -45,6 +45,33 @@ textarea {
   color: inherit;
 }
 
+/* Baseline button chrome. Plenty of buttons across the app render with no
+   class of their own (a one-off "Search" or "Again"/"Good"/"Easy" button
+   doesn't need a bespoke style) and previously fell back to the browser's
+   native button chrome -- typically a light gray background -- while still
+   inheriting the dark theme's light text color from `color: inherit` above.
+   Light text on a light native background reads as barely-there/"bleached
+   out." This is a plain element selector (lowest possible specificity), so
+   any interface's more specific button classes (.mer-danger-btn, .mer-icon-
+   btn, .mer-reader-btn, ...) still win exactly as before -- this only fills
+   in the gap for buttons that never had a class-based style to begin with. */
+button {
+  background: var(--color-bg-overlay);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 #app {
   min-height: 100%;
 }
