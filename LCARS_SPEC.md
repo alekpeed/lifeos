@@ -219,6 +219,39 @@ actually does today, not new functionality invented for this pass.
   trigger control, but it's a "coming soon" stub for this pass — no real
   function yet, tracked separately.
 
+## How a static design becomes a live screen
+
+Real question, worth real documentation rather than living only in chat:
+Alek's reference imagery (and eventually his Figma placements) show
+specific numbers — a 68% gauge, a "3" notification badge, a live clock,
+exactly three priority cards. None of that is meant to be reproduced
+literally. Here's the actual mechanism that reconciles a static design
+with the live, reactive screen it has to become:
+
+- **Every visual widget is a template, not a picture of one state.** A
+  stat ring in the design is a ring-drawing rule (size, stroke, color,
+  glow) that gets built as a real component taking a number as input —
+  not a frozen 68%. Today it renders whatever the real value is; that
+  value changes, the same component redraws.
+- **Updates ride the app's existing event system — nothing new to
+  invent.** Every action that changes data already fires an event; every
+  screen already listens for those events and redraws itself
+  automatically when one fires. This is the exact mechanism every
+  existing module already uses (check a habit off right now and watch
+  the streak update instantly) — the remote doesn't need its own version
+  of this, it's the same wiring with a different visual skin on top.
+- **A live clock is just a ticking timestamp**, unrelated to app data,
+  updating on its own.
+- **Repeating content (the Priority Feed, or any list) is one card
+  template, not N individually placed cards.** The reference shows
+  exactly 3 — real due items could be 0 or 12 on any given day. Design
+  one card's shape/spacing/severity-color rule; it gets repeated once per
+  real item, however many there are, not locked to the mockup's count.
+
+Practical implication for the Figma work: design each distinct widget
+*type* once, with a placeholder value just to see how it reads with real
+content in it — not every possible value it could ever show.
+
 ## Resolved: how does the app know it's the remote?
 
 **Decided:** a real installable Android package via **Trusted Web
@@ -243,10 +276,23 @@ actual Bubblewrap/keystore/Play Console steps, which are manual and
 external to this environment (no Android SDK or Play Console access here)
 — tracked as a to-do, not attempted.
 
-## Visual direction — two starting points
+## Visual direction — superseded, real direction now in progress
 
-Two named variants in the Voyager-adjacent family, meant to be reacted to
-and merged/adjusted, not picked as-is.
+**"Deck Nine" and "Red Squad" (below, struck from active use) were
+speculative starting points from before any real design existed** — kept
+here only as a historical record, not live guidance. Alek's own design
+work, evolved with reference imagery as he went, is the actual direction
+now. It reads as more of a general sci-fi HUD/console aesthetic (dark
+ground, magenta/hot-pink + cyan neon accent pairing, beveled glass-panel
+cards with soft glow, circular gauge/ring readouts, badge counters,
+sparkline mini-charts, a bottom nav bar with a central circular "core"
+button) than the strict rounded-pill/elbow-connector LCARS grammar
+originally scoped — a deliberate evolution, not a gap to reconcile.
+Real palette/shape values come from Alek's Figma placements directly,
+not from anything speculative below.
+
+<details>
+<summary>Struck: original speculative starting palettes (historical record only)</summary>
 
 **Variant "Deck Nine" — cooler, mission-console.**
 | Role | Hex | Notes |
@@ -272,10 +318,7 @@ and merged/adjusted, not picked as-is.
 | Text on black | `#F5F0E6` | warm-white, not pure white |
 | Text on pills | `#101010` | |
 
-Both keep the real LCARS grammar: rounded-rectangle "pills," elbow
-connectors joining horizontal and vertical bars, and dense sidebar button
-stacks — that shape language is what reads as LCARS, more than any single
-color choice does.
+</details>
 
 ## Typography
 
