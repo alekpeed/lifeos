@@ -245,6 +245,10 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   weekday breakpoint detection (the day you're statistically most likely
   to skip), and a reading-pace extrapolation to an estimated finish date.
   Real computed stats over real logged history, no AI involved.
+- ✅ **What-if simulation sandbox** — a companion "What If" section on the
+  Almanac forks a forecast: a sleep slider refits the real sleep-vs-habits
+  regression live and projects habits/day at that sleep level; a
+  subscription checklist sums selected subscriptions' yearly savings live.
 
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
@@ -360,8 +364,6 @@ rather than needing to also work as a small-screen experience.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest.
 - **Rules & automation engine** — "IFTTT for your own life," modules
   reacting to each other.
-- **What-if simulation sandbox** — fork projected outcomes against your
-  own data.
 - **Personal local API + plugin SDK** — a documented interface to build on
   without touching core.
 - **Generative "Year in Review" film** — an auto-produced montage scored

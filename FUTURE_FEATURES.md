@@ -120,6 +120,13 @@ parked means "not now," not "forgotten" or "cut."
   reading-pace extrapolation to an estimated finish date for in-progress
   books (ReadingLogs). Each requires its own minimum sample before showing
   anything. See `js/interfaces/default/views/almanac.js`.
+- ✅ **What-if simulation sandbox** — DONE: a companion "What If" section on
+  the Almanac forks a forecast instead of just stating it. A sleep slider
+  refits the real sleep-vs-habits regression live as you drag it (+/-2h in
+  15-min steps) and projects habits/day at that sleep level; a subscription
+  checklist sums selected subscriptions' yearly cost live as you check them
+  off. Both computed from real data on every input change, nothing
+  precomputed or AI-generated.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -308,9 +315,6 @@ for a stripped-down version.)
 - **Rules & automation engine — "IFTTT for your own life"** — "when a bill
   is 3 days out AND unpaid → surface it + notify"; "when a habit streak
   hits 30 → log a milestone." Connective tissue between modules.
-- **What-if simulation sandbox** — model decisions against your own data:
-  "cancel these 3 subscriptions → save $X/year," "sleep +30 min →
-  projected effect on habit adherence."
 - **Personal local API + plugin SDK** — expose your own data through a
   documented local interface so you (or scripts) can build on it without
   touching core — the same registry philosophy that already governs

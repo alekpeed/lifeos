@@ -1,9 +1,11 @@
 // The Almanac — long-horizon correlations between a few curated pairs of
 // personal stats (sleep vs habits kept, sleep vs tasks completed, workout
-// minutes vs sleep), plus a Forecasts section: bounded stats work (linear
-// regression, weekday buckets, pace extrapolation) over the same kind of
-// real logged history, never an AI guess. No external stats library, just
-// the formulas.
+// minutes vs sleep), a Forecasts section (bounded stats work -- linear
+// regression, weekday buckets, pace extrapolation -- over real logged
+// history), and a What If section that forks a forecast: adjust an input,
+// see a projected outcome computed live from that same real data. Never an
+// AI guess anywhere on this page. No external stats library, just the
+// formulas.
 
 import { el, todayStr } from '../dom.js';
 
@@ -196,6 +198,93 @@ function readingPaceForecast(books, readingLogs) {
   return cards;
 }
 
+// --- What If: forks a forecast instead of just stating it -- adjust an
+// input, see a projected outcome, computed live from the same real data.
+// Companion to Forecasts above, not a replacement: forecasting predicts the
+// default; this lets you fork it. ---
+
+// Ordinary least squares over real (x, y) pairs, not just index/value like
+// linearRegression() above -- used to fit an actual sleep-hours-vs-habits
+// line rather than assume one.
+function regressXY(xs, ys) {
+  const n = xs.length;
+  const meanX = xs.reduce((a, b) => a + b, 0) / n;
+  const meanY = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0, denom = 0;
+  for (let i = 0; i < n; i++) {
+    num += (xs[i] - meanX) * (ys[i] - meanY);
+    denom += (xs[i] - meanX) * (xs[i] - meanX);
+  }
+  const slope = denom === 0 ? 0 : num / denom;
+  return { slope, meanX, meanY };
+}
+
+function sleepWhatIfCard(sleepByDate, habitsByDate, totalHabits) {
+  const { xs, ys } = pairedSeries(sleepByDate, habitsByDate);
+  if (xs.length < MIN_SAMPLE) {
+    return forecastCard('Sleep +/- vs. habits kept', notEnoughData(`Not enough overlapping days yet (${xs.length}/${MIN_SAMPLE} needed).`));
+  }
+  const { slope, meanX, meanY } = regressXY(xs, ys);
+  const result = el('p', { class: 'mer-muted' });
+  const cap = totalHabits || Math.max(...ys, meanY);
+  const update = (deltaMinutes) => {
+    const projected = Math.max(0, Math.min(cap, meanY + slope * (deltaMinutes / 60)));
+    const sign = deltaMinutes > 0 ? '+' : '';
+    result.textContent = `Right now you average ${meanY.toFixed(1)} habits/day on ${meanX.toFixed(1)}h of sleep. At ${sign}${deltaMinutes} min sleep, the trend across your own ${xs.length} logged days projects ~${projected.toFixed(1)} habits/day.`;
+  };
+  const deltaInput = el('input', {
+    type: 'range', min: '-120', max: '120', step: '15', value: '0',
+    oninput: (e) => update(Number(e.target.value)),
+  });
+  update(0);
+  return forecastCard('Sleep +/- vs. habits kept', el('div', {}, [deltaInput, result]));
+}
+
+function subMonthlyEquivalent(amount, freq) {
+  const a = Number(amount) || 0;
+  if (freq === 'yearly') return a / 12;
+  if (freq === 'weekly') return (a * 52) / 12;
+  return a;
+}
+
+function subscriptionWhatIfCard(subs) {
+  const active = subs.filter((s) => s.stillInUse !== false);
+  if (!active.length) {
+    return forecastCard('Cancel subscriptions', notEnoughData('No active subscriptions logged in Finance yet.'));
+  }
+  const selected = new Set();
+  const result = el('p', { class: 'mer-muted', text: 'Pick any to see the projected yearly savings.' });
+  const update = () => {
+    const yearly = [...selected].reduce((sum, id) => {
+      const s = active.find((x) => x.id === id);
+      return sum + (s ? subMonthlyEquivalent(s.amount, s.billingFreq) * 12 : 0);
+    }, 0);
+    result.textContent = selected.size
+      ? `Cancel these ${selected.size}: save ~${money(yearly)}/year.`
+      : 'Pick any to see the projected yearly savings.';
+  };
+  const list = el('div', { class: 'mer-task-list-area' }, active.map((s) => el('div', { class: 'mer-task-row' }, [
+    el('input', {
+      type: 'checkbox',
+      onchange: (e) => { if (e.target.checked) selected.add(s.id); else selected.delete(s.id); update(); },
+    }),
+    el('span', { class: 'mer-task-title', text: `${s.name || '(untitled)'} — ${money(subMonthlyEquivalent(s.amount, s.billingFreq))}/mo` }),
+  ])));
+  return forecastCard('Cancel subscriptions', el('div', {}, [list, result]));
+}
+
+async function whatIfSection(ctx, sleepByDate, habitsByDate) {
+  const [subs, habits] = await Promise.all([ctx.data.Subscriptions.list(), ctx.data.Habits.list()]);
+  return el('div', {}, [
+    el('div', { class: 'mer-subsection-label', text: 'What If' }),
+    el('p', { class: 'mer-muted', text: 'Fork a forecast: adjust an input and see the projected outcome, computed live from the same real data above -- not a guess.' }),
+    el('div', { class: 'mer-almanac-grid' }, [
+      sleepWhatIfCard(sleepByDate, habitsByDate, habits.length),
+      subscriptionWhatIfCard(subs),
+    ]),
+  ]);
+}
+
 async function forecastsSection(ctx) {
   const [payments, habits, habitLogs, books, readingLogs] = await Promise.all([
     ctx.data.BillPayments.list(),
@@ -250,4 +339,5 @@ export async function renderAlmanac(canvas, ctx) {
   canvas.append(grid);
 
   canvas.append(await forecastsSection(ctx));
+  canvas.append(await whatIfSection(ctx, sleepByDate, habitsByDate));
 }

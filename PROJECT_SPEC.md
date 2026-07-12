@@ -251,6 +251,13 @@ lets the whole app be redecorated later without rebuilding it:
   reading-pace extrapolation to an estimated finish date for in-progress
   books (ReadingLogs). Each requires its own minimum sample before showing
   anything. See `js/interfaces/default/views/almanac.js`.
+- **What-if simulation sandbox** — a companion "What If" section on the
+  Almanac forks a forecast instead of just stating it: a sleep slider
+  refits the real sleep-vs-habits regression live as you drag it (+/-2h in
+  15-min steps) and projects habits/day at that sleep level; a subscription
+  checklist sums selected subscriptions' yearly cost live as you check them
+  off. Both computed from real data on every input change, nothing
+  precomputed or AI-generated.
 - **Museum of Finished Things** — a trophy-case view over completions already
   scattered across other modules: done tasks/assignments, finished books
   (with covers), milestones, recipes ranked by times cooked, archived
@@ -491,11 +498,12 @@ Everything below came out of talking through what would actually feel
 7. ~~AI with continuity~~ — DONE (see Built ✅).
 8. ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall).
 9. ~~Predictive forecasting~~ — DONE (see Built ✅, Almanac Forecasts).
-10. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+10. ~~What-if simulation sandbox~~ — DONE (see Built ✅, Almanac What If).
+11. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
     Conversation Starters, Ghost Days, The Almanac, Life as Music, Library
     of Babel, Theme-from-photo)
-11. Additional interfaces (Vespera, LCARS)
-12. Someday: a standalone music-practice app (progressions, play-along,
+12. Additional interfaces (Vespera, LCARS)
+13. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
@@ -565,11 +573,6 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   is 3 days out AND unpaid → surface it + notify"; "when a habit streak
   hits 30 → log a milestone." Connective tissue so modules can react to
   each other instead of sitting in silos.
-- **What-if simulation sandbox** — model decisions against your own data:
-  "cancel these 3 subscriptions → save $X/year," "sleep +30 min →
-  projected effect on habit adherence." Forecasting (above) predicts the
-  default future; this lets you fork it.
-
 **Platform & payoff**
 - **Personal local API + plugin SDK** — expose your own data through a
   documented local interface so you (or scripts) can build on it without
@@ -645,6 +648,8 @@ own Tier 2 flag, not a routine add)**
 - ~~AI with continuity~~ — DONE (see Built ✅, Daily Paper entry above).
 - ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall entry above).
 - ~~Predictive forecasting~~ — DONE (see Built ✅, Almanac Forecasts entry
+  above).
+- ~~What-if simulation sandbox~~ — DONE (see Built ✅, Almanac What If entry
   above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
