@@ -326,7 +326,14 @@ lets the whole app be redecorated later without rebuilding it:
   Edges are undirected and title-free — endpoints resolve live so renames
   never leave stale labels, and a deleted record shows an honest
   "(deleted)" tombstone with an unlink offer. Duplicate links dedupe in
-  either direction; self-links are rejected.
+  either direction; self-links are rejected. An "AI-suggested connections"
+  section proposes non-obvious links from the focused record: the AI is
+  only ever given a closed, numbered candidate list of real records
+  (excluding the focus and anything already linked) and can only pick
+  indices from it, never free text, so it can't invent a connection to
+  something that doesn't exist. Manual/button-triggered rather than
+  automatic, to keep the API call opt-in. See `suggestGraphEdges` in
+  `js/data/api.js`.
 - **The Orrery** — the dashboard as a solar system, shipped as an alternate
   view (its own nav entry; the Dashboard stays the default). Every visual
   property encodes a real signal: orbit radius = neglect (fresh areas hug
@@ -499,11 +506,13 @@ Everything below came out of talking through what would actually feel
 8. ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall).
 9. ~~Predictive forecasting~~ — DONE (see Built ✅, Almanac Forecasts).
 10. ~~What-if simulation sandbox~~ — DONE (see Built ✅, Almanac What If).
-11. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+11. ~~AI-suggested knowledge-graph edges~~ — DONE (see Built ✅, Knowledge
+    Graph).
+12. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
     Conversation Starters, Ghost Days, The Almanac, Life as Music, Library
     of Babel, Theme-from-photo)
-12. Additional interfaces (Vespera, LCARS)
-13. Someday: a standalone music-practice app (progressions, play-along,
+13. Additional interfaces (Vespera, LCARS)
+14. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
@@ -533,9 +542,6 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 - **Autonomous daily chief-of-staff** — an agent that reviews everything each
   morning, drafts a prioritized brief (bills at risk, streaks about to break,
   rabbit holes gone cold), and can act on pre-approved simple tasks itself.
-- **AI-suggested knowledge-graph edges** — beyond manual linking: a model
-  reads across every module and proposes non-obvious connections you'd never
-  have drawn yourself.
 
 **Foundational rearchitecture**
 - **Event-sourced core** — every change becomes an immutable event instead of
@@ -651,6 +657,8 @@ own Tier 2 flag, not a routine add)**
   above).
 - ~~What-if simulation sandbox~~ — DONE (see Built ✅, Almanac What If entry
   above).
+- ~~AI-suggested knowledge-graph edges~~ — DONE (see Built ✅, Knowledge
+  Graph entry above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
 history / Watch Later sync — both deprecated from the YouTube Data API in

@@ -21,6 +21,10 @@ let state = {
   focusKey: null,   // "<store>:<id>" of the record at the center, or null
   query: '',        // find-a-starting-point search text
   addQuery: '',     // add-a-connection search text
+  suggestFor: null, // focusKey the current suggestions/loading/error state belongs to
+  suggestions: null,
+  suggestLoading: false,
+  suggestError: null,
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -138,6 +142,19 @@ async function renderPickFocus(canvas, ctx, rerender) {
   canvas.append(area);
 }
 
+async function runSuggest(focus, ctx, rerender) {
+  state.suggestLoading = true;
+  state.suggestError = null;
+  rerender();
+  try {
+    state.suggestions = await ctx.data.suggestGraphEdges(focus.key);
+  } catch (err) {
+    state.suggestError = err.message || String(err);
+  }
+  state.suggestLoading = false;
+  rerender();
+}
+
 async function renderGraph(canvas, ctx, rerender) {
   const focus = await ctx.data.resolveGraphNode(state.focusKey);
   if (!focus.exists) {
@@ -178,6 +195,50 @@ async function renderGraph(canvas, ctx, rerender) {
       ]));
     }
     canvas.append(area);
+  }
+
+  // --- AI-suggested connections: only ever offered from the same closed
+  // candidate list resolveGraphNode/globalSearch already treat as "linkable"
+  // -- see suggestGraphEdges in api.js for the no-invention guarantee. ---
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'AI-suggested connections' }));
+  if (state.suggestFor !== focus.key) {
+    state.suggestFor = focus.key;
+    state.suggestions = null;
+    state.suggestError = null;
+  }
+  const { apiKey: aiKey, label: aiLabel } = await ctx.data.getActiveAiProvider();
+  if (!aiKey) {
+    canvas.append(el('p', { class: 'mer-muted', text: `Add your ${aiLabel} API key in Settings to have ${aiLabel} propose non-obvious connections from your own data.` }));
+  } else if (state.suggestLoading) {
+    canvas.append(el('p', { class: 'mer-muted', text: 'Thinking…' }));
+  } else if (state.suggestError) {
+    canvas.append(el('p', { class: 'mer-muted mer-sync-error', text: state.suggestError }));
+    canvas.append(el('button', { type: 'button', text: 'Retry', onclick: () => runSuggest(focus, ctx, rerender) }));
+  } else if (!state.suggestions) {
+    canvas.append(el('button', { type: 'button', text: '✨ Suggest connections', onclick: () => runSuggest(focus, ctx, rerender) }));
+  } else if (!state.suggestions.length) {
+    canvas.append(el('p', { class: 'mer-muted', text: 'Nothing stood out this pass.' }), el('button', { type: 'button', text: '✨ Try again', onclick: () => runSuggest(focus, ctx, rerender) }));
+  } else {
+    const area = el('div', { class: 'mer-task-list-area' });
+    for (const s of state.suggestions) {
+      area.append(el('div', { class: 'mer-task-row' }, [
+        el('div', {}, [
+          el('span', { class: 'mer-task-title', text: s.title }),
+          el('span', { class: 'mer-chip', text: moduleLabel(ctx, s.module) }),
+          el('p', { class: 'mer-muted', text: s.reason }),
+        ]),
+        el('button', {
+          type: 'button', class: 'mer-reader-btn', text: '+ Link',
+          onclick: async () => {
+            await ctx.data.createGraphLink(focus.store, focus.id, s.store, s.id);
+            state.suggestions = state.suggestions.filter((x) => x.key !== s.key);
+            rerender();
+          },
+        }),
+      ]));
+    }
+    canvas.append(area);
+    canvas.append(el('button', { type: 'button', class: 'mer-reader-btn', text: '✨ Suggest again', onclick: () => runSuggest(focus, ctx, rerender) }));
   }
 
   // --- Add a connection ---

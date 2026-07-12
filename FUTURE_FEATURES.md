@@ -127,6 +127,14 @@ parked means "not now," not "forgotten" or "cut."
   checklist sums selected subscriptions' yearly cost live as you check them
   off. Both computed from real data on every input change, nothing
   precomputed or AI-generated.
+- ✅ **AI-suggested knowledge-graph edges** — DONE: an "AI-suggested
+  connections" section on the Knowledge Graph proposes non-obvious links
+  from the focused record. Same anti-hallucination discipline as the Daily
+  Paper/Milestones narrative: the AI only ever gets a closed, numbered
+  candidate list of real records (never free text) and can only pick
+  indices from it, so it can't invent a connection to something that
+  doesn't exist. Manual/button-triggered, not automatic, to keep the API
+  call opt-in. See `suggestGraphEdges` in `js/data/api.js`.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -280,9 +288,6 @@ for a stripped-down version.)
   each morning, drafts a prioritized brief (bills at risk, streaks about to
   break, rabbit holes gone cold), and can act on pre-approved simple tasks
   itself.
-- **AI-suggested knowledge-graph edges** — beyond manual linking: a model
-  reads across every module and proposes non-obvious connections you'd
-  never have drawn yourself.
 **Foundational rearchitecture**
 - **Event-sourced core** — every change becomes an immutable event instead
   of an in-place edit. Unlocks real undo/redo everywhere and per-record

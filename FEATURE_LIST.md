@@ -249,6 +249,11 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   Almanac forks a forecast: a sleep slider refits the real sleep-vs-habits
   regression live and projects habits/day at that sleep level; a
   subscription checklist sums selected subscriptions' yearly savings live.
+- ✅ **AI-suggested knowledge-graph edges** — an "AI-suggested connections"
+  section on the Knowledge Graph proposes non-obvious links from the
+  focused record. The AI only ever gets a closed, numbered candidate list
+  of real records and can only pick indices from it, never free text, so
+  it can't invent a connection to something that doesn't exist.
 
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
@@ -347,8 +352,6 @@ rather than needing to also work as a small-screen experience.
   natural-language questions return real answers from your own history.
 - **Autonomous daily chief-of-staff** — an agent that reviews everything
   each morning and drafts a prioritized brief.
-- **AI-suggested knowledge-graph edges** — a model proposes non-obvious
-  connections across modules.
 - **Event-sourced core** — every change becomes an immutable event,
   unlocking full undo/redo and making Time Machine trivial.
 - **CRDT-based sync** — conflict-free merges replacing last-write-wins.

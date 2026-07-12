@@ -1076,6 +1076,69 @@ export async function resolveGraphNode(key) {
   return { key, store, id, title: titleOf(record) || '(untitled)', module: SEARCH_MODULE_ROUTE[store], exists: true };
 }
 
+// --- AI-suggested knowledge-graph edges: beyond manual linking, ask the
+// active AI provider to propose genuinely non-obvious connections from a
+// focus record. Same anti-hallucination discipline as the Daily Paper/
+// Milestones narrative: the AI is only ever given a closed, numbered
+// candidate list drawn from real records and can only pick indices from
+// it -- never free text, so it can't invent a connection to something that
+// doesn't exist. Manual/button-triggered, not automatic, to keep API calls
+// (and their cost) opt-in rather than firing on every graph view.
+
+const SUGGEST_CANDIDATE_CAP = 120; // keeps the prompt bounded; most-recent records first
+
+async function listAllLinkable(excludeKey, excludeKeys) {
+  const storeNames = Object.keys(SEARCH_FIELDS);
+  const results = await Promise.all(storeNames.map(async (name) => {
+    const records = await db.getAll(name);
+    return records
+      .map((r) => ({ record: r, title: SEARCH_FIELDS[name](r) || '' }))
+      .filter(({ title }) => title)
+      .map(({ record, title }) => ({
+        store: name, module: SEARCH_MODULE_ROUTE[name], id: record.id,
+        key: graphKey(name, record.id), title,
+        updatedAt: record.updatedAt || record.createdAt || '',
+      }));
+  }));
+  return results.flat()
+    .filter((r) => r.key !== excludeKey && !excludeKeys.has(r.key))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, SUGGEST_CANDIDATE_CAP);
+}
+
+// Returns [] (not an error) when there's no AI key configured or nothing
+// linkable yet -- the caller treats an empty result as "nothing to show."
+export async function suggestGraphEdges(focusKey) {
+  const focus = await resolveGraphNode(focusKey);
+  if (!focus.exists) return [];
+
+  const existingLinks = await getGraphLinksFor(focus.store, focus.id);
+  const linkedKeys = new Set(existingLinks.map((l) => (l.fromKey === focusKey ? l.toKey : l.fromKey)));
+  const candidates = await listAllLinkable(focusKey, linkedKeys);
+  if (!candidates.length) return [];
+
+  const { send, apiKey, model } = await getActiveAiProvider();
+  if (!apiKey) return [];
+
+  const list = candidates.map((c, i) => `${i}. [${c.module}] ${c.title}`).join('\n');
+  const prompt = `You are looking at a personal database. The focus record is: "${focus.title}" (${focus.module}).\n\n`
+    + `Below is a numbered list of OTHER records in the same database. Suggest up to 5 that have a genuine, non-obvious connection to the focus record worth linking -- not just the same category, not a coincidental word match, a real relationship a person would actually want drawn between them.\n\n`
+    + `Only choose from the numbered list below; never invent an item that isn't listed. If nothing has a real connection, return nothing.\n\n`
+    + `Respond with one line per suggestion, exactly in this format, nothing else:\nINDEX: one-sentence reason\n\n`
+    + `CANDIDATES\n${list}`;
+  const { text } = await send(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 300 });
+
+  const suggestions = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(/^\s*(\d+)\s*[:.]\s*(.+)$/);
+    if (!m) continue;
+    const idx = Number(m[1]);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= candidates.length) continue;
+    suggestions.push({ ...candidates[idx], reason: m[2].trim() });
+  }
+  return suggestions.slice(0, 5);
+}
+
 // --- Recall: the Languages module's SRS engine generalized to resurface any
 // record -- reuses the exact same addressing (graphKey/resolveGraphNode) as
 // the Knowledge Graph, so "what's schedulable" is "what Search can find,"
