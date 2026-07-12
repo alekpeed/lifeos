@@ -84,3 +84,14 @@ Standing preference, not just for this one link.
 cache). Format switched from integer (`lifeos-v101`) to decimal
 (`lifeos-v1.01`) at v101 — bump the hundredths place per commit
 (`v1.01` → `v1.02` → … → `v1.99` → `v2.00`), not the integer scheme.
+
+## Graphics / visual design
+
+**Don't design or generate graphics — Alek brings the visual assets, work is
+wiring them up.** This came up concretely with the NEXUS interface
+(2026-07-12): the first pass reinterpreted his mockup as fresh CSS/SVG,
+which he flagged directly ("you don't do graphics"). The fix was to use his
+actual mockup image as real background art with click regions mapped onto
+it (the same technique Vespera's hub already uses), not to redesign it.
+When Alek gives an image, integrate it as-is — real asset + real hotspots/
+data wiring — rather than treating it as inspiration for an original build.
