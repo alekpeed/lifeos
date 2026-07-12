@@ -85,6 +85,15 @@ parked means "not now," not "forgotten" or "cut."
   AI-drafted narrative (whichever provider is active) on top of the
   numbers-driven aggregation, grounded only in that year's real stats and
   named milestones, cached per year and signed-in account.
+- ✅ **Passkey/biometric app lock** — DONE: a Settings > App Lock section
+  enrolls a WebAuthn platform passkey (Face ID/Touch ID/fingerprint/Windows
+  Hello/device PIN); once on, the whole app is gated behind it before any
+  data renders on boot. Purely a local device gate, not a remote-auth
+  system or encryption — there's no server to verify against, so a
+  successful `navigator.credentials.get()` ceremony is itself the proof,
+  and the private key never leaves the device's secure enclave/TPM either
+  way. Off by default; gracefully hides the option on devices/browsers with
+  no platform authenticator. See `js/data/applock.js`.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -276,8 +285,6 @@ for a stripped-down version.)
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest, so
   data synced to Drive/Supabase is stored as ciphertext only — even the
   server can't read it. Pairs naturally with multi-user accounts.
-- **Passkey/biometric app lock** — unlock the whole vault with Face ID /
-  fingerprint / hardware key via WebAuthn, no password typed.
 - **Rules & automation engine — "IFTTT for your own life"** — "when a bill
   is 3 days out AND unpaid → surface it + notify"; "when a habit streak
   hits 30 → log a milestone." Connective tissue between modules.

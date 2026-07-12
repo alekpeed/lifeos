@@ -216,6 +216,15 @@ lets the whole app be redecorated later without rebuilding it:
   overdue items, habits, weather, sleep, history, and the Editor's Pick).
   The prompt explicitly forbids invention; one issue is cached per local date
   and signed-in account, with visible setup, retry, and regenerate states.
+- **Passkey/biometric app lock** — a Settings > App Lock section enrolls a
+  WebAuthn platform passkey (Face ID/Touch ID/fingerprint/Windows Hello/
+  device PIN); once on, the whole app is gated behind it before any data
+  renders on boot. A pure local device gate, not encryption or a remote-auth
+  system — there's no server to verify a signature against, so a successful
+  `navigator.credentials.get()` ceremony is itself the proof, and the
+  private key never leaves the device's secure enclave/TPM either way. Off
+  by default; gracefully hides the option on devices/browsers with no
+  platform authenticator. See `js/data/applock.js`.
 - **Museum of Finished Things** — a trophy-case view over completions already
   scattered across other modules: done tasks/assignments, finished books
   (with covers), milestones, recipes ranked by times cooked, archived
@@ -452,11 +461,12 @@ Everything below came out of talking through what would actually feel
    Telegram chat are still open, out of scope for this pass. (Cross-LLM
    relay chaining was considered and dropped — see section 4 above.)
 5. ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
-6. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+6. ~~Passkey/biometric app lock~~ — DONE (see Built ✅).
+7. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of
    Babel, Theme-from-photo)
-7. Additional interfaces (Vespera, LCARS)
-8. Someday: a standalone music-practice app (progressions, play-along,
+8. Additional interfaces (Vespera, LCARS)
+9. Someday: a standalone music-practice app (progressions, play-along,
    melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
@@ -526,9 +536,6 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest, so
   data synced to Drive/Supabase is stored as ciphertext only — even the
   server can't read it. Pairs naturally with the multi-user accounts work.
-- **Passkey / biometric app lock** — unlock the whole vault with Face ID /
-  fingerprint / hardware key via WebAuthn, no password typed. Natural
-  companion to the encrypted vault.
 
 **Making the app smarter about itself**
 - **Rules & automation engine — "IFTTT for your own life"** — "when a bill
@@ -613,6 +620,8 @@ own Tier 2 flag, not a routine add)**
   Premium requirement, the export+polling path to real history) but not
   started. See `FUTURE_FEATURES.md` §4 for the full writeup.
 - ~~Google Photos import~~ — DONE (see Built ✅, Photos/Gallery entry).
+- ~~Passkey/biometric app lock~~ — DONE (see Built ✅, Milestones-adjacent
+  entry above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
 history / Watch Later sync — both deprecated from the YouTube Data API in

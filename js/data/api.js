@@ -20,6 +20,7 @@ export { connectCalendar, syncCalendarNow, disconnectCalendar, getCalendarState 
 // Google Photos import via the Picker API — a one-shot pick, not a
 // persistent connection like Drive/Calendar (see photos-picker.js for why).
 export { pickGooglePhotos } from './photos-picker.js';
+export { isAppLockAvailable, enrollAppLock, verifyAppLock } from './applock.js';
 
 // Sharebox: a space shared with a friend through a Drive folder you both pick.
 // Synced separately from personal data through that shared folder.
@@ -509,6 +510,12 @@ const SETTING_DEFAULTS = {
   recapNarrativeYear: '',
   recapNarrativeText: '',
   recapNarrativeOwner: '',
+  // App Lock: gates the app behind the device's own biometric/PIN
+  // authenticator (WebAuthn platform authenticator) before any data
+  // renders. Off until the user enrolls in Settings; appLockCredentialId
+  // is the enrolled passkey's ID, empty until enrollment.
+  appLockEnabled: false,
+  appLockCredentialId: '',
 };
 
 export const Settings = {

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.03';
+const CACHE_VERSION = 'lifeos-v1.04';
 const APP_SHELL = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const APP_SHELL = [
   './js/data/gapi.js',
   './js/data/calendar.js',
   './js/data/photos-picker.js',
+  './js/data/applock.js',
   './js/data/sharebox-sync.js',
   './js/data/picker.js',
   './js/data/supabase-config.js',

@@ -2,12 +2,51 @@
 // import side effects), then hand control to the shell.
 
 import { openDatabase } from './data/db.js';
-import { migrateLegacyPeopleToContacts, migrateLegacyJapaneseToLanguagePacks, ensureLanguagePack } from './data/api.js';
+import { migrateLegacyPeopleToContacts, migrateLegacyJapaneseToLanguagePacks, ensureLanguagePack, Settings, verifyAppLock } from './data/api.js';
 import { completePendingRedirectIfAny } from './data/supabase-auth.js';
 import './interfaces/manifest.js';
 import { startShell } from './shell.js';
 
 const appEl = document.getElementById('app');
+
+// Shown before any Life OS data renders when App Lock is enabled (Settings
+// > App Lock). Requires an explicit tap so the WebAuthn prompt is always
+// triggered by a real user gesture, not a synthetic one.
+function showLockScreen(credentialId) {
+  return new Promise((resolve) => {
+    appEl.dataset.bootState = 'locked';
+    appEl.innerHTML = '';
+
+    const status = document.createElement('p');
+    status.className = 'applock-status';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'applock-btn';
+    btn.textContent = 'Unlock';
+    btn.onclick = async () => {
+      btn.disabled = true;
+      status.textContent = '';
+      try {
+        const ok = await verifyAppLock(credentialId);
+        if (ok) { resolve(); return; }
+        status.textContent = 'Unlock failed.';
+      } catch (err) {
+        status.textContent = err.name === 'NotAllowedError' ? 'Cancelled.' : (err.message || String(err));
+      }
+      btn.disabled = false;
+    };
+
+    const wrap = document.createElement('div');
+    wrap.className = 'applock-screen';
+    wrap.append(
+      Object.assign(document.createElement('p'), { className: 'applock-title', textContent: 'Life OS is locked' }),
+      btn,
+      status,
+    );
+    appEl.append(wrap);
+  });
+}
 
 async function boot() {
   try {
@@ -18,6 +57,10 @@ async function boot() {
     // no-op on every normal boot since it checks the URL first.
     await completePendingRedirectIfAny();
     await openDatabase();
+
+    const [lockEnabled, lockCredentialId] = await Promise.all([Settings.get('appLockEnabled'), Settings.get('appLockCredentialId')]);
+    if (lockEnabled && lockCredentialId) await showLockScreen(lockCredentialId);
+
     await migrateLegacyPeopleToContacts();
     await migrateLegacyJapaneseToLanguagePacks();
     await ensureLanguagePack('ja', 'Japanese', 'ja-JP');

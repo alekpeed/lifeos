@@ -226,6 +226,11 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   triggered by your own action (Settings test button, Daily Paper's "Send
   to Telegram"). Still open: a separate ChatGPT panel (would need that
   proxy first) and full two-way Telegram chat (needs a backend webhook).
+- ✅ **Passkey/biometric app lock** — a Settings > App Lock section enrolls a
+  WebAuthn platform passkey (Face ID/Touch ID/fingerprint/Windows Hello/
+  device PIN); once on, the whole app is gated behind it before any data
+  renders. A local device gate, not encryption — off by default, and hides
+  itself on devices with no platform authenticator.
 
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
@@ -342,7 +347,6 @@ rather than needing to also work as a small-screen experience.
   statements, auto-categorize, reconcile against Finance.
 - **Health-device ingestion** — parse Apple Health/Garmin/Fitbit exports.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest.
-- **Passkey/biometric app lock** — WebAuthn, no password typed.
 - **Rules & automation engine** — "IFTTT for your own life," modules
   reacting to each other.
 - **App-wide spaced repetition** — the SRS engine generalized to resurface

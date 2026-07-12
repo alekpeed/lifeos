@@ -321,6 +321,56 @@ async function renderAiAssistantSection(canvas, ctx, rerender) {
   );
 }
 
+// --- App Lock (WebAuthn platform authenticator) ---
+
+async function renderAppLockSection(canvas, ctx, rerender) {
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'App Lock' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Requires Face ID / fingerprint / device PIN to open Life OS. Purely a local gate on this device -- there\'s no password and nothing is sent anywhere, so if you lose access to your device\'s biometrics the only way back in is clearing site data (which erases anything not synced to Drive).' }));
+
+  const available = await ctx.data.isAppLockAvailable();
+  if (!available) {
+    canvas.append(el('p', { class: 'mer-muted', text: 'Not available -- this device or browser has no biometric/PIN authenticator to use.' }));
+    return;
+  }
+
+  const enabled = await ctx.data.Settings.get('appLockEnabled');
+  const status = el('p', { class: 'mer-muted' });
+
+  if (enabled) {
+    status.textContent = 'App Lock is on.';
+    canvas.append(status, el('div', { class: 'mer-toolbar' }, [
+      el('button', {
+        type: 'button', text: 'Turn off',
+        onclick: async () => {
+          await ctx.data.Settings.set('appLockEnabled', false);
+          await ctx.data.Settings.set('appLockCredentialId', '');
+          await rerender();
+        },
+      }),
+    ]));
+    return;
+  }
+
+  canvas.append(status, el('div', { class: 'mer-toolbar' }, [
+    el('button', {
+      type: 'button', text: 'Set up App Lock',
+      onclick: async (e) => {
+        e.target.disabled = true;
+        status.textContent = 'Follow the prompt…';
+        try {
+          const credentialId = await ctx.data.enrollAppLock();
+          await ctx.data.Settings.set('appLockCredentialId', credentialId);
+          await ctx.data.Settings.set('appLockEnabled', true);
+          await rerender();
+        } catch (err) {
+          status.textContent = err.name === 'NotAllowedError' ? 'Cancelled.' : (err.message || String(err));
+          e.target.disabled = false;
+        }
+      },
+    }),
+  ]));
+}
+
 // --- Telegram (send-only) ---
 
 async function renderTelegramSection(canvas, ctx, rerender) {
@@ -462,5 +512,6 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderSyncSection(canvas, ctx, rerender || (() => {}));
   await renderCalendarSection(canvas, ctx, rerender || (() => {}));
   await renderAiAssistantSection(canvas, ctx, rerender || (() => {}));
+  await renderAppLockSection(canvas, ctx, rerender || (() => {}));
   await renderTelegramSection(canvas, ctx, rerender || (() => {}));
 }
