@@ -74,6 +74,11 @@ Deploy: `main` branch via GitHub Pages. Routine convention this session:
 commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
 `main`, push `main`, checkout back to the dev branch.
 
+**GitHub links: always link to a directory when possible**, not just the
+bare repo root — e.g. `github.com/alekpeed/lifeos/tree/<branch>` (or a
+deeper path within it) rather than `github.com/alekpeed/lifeos` alone.
+Standing preference, not just for this one link.
+
 `service-worker.js`'s `CACHE_VERSION` must bump on every shipped change
 (forces the service worker to fetch fresh files instead of serving a stale
 cache). Format switched from integer (`lifeos-v101`) to decimal
