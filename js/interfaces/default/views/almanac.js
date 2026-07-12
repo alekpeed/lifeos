@@ -1,9 +1,11 @@
 // The Almanac — long-horizon correlations between a few curated pairs of
 // personal stats (sleep vs habits kept, sleep vs tasks completed, workout
-// minutes vs sleep). Plain Pearson correlation over whatever days have both
-// values logged; no external stats library, just the formula.
+// minutes vs sleep), plus a Forecasts section: bounded stats work (linear
+// regression, weekday buckets, pace extrapolation) over the same kind of
+// real logged history, never an AI guess. No external stats library, just
+// the formulas.
 
-import { el } from '../dom.js';
+import { el, todayStr } from '../dom.js';
 
 const MIN_SAMPLE = 5; // below this, a correlation number is more noise than signal
 
@@ -69,6 +71,153 @@ function correlationCard(label, xs, ys) {
   ]);
 }
 
+// --- Forecasts: real trend modeling over your own logged history. Each one
+// requires a minimum sample before showing anything, same "not enough data
+// yet" honesty as the correlation cards above. ---
+
+function money(n) {
+  return `$${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function forecastCard(label, body) {
+  return el('div', { class: 'mer-almanac-card' }, [
+    el('div', { class: 'mer-almanac-label', text: label }),
+    body,
+  ]);
+}
+
+function notEnoughData(text) {
+  return el('p', { class: 'mer-muted', text });
+}
+
+// Ordinary least squares over (index, value) pairs -- xs are just 0..n-1
+// (one point per month/period), so this reduces to slope + intercept.
+function linearRegression(ys) {
+  const n = ys.length;
+  const meanX = (n - 1) / 2;
+  const meanY = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0, denom = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - meanX) * (ys[i] - meanY);
+    denom += (i - meanX) * (i - meanX);
+  }
+  const slope = denom === 0 ? 0 : num / denom;
+  const intercept = meanY - slope * meanX;
+  return { slope, intercept };
+}
+
+const MIN_SPEND_MONTHS = 3;
+
+function spendTrendForecast(payments) {
+  const byMonth = new Map();
+  for (const p of payments) {
+    if (!p.datePaid || p.amountPaid == null) continue;
+    const month = p.datePaid.slice(0, 7); // YYYY-MM
+    byMonth.set(month, (byMonth.get(month) || 0) + Number(p.amountPaid));
+  }
+  const months = [...byMonth.keys()].sort();
+  if (months.length < MIN_SPEND_MONTHS) {
+    return notEnoughData(`Not enough months of logged bill payments yet (${months.length}/${MIN_SPEND_MONTHS} needed).`);
+  }
+  const totals = months.map((m) => byMonth.get(m));
+  const { slope, intercept } = linearRegression(totals);
+  const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
+  const projectedNext = Math.max(0, intercept + slope * totals.length);
+  const direction = slope > 0.5 ? 'rising' : slope < -0.5 ? 'falling' : 'holding steady';
+  return el('div', {}, [
+    el('div', { class: 'mer-almanac-value', text: money(projectedNext) }),
+    el('p', { class: 'mer-muted', text: `Bill spend is ${direction}, about ${money(Math.abs(slope))}/month, over the last ${months.length} months (avg ${money(avg)}/month). Projected next month, if the trend holds.` }),
+  ]);
+}
+
+const MIN_HABIT_LOGS = 14; // ~2 weeks, enough for a weekday signal to mean something
+
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function habitBreakpointForecast(habits, habitLogs) {
+  const cards = [];
+  for (const habit of habits) {
+    const created = (habit.createdAt || '').slice(0, 10);
+    if (!created) continue;
+    const logDates = new Set(habitLogs.filter((l) => l.habitId === habit.id).map((l) => l.date));
+    if (logDates.size < MIN_HABIT_LOGS) continue;
+
+    const byWeekday = Array.from({ length: 7 }, () => ({ total: 0, done: 0 }));
+    const cursor = new Date(created + 'T00:00:00');
+    const end = new Date(todayStr() + 'T00:00:00');
+    while (cursor <= end) {
+      const iso = cursor.toISOString().slice(0, 10);
+      const wd = byWeekday[cursor.getDay()];
+      wd.total++;
+      if (logDates.has(iso)) wd.done++;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const rates = byWeekday.map((wd, i) => ({ day: i, rate: wd.total ? wd.done / wd.total : null, total: wd.total }));
+    const overall = logDates.size / rates.reduce((a, r) => a + r.total, 0);
+    const eligible = rates.filter((r) => r.total >= 3 && r.rate != null);
+    if (!eligible.length) continue;
+    const weakest = eligible.reduce((a, b) => (b.rate < a.rate ? b : a));
+    if (weakest.rate > overall - 0.15) continue; // not a real enough dip to call out
+
+    cards.push(forecastCard(habit.name || '(untitled habit)', el('p', { class: 'mer-muted' }, [
+      `You're most likely to skip on ${WEEKDAY_NAMES[weakest.day]}s — a ${Math.round(weakest.rate * 100)}% keep rate there vs. ${Math.round(overall * 100)}% overall.`,
+    ])));
+  }
+  return cards;
+}
+
+const MIN_READING_LOGS = 2;
+
+function readingPaceForecast(books, readingLogs) {
+  const cards = [];
+  for (const book of books) {
+    if (book.status !== 'reading' || !book.totalPages || book.currentPage == null) continue;
+    const logs = readingLogs.filter((l) => l.bookId === book.id).sort((a, b) => a.date.localeCompare(b.date));
+    if (logs.length < MIN_READING_LOGS) continue;
+
+    const days = new Set(logs.map((l) => l.date)).size;
+    if (days < 2) continue; // a single-day binge isn't a pace
+    const totalPagesLogged = logs.reduce((sum, l) => sum + (l.pagesRead || 0), 0);
+    const spanDays = Math.max(1, Math.round((new Date(logs[logs.length - 1].date) - new Date(logs[0].date)) / 86400000) + 1);
+    const pace = totalPagesLogged / spanDays;
+    if (pace <= 0) continue;
+
+    const remaining = book.totalPages - book.currentPage;
+    if (remaining <= 0) continue;
+    const daysToFinish = Math.ceil(remaining / pace);
+    const finishDate = new Date();
+    finishDate.setDate(finishDate.getDate() + daysToFinish);
+
+    cards.push(forecastCard(book.title || '(untitled book)', el('p', { class: 'mer-muted' }, [
+      `At your recent pace (~${pace.toFixed(1)} pages/day), you'll likely finish around ${finishDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}.`,
+    ])));
+  }
+  return cards;
+}
+
+async function forecastsSection(ctx) {
+  const [payments, habits, habitLogs, books, readingLogs] = await Promise.all([
+    ctx.data.BillPayments.list(),
+    ctx.data.Habits.list(),
+    ctx.data.HabitLogs.list(),
+    ctx.data.Books.list(),
+    ctx.data.ReadingLogs.list(),
+  ]);
+
+  const cards = [
+    forecastCard('Bill spend trend', spendTrendForecast(payments)),
+    ...habitBreakpointForecast(habits, habitLogs),
+    ...readingPaceForecast(books, readingLogs),
+  ];
+
+  return el('div', {}, [
+    el('div', { class: 'mer-subsection-label', text: 'Forecasts' }),
+    el('p', { class: 'mer-muted', text: 'Real trend modeling over your own logged history — a projection, weekday pattern, or pace estimate, never a guess. Each needs enough history before it shows anything.' }),
+    el('div', { class: 'mer-almanac-grid' }, cards),
+  ]);
+}
+
 export async function renderAlmanac(canvas, ctx) {
   const [healthLogs, habitLogs, tasks, assignments] = await Promise.all([
     ctx.data.HealthLogs.list(),
@@ -99,4 +248,6 @@ export async function renderAlmanac(canvas, ctx) {
     grid.append(correlationCard(label, xs, ys));
   }
   canvas.append(grid);
+
+  canvas.append(await forecastsSection(ctx));
 }

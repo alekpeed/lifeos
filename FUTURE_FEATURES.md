@@ -111,6 +111,15 @@ parked means "not now," not "forgotten" or "cut."
   `resolveGraphNode` instead of a second lookup table. Grading uses the
   identical interval scheme as language cards (again/good/easy). See
   `js/interfaces/default/views/recall.js`.
+- ✅ **Predictive forecasting** — DONE: The Almanac's correlation section now
+  has a companion Forecasts section, same "not enough data yet" honesty,
+  three genuinely computed forecasts over real logged history (no AI, no
+  invention): a linear-regression bill-spend trend + next-month projection
+  (BillPayments), per-habit weekday breakpoint detection flagging the
+  weekday you're statistically most likely to skip (HabitLogs), and a
+  reading-pace extrapolation to an estimated finish date for in-progress
+  books (ReadingLogs). Each requires its own minimum sample before showing
+  anything. See `js/interfaces/default/views/almanac.js`.
 
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
@@ -267,10 +276,6 @@ for a stripped-down version.)
 - **AI-suggested knowledge-graph edges** — beyond manual linking: a model
   reads across every module and proposes non-obvious connections you'd
   never have drawn yourself.
-- **Predictive forecasting** — real trend modeling on your own data:
-  subscription cost creep, likely habit-streak breakpoints, when something
-  will actually need attention based on your own patterns, not a static date.
-
 **Foundational rearchitecture**
 - **Event-sourced core** — every change becomes an immutable event instead
   of an in-place edit. Unlocks real undo/redo everywhere and per-record

@@ -240,6 +240,11 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   app (tasks, books, contacts, places, anything Search can find), reusing
   the Knowledge Graph's own picker and title-resolution instead of
   duplicating them.
+- ✅ **Predictive forecasting** — The Almanac's Forecasts section: a
+  linear-regression bill-spend trend + next-month projection, per-habit
+  weekday breakpoint detection (the day you're statistically most likely
+  to skip), and a reading-pace extrapolation to an estimated finish date.
+  Real computed stats over real logged history, no AI involved.
 
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
@@ -340,7 +345,6 @@ rather than needing to also work as a small-screen experience.
   each morning and drafts a prioritized brief.
 - **AI-suggested knowledge-graph edges** — a model proposes non-obvious
   connections across modules.
-- **Predictive forecasting** — real trend modeling on your own data.
 - **Event-sourced core** — every change becomes an immutable event,
   unlocking full undo/redo and making Time Machine trivial.
 - **CRDT-based sync** — conflict-free merges replacing last-write-wins.

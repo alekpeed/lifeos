@@ -242,6 +242,15 @@ lets the whole app be redecorated later without rebuilding it:
   deleted record never leaves a stale label here either. Grading uses the
   identical interval scheme as language cards (again resets to 1 day, good
   doubles, easy triples). See `js/interfaces/default/views/recall.js`.
+- **Predictive forecasting** — The Almanac's correlation section now has a
+  companion Forecasts section, same "not enough data yet" honesty, with
+  three genuinely computed forecasts over real logged history (no AI, no
+  invention): a linear-regression bill-spend trend + next-month projection
+  (BillPayments), per-habit weekday breakpoint detection flagging the
+  weekday you're statistically most likely to skip (HabitLogs), and a
+  reading-pace extrapolation to an estimated finish date for in-progress
+  books (ReadingLogs). Each requires its own minimum sample before showing
+  anything. See `js/interfaces/default/views/almanac.js`.
 - **Museum of Finished Things** — a trophy-case view over completions already
   scattered across other modules: done tasks/assignments, finished books
   (with covers), milestones, recipes ranked by times cooked, archived
@@ -481,11 +490,12 @@ Everything below came out of talking through what would actually feel
 6. ~~Passkey/biometric app lock~~ — DONE (see Built ✅).
 7. ~~AI with continuity~~ — DONE (see Built ✅).
 8. ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall).
-9. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
-   Conversation Starters, Ghost Days, The Almanac, Life as Music, Library of
-   Babel, Theme-from-photo)
-10. Additional interfaces (Vespera, LCARS)
-11. Someday: a standalone music-practice app (progressions, play-along,
+9. ~~Predictive forecasting~~ — DONE (see Built ✅, Almanac Forecasts).
+10. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
+    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library
+    of Babel, Theme-from-photo)
+11. Additional interfaces (Vespera, LCARS)
+12. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
 **Open architecture decision:** whether the rest of the app's modules (tasks,
@@ -518,9 +528,6 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 - **AI-suggested knowledge-graph edges** — beyond manual linking: a model
   reads across every module and proposes non-obvious connections you'd never
   have drawn yourself.
-- **Predictive forecasting** — real trend modeling on your own data:
-  subscription cost creep, likely habit-streak breakpoints, when something
-  will actually need attention based on your past patterns, not a static date.
 
 **Foundational rearchitecture**
 - **Event-sourced core** — every change becomes an immutable event instead of
@@ -637,6 +644,8 @@ own Tier 2 flag, not a routine add)**
   entry above).
 - ~~AI with continuity~~ — DONE (see Built ✅, Daily Paper entry above).
 - ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall entry above).
+- ~~Predictive forecasting~~ — DONE (see Built ✅, Almanac Forecasts entry
+  above).
 
 *(Ruled out — dead, not parked, don't resurface: YouTube real watch
 history / Watch Later sync — both deprecated from the YouTube Data API in
