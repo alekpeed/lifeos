@@ -70,7 +70,11 @@ lets the whole app be redecorated later without rebuilding it:
   weekly billing normalized to a combined monthly total, active/cancelled),
   and a Yearly Spend tab combining logged bill payments with active
   subscriptions (annualized) by category. Net worth and savings goals were
-  prototyped and then shelved for now — may return later.
+  prototyped and then shelved for now — may return later. Plus an **Import**
+  tab (2026-07-13): parses a bank/card CSV export, suggests a Bill/
+  Subscription match per row by description + amount (plain comparison, no
+  AI, works offline), flags likely re-imports, and on confirm logs the
+  payment and marks the matched bill paid. CSV only — OFX isn't built.
 - **Documents vault** — leases, insurance, warranties, category/issuer/
   policy-number fields, PDF/image attachments, and an expiry-soon/expired
   alert (configurable window) surfaced on the Dashboard's due-soon feed.
@@ -223,6 +227,15 @@ lets the whole app be redecorated later without rebuilding it:
   deleted record never leaves a stale label here either. Grading uses the
   identical interval scheme as language cards (again resets to 1 day, good
   doubles, easy triples). See `js/interfaces/default/views/recall.js`.
+- **Notifications** — DONE (2026-07-13), scoped down from the original
+  "per-user notifications" framing: a new module (`#/notifications`)
+  aggregates the existing due-soon/overdue feed (same `getDueSoonFeed`
+  Dashboard already uses) plus, if signed in and in a Sharebox space,
+  activity posted by other members since you last checked — the one
+  genuinely per-account signal the app has, since the rest of the app's
+  data is local-first with no real second "user" to notify. Viewing the
+  page marks Sharebox activity as seen; no separate unread badge in the
+  nav — see `js/interfaces/default/views/notifications.js`.
 - **Predictive forecasting** — The Almanac's correlation section now has a
   companion Forecasts section, same "not enough data yet" honesty, with
   three genuinely computed forecasts over real logged history (no AI, no
@@ -254,7 +267,12 @@ lets the whole app be redecorated later without rebuilding it:
   click, plus freeform items and a packed-count tally.
 - **Quartermaster** — a physical inventory with a lending ledger: what you
   own, and who has it right now if you lent it out (with a one-click "mark
-  returned").
+  returned"). Plus **camera-vision cataloging** (2026-07-13): a "📷 Catalog
+  from a photo" input sends a shelf/pantry/garage shot to the active AI
+  provider's vision input, which drafts a list of distinct items; the
+  result opens as an editable list before bulk-creating items, never
+  silently trusted. Doesn't attempt quantity/fill-level detection from the
+  photo — see FUTURE_FEATURES.md for the still-open few-shot low-stock flow.
 - **Skill Trees** — an RPG-style character sheet computed entirely from real
   activity (tasks/assignments completed, habit check-ins, books finished) —
   three skills (Executor, Discipline, Scholar), each with a level and an XP

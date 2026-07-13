@@ -57,7 +57,17 @@ parked means "not now," not "forgotten" or "cut."
 - ✅ **AI-powered Daily Paper** — DONE: an actual AI-written editorial (3-5
   sentences, grounded only in that day's real LifeOS facts), generated with
   whichever provider is active in the AI Assistant's Settings toggle below.
-- 🏗️ **Per-user notifications** — depends on accounts existing first.
+- ✅ **Per-user notifications** — DONE (2026-07-13), scoped down from the
+  original framing: a new **Notifications** module (`#/notifications`)
+  aggregates the existing due-soon/overdue feed (same `getDueSoonFeed` the
+  Dashboard already uses) plus, if you're signed in and in a Sharebox
+  space, activity posted by OTHER members since you last checked — the one
+  genuinely per-account signal the app has, since the rest of the app's
+  data is local-first with no real second "user" to notify. Viewing the
+  page marks Sharebox activity as seen; there's no separate unread badge
+  in the nav (that's real background-push territory, see below), so this
+  is a page you check rather than a push alert. See
+  `js/interfaces/default/views/notifications.js`.
 - ✅ **AI Assistant (provider-switchable) + Telegram (send-only)** — DONE: a
   new AI Assistant module, a chat called directly from the browser with your
   own API key (Settings, device-local, never synced). Originally Claude-only;
@@ -361,9 +371,17 @@ for a stripped-down version.)
 - **Natural-language command bar** — type or speak "remind me to call mom
   Friday" and it parses intent, picks the right module, and creates the
   record. In-browser Whisper handles voice, fully offline.
-- **Real financial ingestion & reconciliation** — import bank/card
-  statements (CSV/OFX), auto-categorize transactions, reconcile against
-  logged bills/subscriptions.
+- ✅ **Real financial ingestion & reconciliation** — DONE (2026-07-13),
+  CSV only for this pass — OFX is a real second parser (SGML-like, not
+  delimited text) not worth the added surface until CSV proves useful.
+  Finance's new **Import** tab parses a bank/card CSV export (tolerant of
+  a few common header conventions, incl. separate debit/credit columns),
+  suggests a Bill/Subscription match per row by description + amount
+  (plain string/number comparison, no AI, works fully offline), flags
+  likely re-imports of the same rows, and on confirm logs a `BillPayment`
+  + marks the matched bill paid, same effect as checking it off by hand.
+  See `parseTransactionsCsv`/`suggestTransactionMatches`/
+  `confirmTransactionImport` in `js/data/api.js`.
 - **Garmin/Fitbit health ingestion** — Apple Health export import shipped
   (see Built ✅ below); Garmin/Fitbit would each need their own OAuth/API
   research pass first (same "verify before building" treatment already
@@ -378,16 +396,19 @@ for a stripped-down version.)
 - **Generative "Year in Review" film** — an auto-produced montage from your
   photos + milestones + stats, scored by the Life-as-Music synth engine
   you already have.
-- **Camera-vision cataloging (Quartermaster)** — confirmed direction
-  (2026-07), not yet built, moved down from the far tier: photograph a
-  shelf/pantry/garage and have it catalog items into Quartermaster.
-  Simpler than the original framing — no attempt at detecting *quantity*
-  or "running low" from the photo automatically (fill-level estimation
-  from a single image is a genuinely harder vision problem, and "low" is
-  subjective anyway); that stays a manual flag on the item by default,
-  UNLESS labeled via the few-shot flow below.
-  **Confirmed in scope (2026-07): a few-shot/in-context-learning version
-  of low-stock detection.** Not model retraining — a labeled-example
+- ✅ **Camera-vision cataloging (Quartermaster)** — the core flow shipped
+  2026-07-13: a "📷 Catalog from a photo" input on Quartermaster sends a
+  shelf/pantry/garage photo to the active AI provider's vision input,
+  which drafts a list of distinct items (name + rough location in frame);
+  the result opens as an editable list — remove anything wrong, fix names
+  — before bulk-creating InventoryItems, never silently trusted. As
+  planned, no attempt at detecting *quantity* or "running low" from the
+  photo automatically (fill-level estimation from a single image is a
+  genuinely harder vision problem, and "low" is subjective anyway); that
+  stays a manual flag on the item. See `catalogItemsFromImage` in
+  `js/data/api.js`.
+  **Still open — not built in this pass: the few-shot/in-context-learning
+  low-stock detection below.** Not model retraining — a labeled-example
   flow. When logging an item, you can tag a reference photo with your
   own label ("low," "full," whatever vocabulary makes sense to you).
   Judging a later photo of that item sends the new photo *plus* your 5

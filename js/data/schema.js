@@ -41,7 +41,8 @@ export const DB_NAME = 'lifeos';
 // and closes a gap from v7: `libraryStories` (Library of Babel, dropped
 // with Languages at v16) was removed from STORES but never added to
 // RETIRED_STORES, so it was never actually deleted from existing installs.
-export const DB_VERSION = 17;
+// v18 adds `importedTransactions` (Finance's statement-import reconciliation).
+export const DB_VERSION = 18;
 
 // Stores that used to exist and are now actively deleted on upgrade, not
 // just omitted from STORES going forward. `languageLessons` was retired
@@ -131,6 +132,17 @@ export const STORES = [
   { name: 'savingsGoals', keyPath: 'id' },
   { name: 'subscriptions', keyPath: 'id', indexes: [
     { name: 'stillInUse', keyPath: 'stillInUse' },
+  ] },
+
+  // Statement import: a one-time CSV import of bank/card transactions,
+  // reconciled against Bills/Subscriptions by name+amount+date proximity.
+  // Each row keeps its match decision (`status`: matched/unmatched/ignored)
+  // and which record it was matched to, so a re-import of the same file
+  // (or an overlapping date range) can be deduped by `importBatchId` +
+  // the transaction's own natural key (date+description+amount).
+  { name: 'importedTransactions', keyPath: 'id', indexes: [
+    { name: 'date', keyPath: 'date' },
+    { name: 'importBatchId', keyPath: 'importBatchId' },
   ] },
 
   { name: 'documents', keyPath: 'id', indexes: [

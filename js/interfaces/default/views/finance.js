@@ -7,13 +7,15 @@ const SUB_FREQS = [
 ];
 
 let state = {
-  tab: 'bills', // bills | subscriptions | spend | crypto
+  tab: 'bills', // bills | subscriptions | spend | crypto | import
   billCategoryFilter: 'all',
   showPaid: false,
   selectedBillId: null,
   subCategoryFilter: 'all',
   showCancelled: false,
   selectedSubId: null,
+  importRows: null, // parsed+matched rows awaiting review, or null before a file's picked
+  importError: null,
 };
 
 function money(n) {
@@ -437,6 +439,89 @@ async function renderCryptoTab(area, ctx, rerender) {
   area.append(el('p', { class: 'mer-muted', text: 'Coin IDs are CoinGecko\'s slugs, not ticker symbols -- e.g. "bitcoin", not "BTC".' }));
 }
 
+// --- Statement import & reconciliation ---
+
+function importRow(row, i, rerender) {
+  const matchLabel = row.suggestedMatch
+    ? `${row.suggestedMatch.type === 'bill' ? 'Bill' : 'Subscription'}: ${row.suggestedMatch.name || '(untitled)'}`
+    : 'No match found';
+
+  const skipToggle = el('label', { class: 'mer-checkbox-label' }, [
+    el('input', { type: 'checkbox', checked: !!row.skip, onchange: (e) => { row.skip = e.target.checked; rerender(); } }),
+    el('span', { text: 'Skip' }),
+  ]);
+
+  const markPaidToggle = row.suggestedMatch?.type === 'bill'
+    ? el('label', { class: 'mer-checkbox-label' }, [
+      el('input', { type: 'checkbox', checked: row.markPaid !== false, onchange: (e) => { row.markPaid = e.target.checked; } }),
+      el('span', { text: 'Mark bill paid' }),
+    ])
+    : null;
+
+  return el('div', { class: row.skip ? 'mer-task-row is-done' : 'mer-task-row' }, [
+    el('span', { class: 'mer-task-title', text: `${fmtDate(row.date)} — ${row.description || '(no description)'}` }),
+    el('div', { class: 'mer-task-meta' }, [
+      el('span', { class: 'mer-chip', text: money(row.amount) }),
+      el('span', { class: row.suggestedMatch ? 'mer-chip' : 'mer-chip is-overdue', text: matchLabel }),
+      row.isDuplicate ? el('span', { class: 'mer-chip is-overdue', text: 'Looks already imported' }) : null,
+      markPaidToggle,
+      skipToggle,
+    ].filter(Boolean)),
+  ]);
+}
+
+async function renderImportTab(container, ctx, rerender) {
+  container.append(el('p', { class: 'mer-muted', text: 'Import a CSV export from your bank/card and match it against logged Bills and Subscriptions -- CSV only for now, not OFX. Nothing here calls an AI provider; matching is plain description + amount comparison.' }));
+
+  const fileInput = el('input', {
+    type: 'file', accept: '.csv,text/csv',
+    onchange: async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      state.importError = null;
+      state.importRows = null;
+      rerender();
+      try {
+        const parsed = await ctx.data.parseTransactionsCsv(file);
+        if (!parsed.length) { state.importError = 'No usable rows found in that file.'; rerender(); return; }
+        const matched = await ctx.data.suggestTransactionMatches(parsed);
+        state.importRows = matched.map((t) => ({ ...t, match: t.suggestedMatch, skip: t.isDuplicate, markPaid: true }));
+      } catch (err) {
+        state.importError = err.message;
+      }
+      rerender();
+    },
+  });
+  container.append(el('div', { class: 'mer-person-form' }, [fileInput]));
+
+  if (state.importError) container.append(el('p', { class: 'mer-muted', text: state.importError }));
+  if (!state.importRows) return;
+
+  const matchedCount = state.importRows.filter((r) => r.suggestedMatch && !r.skip).length;
+  container.append(el('p', {}, [
+    el('strong', { text: `${state.importRows.length} rows` }),
+    document.createTextNode(` parsed, ${matchedCount} matched. Review below, then confirm.`),
+  ]));
+
+  const list = el('div', {});
+  for (let i = 0; i < state.importRows.length; i++) list.append(importRow(state.importRows[i], i, rerender));
+  container.append(list);
+
+  container.append(el('div', { class: 'mer-toolbar' }, [
+    el('button', {
+      type: 'button', text: 'Confirm import',
+      onclick: async () => {
+        const importBatchId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        await ctx.data.confirmTransactionImport(state.importRows, importBatchId);
+        state.importRows = null;
+        rerender();
+      },
+    }),
+    el('button', { type: 'button', text: 'Cancel', onclick: () => { state.importRows = null; rerender(); } }),
+  ]));
+}
+
 // --- Root ---
 
 function tabsBar(rerender) {
@@ -445,6 +530,7 @@ function tabsBar(rerender) {
     el('button', { type: 'button', class: state.tab === 'subscriptions' ? 'is-active' : '', text: 'Subscriptions', onclick: () => { state.tab = 'subscriptions'; rerender(); } }),
     el('button', { type: 'button', class: state.tab === 'spend' ? 'is-active' : '', text: 'Yearly Spend', onclick: () => { state.tab = 'spend'; rerender(); } }),
     el('button', { type: 'button', class: state.tab === 'crypto' ? 'is-active' : '', text: 'Markets', onclick: () => { state.tab = 'crypto'; rerender(); } }),
+    el('button', { type: 'button', class: state.tab === 'import' ? 'is-active' : '', text: 'Import', onclick: () => { state.tab = 'import'; rerender(); } }),
   ]);
 }
 
@@ -458,5 +544,6 @@ export async function renderFinance(canvas, ctx, rerender) {
   if (state.tab === 'bills') await renderBillsTab(area, ctx, rerender);
   else if (state.tab === 'subscriptions') await renderSubscriptionsTab(area, ctx, rerender);
   else if (state.tab === 'spend') await renderSpendSummary(area, ctx);
-  else await renderCryptoTab(area, ctx, rerender);
+  else if (state.tab === 'crypto') await renderCryptoTab(area, ctx, rerender);
+  else await renderImportTab(area, ctx, rerender);
 }

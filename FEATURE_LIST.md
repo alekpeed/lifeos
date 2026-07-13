@@ -54,8 +54,9 @@ genuine moonshots.
 - **Finance** — a Bills tab (recurring or one-time, amount/due
   date/paid/autopay, PDF attachments, payment history, a configurable
   "remind me N days before"), a Subscriptions tab (monthly/yearly/weekly
-  billing normalized to a combined monthly total), and a Yearly Spend tab
-  combining bill payments with subscriptions by category.
+  billing normalized to a combined monthly total), a Yearly Spend tab
+  combining bill payments with subscriptions by category, and an **Import**
+  tab (bank/card CSV reconciliation, no AI — see Cross-module polish below).
 - **Documents vault** — leases, insurance, warranties, category/issuer/
   policy-number fields, attachments, and an expiry-soon/expired alert
   surfaced on the Dashboard. Plus **camera-to-data capture**: photograph a
@@ -102,7 +103,8 @@ genuine moonshots.
   (weekend / beach / ski / international) that bulk-add common items, plus
   freeform items and a packed-count tally.
 - **Quartermaster** — a physical inventory with a lending ledger: what you
-  own, and who has it right now if you lent it out.
+  own, and who has it right now if you lent it out. Plus camera-vision
+  cataloging (see Cross-module polish below).
 - **Museum of Finished Things** — a trophy-case view over completions
   already scattered across other modules: done tasks/assignments, finished
   books (with covers), milestones, recipes ranked by times cooked, archived
@@ -234,6 +236,20 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   to resurface any record in the app (tasks, books, contacts, places,
   anything Search can find), reusing the Knowledge Graph's own picker and
   title-resolution instead of duplicating them.
+- ✅ **Per-user notifications** (2026-07-13) — a new **Notifications**
+  module aggregates the existing due-soon/overdue feed plus Sharebox
+  activity from other members since you last checked (the one genuinely
+  per-account signal the app has). Page you check, not a push alert.
+- ✅ **Camera-vision cataloging (Quartermaster)** (2026-07-13) — a "📷
+  Catalog from a photo" input drafts a list of distinct items from a
+  shelf/pantry/garage photo via the active AI provider's vision input;
+  opens as an editable list before bulk-creating items. No quantity/
+  fill-level detection (still-open few-shot low-stock flow in
+  FUTURE_FEATURES.md).
+- ✅ **Real financial ingestion & reconciliation** (2026-07-13) — Finance's
+  Import tab parses a bank/card CSV export, suggests a Bill/Subscription
+  match by description + amount (no AI, works offline), and on confirm
+  logs the payment and marks the bill paid. CSV only, OFX not built.
 - ✅ **Predictive forecasting** — The Almanac's Forecasts section: a
   linear-regression bill-spend trend + next-month projection, per-habit
   weekday breakpoint detection (the day you're statistically most likely

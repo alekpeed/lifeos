@@ -44,6 +44,7 @@ export const MODULES = [
   { id: 'assistant', label: 'AI Assistant', group: 'utility' },
   { id: 'knowledge', label: 'Knowledge Graph', group: 'utility' },
   { id: 'recall', label: 'Recall', group: 'utility', remote: true },
+  { id: 'notifications', label: 'Notifications', group: 'utility', remote: true },
   { id: 'timemachine', label: 'Time Machine', group: 'utility' },
   { id: 'qrsync', label: 'QR Sync', group: 'utility', remote: true },
   { id: 'entropy', label: 'Entropy', group: 'utility' },

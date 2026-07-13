@@ -146,6 +146,13 @@
   color: var(--color-danger);
 }
 
+[data-interface='default'] .mer-feed-item-clickable {
+  cursor: pointer;
+}
+[data-interface='default'] .mer-feed-item-clickable:hover {
+  background: var(--color-bg-raised);
+}
+
 [data-interface='default'] .mer-feed-module {
   font-size: var(--text-sm);
   color: var(--color-text-faint);

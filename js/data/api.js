@@ -254,6 +254,7 @@ export function shareboxFileUrl(file) {
 export const FinanceSnapshots = entities.financeSnapshots;
 export const SavingsGoals = entities.savingsGoals;
 export const Subscriptions = entities.subscriptions;
+export const ImportedTransactions = entities.importedTransactions;
 export const Documents = entities.documents;
 export const Contacts = entities.contacts;
 export const Milestones = entities.milestones;
@@ -398,6 +399,10 @@ const SETTING_DEFAULTS = {
   // off by default since it's audio, opt-in like everything else that makes
   // noise.
   ambientMusicEnabled: false,
+  // Notifications page's Sharebox-activity watermark -- items posted by
+  // other members before this timestamp read as already-seen. null until
+  // the page is visited for the first time (everything reads as new then).
+  notificationsLastSeenAt: null,
   // Synth Sound-tab control style ('auto' picks knobs on precise-pointer
   // devices, detented sliders on touch) and panel skin (the classic-keyboard
   // look applied to the panel + knobs).
@@ -1123,6 +1128,193 @@ export async function extractDocumentFromImage(file) {
     expiryDate: parsed.expiryDate || null,
     notes: parsed.notes || '',
   };
+}
+
+// Camera-vision cataloging (Quartermaster): photograph a shelf/pantry/garage
+// and draft a list of distinct items instead of typing each one by hand.
+// Same discipline as extractDocumentFromImage above -- one image in, a closed
+// JSON shape out, the caller (quartermaster.js) always shows the list as an
+// editable draft before creating anything. Deliberately doesn't attempt
+// quantity/fill-level estimation (a harder vision problem, and "low" is
+// subjective) -- see FUTURE_FEATURES.md for the separate few-shot low-stock
+// flow this could grow into later; not built in this pass.
+export async function catalogItemsFromImage(file) {
+  const { send, apiKey, model } = await getActiveAiProvider();
+  if (!apiKey) throw new Error('Add an API key in Settings > AI Assistant to catalog from a photo.');
+
+  const dataBase64 = await fileToBase64(file);
+  const prompt = `This is a photo of a shelf, pantry, garage, or storage area. Identify each distinct physical item visible. `
+    + `Don't estimate quantity or how full/empty anything is -- just list what's there. Skip anything you can't identify with reasonable confidence. `
+    + `Respond with JSON only, no markdown fences, no commentary, in exactly this shape:\n`
+    + `{"items": [{"name": string, "location": string|null}]}\n`
+    + `"name" should be a short, specific item name (e.g. "Cordless drill", "Canned tomatoes", "Christmas lights"), not a category. `
+    + `"location" is a short descriptor of where in the photo it is if that's useful (e.g. "top shelf"), or null.`;
+
+  const { text } = await send(apiKey, [{
+    role: 'user',
+    content: [{ type: 'text', text: prompt }, { type: 'image', mimeType: file.type || 'image/jpeg', dataBase64 }],
+  }], { model, maxTokens: 800 });
+
+  const parsed = parseJsonLoosely(text);
+  if (!parsed || !Array.isArray(parsed.items)) throw new Error(`${(await getActiveAiProvider()).label} returned something that wasn't valid JSON. Try again.`);
+  return parsed.items
+    .filter((i) => i && i.name)
+    .map((i) => ({ name: String(i.name).trim(), location: i.location ? String(i.location).trim() : '' }));
+}
+
+// --- Statement import & reconciliation: a one-time CSV import of bank/card
+// transactions (Finance's "Import" tab), auto-matched against existing
+// Bills/Subscriptions by description + amount, so importing mostly means
+// reviewing suggestions rather than typing anything. Scoped to CSV only for
+// this pass -- OFX is a real second parser (SGML-like, not just delimited
+// text) and not worth the added surface until CSV proves useful. No AI
+// involved: matching is plain string/number comparison, so it works fully
+// offline and never depends on an API key.
+
+function splitCsvLine(line) {
+  const cells = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') inQuotes = false;
+      else cur += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ',') { cells.push(cur); cur = ''; }
+    else cur += c;
+  }
+  cells.push(cur);
+  return cells.map((c) => c.trim());
+}
+
+function parseCsvAmount(raw) {
+  if (!raw) return null;
+  const negative = /^\(.*\)$/.test(raw.trim());
+  const cleaned = raw.replace(/[()$,\s]/g, '');
+  const n = Number(cleaned);
+  if (!Number.isFinite(n)) return null;
+  return negative ? -Math.abs(n) : n;
+}
+
+function parseCsvDate(raw) {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const d = new Date(trimmed);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+const HEADER_ALIASES = {
+  date: ['date', 'transaction date', 'posted date', 'posting date'],
+  description: ['description', 'memo', 'payee', 'name', 'merchant', 'transaction'],
+  amount: ['amount', 'transaction amount'],
+  debit: ['debit', 'withdrawal'],
+  credit: ['credit', 'deposit'],
+};
+
+function matchHeader(cell) {
+  const lower = cell.trim().toLowerCase();
+  for (const [key, aliases] of Object.entries(HEADER_ALIASES)) {
+    if (aliases.some((a) => lower === a || lower.includes(a))) return key;
+  }
+  return null;
+}
+
+// Parses a bank/card CSV export into { date: 'YYYY-MM-DD', description, amount }
+// rows (amount negative = money out, matching how Bills/Subscriptions are
+// tracked). Tolerant of a few common column-naming conventions and a
+// separate debit/credit pair instead of one signed amount column. Rows that
+// don't parse cleanly (unreadable date, no amount) are silently skipped --
+// this is a best-effort import, not a strict-validation one.
+export async function parseTransactionsCsv(file) {
+  const text = await file.text();
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return [];
+
+  const headerCells = splitCsvLine(lines[0]);
+  const columns = headerCells.map(matchHeader);
+  if (!columns.includes('date') || (!columns.includes('amount') && !(columns.includes('debit') || columns.includes('credit')))) {
+    throw new Error('Could not find date/amount columns in this file. Expected a header row with columns like Date, Description, Amount.');
+  }
+
+  const rows = [];
+  for (const line of lines.slice(1)) {
+    const cells = splitCsvLine(line);
+    const byCol = {};
+    columns.forEach((col, i) => { if (col) byCol[col] = cells[i]; });
+
+    const date = parseCsvDate(byCol.date);
+    let amount = parseCsvAmount(byCol.amount);
+    if (amount === null && (byCol.debit || byCol.credit)) {
+      const debit = parseCsvAmount(byCol.debit) || 0;
+      const credit = parseCsvAmount(byCol.credit) || 0;
+      amount = credit - Math.abs(debit);
+    }
+    if (!date || amount === null) continue;
+    rows.push({ date, description: (byCol.description || '').trim(), amount });
+  }
+  return rows;
+}
+
+function normalizeForMatch(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Suggests a Bill or Subscription match for each parsed transaction: the
+// description contains (or is contained by) the record's name, and the
+// amounts agree within a small tolerance (flat $1 or 2%, whichever is
+// larger -- covers rounding/fee drift without matching unrelated amounts).
+// Also flags transactions that look like a re-import of something already
+// confirmed (same date+description+amount already in importedTransactions).
+export async function suggestTransactionMatches(transactions) {
+  const [bills, subs, existing] = await Promise.all([Bills.list(), Subscriptions.list(), ImportedTransactions.list()]);
+  const candidates = [
+    ...bills.filter((b) => typeof b.amount === 'number').map((b) => ({ type: 'bill', id: b.id, name: b.name || '', amount: b.amount })),
+    ...subs.filter((s) => s.stillInUse !== false).map((s) => ({ type: 'subscription', id: s.id, name: s.name || '', amount: s.amount })),
+  ];
+  const existingKeys = new Set(existing.map((t) => `${t.date}|${t.description}|${t.amount}`));
+
+  return transactions.map((t) => {
+    const spend = Math.abs(t.amount);
+    const normDesc = normalizeForMatch(t.description);
+    const tolerance = Math.max(1, spend * 0.02);
+    const match = candidates.find((c) => {
+      const normName = normalizeForMatch(c.name);
+      if (!normName) return false;
+      const nameMatches = normDesc.includes(normName) || normName.includes(normDesc);
+      const amountMatches = Math.abs(Math.abs(c.amount) - spend) <= tolerance;
+      return nameMatches && amountMatches;
+    }) || null;
+    return { ...t, suggestedMatch: match, isDuplicate: existingKeys.has(`${t.date}|${t.description}|${t.amount}`) };
+  });
+}
+
+// Confirms an import: creates one ImportedTransactions record per row
+// (the permanent ledger of what was imported, for dedup on future imports),
+// and for any row matched+confirmed to a Bill, also logs the payment and
+// marks the bill paid -- same effect as manually checking it off in the
+// Bills tab. Subscription matches are recorded but don't mutate the
+// subscription (there's no "paid" state to flip there, unlike a Bill).
+export async function confirmTransactionImport(transactions, importBatchId) {
+  for (const t of transactions) {
+    if (t.skip) continue;
+    await ImportedTransactions.create({
+      date: t.date, description: t.description, amount: t.amount, importBatchId,
+      matchedBillId: t.match?.type === 'bill' ? t.match.id : null,
+      matchedSubscriptionId: t.match?.type === 'subscription' ? t.match.id : null,
+      status: t.match ? 'matched' : 'unmatched',
+    });
+    if (t.match?.type === 'bill' && t.markPaid) {
+      const bill = await Bills.get(t.match.id);
+      if (bill && !bill.paid) {
+        await BillPayments.create({ billId: bill.id, datePaid: t.date, amountPaid: Math.abs(t.amount), method: 'import' });
+        await Bills.update(bill.id, { paid: true });
+      }
+    }
+  }
 }
 
 // --- Rules & automation engine v1: "IFTTT for your own life," scoped down

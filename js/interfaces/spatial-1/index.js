@@ -64,7 +64,7 @@ const DISTRICTS = [
     hotspot: { points: [[2.03, 77.05], [24.82, 77.05], [26.44, 78.85], [26.32, 84.59], [24.82, 86.61], [2.87, 86.61], [1.44, 84.8], [1.44, 79.06]] } },
   { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules'],
     hotspot: { points: [[74.03, 18.32], [95.79, 10.07], [97.16, 11.02], [98.37, 15.54], [97.68, 17.59], [75.9, 23.43], [74.67, 22.32], [73.96, 19.66]] } },
-  { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
+  { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto', 'notifications'],
     hotspot: { points: [[73.39, 57.7], [97.31, 56.32], [98.5, 57.39], [98.5, 62.81], [97.31, 64.93], [74.4, 64.93], [73.09, 63.12], [73.09, 59.3]] } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Gemini', icon: '🤖', modules: ['assistant', 'stationcat'],
     hotspot: { points: [[74.75, 75.15], [98.25, 79.69], [99.1, 81.13], [97.44, 87.29], [95.6, 89.1], [73.59, 83.21], [72.88, 81.04], [74.03, 76.72]] } },
