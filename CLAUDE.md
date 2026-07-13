@@ -103,6 +103,14 @@ over time — don't invent or keep a cool product name for one (the first
 mobile interface was called "NEXUS" mid-session, then explicitly walked
 back: "drop nexus... drop any name brand"). Registry ids/folders use plain,
 generic, numbered names instead (`mobile-1`, `mobile-2`, ...) — see
-`MOBILE_INTERFACES_SPEC.md`. This is specifically about interfaces Alek
-hasn't named himself; it doesn't retroactively apply to Equator/Vespera,
-which are established, intentional names.
+`MOBILE_INTERFACES_SPEC.md`. This rule was originally scoped to interfaces
+Alek hadn't named himself, with an explicit carve-out for Equator/Vespera
+as "established, intentional names." **That carve-out was reversed later
+the same day (2026-07-13):** Alek's own explicit call ("pull ALL brands
+from everything except 'test'") extended the no-brand rule to Equator and
+Vespera too, wanting a clean, brand-agnostic interface layer ahead of a
+future handoff. Equator was renamed to "Test Mode" (folder
+`js/interfaces/default/`, registry id `default` unchanged) and Vespera was
+renamed to "Spatial 1" (moved to `js/interfaces/spatial-1/`, registry id
+`spatial-1`; `VESPERA_SPEC.md` renamed to `SPATIAL_INTERFACES_SPEC.md`).
+The rule now applies to every interface without exception.

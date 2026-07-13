@@ -25,7 +25,7 @@ open" below, not assumed.
 LCARS skin over the existing app," then revised to a new, separate
 initiative — **the mobile remote** (see the "Device philosophy" note in
 `PROJECT_SPEC.md`, section 3): a deliberately stripped-down phone
-experience, not a second complete copy of the desktop app. No Vespera, no
+experience, not a second complete copy of the desktop app. No Spatial 1, no
 spatial "living world," no attempt at parity with desktop. Just the
 modules genuinely useful away from your desk, syncing through the same
 backend as everything else. That framing still holds; only the "LCARS" name
@@ -55,12 +55,13 @@ so it's correct regardless of what the design package says.
   tab that isn't installed deliberately keeps the full module list — the
   escape hatch back to full functionality when you're on a phone but
   haven't set up the dedicated remote.
-- **Vespera gated on touch, not install state** (2026-07-12, revised same
-  day after Alek caught Vespera loading in phone Chrome) — Vespera is
-  marked `touchSafe: false`; the shell falls back to Equator (the plain
-  default interface, still the full module list) on **any**
-  `isTouchPrimaryDevice()`, not just the installed remote. Vespera's
-  spatial hub navigation genuinely doesn't work on a small touchscreen
+- **Spatial 1 gated on touch, not install state** (2026-07-12, revised same
+  day after Alek caught Spatial 1 — then still named Vespera — loading in
+  phone Chrome) — Spatial 1 is marked `touchSafe: false`; the shell falls
+  back to Test Mode (the plain default interface, still the full module
+  list) on **any** `isTouchPrimaryDevice()`, not just the installed remote.
+  Spatial 1's spatial hub navigation genuinely doesn't work on a small
+  touchscreen
   regardless of install state, which is a different question from module
   *scope* — that's still gated on the narrower `isMobileRemoteContext()`
   above. The fallback never persists over your real (synced)
@@ -70,7 +71,7 @@ so it's correct regardless of what the design package says.
   fingerprint that don't exist until there's an actual Android project).
   `manifest.json` was already TWA-ready going in: `display: standalone`,
   full icon set including maskable 192/512.
-- **Mobile layout bug fixed along the way** — Equator's `.mer-root` grid
+- **Mobile layout bug fixed along the way** — Test Mode's `.mer-root` grid
   had `min-height: 100vh` with no `align-content`, so its two rows (nav
   bar, canvas) stretched to fill the screen by default on short content
   (a sparse Dashboard: collapsed nav + "nothing due yet"), pulling content
@@ -82,7 +83,7 @@ so it's correct regardless of what the design package says.
   real hotspots (see "Realized: mobile-1" below). It inherits the curated
   module list "for free" through `ctx.modules` (the shell computes that
   based on device context, not on which interface is active), but is
-  **not** gated to touch/mobile-only the way Vespera is gated off
+  **not** gated to touch/mobile-only the way Spatial 1 is gated off
   non-touch devices — it currently shows up as a switchable interface on
   any device. Whether that should change is an open decision, not an
   oversight — see "Still open."
@@ -109,7 +110,7 @@ rather than guessed at.
   revisit later, not part of this build. *(Not yet enforced for `mobile-1`
   — see "Still open.")*
 - **This is a new, dedicated interface**, not a filtered/reskinned version
-  of Equator. The "chrome-skin vs. new interface" fork from the first
+  of Test Mode. The "chrome-skin vs. new interface" fork from the first
   scoping round is resolved: it's its own thing, purpose-built as a remote
   control, not trying to look or behave like the desktop app at all.
 - **Curated module set, not the whole app.** Breadth-over-depth from the
@@ -127,7 +128,7 @@ rather than guessed at.
 A starting proposal, not a locked list — Alek edits this before anything
 gets built. Grouped by *why* each one earns a spot in your pocket, since
 "decoration with no function" is the one hard rule this app doesn't break
-(same rule Vespera's own spec holds itself to).
+(same rule Spatial 1's own spec holds itself to).
 
 **Home base**
 - Today / Dashboard
@@ -151,9 +152,8 @@ building at all
 
 **Idle-moment tools**
 - Recall (spaced review — waiting in line, on a train)
-- Languages (flashcard review)
 - Search
-- Contacts / Conversation Starters (before a call)
+- Contacts (look someone up before a call)
 - Tools (currency/unit convert while traveling)
 - QR Airgap Sync (pairing already needs a phone camera)
 - The Station Computer (the voice remote — this is arguably the most
@@ -163,11 +163,13 @@ building at all
 **Settings, trimmed** — App Lock, sync status, account. Not full AI
 provider config or Automations tuning; those stay desktop-side.
 
-**Deliberately left off**: Vespera (desktop's whole reason to exist),
-Chords/Harmony Study (needs real screen real estate), The Orrery,
-Knowledge Graph, Time Machine, The Almanac, Museum of Finished Things,
-Skill Trees, Entropy — all either need more screen than a phone gives you,
-or are "sit down and reflect" tools rather than "quick action" ones.
+**Deliberately left off**: Spatial 1 (desktop's whole reason to exist), The
+Orrery, Knowledge Graph, Time Machine, The Almanac, Museum of Finished
+Things, Skill Trees, Entropy — all either need more screen than a phone
+gives you, or are "sit down and reflect" tools rather than "quick action"
+ones. (Languages and Chords/Harmony Study were also on this list at one
+point — both were cut from the app entirely 2026-07-13, so they're no
+longer relevant here at all, not just left off mobile.)
 Education, Milestones' Yearly Recap, Collections, and Rabbit Holes are
 judgment calls either way — left off the draft to keep v1 lean, easy to
 add back in.
@@ -237,11 +239,6 @@ actually does today, not new functionality invented for this pass.
   packed items, add a freeform item, start a list from a template.
 - **Quartermaster** — *Shows:* inventory and the lending ledger. *Does:*
   mark something lent or returned, look up who has something.
-- **Conversation Starters** — *Shows:* openers for a picked contact.
-  *Does:* pick a contact, get openers.
-- **Languages** — *Shows:* a flashcard deck, how many cards are due.
-  *Does:* run a study session — show a card, reveal the answer, grade
-  Again/Good/Easy.
 - **Habits** — *Shows:* habit list with today's check-in state and
   current streak. *Does:* check a habit in or out for today.
 - **Health** — *Shows:* recent logs, 7-day rolling averages. *Does:*
@@ -255,9 +252,9 @@ actually does today, not new functionality invented for this pass.
   convert a value, compare a saved timezone against local time.
 - **Search** — *Shows:* results grouped by module. *Does:* run a query,
   tap a result to jump to it. Edge case worth flagging: a result can
-  belong to a desktop-only module (Chords, Knowledge Graph, etc.) — needs
-  *some* honest handling (even just "this lives on desktop"), not a dead
-  tap.
+  belong to a desktop-only module (Knowledge Graph, The Orrery, etc.) —
+  needs *some* honest handling (even just "this lives on desktop"), not a
+  dead tap.
 - **Settings, trimmed** — *Shows:* App Lock status, sync status, account.
   *Does:* toggle App Lock, trigger a sync, sign in/out. Explicitly not
   here: AI provider config, Automations tuning — those stay desktop-side.
@@ -388,12 +385,12 @@ future `mobile-2` or later interface is free to look nothing like this.
 ## Typography
 
 The real LCARS font (Okuda) was never ours to use. The app already vendors
-**Oxanium and Rajdhani** (`vendor/fonts/`) for Vespera's district signage —
+**Oxanium and Rajdhani** (`vendor/fonts/`) for Spatial 1's district signage —
 both are condensed/geometric sci-fi faces that would fit a console-style
 mobile interface too, zero new asset weight. **Not actually used by
 `mobile-1`, though** — its dashboard route's type is baked into Alek's
 mockup image (not live text), and its own slim header/module-screen chrome
-uses the system font stack (`var(--font-ui)`), same as Equator. Oxanium/
+uses the system font stack (`var(--font-ui)`), same as Test Mode. Oxanium/
 Rajdhani remain available, unused, for a future mobile interface that
 wants real DOM type instead of image-baked text.
 
@@ -414,11 +411,13 @@ numbers that already exist.
 In scope: a boot/power-up sequence on switching into the interface, panel
 highlight/slide transitions on navigation, and short button-press tones.
 
-**Decided: sound is generated, not sourced.** The Chords module already
-has a full Web Audio synthesis engine (oscillators, ADSR, EQ) — reused
-here for simple procedural UI tones and a boot chime rather than sourcing
-external audio files. No licensing question, no new assets, reuses infra
-that already works.
+**Decided: sound is generated, not sourced.** The app already has a full
+Web Audio synthesis engine (`js/audio/synth.js` — oscillators, ADSR, EQ;
+originally built for the now-cut Chords module, and now also driving the
+Life as Music ambient background feature) — reused here for simple
+procedural UI tones and a boot chime rather than sourcing external audio
+files. No licensing question, no new assets, reuses infra that already
+works.
 
 Two hard constraints, non-negotiable regardless of how "full console" this
 gets:
@@ -438,7 +437,7 @@ only.
 
 Out of scope for v1: desktop entirely (not yet enforced for `mobile-1` —
 see "Still open"), every module *not* on the curated list (`mobile-1`'s
-wheel currently reaches 6 of the ~25 on the list — also "Still open"), any
+wheel currently reaches 6 of the ~23 on the list — also "Still open"), any
 custom illustration/room art beyond what an individual mobile interface's
 own design brings, any change to a module's actual underlying
 functionality — views behave identically to their desktop counterparts,
@@ -452,10 +451,10 @@ now, the Station Computer itself (reserved a spot on the list, stubbed as
    switchable interface with no `touchSafe`-style restriction, so it
    currently shows up as an option on desktop too, unlike this doc's
    "mobile-first, mobile-only for v1" decision. Whether to gate it off
-   non-touch devices (Vespera-style) is an open call, not yet made.
+   non-touch devices (Spatial-1-style) is an open call, not yet made.
 2. **`mobile-1`'s module coverage** — its wheel reaches 6 modules
-   (Today/Tasks/Settings/Ideas/Places/Search) against the ~25 on the
-   curated list below. The other ~19 are only reachable by URL/search,
+   (Today/Tasks/Settings/Ideas/Places/Search) against the ~23 on the
+   curated list below. The other ~17 are only reachable by URL/search,
    not from `mobile-1`'s own navigation. Whether that's intentional (a
    deliberately minimal v1 surface) or a gap to close with more hotspots/
    a directory screen is Alek's call.
@@ -484,7 +483,7 @@ reports back exact coordinates for every button." Ruled out at the time —
 AI-generated images aren't geometrically precise (wobbly edges, drifting
 alignment at the pixel level), and asking a model to then extract exact
 coordinates from its own imprecise image compounds the problem rather than
-solving it. A concrete, already-lived example: Vespera's door hotspots
+solving it. A concrete, already-lived example: Spatial 1's door hotspots
 were genuinely painful to get right because the art had real perspective
 (depth, a vanishing point), which meant the click regions needed true
 polygons matching that distortion, not simple rectangles — and getting

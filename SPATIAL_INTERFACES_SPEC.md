@@ -126,18 +126,19 @@ the net-worth/savings-goals rooms; shelved along with that feature (see
 recap), Guest Lounge (good future home for the Sharebox companion-app
 collaboration space).
 
-## Conservatory — learning & mastery
+## Conservatory — removed
 
-**Not built in v1 — no module here exists yet.** Japanese and the
-chord/voicing tool are both still on the roadmap. Until at least one
-ships, this district is a "coming soon" door on the Hub, not a built-out
-space.
-
-**Reserved (for when the modules exist):** Language Garden (Japanese),
-Music Studio / Composition Room (Chords — merge into one space, not two),
-Practice Pods (possible home for the future unified habit/streak
-tracker). Performance Hall / Meditation Atrium / Botanical Walk have no
-feature behind them — cut permanently unless a real feature emerges.
+**Removed 2026-07-13, not built-then-parked.** This district would have
+housed Languages (Japanese) and the Chords/voicing tool — both cut from
+the app entirely that day — plus Life as Music, which became an
+autonomous background feature with no screen of its own (see
+`js/audio/lifemusic.js`) rather than a module needing a Space. With no
+module left to house here, the district was dropped outright rather than
+kept as an empty "coming soon" door on the Hub. spatial-1 now has seven
+districts, not eight. The Chords music-theory engine was preserved
+standalone — see `CHORDS_APP_HANDOFF.md` at the repo root — as a starting
+point for a possible future separate music app, unconnected to LifeOS's
+interface layer.
 
 ## Systems Core — infrastructure
 
@@ -167,9 +168,11 @@ depth. Every one of the 17 maps to a real, currently-built feature.
   written once core module build-out is further along (matches
   `PROJECT_SPEC.md` §5, which puts additional interfaces after the
   remaining modules).
-- Actual implementation (hotspot regions, travel animations, a new
-  `js/interfaces/vespera/` folder) is Tier 2 work — flag the model switch
-  before starting it, per the standing protocol.
+- Actual implementation (hotspot regions, travel animations, the
+  `js/interfaces/spatial-1/` folder) is Tier 2 work — flag the model switch
+  before starting it, per the standing protocol. (This item predates v1
+  actually shipping; kept for historical context on how the build was
+  scoped.)
 
 ## Possible: HUD-chrome visual direction (not built, saved for later)
 
@@ -200,6 +203,6 @@ Layout leaves plenty of room to grow into (per-panel status/stats, more
 telemetry, alert states) if this direction gets picked up later. The
 full working reference is a standalone HTML/CSS/Canvas mockup (not in
 this repo — built as a one-off Artifact, not wired to real data). Revisit
-by asking for it to be rebuilt/ported into `js/interfaces/vespera/` if
+by asking for it to be rebuilt/ported into `js/interfaces/spatial-1/` if
 this direction is chosen instead of (or blended with) real-signage
 integration.

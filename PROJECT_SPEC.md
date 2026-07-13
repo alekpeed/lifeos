@@ -19,12 +19,13 @@ lets the whole app be redecorated later without rebuilding it:
 - Your data lives on your device first; Drive sync is a backup/relay between
   your two devices, not a requirement to use the app
 - Multiple complete interfaces to choose from — not just color themes, but
-  genuinely different layouts. Built so far: "Equator" (a calm sidebar +
-  content layout, the default), "Vespera" (a spatial, desktop-only
+  genuinely different layouts. Built so far: "Test Mode" (a calm sidebar +
+  content layout, the default), "Spatial 1" (a spatial, desktop-only
   alternative), and a first mobile interface ("mobile-1," built from Alek's
-  own mockup — see `MOBILE_INTERFACES_SPEC.md`). More mobile interfaces are
-  planned over time, deliberately not tied to a single visual identity —
-  see Section 3.
+  own mockup — see `MOBILE_INTERFACES_SPEC.md`). None of these interfaces
+  carry a permanent product-name brand — see the "No permanent name brand"
+  note in `CLAUDE.md`. More mobile interfaces are planned over time,
+  deliberately not tied to a single visual identity — see Section 3.
 - Light/dark mode, a few accent color choices, and a compact/comfortable
   density toggle, independent of which interface you're using
 
@@ -128,19 +129,6 @@ lets the whole app be redecorated later without rebuilding it:
   access to a user's whole Photos library in March 2025; the Picker is
   Google's sanctioned replacement, the only option left. See
   `js/data/photos-picker.js`.)
-- **Languages** — plug-and-play: language learning is built as installable
-  "packs" (name, code, TTS locale). Two tabs per pack: **Decks** (spaced-
-  repetition flashcards, Again/Good/Easy, browser TTS, a study streak) and
-  **Library** (Library of Babel — a story-based reading library: write or
-  paste in short graded stories with an optional translation/gloss, read
-  them in-app, mark as read). Japanese ships with a starter hiragana deck —
-  a starting set, not a full curriculum. Adding a second language (Spanish,
-  etc.) later is just a new pack via the in-app "+ Add language" form, no
-  rebuild needed. The old Lessons tab (grammar/syntax explainers) was
-  retired outright and Library of Babel — originally its own separate
-  module — was folded into Languages as the Library tab, since "flashcards"
-  and "reading practice" are both just "how you learn a language" and don't
-  need to live in two different places in the nav.
 - **Geolocation nudges in Places** — a manual "check nearby places" action
   surfaces want-to-go spots and stale revisit-flagged places within 1km.
   Deliberately not passive/background — a plain PWA (especially on iOS
@@ -156,45 +144,6 @@ lets the whole app be redecorated later without rebuilding it:
 - **"Surprise me"** — a Dashboard button offering one random nudge (a
   want-to-go place, a to-read book, an untried recipe, an open bucket-list
   goal) with a one-click jump to that module
-- **Chords / harmony study** — deliberately a *study* tool (diagrams,
-  theory, sound — no sequencing, tempo, or play-along; a real music-practice
-  app stays a separate future project). Seven tabs: a chord Dictionary (any
-  root × 35 qualities, correctly spelled, with shell / Root-Shell-Pretty /
-  drop 2-3-2&4 / rootless Bill Evans A-B / Kenny Barron / "So What" quartal /
-  upper-structure voicings drawn on piano-keyboard and guitar-fretboard
-  diagrams, each playable); a full Barry Harris 6th-diminished analysis
-  (major/minor scales of chords harmonized into 8 playable positions, the
-  maj7→6 / m7→relative-6 / ø→m6 / dominant→"m6 on the 5th" translations,
-  and the shared-dim7 family of four dominants as a substitution wheel); a
-  key Calculator (diatonic chords, secondary dominants + tritone subs,
-  borrowed chords, reverse key lookup); a walkable Harmony Map — a radial
-  graph with the current chord at the hub and curated, strength-weighted
-  next-chord spokes (resolutions / continuations / approaches / stand-ins /
-  color moves behind an "Adventurous" toggle, incl. negative-harmony
-  mirrors), where clicking any chord explains WHY the move sounds the way
-  it does from the actual notes (common tones, half-step pulls, tritone
-  release, guide-tone threads, bass motion, total voice travel), plays the
-  move with minimal-motion voice leading so you hear the smoothness being
-  described, and lets you walk there and keep going — the walked trail is
-  playable and saves as a named progression; optional key context adds
-  roman numerals and diatonic quick-jumps; nodes are color-coded by chord
-  quality (major/minor/dominant/dim/aug — an Illustrated-Harmony-style
-  read of "what kind of chord" at a glance, kept separate from the line
-  colors that mean "relationship to the center"); an Atlas mode zooms out
-  to the whole territory — a circle-of-fifths wheel with the relative-minor
-  ring, your key's six-chord wedge highlighted, plus the three diminished
-  "engines" (every dominant's dim7 core with its four minor-third-family
-  substitutes), all clickable back into the walkable map; 17 theory
-  lessons; a Practice tab — self-graded spaced-repetition drills (spell a
-  chord, name it by its notes, identify a voicing from its diagram, each
-  playable) that track how well you know each concept (chord-quality family
-  or voicing type) and rebuild each day's routine around your weak spots,
-  Again/Good/Easy scheduling like the Languages flashcards, with a "needs
-  work / solid" readout and a printable practice sheet (browser print-to-PDF,
-  prompts up top and an answer key at the bottom — no new library); and an
-  adjustable fully-synthesized sound engine (osc/FM/ADSR/EQ with Piano,
-  Rhodes EP, Organ, Pad presets plus saveable custom presets — no samples,
-  so nothing to license and it works offline).
 - **Google Drive sync** — the two-device backbone. Data reconciles between
   your devices through your own Drive (drive.file scope, visible LifeOS/
   folder — no company server). Each device owns one snapshot file and can't
@@ -241,8 +190,8 @@ lets the whole app be redecorated later without rebuilding it:
   Editor's Pick (a random want-to-go place / unread book / untried recipe),
   and a small Almanac of quick counts. A 🖨️ Print button lays the same
   content into a print-only sheet and hands it to the browser's
-  print-to-PDF — no new library, reuses the same approach as the Chords
-  practice sheet. When a Gemini key is configured, Gemini writes a short
+  print-to-PDF — no new library, just a plain `@media print` stylesheet.
+  When a Gemini key is configured, Gemini writes a short
   editorial from a bounded packet of the day's actual LifeOS facts (due and
   overdue items, habits, weather, sleep, history, and the Editor's Pick).
   The prompt explicitly forbids invention; one issue is cached per local date
@@ -264,8 +213,9 @@ lets the whole app be redecorated later without rebuilding it:
   value — never forced, never inventing what a past entry said beyond what's
   shown. See `saveEditorialIssue`/`getRecentEditorials` in `js/data/api.js`.
 - **App-wide spaced repetition** — a new **Recall** module generalizes the
-  Languages module's flashcard SRS engine to resurface any record in the
-  app — a task, a book, a contact, a place, anything Search can find.
+  flashcard SRS engine originally built for the (now-cut) Languages module
+  to resurface any record in the app — a task, a book, a contact, a place,
+  anything Search can find.
   Reuses the Knowledge Graph's own foundations rather than duplicating
   them: schedulable = searchable (same `globalSearch` picker grammar as
   the graph's "add a connection"), and titles resolve live via
@@ -306,9 +256,11 @@ lets the whole app be redecorated later without rebuilding it:
   own, and who has it right now if you lent it out (with a one-click "mark
   returned").
 - **Skill Trees** — an RPG-style character sheet computed entirely from real
-  activity (tasks/assignments completed, habit check-ins, books finished,
-  chord concepts mastered, language reviews done) — five skills, each with a
-  level and an XP bar, no new storage.
+  activity (tasks/assignments completed, habit check-ins, books finished) —
+  three skills (Executor, Discipline, Scholar), each with a level and an XP
+  bar, no new storage. Previously five skills; the two tied to chord
+  concepts mastered and language reviews done were dropped when Chords and
+  Languages were cut from the app (2026-07-13).
 - **Entropy** — a neglect score per module (and one overall), based on how
   long it's been since each area's data was last touched — sorted most-
   neglected first, so you can see at a glance what's been ignored.
@@ -319,35 +271,24 @@ lets the whole app be redecorated later without rebuilding it:
   Dashboard/Daily Paper snippet: adds contact birthdays, recipes cooked, and
   tasks/assignments completed on this date in past years, on top of the
   original milestones/places/books sources.
-- **Conversation Starters** — pick a contact, get openers drawn from several
-  contexts (relationship, shared tags, an upcoming birthday, your own notes
-  on them), plus a general fallback list.
 - **Theme-from-Photo** — pick a gallery photo or upload one, extract a small
   accent palette via canvas pixel quantization, click a swatch to apply it as
   the app's accent color (alongside the built-in brass/teal/garnet presets).
-- **Dream Journal** — entries plus recurring-pattern detection: a
-  word-frequency scan across every entry's body/tags surfacing what keeps
-  recurring across your dreams.
 - **Rabbit Hole Journal** — research tangents with freeform notes and a
   running list of links, active/resolved status.
 - **The Almanac** — long-horizon correlations between curated stat pairs
   (sleep vs. habits kept, sleep vs. tasks completed, workout minutes vs.
   sleep) via Pearson correlation, with a "not enough data yet" floor so a
   number never shows on too thin a sample.
-- **Life as Music** — a short ambient pad progression generated from your own
-  numbers: one chord per life area (tasks done, habit check-ins, books
-  finished, recipes cooked, places visited, contacts), root/quality derived
-  deterministically from each area's count. Reuses the existing Web Audio
-  synth engine (Chords module) — no new audio code.
-- **Library of Babel** — a story-based reading library (see the Languages
-  entry above — it's the "Library" tab there now, not a separate module).
-  Originally shipped standalone and replaced the old Lessons tab; then, at
-  your request, folded into Languages alongside Decks so both ways of
-  learning a language live in one place instead of two. The
-  `languageLessons` data store, its API exports, and its global-search
-  entries were all removed together with Lessons (verified via a
-  fresh-profile test that search doesn't break for anyone who never had
-  that store).
+- **Life as Music** — no longer a nav page (the old `#/lifeasmusic` route and
+  view are gone as of 2026-07-13). Now an autonomous background feature: a
+  Settings > "Life as Music" toggle (`ambientMusicEnabled`, off by default)
+  plays a short, quiet ambient chord loop generated from your own numbers
+  (tasks done, habit check-ins, books finished, recipes cooked, places
+  visited, contacts) — one chord per life area, root/quality derived
+  deterministically from each area's count. Regenerates on a timer while
+  it's on, reusing the same Web Audio synth engine the old page used, just
+  quieter — no screen of its own. See `js/audio/lifemusic.js`.
 
 - **Knowledge Graph** — link anything to anything (a task to a contact, a
   book to a milestone…) and walk it as a radial web borrowing the Harmony
@@ -411,9 +352,6 @@ lets the whole app be redecorated later without rebuilding it:
 - **Geofenced notes-to-self on Places** — a short note attached to a place
   that resurfaces the next time "Check nearby places" finds you within
   range, distinct from the place's freeform notes textarea.
-- **Practice Log (Chords)** — a freeform date/duration/notes log of actual
-  instrument time, on its own Log tab, separate from the Practice tab's
-  auto-tracked drill-accuracy stats.
 - **Live currency conversion** — Tools' Currency tab now pulls live rates
   from Frankfurter/ECB (free, keyless), auto-refreshing once per session
   when the cache is >24h stale, plus a manual Refresh button. Falls back
@@ -469,18 +407,20 @@ lets the whole app be redecorated later without rebuilding it:
 - **Per-user notifications** — depends on accounts existing first.
 
 ## 3. Additional interfaces 📋
-- **Vespera** — a spatial interface (LifeOS as an orbital station you
+- **Spatial 1** — a spatial interface (LifeOS as an orbital station you
   navigate through, not a dashboard). Started and well underway — see the
-  Built ✅ section above and `VESPERA_SPEC.md` for current state.
-  **Desktop only** — not part of the mobile/APK experience (see the device
-  philosophy note below).
+  Built ✅ section above and `SPATIAL_INTERFACES_SPEC.md` for current state.
+  Formerly named "Vespera"; renamed 2026-07-13 to drop the permanent brand
+  name (same "no permanent name brand" rule as the mobile interfaces — see
+  `CLAUDE.md`), registry id `spatial-1`. **Desktop only** — not part of the
+  mobile/APK experience (see the device philosophy note below).
 - **Mobile interface(s)** — deliberately not a single named product (see
   `MOBILE_INTERFACES_SPEC.md`, naming decision at the top): Alek's plan is
   several interchangeable mobile interfaces over time, each its own
   registry entry, sharing one functional/plumbing layer (device detection,
   curated module set, packaging) but free to look completely different.
   First one built: **`mobile-1`**, from Alek's own mockup — a real
-  dedicated interface (not a filtered Equator), real motion/sound,
+  dedicated interface (not a filtered Test Mode), real motion/sound,
   functional alert-styling. Not yet gated mobile-only, and its own
   navigation reaches a subset of the curated module list — see
   `MOBILE_INTERFACES_SPEC.md`'s "Still open" for exactly what's left.
@@ -488,14 +428,14 @@ lets the whole app be redecorated later without rebuilding it:
 
 **Device philosophy — desktop is the full app, mobile is a remote
 (revised 2026-07-12):** Desktop is the complete app — every module,
-through either Equator (rail+canvas default) or Vespera (the spatial
+through either Test Mode (rail+canvas default) or Spatial 1 (the spatial
 alternative). Mobile is deliberately **not** a second complete copy of it:
 a genuinely stripped-down "controller in your pocket," built around what's
 actually useful away from a desk — quick capture, on-the-go actions,
-glanceable status — not full parity. No Vespera, no spatial "living
+glanceable status — not full parity. No Spatial 1, no spatial "living
 world" on mobile; that register stays desktop's. Mobile gets its own
 purpose-built interface(s) (`MOBILE_INTERFACES_SPEC.md`), not a filtered
-version of Equator.
+version of Test Mode.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly
 as it already works today) — this is a UI-surface decision, not a
@@ -576,10 +516,10 @@ Everything below came out of talking through what would actually feel
 13. ~~Rules & automation engine~~ — DONE, scoped to 2 built-in rules (see
     Built ✅).
 14. ~~Health-device ingestion~~ — DONE, Apple Health only (see Built ✅).
-15. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
-    Conversation Starters, Ghost Days, The Almanac, Life as Music, Library
-    of Babel, Theme-from-photo)
-16. Additional interfaces (Vespera; more mobile interfaces beyond `mobile-1`)
+15. Remaining routine-build ideas (Rabbit Hole Journal, Ghost Days, The
+    Almanac, Theme-from-photo)
+16. Additional interfaces (Spatial 1; more mobile interfaces beyond
+    `mobile-1`)
 17. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
@@ -691,20 +631,11 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 feature; heavy on either engineering, storage, or compute)** *(excluded from
 default "what's on our list" recaps as of 2026-07 — Alek's call, see
 CLAUDE.md; stays fully written here, just not surfaced unasked)*
-- **A true 3D Memory Palace** — not flat districts (Vespera) but a fully
-  rendered, walkable 3D space (Three.js/WebGL): rooms per module, physical
-  objects representing records, real lighting/physics. Game-engine-scale
-  work; 3D assets/textures push storage into the hundreds of MB+.
-- **A local, continuous "life recorder"** — periodic screen capture + local
-  OCR, indexed and searchable (a fully private, self-hosted Rewind.ai).
-  Massive ongoing storage growth (easily GB/month), a real local vision
-  pipeline, and the most privacy-sensitive idea on this list — has to be
-  100% local, never synced, by design.
-- **A local Whisper-powered audio diary with auto-routing** — talk instead
-  of type; a large local speech model transcribes and classifies what you
-  said, filing it into the right module itself (a dream to Dream Journal, a
-  tangent to Rabbit Holes). Requires a multi-GB local model plus real
-  classification logic.
+- ⏸️ PARKED (2026-07-13) — **A true 3D Memory Palace** — not flat districts
+  (spatial-1) but a fully rendered, walkable 3D space (Three.js/WebGL):
+  rooms per module, physical objects representing records, real
+  lighting/physics. Game-engine-scale work; 3D assets/textures push
+  storage into the hundreds of MB+. Shelved, not cut.
 - **A true digital twin / life-simulation engine** — beyond the what-if
   sandbox's simple parameter nudges: an actual agent-based model of you,
   with internal state and feedback loops, run forward from your real data to
@@ -714,25 +645,23 @@ CLAUDE.md; stays fully written here, just not surfaced unasked)*
   Obsidian/Roam-style note system inside the OS: markdown, backlinks,
   embeds, transclusion, a living graph view. Its own large, ever-growing
   note archive.
-- **Generative dream visualization** — feed Dream Journal entries into a
-  local generative image/video pipeline and render what you dreamed — short
-  animated scenes or stills per entry, with generated ambient audio. Heavy
-  compute and storage (every dream becomes a media file).
 - **A real trained ML pattern engine, not just correlation** — The Almanac
   does simple Pearson correlation on curated pairs; this would be an actual
   model that continuously retrains on your entire history and surfaces
   genuinely non-obvious, non-linear patterns (multi-variable interactions a
   human would never manually think to check).
-- **A full multi-generational family archive** — Contacts evolves into real
-  genealogy: an ancestry graph, embedded oral-history video/audio
-  interviews, photos across generations — a family history preservation
-  project living inside the OS.
 - **A generative "personal mythology"** — an illustrated, ever-growing
   storybook of your life: the app periodically composes and illustrates
   (local image generation) an evolving fantasy chronicle where real
   milestones and habit streaks become "quests completed" and "trials
   overcome." Skill Trees taken to its most maximalist extreme — exportable
   as an actual book.
+
+*(Ruled out 2026-07-13: a local continuous "life recorder," a local
+Whisper-powered audio diary with auto-routing, generative dream
+visualization (depended on the now-cut Dream Journal), and a full
+multi-generational family archive. See FUTURE_FEATURES.md §9 for the full
+note.)*
 
 **External integrations (new OAuth flows / paid third parties — each is its
 own Tier 2 flag, not a routine add)**

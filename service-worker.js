@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.26';
+const CACHE_VERSION = 'lifeos-v1.27';
 const APP_SHELL = [
   './',
   './index.html',
@@ -85,12 +85,9 @@ const APP_SHELL = [
   './js/interfaces/default/views/entropy.js',
   './js/interfaces/default/views/stationcat.js',
   './js/interfaces/default/views/ghostdays.js',
-  './js/interfaces/default/views/starters.js',
   './js/interfaces/default/views/themefromphoto.js',
-  './js/interfaces/default/views/dreamjournal.js',
   './js/interfaces/default/views/rabbitholes.js',
   './js/interfaces/default/views/almanac.js',
-  './js/interfaces/default/views/lifeasmusic.js',
   './js/interfaces/default/views/knowledge.js',
   './js/interfaces/default/views/orrery.js',
   './js/interfaces/default/views/timemachine.js',
@@ -99,6 +96,7 @@ const APP_SHELL = [
   './js/interfaces/default/views/ideas.js',
   './js/interfaces/default/views/recall.js',
   './js/audio/synth.js',
+  './js/audio/lifemusic.js',
   './js/reader/epub.js',
   './vendor/fflate/fflate.module.js',
   './vendor/supabase/supabase.umd.js',

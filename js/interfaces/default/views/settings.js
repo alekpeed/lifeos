@@ -401,6 +401,18 @@ async function renderAutomationsSection(canvas, ctx, rerender) {
   );
 }
 
+// --- Life as Music ---
+
+async function renderLifeMusicSection(canvas, ctx, rerender) {
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Life as Music' }));
+  const on = !!(await ctx.data.Settings.get('ambientMusicEnabled'));
+  canvas.append(automationToggle(
+    'Play your life back as ambient background music',
+    'A short, quiet chord loop generated from your own numbers (tasks done, habit check-ins, books finished, recipes cooked, places visited, contacts) -- regenerates as you go, no screen of its own.',
+    'ambientMusicEnabled', on, ctx, rerender,
+  ));
+}
+
 // --- Telegram (send-only) ---
 
 async function renderTelegramSection(canvas, ctx, rerender) {
@@ -544,5 +556,6 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderAiAssistantSection(canvas, ctx, rerender || (() => {}));
   await renderAppLockSection(canvas, ctx, rerender || (() => {}));
   await renderAutomationsSection(canvas, ctx, rerender || (() => {}));
+  await renderLifeMusicSection(canvas, ctx, rerender || (() => {}));
   await renderTelegramSection(canvas, ctx, rerender || (() => {}));
 }

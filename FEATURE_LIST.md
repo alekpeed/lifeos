@@ -20,11 +20,14 @@ genuine moonshots.
 - **Installable, offline-first app** — works with no internet connection
   day to day; nothing requires a live connection to function.
 - **Swappable interfaces** — the whole app can be redecorated without a
-  rebuild. The default ("Equator," a calm sidebar + content layout) is
-  built, alongside Vespera (a full spatial alternative, Part 2) and a first
-  mobile interface ("mobile-1," built from Alek's own mockup). More mobile
-  interfaces are planned over time — deliberately interchangeable, not a
-  third full-parity desktop skin (Part 2).
+  rebuild. The default ("Test Mode," a calm sidebar + content layout) is
+  built, alongside Spatial 1 (a full spatial alternative, Part 2) and a
+  first mobile interface ("mobile-1," built from Alek's own mockup). None
+  of these carry a permanent product-name brand (Test Mode and Spatial 1
+  were renamed from "Equator" and "Vespera" 2026-07-13 for exactly that
+  reason — see `CLAUDE.md`). More mobile interfaces are planned over time —
+  deliberately interchangeable, not a third full-parity desktop skin
+  (Part 2).
 - **Light/dark mode, accent colors, density toggle** — independent of which
   interface is active.
 
@@ -107,9 +110,6 @@ genuine moonshots.
 - **Ghost Days** — a fuller "on this day across the years" view: contact
   birthdays, recipes cooked, and tasks/assignments completed on this date
   in past years, on top of milestones/places/books.
-- **Conversation Starters** — pick a contact, get openers drawn from their
-  relationship, shared tags, an upcoming birthday, your own notes on them,
-  plus a general fallback list.
 - **Theme-from-Photo** — pick a gallery photo or upload one, extract a
   small accent palette from it, click a swatch to apply it as the app's
   accent color.
@@ -123,9 +123,11 @@ genuine moonshots.
   .zip): parses the real Apple XML schema, aggregates down to one row per
   day, always previews first, merges field-by-field into existing logs.
 - **Skill Trees** — an RPG-style character sheet computed entirely from
-  real activity (tasks completed, habit check-ins, books finished, chord
-  concepts mastered, language reviews done) — five skills, each with a
-  level and an XP bar.
+  real activity (tasks completed, habit check-ins, books finished) — three
+  skills (Executor, Discipline, Scholar), each with a level and an XP bar.
+  Previously five skills; the two tied to chord concepts mastered and
+  language reviews done were dropped when Chords and Languages were cut
+  from the app (2026-07-13).
 - **Entropy** — a neglect score per module (and one overall), based on how
   long it's been since each area was last touched, sorted most-neglected
   first.
@@ -146,38 +148,8 @@ genuine moonshots.
   print-to-PDF. With your device-local Gemini key, Gemini also writes a
   concise daily editorial grounded only in those LifeOS facts. One issue is
   cached per local date and signed-in account, with retry/regenerate controls.
-- **Dream Journal** — entries plus recurring-pattern detection: a
-  word-frequency scan across every entry's body/tags surfacing what keeps
-  recurring across your dreams.
 - **Rabbit Hole Journal** — research tangents with freeform notes, a
   running list of links, and active/resolved status.
-
-## Study & music
-
-- **Languages** — plug-and-play "packs" (name, code, TTS locale), two tabs
-  each: **Decks** (spaced-repetition flashcards, Again/Good/Easy, browser
-  text-to-speech, a study streak) and **Library** (a story-based reading
-  library — write or paste in short graded stories with an optional
-  translation/gloss, read in-app, mark as read). Japanese ships with a
-  starter hiragana deck. Adding a new language is just a form, no rebuild.
-- **Chords / Harmony study** — a deliberate *study* tool (not a
-  sequencer/practice-along app). Seven tabs: a chord **Dictionary** (any
-  root × 35 qualities across 7 voicing families, each playable on
-  keyboard/fretboard diagrams); a full **Barry Harris** 6th-diminished
-  analysis; a key **Calculator** (diatonic chords, secondary dominants,
-  tritone subs, borrowed chords, reverse lookup); a walkable **Harmony
-  Map** — a radial graph where clicking any chord explains *why* the move
-  sounds the way it does (common tones, voice leading, bass motion), plays
-  it, and lets you keep walking — trails save as named progressions; an
-  **Atlas** zoomed-out circle-of-fifths view; 17 **theory lessons**; a
-  **Practice** tab with self-graded spaced-repetition drills and a
-  printable practice sheet; and a fully synthesized **sound engine**
-  (oscillators/FM/ADSR/EQ, Piano/Rhodes/Organ/Pad presets, custom presets),
-  no samples, works offline.
-- **Life as Music** — a short ambient pad progression generated from your
-  own numbers: one chord per life area (tasks done, habit check-ins, books
-  finished, recipes cooked, places visited, contacts), reusing the Chords
-  module's synth engine.
 
 ## Sharing & sync
 
@@ -202,6 +174,15 @@ genuine moonshots.
   today's month/day in a past year.
 - **"Surprise me"** — a Dashboard button offering one random nudge with a
   one-click jump to that module.
+- **Life as Music** — no longer a nav page (the old `#/lifeasmusic` route
+  and view were removed 2026-07-13 along with Chords and Languages). Now
+  an autonomous background feature instead: a Settings > "Life as Music"
+  toggle (off by default) plays a short, quiet ambient chord loop generated
+  from your own numbers (tasks done, habit check-ins, books finished,
+  recipes cooked, places visited, contacts) — one chord per life area,
+  regenerating on a timer while it's on, reusing the same Web Audio synth
+  engine the old page used, just quieter. No screen of its own. See
+  `js/audio/lifemusic.js`.
 
 ---
 
@@ -249,10 +230,10 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   are handed back to the AI next time so it can reference a genuine
   callback when one adds value — never forced, never invented.
 - ✅ **App-wide spaced repetition** — a new **Recall** module generalizes the
-  Languages module's flashcard SRS engine to resurface any record in the
-  app (tasks, books, contacts, places, anything Search can find), reusing
-  the Knowledge Graph's own picker and title-resolution instead of
-  duplicating them.
+  flashcard SRS engine originally built for the (now-cut) Languages module
+  to resurface any record in the app (tasks, books, contacts, places,
+  anything Search can find), reusing the Knowledge Graph's own picker and
+  title-resolution instead of duplicating them.
 - ✅ **Predictive forecasting** — The Almanac's Forecasts section: a
   linear-regression bill-spend trend + next-month projection, per-habit
   weekday breakpoint detection (the day you're statistically most likely
@@ -289,8 +270,6 @@ bug).
 
 - ✅ **Geofenced notes-to-self on Places** — resurfaces via the existing
   "Check nearby places" nudge, distinct from the freeform notes textarea.
-- ✅ **Practice Log (Chords)** — a freeform date/duration/notes log on its
-  own Log tab, separate from the auto-tracked drill stats.
 - ✅ **Live currency conversion** — Tools' Currency tab now pulls live rates
   from Frankfurter/ECB, with a clean offline fallback.
 - ✅ **Weather context** — Open-Meteo on the Dashboard/Daily Paper, opt-in,
@@ -313,18 +292,21 @@ bug).
 
 ## Additional interfaces
 
-- ✅ **Vespera (v1)** — the spatial interface (Life OS as an orbital
-  station you navigate, not a dashboard). Hub with nine district plaques
-  matching the generated concourse image, district door screens, travel
-  transitions, and every module hosted inside station chrome via the
-  shared view library. Switch in Settings → Interface. Hub art loads from
-  `js/interfaces/vespera/img/hub.png` (CSS starfield until uploaded).
-  Still open from `VESPERA_SPEC.md`: per-district room art, richer
-  per-space chrome. **Desktop only** — not part of the mobile/APK
-  experience.
+- ✅ **Spatial 1 (v1)** — the spatial interface (Life OS as an orbital
+  station you navigate, not a dashboard). Formerly named "Vespera"; renamed
+  2026-07-13 to drop the permanent brand name (registry id `spatial-1`).
+  Hub with seven district plaques matching the generated concourse image
+  (the Conservatory district was removed 2026-07-13 when Languages and
+  Chords were cut from the app — see `CHORDS_APP_HANDOFF.md`), district
+  door screens, travel transitions, and every module hosted inside station
+  chrome via the shared view library. Switch in Settings → Interface. Hub
+  art loads from `js/interfaces/spatial-1/img/hub.png` (CSS starfield until
+  uploaded). Still open from `SPATIAL_INTERFACES_SPEC.md`: per-district
+  room art, richer per-space chrome. **Desktop only** — not part of the
+  mobile/APK experience.
 - ✅ **mobile-1** — the first of what's meant to be several interchangeable
   mobile interfaces (see `MOBILE_INTERFACES_SPEC.md`), a real dedicated
-  interface (not a filtered Equator), built from Alek's own mockup image
+  interface (not a filtered Test Mode), built from Alek's own mockup image
   with real click regions mapped onto it. A curated on-the-go module set,
   real motion/sound, functional alert-styling — see the spec doc's "Still
   open" for what's not yet reconciled (mobile-only gating, full module
@@ -332,15 +314,15 @@ bug).
 
 ## Device philosophy: desktop is the full app, mobile is a remote (revised 2026-07-12)
 
-Desktop is the complete app — every module, through either Equator
-(rail+canvas default) or Vespera (the spatial alternative). Mobile is
+Desktop is the complete app — every module, through either Test Mode
+(rail+canvas default) or Spatial 1 (the spatial alternative). Mobile is
 deliberately **not** a second complete copy of it: a genuinely
 stripped-down "controller in your pocket," built around what's actually
 useful away from a desk — quick capture, on-the-go actions, glanceable
-status — not full parity. No Vespera, no spatial "living world" on
+status — not full parity. No Spatial 1, no spatial "living world" on
 mobile; that register stays desktop's. Mobile gets its own purpose-built
 interface(s) (`MOBILE_INTERFACES_SPEC.md`), not a filtered version of
-Equator.
+Test Mode.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly
 as it already works) — a UI-surface decision, not a data-sync
@@ -399,24 +381,23 @@ mobile remote itself exists.
 *(Excluded from default "what's on our list" recaps as of 2026-07 — Alek's
 call, see CLAUDE.md. Stays fully written here; just not surfaced unasked.)*
 
-- **A true 3D Memory Palace** — a walkable, rendered 3D space, not flat
-  districts.
-- **A local, continuous "life recorder"** — periodic screen capture + OCR,
-  fully private, indexed and searchable.
-- **A local Whisper-powered audio diary with auto-routing** — talk instead
-  of type; it files itself into the right module.
+- ⏸️ PARKED (2026-07-13) — **A true 3D Memory Palace** — a walkable, rendered
+  3D space, not flat districts (spatial-1). Shelved, not cut — Alek still
+  plans to use the concept, just not now.
 - **A true digital twin / life-simulation engine** — an agent-based model
   of you, run forward from your real data.
 - **A full bidirectionally-linked personal wiki** — a native
   Obsidian/Roam-style note system with backlinks and a graph view.
-- **Generative dream visualization** — Dream Journal entries rendered as
-  actual generated images/video/audio.
 - **A real trained ML pattern engine** — beyond simple correlation, a
   model that continuously retrains to surface non-linear patterns.
-- **A full multi-generational family archive** — real genealogy, oral
-  history, embedded media.
 - **A generative "personal mythology"** — an illustrated, ever-growing
   storybook of your life, milestones as "quests completed."
+
+*(Ruled out 2026-07-13, dead, not parked, don't resurface: a local
+continuous "life recorder," a local Whisper-powered audio diary with
+auto-routing, generative dream visualization (depended on the now-cut
+Dream Journal), and a full multi-generational family archive. See
+`FUTURE_FEATURES.md` §9 for the full note.)*
 
 ## Explicitly out of scope
 

@@ -30,7 +30,6 @@ const STORES = [
   { entity: 'Milestones', label: 'Milestones', titleOf: (r) => r.title },
   { entity: 'Habits', label: 'Habits', titleOf: (r) => r.name },
   { entity: 'Collections', label: 'Collections', titleOf: (r) => r.name },
-  { entity: 'DreamEntries', label: 'Dreams', titleOf: (r) => r.title || fmtDate(r.date) },
   { entity: 'RabbitHoles', label: 'Rabbit Holes', titleOf: (r) => r.topic },
   { entity: 'TimeCapsules', label: 'Time Capsules', titleOf: (r) => r.title },
   { entity: 'InventoryItems', label: 'Inventory', titleOf: (r) => r.name },

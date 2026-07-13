@@ -37,7 +37,11 @@ export const DB_NAME = 'lifeos';
 // than only skipping their creation for new installs. runUpgrade in db.js
 // creates any store in STORES that doesn't yet exist and deletes any store
 // in RETIRED_STORES that does, so these bumps are otherwise non-destructive.
-export const DB_VERSION = 16;
+// v17 retires Dream Journal (`dreamEntries`, cut from the app 2026-07-13)
+// and closes a gap from v7: `libraryStories` (Library of Babel, dropped
+// with Languages at v16) was removed from STORES but never added to
+// RETIRED_STORES, so it was never actually deleted from existing installs.
+export const DB_VERSION = 17;
 
 // Stores that used to exist and are now actively deleted on upgrade, not
 // just omitted from STORES going forward. `languageLessons` was retired
@@ -48,6 +52,7 @@ export const RETIRED_STORES = [
   'languageLessons',
   'languagePacks', 'languageDecks', 'languageCards', 'languageReviewLogs',
   'chordProgressions', 'chordSkills', 'chordDrillLogs', 'chordPracticeLogs',
+  'libraryStories', 'dreamEntries',
 ];
 
 export const STORES = [
@@ -204,13 +209,6 @@ export const STORES = [
   // Quartermaster: physical inventory + a lending ledger (who has it, since when).
   { name: 'inventoryItems', keyPath: 'id', indexes: [
     { name: 'lentTo', keyPath: 'lentTo' },
-  ] },
-
-  // Dream Journal: one entry per dream. Recurring-pattern detection is
-  // computed client-side from body/tags text across all entries -- nothing
-  // extra stored per entry for it.
-  { name: 'dreamEntries', keyPath: 'id', indexes: [
-    { name: 'date', keyPath: 'date' },
   ] },
 
   // Rabbit Hole Journal: research tangents, each with freeform notes and a

@@ -268,7 +268,6 @@ export const CollectionItems = entities.collectionItems;
 export const PackingLists = entities.packingLists;
 export const PackingItems = entities.packingItems;
 export const InventoryItems = entities.inventoryItems;
-export const DreamEntries = entities.dreamEntries;
 export const RabbitHoles = entities.rabbitHoles;
 export const PlaceNotes = entities.placeNotes;
 export const AiConversations = entities.aiConversations;
@@ -395,6 +394,10 @@ const SETTING_DEFAULTS = {
   // The name shown next to items you post in Sharebox (there are no accounts,
   // so each device sets its own). Empty until you set it.
   shareboxName: '',
+  // Life as Music, autonomous background mode (see js/audio/lifemusic.js) --
+  // off by default since it's audio, opt-in like everything else that makes
+  // noise.
+  ambientMusicEnabled: false,
   // Synth Sound-tab control style ('auto' picks knobs on precise-pointer
   // devices, detented sliders on touch) and panel skin (the classic-keyboard
   // look applied to the panel + knobs).

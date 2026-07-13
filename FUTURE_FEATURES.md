@@ -39,6 +39,9 @@ parked means "not now," not "forgotten" or "cut."
   started, not finished or picked. Full detail in section 5.
 - **Spotify listening stats** — fully scoped, not started. Full detail in
   section 4, including what's actually buildable given real API limits.
+- **A true 3D Memory Palace** — a fully rendered, walkable 3D space
+  (Three.js/WebGL), game-engine-scale work. Shelved 2026-07-13, not cut —
+  full detail in section 9.
 
 ## 1. The near-term core: accounts, AI, and notifications
 
@@ -421,20 +424,12 @@ call, see CLAUDE.md. Stays fully written here; just not surfaced unasked.)*
 Each of these is closer to its own product than a feature — heavy on
 engineering, storage, or compute, and genuinely speculative.
 
-- **A true 3D Memory Palace** — not flat districts (Vespera) but a fully
-  rendered, walkable 3D space (Three.js/WebGL): rooms per module, physical
-  objects representing records, real lighting/physics. Game-engine-scale
-  work; 3D assets/textures push storage into the hundreds of MB+.
-- **A local, continuous "life recorder"** — periodic screen capture + local
-  OCR, indexed and searchable (a fully private, self-hosted Rewind.ai).
-  Massive ongoing storage growth (easily GB/month), a real local vision
-  pipeline, and the most privacy-sensitive idea here — has to be 100%
-  local, never synced, by design.
-- **A local Whisper-powered audio diary with auto-routing** — talk instead
-  of type; a large local speech model transcribes and classifies what you
-  said, filing it into the right module itself (a dream to Dream Journal, a
-  tangent to Rabbit Holes). Requires a multi-GB local model plus real
-  classification logic.
+- ⏸️ PARKED (2026-07-13) — **A true 3D Memory Palace** — not flat districts
+  (spatial-1) but a fully rendered, walkable 3D space (Three.js/WebGL):
+  rooms per module, physical objects representing records, real
+  lighting/physics. Game-engine-scale work; 3D assets/textures push
+  storage into the hundreds of MB+. Shelved, not cut — Alek still plans to
+  use the concept, just not now.
 - **A true digital twin / life-simulation engine** — beyond the what-if
   sandbox's simple parameter nudges: an actual agent-based model of you,
   with internal state and feedback loops, run forward from your real data
@@ -444,24 +439,25 @@ engineering, storage, or compute, and genuinely speculative.
   Obsidian/Roam-style note system inside the OS: markdown, backlinks,
   embeds, transclusion, a living graph view. Its own large, ever-growing
   note archive.
-- **Generative dream visualization** — feed Dream Journal entries into a
-  local generative image/video pipeline and render what you dreamed — short
-  animated scenes or stills per entry, with generated ambient audio. Heavy
-  compute and storage (every dream becomes a media file).
 - **A real trained ML pattern engine, not just correlation** — The Almanac
   does simple Pearson correlation on curated pairs; this would be an actual
   model that continuously retrains on your entire history and surfaces
   genuinely non-obvious, non-linear patterns (multi-variable interactions a
   human would never manually think to check).
-- **A full multi-generational family archive** — Contacts evolves into real
-  genealogy: an ancestry graph, embedded oral-history video/audio
-  interviews, photos across generations.
 - **A generative "personal mythology"** — an illustrated, ever-growing
   storybook of your life: the app periodically composes and illustrates
   (local image generation) an evolving fantasy chronicle where real
   milestones and habit streaks become "quests completed" and "trials
   overcome." Skill Trees taken to its most maximalist extreme — exportable
   as an actual book.
+
+*(Ruled out 2026-07-13, dead, not parked, don't resurface: a local
+continuous "life recorder" (screen capture + OCR) and a local
+Whisper-powered audio diary with auto-routing — both cut as part of the
+same scope-tightening pass as Languages/Chords/Dream Journal/Conversation
+Starters. Generative dream visualization is also cut — it was explicitly
+built on Dream Journal entries, and that module no longer exists. A full
+multi-generational family archive is also cut.)*
 
 ## 10. Explicitly out of scope
 

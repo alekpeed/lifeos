@@ -2,7 +2,7 @@
 
 **Purpose of this document:** a factual inventory of the existing Life OS application (a vanilla-JS, no-build-step, offline-first PWA backed by IndexedDB), for use by another AI designing a **new mobile interface**. It documents what exists today — screens, actions, live data, states, constraints — with file:line citations. It does **not** propose visual design, layout, or styling. Where something is unclear from the code, it is explicitly marked `UNCERTAIN`.
 
-Source repo: `/home/user/lifeos`. Architecture reference: `ARCHITECTURE.md`. The app currently ships two interfaces over the same data — **Equator** (the default rail+canvas interface; this doc's screenshots of behavior come from its view files under `js/interfaces/default/views/`) and **Vespera** (a spatial alternate, desktop-only). A third, a planned mobile-only remote, was in scoping at the time this doc was written (see `MOBILE_INTERFACES_SPEC.md`) — the module curation described in this doc (the `remote: true` flag) is the already-negotiated boundary for that project, and is reused here as the most defensible existing signal for "primary vs. secondary" mobile navigation. **Editorial note, added after this doc's original delivery:** a first mobile interface (`mobile-1`) has since been built from Alek's own mockup — this doc predates it and was never updated against it, so treat its "planned mobile-only remote" framing as historical rather than current.
+Source repo: `/home/user/lifeos`. Architecture reference: `ARCHITECTURE.md`. The app currently ships two interfaces over the same data — **Test Mode** (the default rail+canvas interface, formerly named "Equator"; this doc's screenshots of behavior come from its view files under `js/interfaces/default/views/`) and **Spatial 1** (a spatial alternate, desktop-only, formerly named "Vespera"). Both were renamed 2026-07-13 to drop their permanent product-name branding — see `CLAUDE.md`. A third, a planned mobile-only remote, was in scoping at the time this doc was written (see `MOBILE_INTERFACES_SPEC.md`) — the module curation described in this doc (the `remote: true` flag) is the already-negotiated boundary for that project, and is reused here as the most defensible existing signal for "primary vs. secondary" mobile navigation. **Editorial note, added after this doc's original delivery:** a first mobile interface (`mobile-1`) has since been built from Alek's own mockup — this doc predates it and was never updated against it, so treat its "planned mobile-only remote" framing as historical rather than current.
 
 Every module's view is a single function `render<Name>(canvas, ctx, rerender)` registered in `js/interfaces/view-library.js`, hosted inside whichever interface's chrome is active. `ctx.data` is the shared data API (`js/data/api.js`); `ctx.navigate(moduleId)` changes the hash route; `ctx.events` is a pub/sub for data-change topics (`js/data/events.js`). Every write to an entity store bumps `updatedAt` and emits an event; nothing polls.
 
@@ -25,9 +25,9 @@ Every module's view is a single function `render<Name>(canvas, ctx, rerender)` r
 
 ## 1. Application structure
 
-The app is a flat set of **43 modules**, each a single top-level nav destination (`#/<moduleId>`) — there is no deeper URL structure (`js/shell.js:19-27` parses only the first hash segment as `module`, the rest as an opaque `rest` array most modules ignore). Modules are grouped for nav-label purposes only (`js/modules.js:60-66`): **Core** (9), **Life** (15), **Study** (3), **Health** (5), **Utility** (11).
+The app is a flat set of **38 modules**, each a single top-level nav destination (`#/<moduleId>`) — there is no deeper URL structure (`js/shell.js:19-27` parses only the first hash segment as `module`, the rest as an opaque `rest` array most modules ignore). Modules are grouped for nav-label purposes only (`js/modules.js:57-63`): **Core** (9), **Memory & Keepsakes** (8), **People & Logistics** (6), **Health** (4), **Utility** (11). (Editorial note: this doc originally documented 43 modules across **Core/Life/Study/Health/Utility**; Conversation Starters, Languages, Chords, and Dream Journal were cut from the app entirely on 2026-07-13, the old flat **Life** group was split into **Memory & Keepsakes**/**People & Logistics**, and **Study** was removed once its only members — Languages and Chords — were gone. See `CLAUDE.md`/`PROJECT_SPEC.md` for the full record.)
 
-Every module's source file lives at `js/interfaces/default/views/<id>.js` and is registered in `js/interfaces/view-library.js:59-103`. "Whether it must be directly accessible from the main interface" below reflects the existing `remote: true` flag in `js/modules.js:14-58` — the already-negotiated set of 21 modules meant for the mobile remote's curated nav (see `MOBILE_INTERFACES_SPEC.md`'s "Draft: what actually ships on the remote"). This is a real, already-made product decision, not a guess.
+Every module's source file lives at `js/interfaces/default/views/<id>.js` and is registered in `js/interfaces/view-library.js:59-103`. "Whether it must be directly accessible from the main interface" below reflects the existing `remote: true` flag in `js/modules.js:14-58` — the already-negotiated set of 19 modules meant for the mobile remote's curated nav (see `MOBILE_INTERFACES_SPEC.md`'s "Draft: what actually ships on the remote"; originally 21, reduced by 2 when Conversation Starters and Languages — both `remote: true` — were cut 2026-07-13). This is a real, already-made product decision, not a guess.
 
 | # | Module (display name) | Route | Source file | Purpose | Directly accessible on mobile? |
 |---|---|---|---|---|---|
@@ -53,15 +53,11 @@ Every module's source file lives at `js/interfaces/default/views/<id>.js` and is
 | 20 | Packing Lists | `#/packing` | `views/packing.js` | Per-trip checklist with templates | **Yes** (remote) |
 | 21 | Quartermaster | `#/quartermaster` | `views/quartermaster.js` | Physical inventory + lending ledger | **Yes** (remote) |
 | 22 | Ghost Days | `#/ghostdays` | `views/ghostdays.js` | Read-only "on this day in history" across modules | No |
-| 23 | Conversation Starters | `#/starters` | `views/starters.js` | Openers generated from a picked contact | **Yes** (remote) |
 | 24 | Rabbit Holes | `#/rabbitholes` | `views/rabbitholes.js` | Research-tangent journal with links | No |
-| 25 | Languages | `#/languages` | `views/languages.js` | Flashcard SRS decks + AI-generated reading library | **Yes** (remote) |
-| 26 | Chords | `#/chords` | `views/chords.js` | Music-theory study tool: dictionary, Barry Harris, calculator, Harmony Map, lessons, practice drills, synth Sound tab | No |
-| 27 | Life as Music | `#/lifeasmusic` | `views/lifeasmusic.js` | Sonifies your stats into a short ambient progression | No |
+| 27 | Life as Music | *(none — background feature, see below)* | `js/audio/lifemusic.js` | Ambient loop sonifying your stats, toggled in Settings, no screen of its own | No |
 | 28 | Habits | `#/habits` | `views/habits.js` | Streak check-in for anything | **Yes** (remote) |
 | 29 | Health | `#/health` | `views/health.js` | Manual sleep/workout/water/weight log + Apple Health import | **Yes** (remote) |
 | 30 | Skill Trees | `#/skilltree` | `views/skilltree.js` | Read-only RPG-style stats computed from real activity | No |
-| 31 | Dream Journal | `#/dreamjournal` | `views/dreamjournal.js` | Dream entries + recurring-pattern detection | No |
 | 32 | The Almanac | `#/almanac` | `views/almanac.js` | Correlations, forecasts, what-if sandbox | No |
 | 33 | AI Assistant | `#/assistant` | `views/assistant.js` | Provider-switchable (Gemini/Claude) chat | No |
 | 34 | Knowledge Graph | `#/knowledge` | `views/knowledge.js` | Link any record to any other record; AI-suggested edges | No |
@@ -75,11 +71,13 @@ Every module's source file lives at `js/interfaces/default/views/<id>.js` and is
 | 42 | Search | `#/search` | `views/search.js` | One query across every module | **Yes** (remote) |
 | 43 | Settings | `#/settings` | `views/settings.js` | Theme/density/accent, Account, sync, AI, App Lock, Automations, Telegram | **Yes** (remote) |
 
-**Modals / drawers / overlays (not top-level routes):** across all 43 modules there are only two true overlay components:
+*(Row numbers above have gaps — 23, 25, 26, 31 — where Conversation Starters, Languages, Chords, and Dream Journal used to be; those rows were removed rather than the table renumbered, so remaining row numbers still match any earlier citations of this table.)*
+
+**Modals / drawers / overlays (not top-level routes):** across all 38 modules there are only two true overlay components:
 - **EPUB/PDF/text reader** (Books) — `js/interfaces/default/views/reader.js`, opened via `openReader()`, a full-screen-ish `.mer-reader` overlay with its own TOC drawer.
 - **Photo lightbox** (Photos) — `views/photos.js` — full-size single-photo view with prev/next, closes on background click or `✕`.
 
-Every other "detail" view (a Task's edit panel, a Place's detail, a Contact's card, a Chord Harmony Map's node-detail panel, etc.) is an **inline in-canvas panel**, not an overlay — it's appended into the same scrollable canvas below the list, not a stacked modal. This is a consistent, deliberate pattern across the entire app (every module researched confirms it). The only native browser dialogs used are `confirm()` for destructive deletes (inconsistently applied — see §9) and `alert()` for simple errors.
+Every other "detail" view (a Task's edit panel, a Place's detail, a Contact's card, a Knowledge Graph node-detail panel, etc.) is an **inline in-canvas panel**, not an overlay — it's appended into the same scrollable canvas below the list, not a stacked modal. This is a consistent, deliberate pattern across the entire app (every module researched confirms it). The only native browser dialogs used are `confirm()` for destructive deletes (inconsistently applied — see §9) and `alert()` for simple errors.
 
 **Major cross-cutting workflows** (span multiple modules, not owned by one screen):
 - **Camera-to-data document scan** (Documents) — photograph → AI drafts fields → opens as an editable record. The one AI-vision capture flow in the app today.
@@ -93,9 +91,9 @@ Every other "detail" view (a Task's edit panel, a Place's detail, a Contact's ca
 
 ## 2. Navigation inventory
 
-All 43 destinations are flat, top-level, and reached identically (`ctx.navigate(moduleId)` → `#/<moduleId>`). There is currently no "contextual-only" screen that isn't also a full top-level destination — every inline detail panel is part of its parent module's route, not a separate one. **Nav category** below is derived from the existing `remote` flag (`js/modules.js`) for Primary/Secondary, and the `settings` module id for Settings; there is no existing "contextual" nav category to report (flagging per instructions rather than inventing one).
+All 38 destinations are flat, top-level, and reached identically (`ctx.navigate(moduleId)` → `#/<moduleId>`). There is currently no "contextual-only" screen that isn't also a full top-level destination — every inline detail panel is part of its parent module's route, not a separate one. **Nav category** below is derived from the existing `remote` flag (`js/modules.js`) for Primary/Secondary, and the `settings` module id for Settings; there is no existing "contextual" nav category to report (flagging per instructions rather than inventing one).
 
-Icon concept columns reference the **already-built** icon set at `js/interfaces/default/icons.js` (43 original SVG line icons, one per module, built from plain primitives — see §7). "Existing label" is blank where it matches the recommended label exactly (`js/modules.js:14-58` is both the existing and only label source — there is no separate "recommended" label elsewhere in the app; recommended = existing throughout, since this document does not invent new labels).
+Icon concept columns reference the **already-built** icon set at `js/interfaces/default/icons.js` (38 original SVG line icons, one per module, built from plain primitives — see §7). "Existing label" is blank where it matches the recommended label exactly (`js/modules.js:14-58` is both the existing and only label source — there is no separate "recommended" label elsewhere in the app; recommended = existing throughout, since this document does not invent new labels).
 
 | Stable ID | Label | Route | Opens | Badge/status data available | Nav category |
 |---|---|---|---|---|---|
@@ -121,15 +119,11 @@ Icon concept columns reference the **already-built** icon set at `js/interfaces/
 | `packing` | Packing Lists | `#/packing` | Packing Lists view | Packed-progress `{n}/{m}` per trip | Primary |
 | `quartermaster` | Quartermaster | `#/quartermaster` | Quartermaster view | Lent-out count | Primary |
 | `ghostdays` | Ghost Days | `#/ghostdays` | Ghost Days view (read-only) | "Ghosts today" count | Secondary |
-| `starters` | Conversation Starters | `#/starters` | Starters view | None | Primary |
 | `rabbitholes` | Rabbit Holes | `#/rabbitholes` | Rabbit Holes view | Active (unresolved) count | Secondary |
-| `languages` | Languages | `#/languages` | Languages view | Cards-due count per deck | Primary |
-| `chords` | Chords | `#/chords` | Chords view | Weak-concept count (Practice tab) | Secondary |
-| `lifeasmusic` | Life as Music | `#/lifeasmusic` | Life as Music view | None | Secondary |
+| *(none)* | Life as Music | *(none — not a route)* | `js/audio/lifemusic.js` (background loop) | N/A — not a nav item, toggled in Settings | N/A |
 | `habits` | Habits | `#/habits` | Habits view | Done-today `{n}/{total}` count | Primary |
 | `health` | Health | `#/health` | Health view | "Logged today?" boolean possible (not currently badge-rendered) | Primary |
 | `skilltree` | Skill Trees | `#/skilltree` | Skill Trees view (read-only) | Character level | Secondary |
-| `dreamjournal` | Dream Journal | `#/dreamjournal` | Dream Journal view | None | Secondary |
 | `almanac` | The Almanac | `#/almanac` | Almanac view | None | Secondary |
 | `assistant` | AI Assistant | `#/assistant` | AI Assistant view | None (no unread concept — synchronous chat) | Secondary |
 | `knowledge` | Knowledge Graph | `#/knowledge` | Knowledge Graph view | None | Secondary |
@@ -269,7 +263,12 @@ No create/edit/delete actions — fully read-only, animated visualization (orrer
 | `finance.tabSwitch` | Bills / Subscriptions / Yearly Spend / Markets | client-side | — | — |
 | `finance.filterCategory` / `toggleShowPaid`/`toggleShowCancelled` | selects/checkboxes | client-side | — | — |
 
-### Life
+### Memory & Keepsakes / People & Logistics
+
+*(This section groups modules the way the original flat "Life" group did.
+`js/modules.js` has since split that group into `memory` and `people` —
+see §1 — but the modules below aren't reordered here to match, since doing
+so doesn't change any action documented.)*
 
 #### books (`views/books.js`)
 `books.create`, `.select`, `.editField` (title/author/genre/status/totalPages/currentPage/dates/notes — status change to reading/finished auto-stamps start/finish date), `.rate` (1-5 stars), `.delete`, `.logReadingSession` (→ `ReadingLogs.create` + bumps `currentPage`), `.deleteReadingLog`, `.addCover`/`.removeCover`, `.addFile`/`.removeFile` (EPUB/PDF/text), `.readFile` (opens reader overlay, tracks `readingLocation`), `.downloadFile`, `.tabSwitch` (Reading/To Read/Finished/Shelf/Stats).
@@ -310,22 +309,10 @@ Read-only. No actions — a pure aggregation over Books/Tasks/Assignments/Milest
 #### ghostdays (`views/ghostdays.js`)
 Read-only. No actions.
 
-#### starters (`views/starters.js`)
-`starters.selectContact` (single dropdown; generates openers from relationship/tags/birthday/notes + a static fallback list). No create/edit actions.
-
 #### rabbitholes (`views/rabbitholes.js`)
 `rabbitholes.create`, `.open`/`.close`, `.editNotes` (**note:** doesn't call `rerender()` after save — UNCERTAIN if intentional), `.addLink`/`.removeLink`, `.toggleResolved`, `.delete`, `.toggleShowResolved`.
 
-### Study & Health
-
-#### languages (`views/languages.js`)
-`languages.addPack`, `.switchPack`, `.newDeck`, `.addStarterDeck` (only offered for packs with a `STARTER_DECKS` entry — Japanese today), `.deleteDeck`, `.openDeck`, `.addCard`/`.deleteCard`, `.startStudy` (builds a due-card queue), `.playCardAudio` (browser TTS via `speechSynthesis`), `.showAnswer`, `.gradeCard` (Again/Good/Easy → SRS interval update + `LanguageReviewLogs`), `.switchSubTab` (Decks/Library), `.generateStory` (AI, gated on API key), `.addManualStory`, `.openStory`/`.closeStory`, `.toggleTranslation`, `.markRead`/`.markUnread`, `.deleteStory`, `.rateStoryDifficulty` (Too easy/Just right/Too hard → nudges pack's tracked level).
-
-#### chords (`views/chords.js`)
-8 tabs, each with its own actions (full list in the life-a/study-health agent transcripts above; summarized): **Dictionary** — pick root/quality/type a symbol, toggle piano/guitar, play voicing, jump to Barry Harris. **Barry Harris** — pick a ♭9-family chip. **Calculator** — pick key, jump to any chord in the diatonic/secondary-dominant/borrowed tables. **Harmony Map** — set key context, toggle "Adventurous" edges, switch Walk/Atlas, click a node for a detail panel (common tones, smoothness, bass motion), walk/pin/hear a move, build/save/load/delete a trail (`ChordProgressions`). **Lessons** — expand a topic, jump to a chord from an example. **Practice** — start an adaptive drill session, hear/show/grade a question (Missed it/Got it/Instant → `ChordSkills` SRS + `ChordDrillLogs`), print a practice sheet. **Log** — freeform practice-session log (date/minutes/notes), separate from graded drills. **Sound** — change panel skin/control style, apply a factory or custom preset, adjust any synth param live, save/delete a custom preset.
-
-#### lifeasmusic (`views/lifeasmusic.js`)
-`lifeasmusic.play` (▶ Play — plays the 6-chord sonified sequence). No other actions; fully read-only sonification.
+### Health
 
 #### habits (`views/habits.js`)
 `habits.create`, `.checkIn`/`.uncheckIn` (checkbox), `.select`, `.editName`/`.editNotes`, `.delete` (**no confirm dialog** — the one delete in the app without one, see §9).
@@ -335,9 +322,6 @@ Read-only. No actions.
 
 #### skilltree (`views/skilltree.js`)
 Read-only. No actions.
-
-#### dreamjournal (`views/dreamjournal.js`)
-`dreamjournal.addEntry` (date/title/body/tags), `.deleteEntry`. **No edit action exists** — entries can't be modified after creation (confirmed absence of any `.update` call).
 
 #### almanac (`views/almanac.js`)
 `almanac.sleepWhatIfSlider` (live-recomputes projection, not persisted), `.subscriptionWhatIfToggle` (in-memory selection, not persisted). No create/edit/delete — fully computed/read-only.
@@ -360,7 +344,7 @@ Read-only. No actions.
 `qrsync.startOffer` (side A), `.pasteOffer`/auto-entry via scanned URL (side B), `.completeOffer` (side A), `.copyCode`, `.startOver`. WebRTC peer-to-peer, no server/account.
 
 #### entropy (`views/entropy.js`)
-Read-only. No actions. Covers only 10 of the 43 modules by design (Tasks, Places, Links, Books, Recipes, Contacts, Milestones, Habits, Health, Documents) — UNCERTAIN why exactly this set, not explained in-file.
+Read-only. No actions. Covers only 10 of the 38 modules by design (Tasks, Places, Links, Books, Recipes, Contacts, Milestones, Habits, Health, Documents) — UNCERTAIN why exactly this set, not explained in-file.
 
 #### stationcat (`views/stationcat.js`)
 `stationcat.listen` (🔊 Listen — plays a synthesized purr/mew/hiss matching current mood, self-disables 900ms). Purely cosmetic, explicitly documented as such in its own header comment.
@@ -408,11 +392,10 @@ All of the following are **real, already-computed** values — nothing below is 
 | Almanac forecasts | Almanac view | bill-spend trend, per-habit weekday breakpoint, per-book reading-pace ETA | Each independently gated on its own minimum sample | On demand | `views/almanac.js:111-199` |
 | Museum tallies | Museum view | counts of finished books/completed tasks+assignments/milestones/cooked recipes/archived projects/longest habit streaks | — | On demand | `views/museum.js` |
 | Ghost Days | Ghost Days view | array of `{year,title,kind}` (Milestone/Visited/Finished/Started reading/Birthday/Cooked/Completed) | — | On demand | `views/ghostdays.js` |
-| Skill Tree stats | Skill Tree view | 5 skills' level+XP (Executor/Discipline/Scholar/Music Theory/Linguist) + character level (sum) | — | On demand, fully computed, no storage | `views/skilltree.js:56-76` |
+| Skill Tree stats | Skill Tree view | 3 skills' level+XP (Executor/Discipline/Scholar; down from 5 — Music Theory and Linguist were dropped when Chords/Languages were cut 2026-07-13) + character level (sum) | — | On demand, fully computed, no storage | `views/skilltree.js:56-76` |
 | Habit streak / totals | Habits view | per-habit `{streak, doneToday, totalCheckIns}` | — | On demand | `views/habits.js:7-24` |
 | Reading streak | Books view | days | — | On demand | `views/books.js:245-259` |
 | Health 7-day averages | Health view | avg sleep, avg water, workout count | — | On demand | `views/health.js:154-169` |
-| Cards-due count | Languages view | per-deck count | — | On demand | `views/languages.js` |
 | Recall due/upcoming | Recall view | due-today count + upcoming list | — | On demand | `views/recall.js` |
 
 **Full `getYearInReview(year)` field list** (`api.js` ~936-1033): `year`, `tasksCompleted`, `assignmentsCompleted`, `placesVisitedCount`, `totalVisits`, `booksFinished`, `pagesRead`, `recipesCookedCount`, `cookSessions`, `billsPaidTotal`, `documentsAdded`, `contactsAdded`, `milestones` (array), `habitCheckIns`, `avgSleepHours` (nullable), `healthLogCount`.
@@ -450,7 +433,7 @@ All of the following are **real, already-computed** values — nothing below is 
 - **Percentages:** Assignment `percentComplete` is 0-100 (slider). Reading progress is computed `currentPage/totalPages*100`. GPA is a decimal 0.0-4.0 (`toFixed(2)`).
 - **Dates:** `fmtDate()` (`dom.js:23-28`) renders as locale `{month:'short', day:'numeric', year:'numeric'}` (e.g. "Jul 12, 2026"). Raw ISO date strings (`YYYY-MM-DD`) are the storage format throughout; `todayStr()` (`dom.js:30-32`) is `new Date().toISOString().slice(0,10)` — **UTC-based**, not local-midnight-based (a real, existing quirk worth knowing: near midnight, "today" can flip a few hours off from true local midnight depending on timezone).
 - **Times:** no dedicated time formatter found; timestamps (`createdAt`/`updatedAt`) are full ISO 8601, occasionally rendered via `new Date(...).toLocaleString()` (e.g. crypto price fetch time, `finance.js:407`).
-- **User-customizable labels:** category/tag fields are entirely freeform user text across Places, Documents, Finance (Bills/Subscriptions), Recipes, Contacts, Collections — **do not hardcode any specific category value**; the app never ships a fixed category enum for these fields. Language pack names/codes are user-defined (`ensureLanguagePack`). Custom synth presets (Chords) are user-named.
+- **User-customizable labels:** category/tag fields are entirely freeform user text across Places, Documents, Finance (Bills/Subscriptions), Recipes, Contacts, Collections — **do not hardcode any specific category value**; the app never ships a fixed category enum for these fields.
 - **Text that must not be hard-coded:** AI provider labels (`getActiveAiProvider().label` — currently "Gemini"/"Claude" but provider-switchable via Settings), the active accent color name, the active interface name (`ctx.listInterfaces()`), weather condition labels (`describeWeatherCode`, 20+ codes), currency code labels (`CURRENCY_NAMES` map in `tools.js`), and every module's display label (`js/modules.js` — the single source of truth for nav text).
 
 ---
@@ -460,45 +443,45 @@ All of the following are **real, already-computed** values — nothing below is 
 - **Framework:** none. Vanilla JS, ES modules, no build step, no bundler, no TypeScript, no JSX. Runs directly from static files (GitHub Pages).
 - **Styling system:** plain CSS with custom properties (`css/tokens.css` — design tokens for type scale, spacing, radius, shadow, transitions, and three theme dimensions: light/dark, density (comfortable/compact), and accent (brass/teal/garnet/custom-from-photo)). No CSS framework (no Tailwind/Bootstrap/etc.), no CSS-in-JS.
 - **Component library:** none, beyond a single ~20-line `el(tag, attrs, children)` DOM-builder helper (`js/interfaces/default/dom.js:5-21`) shared by every view. No React/Vue/Svelte/Web Components.
-- **Icon library:** a newly-built original set at `js/interfaces/default/icons.js` — 43 inline-SVG line icons (one per module), built from plain primitives (line/circle/rect/polyline) on a shared 20×20 grid, `stroke="currentColor"`. No third-party icon font/library (no Font Awesome, Feather, Lucide, Material Icons). Elsewhere in the app, emoji are used liberally as inline glyphs (🎲, 📍, 🔥, 👤, etc.) — not a formal icon system, just Unicode characters in button text.
-- **Fonts:** system stacks only, no CDN/webfont loading in the default (Equator) or Vespera interfaces — `--font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif` (headings, module titles, card titles), `--font-ui: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif` (everything else), `--font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace` (dates in feed rows). Two vendored variable-weight webfonts (`Oxanium`, `Rajdhani`, `.woff2`) exist in `vendor/fonts/` but are earmarked for a future mobile interface specifically — **not currently used** by Equator or Vespera.
-- **Mobile breakpoint:** exactly one, `@media (max-width: 44rem)` (704px) — collapses Equator's sidebar nav into a hamburger-triggered dropdown. No tablet-specific breakpoint exists.
+- **Icon library:** a newly-built original set at `js/interfaces/default/icons.js` — 38 inline-SVG line icons (one per module), built from plain primitives (line/circle/rect/polyline) on a shared 20×20 grid, `stroke="currentColor"`. No third-party icon font/library (no Font Awesome, Feather, Lucide, Material Icons). Elsewhere in the app, emoji are used liberally as inline glyphs (🎲, 📍, 🔥, 👤, etc.) — not a formal icon system, just Unicode characters in button text.
+- **Fonts:** system stacks only, no CDN/webfont loading in the default (Test Mode) or Spatial 1 interfaces — `--font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif` (headings, module titles, card titles), `--font-ui: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif` (everything else), `--font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace` (dates in feed rows). Two vendored variable-weight webfonts (`Oxanium`, `Rajdhani`, `.woff2`) exist in `vendor/fonts/` but are earmarked for a future mobile interface specifically — **not currently used** by Test Mode or Spatial 1.
+- **Mobile breakpoint:** exactly one, `@media (max-width: 44rem)` (704px) — collapses Test Mode's sidebar nav into a hamburger-triggered dropdown. No tablet-specific breakpoint exists.
 - **Safe-area handling:** `viewport-fit=cover` is set in `index.html:5`, but **no `env(safe-area-inset-*)` CSS exists anywhere in the codebase** — confirmed via full-repo search. This is a real, currently-unaddressed gap for notch/home-indicator devices; a new mobile interface needs to add this itself.
 - **Routing:** hash-based (`#/<module>[/...]`), owned entirely by `js/shell.js`. No history API / pushState routing. Deep-linking beyond the module id (e.g. to a specific record) is **not implemented** anywhere in the app today (confirmed absence across Search, Recall, Knowledge Graph — all navigate to the module only).
 - **State management:** no global store (no Redux/MobX/Zustand). Each view file keeps its own module-level plain-object `state` (selection, tab, filters) that persists only for the life of that view's mount, reset on interface switch. Reactivity is a single pub/sub (`js/data/events.js`): every data write emits `{topic: storeName}`; a view calls `ctx.events.on('*', ...)` and re-renders on any change (coalesced via `queueMicrotask` in `js/interfaces/default/index.js:115-123` so bursts collapse to one render).
 - **Data storage:** IndexedDB (`js/data/db.js`), accessed exclusively through `js/data/api.js`'s generic CRUD (`list/get/create/update/remove/byIndex` per store) — interfaces never touch `db.js` or `schema.js` directly (the one architectural boundary rule, `ARCHITECTURE.md:13-16`). ~60 stores defined in `js/data/schema.js`. Optional sync: Google Drive (bidirectional, last-write-wins + tombstones), Google Calendar (one-way push), Supabase (accounts + Sharebox v2), all behind the same `ctx.data` surface.
-- **APIs used:** Open-Meteo (weather, keyless), CoinGecko (crypto, keyless), Stooq (DJIA, keyless), open.er-api.com (currency rates, keyless), Google Drive/Calendar/Photos-Picker (OAuth), Supabase (accounts/Sharebox v2), Gemini/Claude (AI features, user's own API key, device-local, never synced), browser `SpeechRecognition` (Ideas' voice dictation — cloud-backed in Chrome, not private), browser `speechSynthesis` (Languages' card TTS), WebRTC (QR Sync, no server).
+- **APIs used:** Open-Meteo (weather, keyless), CoinGecko (crypto, keyless), Stooq (DJIA, keyless), open.er-api.com (currency rates, keyless), Google Drive/Calendar/Photos-Picker (OAuth), Supabase (accounts/Sharebox v2), Gemini/Claude (AI features, user's own API key, device-local, never synced), browser `SpeechRecognition` (Ideas' voice dictation — cloud-backed in Chrome, not private), WebRTC (QR Sync, no server).
 - **Accessibility conventions:** minimal today — a full-repo search found only **3** instances of `aria-label`/`role` across the entire default interface (`js/interfaces/default/index.js:20,31`: nav landmark + hamburger button; Orrery's SVG planets use `role="img"`/`tabindex` for gone nodes). No systematic ARIA pattern, no skip-links, no live-region announcements. This is a real gap, not a hidden convention to preserve.
 - **Animation & reduced motion:** `prefers-reduced-motion: reduce` is respected in exactly two places — Orrery (falls back to a static scattered layout, no RAF loop, `views/orrery.js:129,166`) and Station Cat (disables its CSS mood animations, `style.css:1959-1964`). It is **not** applied globally; most transitions (nav hover, card hover-lift, button hover) are short (120-200ms, `--transition-fast`/`--transition-normal`) CSS transitions with no reduced-motion guard, on the reasoning that a sub-200ms hover transition isn't the kind of motion that class of query is meant to suppress.
-- **Sound settings:** **none exist as an app-wide concept.** No global mute/volume control, no "sound enabled" setting (confirmed via full-repo search for mute/volume/sound-toggle patterns). The Chords module has its own full Web Audio synthesis engine (oscillators/FM/ADSR/EQ) used for chord playback and Station Cat's mood sounds — that's app **content**, not a UI feedback/notification sound system. If a new mobile interface wants tap sounds or alerts, that's new territory, not something to preserve from an existing setting.
-- **Print support:** exists for exactly two things — the Daily Paper (`@media print`, `.mer-print-sheet`) and Chords' practice sheet — irrelevant to a phone interface but noted for completeness.
+- **Sound settings:** **none exist as an app-wide concept.** No global mute/volume control, no "sound enabled" setting (confirmed via full-repo search for mute/volume/sound-toggle patterns). The app has a full Web Audio synthesis engine (`js/audio/synth.js` — oscillators/FM/ADSR/EQ), originally built for the now-cut Chords module and now also driving the Life as Music ambient background feature (Settings > "Life as Music" toggle) and Station Cat's mood sounds — that's app **content**, not a UI feedback/notification sound system. If a new mobile interface wants tap sounds or alerts, that's new territory, not something to preserve from an existing setting.
+- **Print support:** exists for exactly one thing now — the Daily Paper (`@media print`, `.mer-print-sheet`). (Previously also existed for the Chords module's practice sheet; Chords was cut from the app 2026-07-13.) Irrelevant to a phone interface but noted for completeness.
 
 ---
 
 ## 8. Recommended component map
 
-Neutral, reusable component names inferred from actual repeated patterns across the 43 modules (not proposed styling). Every one of these patterns appears near-identically in at least 5+ modules.
+Neutral, reusable component names inferred from actual repeated patterns across the 38 modules (not proposed styling). Every one of these patterns appears near-identically in at least 5+ modules.
 
 - **NavigationControl** — `{ id, label, iconMarkup, isActive, badgeCount?, onSelect }`. Maps 1:1 to the existing `MODULES` array + `icons.js`.
-- **QuickAddInput** — `{ placeholder, onSubmit(text) }`. The single most repeated pattern in the app — a bare text input with an Enter-to-create handler, used in Tasks/Places/Links/Recipes/Contacts/Milestones/Documents/Ideas/Rabbit Holes/Collections/Packing/Quartermaster/Time Capsules/Languages(decks)/etc.
+- **QuickAddInput** — `{ placeholder, onSubmit(text) }`. The single most repeated pattern in the app — a bare text input with an Enter-to-create handler, used in Tasks/Places/Links/Recipes/Contacts/Milestones/Documents/Ideas/Rabbit Holes/Collections/Packing/Quartermaster/Time Capsules/etc.
 - **RecordCard** — `{ title, subtitle?, thumbnailUrl?, chips: [{label, variant}], onSelect, onDelete? }`. The card-grid pattern (Places/Recipes/Links/Museum-style visuals) — `mer-place-card` equivalent.
 - **RecordRow** — `{ title, isDone?, meta: [{label, variant}], onSelect }`. The list-row pattern (Tasks/Bills/Assignments) — `mer-task-row` equivalent.
 - **DetailPanel** — `{ title, fields: [{label, input}], onClose, onDelete? }`. The universal inline (non-modal) edit panel appended below every list.
 - **StatusChip** — `{ label, variant: 'default'|'overdue'|'tag'|... }`. `mer-chip` — used for due dates, categories, tags, streak counts, everywhere.
-- **TabBar** — `{ tabs: [{id,label}], activeId, onSelect }`. `mer-toggle-group` — used in ~15 modules (Places, Links, Finance, Books, Milestones, Recipes, Languages, Chords, etc.).
+- **TabBar** — `{ tabs: [{id,label}], activeId, onSelect }`. `mer-toggle-group` — used in ~13 modules (Places, Links, Finance, Books, Milestones, Recipes, etc.).
 - **EmptyState** — `{ message }`. Every list has its own literal empty-state string (see §6) — should stay text, not an icon-only illustration, to match the app's plain/serious tone.
 - **ConfirmAction** — currently native `confirm()`/`alert()` throughout; **inconsistently applied** (see §9) — a real component here would also need to fix that inconsistency.
-- **StreakBadge** — `{ count, unit: 'day' }`. Habits, Books (reading), Languages (study), Recall (review), Recipes-adjacent (cook streak via Museum).
+- **StreakBadge** — `{ count, unit: 'day' }`. Habits, Books (reading), Recall (review), Recipes-adjacent (cook streak via Museum).
 - **DueDateBadge** — `{ date, isOverdue }`. Directly maps to the existing `isOverdue()`/`isWithinDays()` logic (`api.js:596-608`).
 - **ProgressBar** — `{ value, max }`. Skill Tree (XP), Packing (packed/total), Almanac forecasts, reading progress.
 - **RatingStars** — `{ value: 0-5, onChange }`. Places, and the same widget shape reused conceptually wherever a 1-5 scale appears.
 - **TagChipList** — `{ tags: string[], onRemove? }`. `#tag` rendering, freeform user tags across ~10 modules.
 - **EntityLinkPicker** — `{ items, selectedId, onLink, onQuickCreate(name) }`. The shared `contactLinkField` helper (`dom.js:83-108`) — select-existing-or-create-new, reused for Contacts links from Places/Documents/Finance.
 - **FileUploadTile** — `{ accept, multiple?, onUpload(files) }`. Photo/attachment upload, near-identical across Places/Contacts/Milestones/Recipes/Books/Documents/Finance/Photos.
-- **AIProviderGate** — `{ hasApiKey, providerLabel, onGoToSettings }`. The "add your {Provider} API key in Settings" pattern — AI Assistant, Knowledge Graph suggestions, Milestones' yearly narrative, Daily Paper's editorial, Languages' story generation all share this exact gate shape.
+- **AIProviderGate** — `{ hasApiKey, providerLabel, onGoToSettings }`. The "add your {Provider} API key in Settings" pattern — AI Assistant, Knowledge Graph suggestions, Milestones' yearly narrative, Daily Paper's editorial all share this exact gate shape.
 - **SyncStatusRow** — `{ label, enabled, lastSyncedAt, onConnect, onSyncNow, onDisconnect }`. Drive sync and Calendar sync in Settings share this exact shape.
 - **SearchResultRow** — `{ title, moduleLabel, onSelect }`. Global Search, Knowledge Graph's search, Recall's scheduler search all consume the same `globalSearch()` result shape.
-- **GradeButtons** — `{ onAgain, onGood, onEasy }`. The identical SRS-grading control in Languages, Recall, and Chords' Practice tab.
+- **GradeButtons** — `{ onAgain, onGood, onEasy }`. The Again/Good/Easy SRS-grading control, now used in Recall. (Previously also shared with Languages' Decks and Chords' Practice tab; both cut from the app 2026-07-13.)
 
 ---
 
@@ -515,7 +498,7 @@ Things that are easy to accidentally drop when replacing the interface, because 
 - [ ] **Recurring bill/task roll-forward** — marking a recurring Bill paid auto-advances `dueDate` and logs a `BillPayments` record in the same action (`finance.js:32-47`); a naive "just toggle paid" reimplementation would silently break recurrence.
 - [ ] **Grocery list is NOT persisted** — Recipes' grocery-list picker state is in-memory only, resets on reload; if a mobile redesign expects to persist it, that's new work, not an existing guarantee to carry over.
 - [ ] **Apple Health import is preview-before-write and field-merges** rather than overwriting whole records — a naive reimplementation could silently clobber manually-entered health data.
-- [ ] **Provider-switchable AI** (Gemini/Claude) — every AI-gated feature (Assistant, Daily Paper editorial, Milestones narrative, Knowledge Graph suggestions, Languages stories, Documents scan) reads the *same* active-provider setting; don't hardcode "Gemini" anywhere.
+- [ ] **Provider-switchable AI** (Gemini/Claude) — every AI-gated feature (Assistant, Daily Paper editorial, Milestones narrative, Knowledge Graph suggestions, Documents scan) reads the *same* active-provider setting; don't hardcode "Gemini" anywhere.
 - [ ] **Telegram is send-only by design** — no incoming-message listener exists; don't imply two-way chat.
 - [ ] **Sharebox has two live backends** (Drive v1, Supabase v2) simultaneously supported — a redesign needs to handle both, or explicitly decide to drop v1, as a real decision, not an oversight.
 - [ ] **Search/Recall/Knowledge-Graph navigation is module-level only, not record-level** — clicking a result opens the module's list, not the specific record's detail view. If a mobile redesign wants true deep-linking, that's genuinely new work, not something being carried forward incorrectly.
@@ -535,9 +518,9 @@ Things that are easy to accidentally drop when replacing the interface, because 
     "#/dashboard", "#/orrery", "#/paper", "#/tasks", "#/ideas", "#/places", "#/links",
     "#/education", "#/finance", "#/books", "#/recipes", "#/documents", "#/contacts",
     "#/milestones", "#/photos", "#/sharebox", "#/museum", "#/timecapsules", "#/collections",
-    "#/packing", "#/quartermaster", "#/ghostdays", "#/starters", "#/rabbitholes",
-    "#/languages", "#/chords", "#/lifeasmusic", "#/habits", "#/health", "#/skilltree",
-    "#/dreamjournal", "#/almanac", "#/assistant", "#/knowledge", "#/recall",
+    "#/packing", "#/quartermaster", "#/ghostdays", "#/rabbitholes",
+    "#/habits", "#/health", "#/skilltree",
+    "#/almanac", "#/assistant", "#/knowledge", "#/recall",
     "#/timemachine", "#/qrsync", "#/entropy", "#/stationcat", "#/themefromphoto",
     "#/tools", "#/search", "#/settings"
   ],
@@ -551,28 +534,23 @@ Things that are easy to accidentally drop when replacing the interface, because 
     {"id":"links","label":"Links","group":"core","navCategory":"primary","remote":true},
     {"id":"education","label":"Education","group":"core","navCategory":"secondary","remote":false},
     {"id":"finance","label":"Finance","group":"core","navCategory":"secondary","remote":false},
-    {"id":"books","label":"Books","group":"life","navCategory":"secondary","remote":false},
-    {"id":"recipes","label":"Recipes","group":"life","navCategory":"primary","remote":true},
-    {"id":"documents","label":"Documents","group":"life","navCategory":"primary","remote":true},
-    {"id":"contacts","label":"Contacts","group":"life","navCategory":"primary","remote":true},
-    {"id":"milestones","label":"Milestones","group":"life","navCategory":"secondary","remote":false},
-    {"id":"photos","label":"Photos","group":"life","navCategory":"primary","remote":true},
-    {"id":"sharebox","label":"Sharebox","group":"life","navCategory":"secondary","remote":false},
-    {"id":"museum","label":"Museum","group":"life","navCategory":"secondary","remote":false},
-    {"id":"timecapsules","label":"Time Capsules","group":"life","navCategory":"secondary","remote":false},
-    {"id":"collections","label":"Collections","group":"life","navCategory":"secondary","remote":false},
-    {"id":"packing","label":"Packing Lists","group":"life","navCategory":"primary","remote":true},
-    {"id":"quartermaster","label":"Quartermaster","group":"life","navCategory":"primary","remote":true},
-    {"id":"ghostdays","label":"Ghost Days","group":"life","navCategory":"secondary","remote":false},
-    {"id":"starters","label":"Conversation Starters","group":"life","navCategory":"primary","remote":true},
-    {"id":"rabbitholes","label":"Rabbit Holes","group":"life","navCategory":"secondary","remote":false},
-    {"id":"languages","label":"Languages","group":"study","navCategory":"primary","remote":true},
-    {"id":"chords","label":"Chords","group":"study","navCategory":"secondary","remote":false},
-    {"id":"lifeasmusic","label":"Life as Music","group":"study","navCategory":"secondary","remote":false},
+    {"id":"books","label":"Books","group":"memory","navCategory":"secondary","remote":false},
+    {"id":"recipes","label":"Recipes","group":"people","navCategory":"primary","remote":true},
+    {"id":"documents","label":"Documents","group":"people","navCategory":"primary","remote":true},
+    {"id":"contacts","label":"Contacts","group":"people","navCategory":"primary","remote":true},
+    {"id":"milestones","label":"Milestones","group":"memory","navCategory":"secondary","remote":false},
+    {"id":"photos","label":"Photos","group":"memory","navCategory":"primary","remote":true},
+    {"id":"sharebox","label":"Sharebox","group":"people","navCategory":"secondary","remote":false},
+    {"id":"museum","label":"Museum","group":"memory","navCategory":"secondary","remote":false},
+    {"id":"timecapsules","label":"Time Capsules","group":"memory","navCategory":"secondary","remote":false},
+    {"id":"collections","label":"Collections","group":"memory","navCategory":"secondary","remote":false},
+    {"id":"packing","label":"Packing Lists","group":"people","navCategory":"primary","remote":true},
+    {"id":"quartermaster","label":"Quartermaster","group":"people","navCategory":"primary","remote":true},
+    {"id":"ghostdays","label":"Ghost Days","group":"memory","navCategory":"secondary","remote":false},
+    {"id":"rabbitholes","label":"Rabbit Holes","group":"memory","navCategory":"secondary","remote":false},
     {"id":"habits","label":"Habits","group":"health","navCategory":"primary","remote":true},
     {"id":"health","label":"Health","group":"health","navCategory":"primary","remote":true},
     {"id":"skilltree","label":"Skill Trees","group":"health","navCategory":"secondary","remote":false},
-    {"id":"dreamjournal","label":"Dream Journal","group":"health","navCategory":"secondary","remote":false},
     {"id":"almanac","label":"The Almanac","group":"health","navCategory":"secondary","remote":false},
     {"id":"assistant","label":"AI Assistant","group":"utility","navCategory":"secondary","remote":false},
     {"id":"knowledge","label":"Knowledge Graph","group":"utility","navCategory":"secondary","remote":false},
@@ -609,15 +587,10 @@ Things that are easy to accidentally drop when replacing the interface, because 
     "packing": ["packing.createList","packing.deleteList","packing.openList","packing.closeList","packing.applyTemplate","packing.addItem","packing.toggleItem","packing.removeItem"],
     "quartermaster": ["quartermaster.addItem","quartermaster.lendOut","quartermaster.markReturned","quartermaster.removeItem"],
     "ghostdays": [],
-    "starters": ["starters.selectContact"],
     "rabbitholes": ["rabbitholes.create","rabbitholes.open","rabbitholes.close","rabbitholes.editNotes","rabbitholes.addLink","rabbitholes.removeLink","rabbitholes.toggleResolved","rabbitholes.delete","rabbitholes.toggleShowResolved"],
-    "languages": ["languages.addPack","languages.switchPack","languages.newDeck","languages.addStarterDeck","languages.deleteDeck","languages.openDeck","languages.addCard","languages.deleteCard","languages.startStudy","languages.playCardAudio","languages.showAnswer","languages.gradeCard","languages.switchSubTab","languages.generateStory","languages.addManualStory","languages.openStory","languages.closeStory","languages.toggleTranslation","languages.markRead","languages.markUnread","languages.deleteStory","languages.rateStoryDifficulty"],
-    "chords": ["chords.pickRootQuality","chords.toggleInstrument","chords.playVoicing","chords.jumpToBarryFromDictionary","chords.pickFamilyMember","chords.calcPickKey","chords.calcJumpToChord","chords.mapSetKeyContext","chords.mapToggleAdventurous","chords.mapSwitchView","chords.mapInspectEdge","chords.mapPickFromAtlas","chords.mapHearMove","chords.mapWalkTo","chords.mapPinWithoutWalking","chords.mapCloseDetail","chords.mapDiatonicQuickJump","chords.trailRemoveStep","chords.trailHear","chords.trailSave","chords.trailClear","chords.trailLoad","chords.trailDeleteSaved","chords.trailHearSaved","chords.lessonsOpen","chords.lessonsExampleChip","chords.soundChangeSkin","chords.soundChangeControlStyle","chords.soundApplyPreset","chords.soundTestChord","chords.soundAdjustParam","chords.soundSavePreset","chords.soundDeleteCustomPresets","chords.practiceStartSession","chords.practicePrintSheet","chords.drillShowAnswer","chords.drillPlayQuestion","chords.drillGrade","chords.drillBackToPractice","chords.logAddSession","chords.logDeleteEntry"],
-    "lifeasmusic": ["lifeasmusic.play"],
     "habits": ["habits.create","habits.checkIn","habits.uncheckIn","habits.select","habits.editName","habits.editNotes","habits.delete"],
     "health": ["health.logToday","health.select","health.editDate","health.editSleep","health.editWorkoutType","health.editWorkoutMinutes","health.editWater","health.editWeight","health.editNotes","health.delete","health.importAppleHealthFile","health.confirmImport","health.cancelImport"],
     "skilltree": [],
-    "dreamjournal": ["dreamjournal.addEntry","dreamjournal.deleteEntry"],
     "almanac": ["almanac.sleepWhatIfSlider","almanac.subscriptionWhatIfToggle"],
     "assistant": ["assistant.newConversation","assistant.selectConversation","assistant.sendMessage","assistant.deleteConversation","assistant.closeConversation","assistant.goToSettings"],
     "knowledge": ["knowledge.searchFocus","knowledge.setFocus","knowledge.refocusOnNeighbor","knowledge.changeFocus","knowledge.openModule","knowledge.unlink","knowledge.suggestConnections","knowledge.acceptSuggestion","knowledge.searchAddConnection","knowledge.addConnection"],
@@ -635,7 +608,7 @@ Things that are easy to accidentally drop when replacing the interface, because 
     "dueSoonFeed","onThisDay","surpriseMe","weather","assignmentPacingGaps","yearInReview",
     "cryptoPrices","djiaPrice","entropyScores","orreryPlanets","almanacCorrelations",
     "almanacForecasts","museumTallies","ghostDays","skillTreeStats","habitStreaks",
-    "readingStreak","health7DayAverages","languagesCardsDue","recallDueUpcoming"
+    "readingStreak","health7DayAverages","recallDueUpcoming"
   ],
   "dynamicStates": [
     "loading","empty","normal","active","selected","completed","dueSoon","overdue",

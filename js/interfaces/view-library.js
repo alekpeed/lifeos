@@ -41,12 +41,9 @@ import { renderSkillTree } from './default/views/skilltree.js';
 import { renderEntropy } from './default/views/entropy.js';
 import { renderStationCat } from './default/views/stationcat.js';
 import { renderGhostDays } from './default/views/ghostdays.js';
-import { renderStarters } from './default/views/starters.js';
 import { renderThemeFromPhoto } from './default/views/themefromphoto.js';
-import { renderDreamJournal } from './default/views/dreamjournal.js';
 import { renderRabbitHoles } from './default/views/rabbitholes.js';
 import { renderAlmanac } from './default/views/almanac.js';
-import { renderLifeAsMusic } from './default/views/lifeasmusic.js';
 import { renderKnowledge } from './default/views/knowledge.js';
 import { renderOrrery } from './default/views/orrery.js';
 import { renderTimeMachine } from './default/views/timemachine.js';
@@ -84,12 +81,9 @@ export const VIEWS = {
   entropy: renderEntropy,
   stationcat: renderStationCat,
   ghostdays: renderGhostDays,
-  starters: renderStarters,
   themefromphoto: renderThemeFromPhoto,
-  dreamjournal: renderDreamJournal,
   rabbitholes: renderRabbitHoles,
   almanac: renderAlmanac,
-  lifeasmusic: renderLifeAsMusic,
   knowledge: renderKnowledge,
   orrery: renderOrrery,
   timemachine: renderTimeMachine,

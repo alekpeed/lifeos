@@ -62,7 +62,7 @@ const DISTRICTS = [
     hotspot: { points: [[1.85, 55.9], [24.88, 55.9], [26.2, 57.81], [26.2, 63.55], [24.7, 65.67], [2.69, 65.67], [1.32, 63.76], [1.32, 58.02]] } },
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents', 'quartermaster'],
     hotspot: { points: [[2.03, 77.05], [24.82, 77.05], [26.44, 78.85], [26.32, 84.59], [24.82, 86.61], [2.87, 86.61], [1.44, 84.8], [1.44, 79.06]] } },
-  { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules', 'starters', 'dreamjournal', 'lifeasmusic'],
+  { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules'],
     hotspot: { points: [[74.03, 18.32], [95.79, 10.07], [97.16, 11.02], [98.37, 15.54], [97.68, 17.59], [75.9, 23.43], [74.67, 22.32], [73.96, 19.66]] } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
     hotspot: { points: [[73.39, 57.7], [97.31, 56.32], [98.5, 57.39], [98.5, 62.81], [97.31, 64.93], [74.4, 64.93], [73.09, 63.12], [73.09, 59.3]] } },
@@ -96,13 +96,6 @@ function moduleLabel(id) {
 // Short room-link descriptors. Only needed for modules that appear as
 // links inside an immersive room; anything without an entry falls back to
 // the module's own label so a new room never renders a blank sub-line.
-const MODULE_TAGLINES = {
-  lifeasmusic: 'Your life, played back',
-};
-function moduleTagline(id) {
-  return MODULE_TAGLINES[id] || moduleLabel(id);
-}
-
 function districtOf(moduleId) {
   return DISTRICTS.find((d) => d.modules.includes(moduleId)) || null;
 }
@@ -325,7 +318,6 @@ function renderRoom(root, district) {
       onclick: () => travel(zoom, link, () => ctx.navigate(id)),
     }, [
       el('span', { class: 'sp1-room-link-name', text: moduleLabel(id) }),
-      el('span', { class: 'sp1-room-link-sub', text: moduleTagline(id) }),
     ]);
     links.append(link);
   }

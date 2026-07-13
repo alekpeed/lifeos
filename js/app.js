@@ -4,6 +4,8 @@
 import { openDatabase } from './data/db.js';
 import { migrateLegacyPeopleToContacts, Settings, verifyAppLock, runAutomations } from './data/api.js';
 import { completePendingRedirectIfAny } from './data/supabase-auth.js';
+import { events } from './data/events.js';
+import { startLifeMusic, stopLifeMusic } from './audio/lifemusic.js';
 import './interfaces/manifest.js';
 import { startShell } from './shell.js';
 
@@ -63,6 +65,13 @@ async function boot() {
 
     await migrateLegacyPeopleToContacts();
     await runAutomations();
+
+    if (await Settings.get('ambientMusicEnabled')) startLifeMusic();
+    events.on('settings', async () => {
+      if (await Settings.get('ambientMusicEnabled')) startLifeMusic();
+      else stopLifeMusic();
+    });
+
     await startShell();
   } catch (err) {
     appEl.dataset.bootState = 'error';

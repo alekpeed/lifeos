@@ -405,16 +405,6 @@
   transition: color 0.3s, text-shadow 0.3s;
 }
 
-[data-interface='spatial-1'] .sp1-room-link-sub {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 12px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: #6f9fc8;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-  transition: color 0.3s;
-}
-
 /* Hover/focus: plain color + text-shadow change, no image compositing --
    there is nothing underneath to blend with or seam against. */
 [data-interface='spatial-1'] .sp1-room-link:hover,
@@ -430,11 +420,6 @@
     0 0 18px rgba(255, 50, 165, 0.85),
     0 0 38px rgba(255, 30, 150, 0.65);
 }
-[data-interface='spatial-1'] .sp1-room-link:hover .sp1-room-link-sub,
-[data-interface='spatial-1'] .sp1-room-link:focus-visible .sp1-room-link-sub {
-  color: #ff9ad6;
-}
-
 /* --- Hosted module content --- */
 
 /* The well keeps Test Mode's ink-navy canvas feel inside the station so the

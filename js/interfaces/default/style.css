@@ -1914,24 +1914,6 @@
   white-space: nowrap;
 }
 
-/* --- Conversation Starters --- */
-
-[data-interface='default'] .mer-starter-list {
-  list-style: none;
-  margin: 0 0 var(--space-md);
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-[data-interface='default'] .mer-starter-list li {
-  padding: var(--space-sm);
-  background: var(--color-bg-raised);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius-sm);
-}
-
 /* --- Theme from Photo --- */
 
 [data-interface='default'] .mer-themephoto-preview {
