@@ -88,10 +88,21 @@ cache). Format switched from integer (`lifeos-v101`) to decimal
 ## Graphics / visual design
 
 **Don't design or generate graphics — Alek brings the visual assets, work is
-wiring them up.** This came up concretely with the NEXUS interface
-(2026-07-12): the first pass reinterpreted his mockup as fresh CSS/SVG,
-which he flagged directly ("you don't do graphics"). The fix was to use his
-actual mockup image as real background art with click regions mapped onto
-it (the same technique Vespera's hub already uses), not to redesign it.
-When Alek gives an image, integrate it as-is — real asset + real hotspots/
-data wiring — rather than treating it as inspiration for an original build.
+wiring them up.** This came up concretely with the app's first mobile
+interface (`mobile-1`, 2026-07-12): the first pass reinterpreted his mockup
+as fresh CSS/SVG, which he flagged directly ("you don't do graphics"). The
+fix was to use his actual mockup image as real background art with click
+regions mapped onto it (the same technique Vespera's hub already uses), not
+to redesign it. When Alek gives an image, integrate it as-is — real asset +
+real hotspots/data wiring — rather than treating it as inspiration for an
+original build.
+
+**No permanent "name brand" per interface** (settled 2026-07-13, same
+thread as above). Alek's plan is several interchangeable mobile interfaces
+over time — don't invent or keep a cool product name for one (the first
+mobile interface was called "NEXUS" mid-session, then explicitly walked
+back: "drop nexus... drop any name brand"). Registry ids/folders use plain,
+generic, numbered names instead (`mobile-1`, `mobile-2`, ...) — see
+`MOBILE_INTERFACES_SPEC.md`. This is specifically about interfaces Alek
+hasn't named himself; it doesn't retroactively apply to Equator/Vespera,
+which are established, intentional names.

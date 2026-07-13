@@ -8,9 +8,10 @@
 // `touchSafe: false`) -- still the FULL 43-module app, just not Vespera.
 //
 // isMobileRemoteContext() -- "is this the installed mobile remote"
-// specifically (see LCARS_SPEC.md / PROJECT_SPEC.md's "Device philosophy"
-// section), a strictly narrower question used to decide module SCOPE (the
-// curated ~21-module set vs. the full app). Two signals, both required:
+// specifically (see MOBILE_INTERFACES_SPEC.md / PROJECT_SPEC.md's "Device
+// philosophy" section), a strictly narrower question used to decide module
+// SCOPE (the curated ~21-module set vs. the full app). Two signals, both
+// required:
 //   1. "Installed and launched as an app" -- display-mode is standalone/
 //      fullscreen/minimal-ui (or iOS Safari's older navigator.standalone
 //      flag), not a normal browser tab with URL bar and back button.

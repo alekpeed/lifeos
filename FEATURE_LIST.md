@@ -19,12 +19,12 @@ genuine moonshots.
 
 - **Installable, offline-first app** — works with no internet connection
   day to day; nothing requires a live connection to function.
-- **Swappable interfaces** — the whole desktop app can be redecorated
-  without a rebuild. The default ("Equator," a calm sidebar + content
-  layout) is built, alongside Vespera (a full spatial alternative, Part 2).
-  A Star-Trek-style LCARS mode is planned too, but as something different
-  in kind: a separate, stripped-down mobile remote with its own curated
-  module set, not a third full-parity desktop skin (Part 2).
+- **Swappable interfaces** — the whole app can be redecorated without a
+  rebuild. The default ("Equator," a calm sidebar + content layout) is
+  built, alongside Vespera (a full spatial alternative, Part 2) and a first
+  mobile interface ("mobile-1," built from Alek's own mockup). More mobile
+  interfaces are planned over time — deliberately interchangeable, not a
+  third full-parity desktop skin (Part 2).
 - **Light/dark mode, accent colors, density toggle** — independent of which
   interface is active.
 
@@ -322,13 +322,13 @@ bug).
   Still open from `VESPERA_SPEC.md`: per-district room art, richer
   per-space chrome. **Desktop only** — not part of the mobile/APK
   experience.
-- **LCARS-inspired mode** — Star Trek control-panel aesthetic, original
-  execution. Now confirmed as **the mobile remote's** visual language
-  specifically, not a desktop reskin. Scoped, not built — see
-  `LCARS_SPEC.md`: mobile-first v1, a new dedicated interface (not a
-  filtered Equator — that fork is resolved), a curated on-the-go module
-  set rather than the whole app, real motion/sound, functional
-  alert-styling.
+- ✅ **mobile-1** — the first of what's meant to be several interchangeable
+  mobile interfaces (see `MOBILE_INTERFACES_SPEC.md`), a real dedicated
+  interface (not a filtered Equator), built from Alek's own mockup image
+  with real click regions mapped onto it. A curated on-the-go module set,
+  real motion/sound, functional alert-styling — see the spec doc's "Still
+  open" for what's not yet reconciled (mobile-only gating, full module
+  coverage).
 
 ## Device philosophy: desktop is the full app, mobile is a remote (revised 2026-07-12)
 
@@ -339,7 +339,7 @@ stripped-down "controller in your pocket," built around what's actually
 useful away from a desk — quick capture, on-the-go actions, glanceable
 status — not full parity. No Vespera, no spatial "living world" on
 mobile; that register stays desktop's. Mobile gets its own purpose-built
-interface, styled LCARS (`LCARS_SPEC.md`), not a filtered version of
+interface(s) (`MOBILE_INTERFACES_SPEC.md`), not a filtered version of
 Equator.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly

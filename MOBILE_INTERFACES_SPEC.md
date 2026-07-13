@@ -1,22 +1,35 @@
-# LCARS Interface — Handoff Doc
+# Mobile Interface(s) — Planning Doc
 
-Status: **plumbing in progress, visual interface on hold.** Alek is
-bringing a design package for the actual LCARS chrome later — until then,
-the interface-agnostic groundwork (device detection, module curation, APK
-packaging groundwork) is being built now, since none of it depends on what
-the interface ends up looking like. Original execution throughout once the
-visual work starts — no Okuda font, no ripped assets, nothing that could
-get flagged as a copyright issue. The goal is "unmistakably LCARS-flavored,"
-not "a prop replica."
+**Naming, settled 2026-07-13:** no interface gets a permanent "name brand"
+— not "LCARS," not "NEXUS," not anything else. Alek's plan is to build
+several interchangeable mobile interfaces over time, so this doc tracks the
+*category* (mobile interfaces in general — device detection, module
+curation, packaging, functional requirements every one of them has to
+meet) rather than a single named product. Individual interfaces are
+registered generically: the first one is `mobile-1`
+(`js/interfaces/mobile-1/`), built from Alek's own Figma mockup. A second,
+third, etc. would be `mobile-2`, `mobile-3` and so on, each its own
+folder/registry entry, each free to look completely different — this doc's
+plumbing, module list, and functional contracts apply to all of them; only
+the visual layer is per-interface.
 
-**Revised 2026-07-12:** this is no longer "an LCARS skin over the existing
-app." LCARS is now confirmed as the visual language for a new, separate
+**Status:** `mobile-1` is built and shipped (see "Visual direction —
+realized as `mobile-1`" below) — but only the visual layer and its own
+dashboard-route navigation.
+The device-detection/module-curation/packaging plumbing this doc tracks
+predates it and was built mobile-interface-agnostically on purpose; how
+much of it `mobile-1` actually plugs into is tracked honestly in "Still
+open" below, not assumed.
+
+**Revised 2026-07-12 (pre-`mobile-1`):** this was originally scoped as "an
+LCARS skin over the existing app," then revised to a new, separate
 initiative — **the mobile remote** (see the "Device philosophy" note in
 `PROJECT_SPEC.md`, section 3): a deliberately stripped-down phone
 experience, not a second complete copy of the desktop app. No Vespera, no
 spatial "living world," no attempt at parity with desktop. Just the
-modules genuinely useful away from your desk, LCARS-styled, syncing
-through the same backend as everything else.
+modules genuinely useful away from your desk, syncing through the same
+backend as everything else. That framing still holds; only the "LCARS" name
+and the assumption of a single interface have been dropped.
 
 ## Plumbing built so far (2026-07-12, updated 2026-07-12)
 
@@ -64,6 +77,15 @@ so it's correct regardless of what the design package says.
   apart with dead space above and below. `align-content: start` fixes it;
   desktop is unaffected since its nav column is normally taller than any
   realistic viewport anyway.
+- **`mobile-1` registered as a real interface** (2026-07-13) —
+  `js/interfaces/mobile-1/`, built from Alek's own mockup image mapped with
+  real hotspots (see "Realized: mobile-1" below). It inherits the curated
+  module list "for free" through `ctx.modules` (the shell computes that
+  based on device context, not on which interface is active), but is
+  **not** gated to touch/mobile-only the way Vespera is gated off
+  non-touch devices — it currently shows up as a switchable interface on
+  any device. Whether that should change is an open decision, not an
+  oversight — see "Still open."
 
 **A real blocker found while scaffolding this, worth flagging rather than
 quietly working around:** Digital Asset Links verification (the file
@@ -84,7 +106,8 @@ rather than guessed at.
 ## Decisions already made
 
 - **Mobile-first, mobile-only for v1.** Desktop is explicitly deferred —
-  revisit later, not part of this build.
+  revisit later, not part of this build. *(Not yet enforced for `mobile-1`
+  — see "Still open.")*
 - **This is a new, dedicated interface**, not a filtered/reskinned version
   of Equator. The "chrome-skin vs. new interface" fork from the first
   scoping round is resolved: it's its own thing, purpose-built as a remote
@@ -275,6 +298,23 @@ Practical implication for the Figma work: design each distinct widget
 *type* once, with a placeholder value just to see how it reads with real
 content in it — not every possible value it could ever show.
 
+**Where `mobile-1` actually landed vs. this principle (2026-07-13):** its
+dashboard/home route does *not* follow this — it ships Alek's mockup image
+directly as background art with real click regions mapped onto it, mockup
+numbers and all (a specific temperature, specific fake task titles — see
+`js/interfaces/mobile-1/index.js`'s file comment for why: the image is
+decorative chrome, not a data surface, and every hotspot still navigates
+somewhere real). That was a deliberate, explicit call this session, not an
+oversight — Alek wanted the actual design shipped as-is rather than
+re-templated. Every *other* screen in `mobile-1` (anything reached by
+tapping a hotspot) is the real thing: the shared, live, event-driven view
+library described above, same as every other interface uses. So the
+principle above is fully true for the app in general and for `mobile-1`'s
+non-home screens; the home screen specifically is a deliberate exception.
+Whether a future mobile interface follows the templated-widget approach
+instead is an open, per-interface design choice, not a rule this doc
+enforces.
+
 ## Resolved: how does the app know it's the remote?
 
 **Decided:** a real installable Android package via **Trusted Web
@@ -299,20 +339,22 @@ actual Bubblewrap/keystore/Play Console steps, which are manual and
 external to this environment (no Android SDK or Play Console access here)
 — tracked as a to-do, not attempted.
 
-## Visual direction — superseded, real direction now in progress
+## Visual direction — realized as `mobile-1`
 
 **"Deck Nine" and "Red Squad" (below, struck from active use) were
 speculative starting points from before any real design existed** — kept
 here only as a historical record, not live guidance. Alek's own design
-work, evolved with reference imagery as he went, is the actual direction
-now. It reads as more of a general sci-fi HUD/console aesthetic (dark
+work is the actual direction, realized concretely as `mobile-1`
+(`js/interfaces/mobile-1/`): a general sci-fi HUD/console aesthetic (dark
 ground, magenta/hot-pink + cyan neon accent pairing, beveled glass-panel
 cards with soft glow, circular gauge/ring readouts, badge counters,
 sparkline mini-charts, a bottom nav bar with a central circular "core"
-button) than the strict rounded-pill/elbow-connector LCARS grammar
+button) rather than the strict rounded-pill/elbow-connector LCARS grammar
 originally scoped — a deliberate evolution, not a gap to reconcile.
-Real palette/shape values come from Alek's Figma placements directly,
-not from anything speculative below.
+Real palette/shape values come from Alek's own mockup image, shipped
+directly (see "How a static design becomes a live screen" above for how
+that reconciles with live data), not from anything speculative below. A
+future `mobile-2` or later interface is free to look nothing like this.
 
 <details>
 <summary>Struck: original speculative starting palettes (historical record only)</summary>
@@ -345,13 +387,15 @@ not from anything speculative below.
 
 ## Typography
 
-The real LCARS font (Okuda) is not ours to use. Rather than sourcing a new
-webfont, the app already vendors **Oxanium and Rajdhani**
-(`vendor/fonts/`) for Vespera's district signage — both are
-condensed/geometric sci-fi faces already proven to fit this app's spatial
-interfaces. Reusing them here is the default: zero new asset weight, and
-it ties LCARS visually to Vespera as "the app's two sci-fi registers"
-instead of introducing a third unrelated typeface.
+The real LCARS font (Okuda) was never ours to use. The app already vendors
+**Oxanium and Rajdhani** (`vendor/fonts/`) for Vespera's district signage —
+both are condensed/geometric sci-fi faces that would fit a console-style
+mobile interface too, zero new asset weight. **Not actually used by
+`mobile-1`, though** — its dashboard route's type is baked into Alek's
+mockup image (not live text), and its own slim header/module-screen chrome
+uses the system font stack (`var(--font-ui)`), same as Equator. Oxanium/
+Rajdhani remain available, unused, for a future mobile interface that
+wants real DOM type instead of image-baked text.
 
 ## Alert styling — proposed mapping (confirm or adjust)
 
@@ -388,58 +432,84 @@ gets:
 ## What "v1" concretely means
 
 In scope: the curated module list above (confirmed as-is), restyled
-chrome and navigation once the design package lands, the alert-color
+chrome and navigation per whichever design lands, the alert-color
 behavior above, generated motion/sound per the constraints above, mobile
 only.
 
-Out of scope for v1: desktop entirely, every module *not* on the curated
-list, any custom illustration/room art (this is a chrome build, not a
-Vespera-style art project), any change to a module's actual underlying
+Out of scope for v1: desktop entirely (not yet enforced for `mobile-1` —
+see "Still open"), every module *not* on the curated list (`mobile-1`'s
+wheel currently reaches 6 of the ~25 on the list — also "Still open"), any
+custom illustration/room art beyond what an individual mobile interface's
+own design brings, any change to a module's actual underlying
 functionality — views behave identically to their desktop counterparts,
-they just live in a smaller, LCARS-styled shell and there are fewer of
-them — and, for now, the Station Computer itself (reserved a spot on the
-list, stubbed as "coming soon" until it gets its own real build pass).
+they just live in a smaller shell and there are fewer of them — and, for
+now, the Station Computer itself (reserved a spot on the list, stubbed as
+"coming soon" until it gets its own real build pass).
 
 ## Still open
 
-1. **The visual design itself** — Alek owns this end to end: palette,
-   shapes, sizes, exact placement, all hand-placed in Figma against the
-   functional requirements above. Not a GPT-coordinate-extraction
-   workflow (see the design-process discussion below) — AI image
-   generation isn't precise enough for exact per-element geometry, and
-   this design has enough irregular/non-uniform shapes that deriving a
-   clean spacing "system" instead of placing things by hand wouldn't
-   hold up anyway. Typography default (Oxanium/Rajdhani reuse) and the
-   alert-color mapping above are still just proposals, confirm or adjust
-   whenever the design is far enough along to say.
-2. **Coordinate handoff format** — once Alek has real coordinates from
-   Figma, they get converted from raw pixels to percentages (matching
-   Vespera's existing hotspot-percentage convention, so positions stay
-   correct across different phone screen sizes) before landing in code.
-   Trivial conversion, not attempted yet since there's nothing to convert.
-3. **The origin-root blocker** — a real TWA needs either a custom domain
+1. **`mobile-1`'s mobile-only gating** — it's registered as a normal
+   switchable interface with no `touchSafe`-style restriction, so it
+   currently shows up as an option on desktop too, unlike this doc's
+   "mobile-first, mobile-only for v1" decision. Whether to gate it off
+   non-touch devices (Vespera-style) is an open call, not yet made.
+2. **`mobile-1`'s module coverage** — its wheel reaches 6 modules
+   (Today/Tasks/Settings/Ideas/Places/Search) against the ~25 on the
+   curated list below. The other ~19 are only reachable by URL/search,
+   not from `mobile-1`'s own navigation. Whether that's intentional (a
+   deliberately minimal v1 surface) or a gap to close with more hotspots/
+   a directory screen is Alek's call.
+3. **The per-screen functional contract** — the requirements below (what
+   each screen has to *show* and *do*) haven't been checked against
+   `mobile-1`'s actual hosted views screen-by-screen. They're hosted via
+   the same shared view library every interface uses, so most of this is
+   likely already satisfied, but it hasn't been verified as a pass.
+4. **Future mobile interfaces** — `mobile-2` and beyond don't exist yet.
+   Nothing about `mobile-1`'s specific visual choices (its palette, its
+   image-based dashboard) should be assumed to carry over; only this
+   doc's functional/plumbing layer does.
+5. **The origin-root blocker** — a real TWA needs either a custom domain
    for LifeOS, or the asset-links file living in whatever repo actually
    controls `alekpeed.github.io`'s root. Not resolved.
-4. **The actual packaging steps** — keystore generation, Bubblewrap CLI,
+6. **The actual packaging steps** — keystore generation, Bubblewrap CLI,
    Play Console setup. Manual/external, not attempted in this environment.
-5. **The Station Computer's real build** — wake word, token-mint backend,
+7. **The Station Computer's real build** — wake word, token-mint backend,
    WebRTC session — tracked separately, not part of this pass.
 
-## Design process note (2026-07-12)
+## Design process note (2026-07-12, revised 2026-07-13)
 
-Worth recording since it shaped the plan above: the original idea was
-"GPT designs the images, then reports back exact coordinates for every
-button." Ruled out — AI-generated images aren't geometrically precise
-(wobbly edges, drifting alignment at the pixel level), and asking a model
-to then extract exact coordinates from its own imprecise image compounds
-the problem rather than solving it. A concrete, already-lived example:
-Vespera's door hotspots were genuinely painful to get right because the
-art had real perspective (depth, a vanishing point), which meant the
-click regions needed true polygons matching that distortion, not simple
-rectangles — and getting those polygon points right meant guessing
-blind against a fixed image with no way to read out real coordinates.
-LCARS chrome doesn't have that specific problem (it's flat, orthographic,
-no perspective — a rectangle viewed head-on really is just a rectangle),
-but the deeper lesson held: don't make anyone reverse-engineer precision
-out of an image. Alek placing exact coordinates by hand in a real design
-tool (Figma) sidesteps the whole failure mode.
+Worth recording since it shaped (and then didn't quite hold up against)
+the plan above: the original idea was "GPT designs the images, then
+reports back exact coordinates for every button." Ruled out at the time —
+AI-generated images aren't geometrically precise (wobbly edges, drifting
+alignment at the pixel level), and asking a model to then extract exact
+coordinates from its own imprecise image compounds the problem rather than
+solving it. A concrete, already-lived example: Vespera's door hotspots
+were genuinely painful to get right because the art had real perspective
+(depth, a vanishing point), which meant the click regions needed true
+polygons matching that distortion, not simple rectangles — and getting
+those polygon points right meant guessing blind against a fixed image with
+no way to read out real coordinates. The conclusion drawn at the time:
+Alek placing exact coordinates by hand in a real design tool sidesteps the
+whole failure mode.
+
+**What actually happened for `mobile-1`, in practice:** a hybrid, not a
+clean win for either side of that argument. Alek's mockup image genuinely
+was AI-generated. Getting real hotspot coordinates out of it did *not* use
+Figma at all — it used a GPT-drawn reference trace (red outlines over the
+mockup) run through actual image-processing (color thresholding, connected-
+component clustering, contour extraction), not hand-placement. It also did
+*not* go smoothly on the first pass: the first extraction over-merged
+several separate buttons into one region and mischaracterized what was
+missing, caught and corrected only after Alek directly flagged it as
+wrong. So the original worry (imprecise AI output compounding into worse
+extracted coordinates) was real and did happen once — but got caught and
+fixed through direct correction rather than derailing the approach
+entirely. Net: don't treat "AI-generated image → extracted coordinates" as
+categorically ruled out anymore; treat it as a real option that needs a
+verification/correction pass, same as any other coordinate-extraction
+method would. Hand-placement in a real design tool (Figma's Dev Mode
+inspector, or its REST API for reading real vector-layer geometry) is
+still the better option **when the source has actual vector data to read**
+— it just doesn't apply to a flattened AI-generated raster image, which
+has none.

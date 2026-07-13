@@ -5,11 +5,11 @@
 // interface code needs to know in advance.
 //
 // `remote: true` marks a module as part of the mobile remote's curated
-// on-the-go set (see LCARS_SPEC.md's "Draft: what actually ships on the
-// remote" -- this flag is that list, encoded). Modules without it still
-// exist and work identically everywhere else; they're just not offered in
-// the remote's nav. Purely a UI-surface distinction, not a data one -- see
-// PROJECT_SPEC.md's "Device philosophy" section for why.
+// on-the-go set (see MOBILE_INTERFACES_SPEC.md's "Draft: what actually
+// ships on the remote" -- this flag is that list, encoded). Modules without
+// it still exist and work identically everywhere else; they're just not
+// offered in the remote's nav. Purely a UI-surface distinction, not a data
+// one -- see PROJECT_SPEC.md's "Device philosophy" section for why.
 
 export const MODULES = [
   { id: 'dashboard', label: 'Today', group: 'core', remote: true },

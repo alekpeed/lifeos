@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.25';
+const CACHE_VERSION = 'lifeos-v1.26';
 const APP_SHELL = [
   './',
   './index.html',
@@ -40,13 +40,13 @@ const APP_SHELL = [
   // the image hasn't been uploaded. It gets runtime-cached on first view.
   './js/interfaces/vespera/index.js',
   './js/interfaces/vespera/style.css',
-  // NEXUS. img/hub.png is likewise not precached, same reasoning as
-  // Vespera's hub art above -- unlike Vespera there's no CSS fallback if
-  // it's missing (the dashboard route needs the image), but the install-
-  // breaking risk of precaching a binary asset outweighs that here too.
-  // Runtime-cached on first view.
-  './js/interfaces/nexus/index.js',
-  './js/interfaces/nexus/style.css',
+  // Mobile Interface 1. img/hub.png is likewise not precached, same
+  // reasoning as Vespera's hub art above -- unlike Vespera there's no CSS
+  // fallback if it's missing (the dashboard route needs the image), but the
+  // install-breaking risk of precaching a binary asset outweighs that here
+  // too. Runtime-cached on first view.
+  './js/interfaces/mobile-1/index.js',
+  './js/interfaces/mobile-1/style.css',
   // Vespera room signage faces (small; load-bearing for the look, so unlike
   // the optional room art these ARE precached).
   './vendor/fonts/oxanium-600.woff2',

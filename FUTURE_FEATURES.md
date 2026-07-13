@@ -265,21 +265,23 @@ Plaid/Financial Center staying parked above.)*
   the Built ✅ section of `PROJECT_SPEC.md` for current state. **Desktop
   only** — not part of the mobile/APK experience, see the device
   philosophy note below.
-- **An LCARS-inspired mode** (Star Trek control-panel aesthetic, original
-  execution, no copyrighted assets) — now confirmed as **the mobile
-  remote's** visual language specifically, not a desktop reskin. Scoped
-  (2026-07): mobile-first v1, a new dedicated interface (not a filtered
-  Equator — that fork is resolved), a curated on-the-go module set rather
-  than the whole app, real motion + sound, alert-styling tied to actual
-  due/overdue data. See `LCARS_SPEC.md` for the draft module list and
-  remaining open questions.
+- ✅ **mobile-1** — the first of what's meant to be several interchangeable
+  mobile interfaces (no permanent "name brand" — see
+  `MOBILE_INTERFACES_SPEC.md`'s naming decision). Mobile-first, a new
+  dedicated interface (not a filtered Equator), built from Alek's own
+  mockup image with real click regions mapped onto it, a curated
+  on-the-go module set, real motion + sound, alert-styling tied to actual
+  due/overdue data. See `MOBILE_INTERFACES_SPEC.md` for the draft module
+  list and remaining open questions (mobile-only gating, full module
+  coverage not yet reconciled).
 - ⏸️ PARKED — **Bio-futurism/jungle interface** — a third, from-scratch
   interface concept: a futuristic tropical/jungle theme ("40th century meets
   the Amazon meets the far reaches of the galaxy"), unrelated to Vespera or
-  LCARS. Mid-exploration when parked: a typography/identity round (via
-  Claude Design, one direction returned so far) and an environment-art round
-  (via GPT, spec/prompt drafted) were both started but not finished or
-  committed to. Pick back up only when Alek brings it up by name.
+  the mobile interface(s) project. Mid-exploration when parked: a
+  typography/identity round (via Claude Design, one direction returned so
+  far) and an environment-art round (via GPT, spec/prompt drafted) were
+  both started but not finished or committed to. Pick back up only when
+  Alek brings it up by name.
 - Any others that come to mind along the way.
 
 ### Device philosophy — desktop is the full app, mobile is a remote (revised 2026-07-12)
@@ -291,7 +293,7 @@ stripped-down "controller in your pocket," built around what's actually
 useful away from a desk — quick capture, on-the-go actions, glanceable
 status — not full parity. No Vespera, no spatial "living world" on
 mobile; that register stays desktop's. Mobile gets its own purpose-built
-interface, styled LCARS (`LCARS_SPEC.md`), not a filtered version of
+interface(s) (`MOBILE_INTERFACES_SPEC.md`), not a filtered version of
 Equator.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly

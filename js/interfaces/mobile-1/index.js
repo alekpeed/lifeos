@@ -1,11 +1,13 @@
-// "NEXUS" — the user's own Figma mockup, shipped close to literally: the
-// mockup image (img/hub.png) is the actual home-screen background art, with
-// real, precisely-positioned click regions mapped onto it — the same
-// technique Vespera uses for its hub (img/hub.png + hotspot polygons), and
-// the direct continuation of this project's NEXUS-mockup coordinate-
-// precision exercise (nexustest.png / nexusred.png at the repo root): those
-// hotspot coordinates, extracted from a GPT-drawn trace and corrected twice
-// against direct user feedback, are reused here verbatim.
+// Mobile Interface 1 — the first of what's meant to be several
+// interchangeable mobile interfaces over time (see
+// MOBILE_INTERFACES_SPEC.md), each its own folder/registry entry, none of
+// them a permanent "the" mobile interface. This one is built from Alek's own
+// Figma mockup, shipped close to literally: the mockup image (img/hub.png)
+// is the actual home-screen background art, with real, precisely-positioned
+// click regions mapped onto it — the same technique Vespera uses for its hub
+// (img/hub.png + hotspot polygons). Those hotspot coordinates were extracted
+// from a GPT-drawn reference trace and corrected twice against direct user
+// review before landing here.
 //
 // The image is decorative chrome, not a live data surface — its baked-in
 // numbers (a specific temperature, specific fake task titles) are mockup
@@ -17,9 +19,9 @@
 // see the HOTSPOTS table below for the exact mapping.
 //
 // Away from the dashboard route, there's no mockup art for other screens,
-// so those get a plain slim header (brand/clock/back) hosting the real
-// module views from the shared view library — same pattern as Vespera's
-// Space screens.
+// so those get a plain slim header (clock/back) hosting the real module
+// views from the shared view library — same pattern as Vespera's Space
+// screens.
 
 import { registerInterface } from '../registry.js';
 import { VIEWS } from '../view-library.js';
@@ -73,22 +75,21 @@ function timeParts() {
 
 function renderHeader() {
   const { time, date } = timeParts();
-  const timeEl = el('span', { class: 'nxs-clock-time', text: time });
+  const timeEl = el('span', { class: 'mob1-clock-time', text: time });
   clockTimer = setInterval(() => { timeEl.textContent = timeParts().time; }, 30_000);
 
-  return el('header', { class: 'nxs-header' }, [
+  return el('header', { class: 'mob1-header' }, [
     el('button', {
-      type: 'button', class: 'nxs-brand', onclick: () => ctx.navigate('dashboard'),
+      type: 'button', class: 'mob1-brand', onclick: () => ctx.navigate('dashboard'),
     }, [
-      el('span', { class: 'nxs-brand-mark', text: '◈' }),
-      el('span', { class: 'nxs-brand-text' }, [
-        el('span', { class: 'nxs-brand-name', text: 'NEXUS' }),
-        el('span', { class: 'nxs-brand-sub', text: 'LIFE OS' }),
+      el('span', { class: 'mob1-brand-mark', text: '◈' }),
+      el('span', { class: 'mob1-brand-text' }, [
+        el('span', { class: 'mob1-brand-name', text: 'LIFE OS' }),
       ]),
     ]),
-    el('div', { class: 'nxs-clock' }, [timeEl, el('span', { class: 'nxs-clock-date', text: date })]),
+    el('div', { class: 'mob1-clock' }, [timeEl, el('span', { class: 'mob1-clock-date', text: date })]),
     el('button', {
-      type: 'button', class: 'nxs-icon-btn', title: 'Settings', 'aria-label': 'Settings',
+      type: 'button', class: 'mob1-icon-btn', title: 'Settings', 'aria-label': 'Settings',
       onclick: () => ctx.navigate('settings'),
     }, [el('span', { text: '⚙' })]),
   ]);
@@ -100,9 +101,9 @@ const IMG_W = 941;
 const IMG_H = 1672;
 
 // Rectangular hotspots: left/top/width/height as % of the 941x1672 mockup,
-// pixel-detected from the GPT-drawn reference trace (nexusred.png) and
-// corrected against direct user review (see this file's history / the
-// nexus-test scratch work this session). `module` is the real destination;
+// pixel-detected from a GPT-drawn reference trace of the mockup and
+// corrected against direct user review (see this file's git history for the
+// coordinate-extraction process). `module` is the real destination;
 // `special` marks the one hotspot ("Surprise me") that's a real action, not
 // pure navigation.
 const HOTSPOTS = [
@@ -143,8 +144,8 @@ const HOTSPOTS = [
 ];
 
 // The radial wheel's six true traced petal polygons (vertices in the full
-// 941x1672 image coordinate system -- see the nexus-test scratch work this
-// session for the contour-extraction method). No separate hotspot exists
+// 941x1672 image coordinate system, extracted from the reference trace via
+// contour detection). No separate hotspot exists
 // for the wheel's center hub, confirmed against the reference trace.
 const WHEEL_PETALS = [
   { id: 'today', module: 'dashboard', points: '729,1353.5 702,1348.5 672,1350.5 649.5,1347 638.5,1326 628.5,1304 618,1282.5 608,1260.5 597.5,1239 589,1216.5 604,1199.5 625,1188.5 652,1183.5 680,1179.5 710,1179.5 739,1182.5 766,1187.5 787,1198.5 800.5,1217 791.5,1240 781,1261.5 770,1282.5 759.5,1304 748.5,1325 737.5,1346' },
@@ -160,7 +161,7 @@ function hubImgUrl() {
 }
 
 function showToast(stage, text) {
-  const toast = el('div', { class: 'nxs-toast', text });
+  const toast = el('div', { class: 'mob1-toast', text });
   stage.append(toast);
   requestAnimationFrame(() => toast.classList.add('is-visible'));
   setTimeout(() => {
@@ -176,26 +177,26 @@ async function handleSurprise(stage) {
 }
 
 function renderHome(canvas) {
-  const stage = el('div', { class: 'nxs-stage' });
+  const stage = el('div', { class: 'mob1-stage' });
   // The picture and the petal hotspots live in ONE svg, sharing a single
   // viewBox/coordinate transform -- putting the <img> and the petal <svg> as
   // two separately-laid-out elements (each independently computing "100% of
-  // .nxs-stage") looked right in testing but drifted out of alignment on a
+  // .mob1-stage") looked right in testing but drifted out of alignment on a
   // real device, almost certainly subpixel rounding between the two
   // elements' box computations. An <image> inside the same <svg> as the
   // <polygon>s can't drift from them; there's only one transform to get
   // wrong instead of two that have to agree.
   // preserveAspectRatio="none": the stage now fills the real viewport
   // rather than being locked to the image's own 941:1672 ratio (see the
-  // .nxs-stage comment in style.css), so the box it's stretching to fill
+  // .mob1-stage comment in style.css), so the box it's stretching to fill
   // usually isn't that exact ratio. "none" stretches non-uniformly to
   // match it exactly -- mild distortion, but the image and the <polygon>
   // hotspots share this one transform, so they stay aligned regardless.
-  const svg = svgEl('svg', { class: 'nxs-petal-layer', viewBox: `0 0 ${IMG_W} ${IMG_H}`, preserveAspectRatio: 'none' });
+  const svg = svgEl('svg', { class: 'mob1-petal-layer', viewBox: `0 0 ${IMG_W} ${IMG_H}`, preserveAspectRatio: 'none' });
   const img = svgEl('image', { href: hubImgUrl(), x: 0, y: 0, width: IMG_W, height: IMG_H });
   svg.append(img);
   for (const p of WHEEL_PETALS) {
-    const poly = svgEl('polygon', { points: p.points, class: 'nxs-petal' });
+    const poly = svgEl('polygon', { points: p.points, class: 'mob1-petal' });
     poly.addEventListener('click', () => ctx.navigate(p.module));
     svg.append(poly);
   }
@@ -203,7 +204,7 @@ function renderHome(canvas) {
 
   for (const h of HOTSPOTS) {
     stage.append(el('button', {
-      type: 'button', class: 'nxs-hotspot',
+      type: 'button', class: 'mob1-hotspot',
       style: `left:${h.left}%; top:${h.top}%; width:${h.width}%; height:${h.height}%;`,
       title: moduleLabel(h.module) || 'Surprise me',
       onclick: () => (h.special === 'surprise' ? handleSurprise(stage) : ctx.navigate(h.module)),
@@ -217,13 +218,13 @@ function renderHome(canvas) {
 
 async function renderModuleScreen(canvas, route) {
   canvas.append(renderHeader());
-  const bar = el('div', { class: 'nxs-subbar' }, [
-    el('button', { type: 'button', class: 'nxs-back', text: '◂ Home', onclick: () => ctx.navigate('dashboard') }),
-    el('span', { class: 'nxs-subbar-title', text: moduleLabel(route.module) }),
+  const bar = el('div', { class: 'mob1-subbar' }, [
+    el('button', { type: 'button', class: 'mob1-back', text: '◂ Home', onclick: () => ctx.navigate('dashboard') }),
+    el('span', { class: 'mob1-subbar-title', text: moduleLabel(route.module) }),
   ]);
   canvas.append(bar);
 
-  const well = el('div', { class: 'nxs-content', 'data-interface': 'default' });
+  const well = el('div', { class: 'mob1-content', 'data-interface': 'default' });
   const inner = el('main', { class: 'mer-canvas' });
   well.append(inner);
   canvas.append(well);
@@ -242,7 +243,7 @@ async function doRender(route) {
   if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
   els.root.innerHTML = '';
   const isHome = route.module === 'dashboard';
-  const canvas = el('div', { class: isHome ? 'nxs-canvas nxs-canvas--home' : 'nxs-canvas' });
+  const canvas = el('div', { class: isHome ? 'mob1-canvas mob1-canvas--home' : 'mob1-canvas' });
   els.root.append(canvas);
   if (isHome) {
     renderHome(canvas);
@@ -254,7 +255,7 @@ async function doRender(route) {
 function requestRender(route) {
   currentRoute = route;
   renderChain = renderChain.then(() => doRender(route)).catch((err) => {
-    console.error('nexus: render failed', err);
+    console.error('mobile-1: render failed', err);
   });
   return renderChain;
 }
@@ -274,14 +275,14 @@ function scheduleRerender() {
 }
 
 registerInterface({
-  id: 'nexus',
-  name: 'NEXUS',
-  description: "The user's own mockup, mapped: real click regions on the actual design.",
-  stylesheet: 'js/interfaces/nexus/style.css',
+  id: 'mobile-1',
+  name: 'Mobile 1',
+  description: "Alek's own mockup, mapped: real click regions on the actual design.",
+  stylesheet: 'js/interfaces/mobile-1/style.css',
 
   async mount(container, context) {
     ctx = context;
-    const root = el('div', { class: 'nxs-root' });
+    const root = el('div', { class: 'mob1-root' });
     container.append(root);
     els = { root };
     // Module screens host real views that need to react to data changes

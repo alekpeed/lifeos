@@ -3,7 +3,7 @@
   Deliberately not "cream + terracotta" or "near-black + neon": the default
   identity is ink navy with a brass instrument-panel accent, paired with a
   cooler slate-teal secondary so the palette reads as considered, not templated.
-  Individual interfaces (e.g. an LCARS-style mode) may define their own
+  Individual interfaces (e.g. mobile-1's neon palette) may define their own
   accent scale entirely — these tokens are the default interface's contract,
   not a hard global constraint.
 */

@@ -1,35 +1,35 @@
 /*
-  NEXUS — the user's own mockup, shipped close to literally: the dashboard
-  route is the mockup image with real click regions mapped onto it (see
-  index.js's HOTSPOTS/WHEEL_PETALS). Everywhere else gets a plain slim
+  Mobile Interface 1 — Alek's own mockup, shipped close to literally: the
+  dashboard route is the mockup image with real click regions mapped onto it
+  (see index.js's HOTSPOTS/WHEEL_PETALS). Everywhere else gets a plain slim
   header hosting the real module views. Deliberately its own palette (per
   tokens.css's note that interfaces may define an accent scale entirely
   their own) so the slim header matches the mockup's hot-pink + cyan look.
-  Scoped under [data-interface='nexus'] so it never leaks into Equator or
-  Vespera.
+  Scoped under [data-interface='mobile-1'] so it never leaks into Equator,
+  Vespera, or any other mobile interface added later.
 */
 
-[data-interface='nexus'] {
-  --nxs-bg: #0a0a14;
-  --nxs-bg-card: #13131f;
-  --nxs-bg-raised: #1a1a2a;
-  --nxs-border: rgba(140, 160, 255, 0.16);
-  --nxs-pink: #ff3d94;
-  --nxs-pink-soft: rgba(255, 61, 148, 0.16);
-  --nxs-cyan: #2be3ff;
-  --nxs-cyan-soft: rgba(43, 227, 255, 0.14);
-  --nxs-text: #eaf3ff;
-  --nxs-muted: #8b93b0;
-  --nxs-danger: #ff5d6c;
+[data-interface='mobile-1'] {
+  --mob1-bg: #0a0a14;
+  --mob1-bg-card: #13131f;
+  --mob1-bg-raised: #1a1a2a;
+  --mob1-border: rgba(140, 160, 255, 0.16);
+  --mob1-pink: #ff3d94;
+  --mob1-pink-soft: rgba(255, 61, 148, 0.16);
+  --mob1-cyan: #2be3ff;
+  --mob1-cyan-soft: rgba(43, 227, 255, 0.14);
+  --mob1-text: #eaf3ff;
+  --mob1-muted: #8b93b0;
+  --mob1-danger: #ff5d6c;
 
-  background: var(--nxs-bg);
-  color: var(--nxs-text);
+  background: var(--mob1-bg);
+  color: var(--mob1-text);
   min-height: 100%;
 }
 
-[data-interface='nexus'] * { box-sizing: border-box; }
+[data-interface='mobile-1'] * { box-sizing: border-box; }
 
-.nxs-root {
+.mob1-root {
   font-family: var(--font-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
   /* 100vh, not 100dvh, is pinned to the LARGEST possible viewport (address
      bar hidden) -- taller than the actual visible area whenever the address
@@ -41,10 +41,10 @@
   background:
     radial-gradient(ellipse at 15% 0%, rgba(255, 61, 148, 0.10), transparent 55%),
     radial-gradient(ellipse at 85% 15%, rgba(43, 227, 255, 0.08), transparent 50%),
-    var(--nxs-bg);
+    var(--mob1-bg);
 }
 
-.nxs-canvas {
+.mob1-canvas {
   max-width: 640px;
   margin: 0 auto;
   padding: var(--space-md, 1rem) var(--space-md, 1rem) var(--space-xl, 3rem);
@@ -56,7 +56,7 @@
 /* The dashboard route is just the stage -- the module-screen padding
    (generous bottom padding for a normal scrolling card list) would eat into
    the viewport space the stage needs to size itself against. */
-.nxs-canvas--home {
+.mob1-canvas--home {
   padding: var(--space-sm, 0.5rem);
   height: calc(100dvh - var(--space-sm, 0.5rem) * 2);
   align-items: center;
@@ -70,7 +70,7 @@
 
 /* Dashboard: the mockup image + real click regions */
 
-.nxs-stage {
+.mob1-stage {
   position: relative;
   width: 100%;
   max-width: 480px;
@@ -89,7 +89,7 @@
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
-.nxs-hotspot {
+.mob1-hotspot {
   position: absolute;
   border: 0; padding: 0; margin: 0;
   background: transparent;
@@ -97,24 +97,24 @@
   -webkit-tap-highlight-color: transparent;
   border-radius: 6px;
 }
-.nxs-hotspot:hover, .nxs-hotspot:focus-visible {
+.mob1-hotspot:hover, .mob1-hotspot:focus-visible {
   background: rgba(43, 227, 255, 0.16);
   outline: 1px solid rgba(43, 227, 255, 0.5);
   outline-offset: -1px;
 }
 
-.nxs-petal-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.nxs-petal-layer .nxs-petal { pointer-events: auto; cursor: pointer; fill: transparent; stroke: none; }
-.nxs-petal-layer .nxs-petal:hover { fill: rgba(255, 61, 148, 0.2); }
+.mob1-petal-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.mob1-petal-layer .mob1-petal { pointer-events: auto; cursor: pointer; fill: transparent; stroke: none; }
+.mob1-petal-layer .mob1-petal:hover { fill: rgba(255, 61, 148, 0.2); }
 
-.nxs-toast {
+.mob1-toast {
   position: absolute; left: 50%; bottom: 14px;
   transform: translate(-50%, 8px);
   opacity: 0;
   transition: opacity 200ms ease, transform 200ms ease;
   background: rgba(10, 10, 20, 0.94);
-  border: 1px solid var(--nxs-border);
-  color: var(--nxs-text);
+  border: 1px solid var(--mob1-border);
+  color: var(--mob1-text);
   padding: 0.6rem 0.9rem;
   border-radius: 10px;
   font-size: 0.78rem;
@@ -122,70 +122,69 @@
   text-align: center;
   pointer-events: none;
 }
-.nxs-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.mob1-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
 
 /* Slim header (module screens only) */
 
-.nxs-header {
+.mob1-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm, 0.75rem);
   padding: var(--space-sm, 0.75rem) var(--space-md, 1rem);
-  background: var(--nxs-bg-card);
-  border: 1px solid var(--nxs-border);
+  background: var(--mob1-bg-card);
+  border: 1px solid var(--mob1-border);
   border-radius: 14px;
   box-shadow: 0 0 0 1px rgba(255, 61, 148, 0.05), 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.nxs-brand {
+.mob1-brand {
   display: flex; align-items: center; gap: 0.5rem;
   background: none; border: none; padding: 0; cursor: pointer;
 }
-.nxs-brand-mark { color: var(--nxs-pink); font-size: 1.4rem; line-height: 1; text-shadow: 0 0 12px var(--nxs-pink); }
-.nxs-brand-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
-.nxs-brand-name { font-weight: 700; letter-spacing: 0.08em; font-size: 0.95rem; color: var(--nxs-text); }
-.nxs-brand-sub { font-size: 0.6rem; letter-spacing: 0.12em; color: var(--nxs-cyan); }
+.mob1-brand-mark { color: var(--mob1-pink); font-size: 1.4rem; line-height: 1; text-shadow: 0 0 12px var(--mob1-pink); }
+.mob1-brand-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.mob1-brand-name { font-weight: 700; letter-spacing: 0.08em; font-size: 0.95rem; color: var(--mob1-text); }
 
-.nxs-clock { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
-.nxs-clock-time { font-size: 0.95rem; font-weight: 600; }
-.nxs-clock-date { font-size: 0.6rem; letter-spacing: 0.08em; color: var(--nxs-muted); }
+.mob1-clock { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.mob1-clock-time { font-size: 0.95rem; font-weight: 600; }
+.mob1-clock-date { font-size: 0.6rem; letter-spacing: 0.08em; color: var(--mob1-muted); }
 
-.nxs-icon-btn {
+.mob1-icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 2.1rem; height: 2.1rem;
-  background: var(--nxs-bg-raised);
-  border: 1px solid var(--nxs-border);
+  background: var(--mob1-bg-raised);
+  border: 1px solid var(--mob1-border);
   border-radius: 10px;
-  color: var(--nxs-text);
+  color: var(--mob1-text);
   cursor: pointer;
   font-size: 1rem;
 }
-.nxs-icon-btn:hover { border-color: var(--nxs-cyan); box-shadow: 0 0 8px var(--nxs-cyan-soft); }
+.mob1-icon-btn:hover { border-color: var(--mob1-cyan); box-shadow: 0 0 8px var(--mob1-cyan-soft); }
 
 /* Module screens (everything but the home route) */
 
-.nxs-subbar {
+.mob1-subbar {
   display: flex; align-items: center; gap: 0.6rem;
   padding: 0.5rem 0.2rem;
 }
-.nxs-back {
-  background: var(--nxs-bg-raised);
-  border: 1px solid var(--nxs-border);
-  color: var(--nxs-text);
+.mob1-back {
+  background: var(--mob1-bg-raised);
+  border: 1px solid var(--mob1-border);
+  color: var(--mob1-text);
   border-radius: 999px;
   padding: 0.35rem 0.75rem;
   font-size: 0.78rem;
   cursor: pointer;
 }
-.nxs-back:hover { border-color: var(--nxs-cyan); }
-.nxs-subbar-title { font-weight: 700; letter-spacing: 0.03em; }
+.mob1-back:hover { border-color: var(--mob1-cyan); }
+.mob1-subbar-title { font-weight: 700; letter-spacing: 0.03em; }
 
-.nxs-content {
-  background: var(--nxs-bg-card);
-  border: 1px solid var(--nxs-border);
+.mob1-content {
+  background: var(--mob1-bg-card);
+  border: 1px solid var(--mob1-border);
   border-radius: 14px;
 }
-.nxs-content .mer-canvas {
+.mob1-content .mer-canvas {
   padding: var(--space-md, 1rem);
 }

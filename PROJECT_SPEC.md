@@ -19,9 +19,12 @@ lets the whole app be redecorated later without rebuilding it:
 - Your data lives on your device first; Drive sync is a backup/relay between
   your two devices, not a requirement to use the app
 - Multiple complete interfaces to choose from — not just color themes, but
-  genuinely different layouts. The first one ("Equator," a calm sidebar +
-  content layout) is built. A structurally different mode and an LCARS
-  (Star-Trek-inspired) mode are still to come — see Section 3.
+  genuinely different layouts. Built so far: "Equator" (a calm sidebar +
+  content layout, the default), "Vespera" (a spatial, desktop-only
+  alternative), and a first mobile interface ("mobile-1," built from Alek's
+  own mockup — see `MOBILE_INTERFACES_SPEC.md`). More mobile interfaces are
+  planned over time, deliberately not tied to a single visual identity —
+  see Section 3.
 - Light/dark mode, a few accent color choices, and a compact/comfortable
   density toggle, independent of which interface you're using
 
@@ -471,14 +474,16 @@ lets the whole app be redecorated later without rebuilding it:
   Built ✅ section above and `VESPERA_SPEC.md` for current state.
   **Desktop only** — not part of the mobile/APK experience (see the device
   philosophy note below).
-- **LCARS-inspired mode** — now confirmed as the visual language for **the
-  mobile remote** specifically, not a desktop reskin (see device
-  philosophy below). Scoped, not built — see `LCARS_SPEC.md`: mobile-first
-  v1, a new dedicated interface (not a filtered Equator), a curated
-  on-the-go module set (draft list in the doc, not the whole app), real
-  motion/sound, functional alert-styling. The chrome-skin-vs-spatial-
-  interface fork from the first scoping round is resolved: it's a new
-  dedicated interface.
+- **Mobile interface(s)** — deliberately not a single named product (see
+  `MOBILE_INTERFACES_SPEC.md`, naming decision at the top): Alek's plan is
+  several interchangeable mobile interfaces over time, each its own
+  registry entry, sharing one functional/plumbing layer (device detection,
+  curated module set, packaging) but free to look completely different.
+  First one built: **`mobile-1`**, from Alek's own mockup — a real
+  dedicated interface (not a filtered Equator), real motion/sound,
+  functional alert-styling. Not yet gated mobile-only, and its own
+  navigation reaches a subset of the curated module list — see
+  `MOBILE_INTERFACES_SPEC.md`'s "Still open" for exactly what's left.
 - Any others that come to mind along the way
 
 **Device philosophy — desktop is the full app, mobile is a remote
@@ -489,7 +494,7 @@ a genuinely stripped-down "controller in your pocket," built around what's
 actually useful away from a desk — quick capture, on-the-go actions,
 glanceable status — not full parity. No Vespera, no spatial "living
 world" on mobile; that register stays desktop's. Mobile gets its own
-purpose-built interface, styled LCARS (`LCARS_SPEC.md`), not a filtered
+purpose-built interface(s) (`MOBILE_INTERFACES_SPEC.md`), not a filtered
 version of Equator.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly
@@ -574,7 +579,7 @@ Everything below came out of talking through what would actually feel
 15. Remaining routine-build ideas (Dream Journal, Rabbit Hole Journal,
     Conversation Starters, Ghost Days, The Almanac, Life as Music, Library
     of Babel, Theme-from-photo)
-16. Additional interfaces (Vespera, LCARS)
+16. Additional interfaces (Vespera; more mobile interfaces beyond `mobile-1`)
 17. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
