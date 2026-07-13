@@ -1,5 +1,6 @@
-/* Equator (default interface). Scoped under [data-interface="default"] so
-   its rules can never leak into another interface. Uses only shared tokens. */
+/* Test Mode (default interface, registry id 'default'). Scoped under
+   [data-interface="default"] so its rules can never leak into another
+   interface. Uses only shared tokens. */
 
 [data-interface='default'] .mer-root {
   display: grid;
@@ -1223,120 +1224,12 @@
   padding-left: calc(var(--space-sm) - 2px);
 }
 
-/* --- Synth Sound panel: knobs, detented sliders, and classic skins --- */
-
-[data-interface='default'] .mer-synth-panel {
-  /* Skin variables; overridden per-skin below. Equator (default) reuses the
-     app's own tokens so it looks native. */
-  --panel-bg: var(--color-bg-raised);
-  --panel-ink: var(--color-text);
-  --panel-muted: var(--color-text-muted);
-  --knob-face: var(--color-bg-overlay);
-  --knob-ring: var(--color-border-strong);
-  --knob-indicator: var(--accent);
-  --knob-tick: var(--color-text-faint);
-  background: var(--panel-bg);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  color: var(--panel-ink);
-}
-
-[data-interface='default'] .mer-synth-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-md);
-  margin-bottom: var(--space-sm);
-}
-[data-interface='default'] .mer-synth-bar .mer-setting { border-bottom: none; max-width: 14rem; min-height: 0; }
-/* Keep the Look/Controls dropdowns dark-on-light-text regardless of the skin's
-   ink color, so they stay legible on the light skins (Wurlitzer/Nord). */
-[data-interface='default'] .mer-synth-panel select {
-  background: var(--color-bg-raised);
-  color: var(--color-text);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  padding: var(--space-xs) var(--space-sm);
-}
-
-/* Knob grid */
-[data-interface='default'] .mer-knob-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
-  gap: var(--space-md);
-  align-items: start;
-}
-[data-interface='default'] .mer-knob-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  text-align: center;
-}
-[data-interface='default'] .mer-knob {
-  width: 4rem;
-  height: 4rem;
-  touch-action: none;          /* let vertical drag drive the knob, not scroll */
-  cursor: ns-resize;
-  outline: none;
-}
-[data-interface='default'] .mer-knob.is-dragging { cursor: grabbing; }
-[data-interface='default'] .mer-knob:focus-visible { filter: drop-shadow(0 0 3px var(--knob-indicator)); }
-[data-interface='default'] .mer-knob-ring { fill: var(--knob-ring); }
-[data-interface='default'] .mer-knob-face { fill: var(--knob-face); }
-[data-interface='default'] .mer-knob-indicator { stroke: var(--knob-indicator); }
-[data-interface='default'] .mer-knob-tick { stroke: var(--knob-tick); stroke-width: 1.5; }
-[data-interface='default'] .mer-knob-label { font-size: var(--text-sm); color: var(--panel-muted); }
-[data-interface='default'] .mer-knob-readout {
-  font-family: var(--font-mono); font-size: var(--text-sm); color: var(--panel-ink);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Detented slider (touch/mobile) */
-[data-interface='default'] .mer-slider-field { display: flex; flex-direction: column; gap: 0.2rem; }
-[data-interface='default'] .mer-slider-top { display: flex; justify-content: space-between; align-items: baseline; }
-[data-interface='default'] .mer-slider-readout {
-  font-family: var(--font-mono); font-size: var(--text-sm); color: var(--panel-ink);
-  font-variant-numeric: tabular-nums;
-}
-[data-interface='default'] .mer-detent-slider { width: 100%; accent-color: var(--knob-indicator); }
-[data-interface='default'] .mer-slider-ends {
-  display: flex; justify-content: space-between;
-  font-size: var(--text-sm); color: var(--panel-muted); font-variant-numeric: tabular-nums;
-}
-
-/* --- Skins: each just repaints the panel + knob custom properties. --- */
-
-[data-interface='default'] .mer-synth-panel.skin-rhodes {
-  --panel-bg: #1c1712; --panel-ink: #efe6d6; --panel-muted: #b3a086;
-  --knob-face: #14100c; --knob-ring: #3a2f24; --knob-indicator: #e0a44a; --knob-tick: #6b5a44;
-  background: linear-gradient(#221c15, #171310);
-}
-[data-interface='default'] .mer-synth-panel.skin-wurlitzer {
-  --panel-bg: #b9ab8f; --panel-ink: #2a2213; --panel-muted: #5c5138;
-  --knob-face: #2a2318; --knob-ring: #8a7c5f; --knob-indicator: #d8b24a; --knob-tick: #6f6046;
-  background: linear-gradient(#c3b596, #ab9d80);
-}
-[data-interface='default'] .mer-synth-panel.skin-nord {
-  --panel-bg: #a41414; --panel-ink: #fff3f0; --panel-muted: #f0c4bd;
-  --knob-face: #1a1110; --knob-ring: #6d0f0f; --knob-indicator: #f5efe8; --knob-tick: #d98b84;
-  background: linear-gradient(#b71a1a, #8f1010);
-}
-[data-interface='default'] .mer-synth-panel.skin-moog {
-  --panel-bg: #0f0f10; --panel-ink: #e8e2d4; --panel-muted: #9a948a;
-  --knob-face: #d9d2c2; --knob-ring: #2b2b2e; --knob-indicator: #1a1a1a; --knob-tick: #7a756c;
-  background: linear-gradient(#161617, #0d0d0e);
-}
-
-/* --- Mobile overrides for Chords: fix toolbar input + voicing grid overflow --- */
+/* --- Mobile: keep the quick-add input from overflowing its row at narrow
+   widths (used by every module's quick-add toolbar, not just one). --- */
 @media (max-width: 44rem) {
   [data-interface='default'] .mer-quick-add {
     flex-basis: auto;
     min-width: 0;
-  }
-
-  [data-interface='default'] .mer-voicing-grid {
-    grid-template-columns: 1fr;
   }
 }
 

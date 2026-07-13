@@ -34,26 +34,26 @@ const APP_SHELL = [
   './js/interfaces/manifest.js',
   './js/interfaces/view-library.js',
   './js/interfaces/default/index.js',
-  // Vespera. Note: img/hub.png is deliberately NOT precached -- the art is
-  // optional (CSS paints a fallback), and cache.addAll() rejects the whole
-  // install on any single 404, which would brick offline support whenever
-  // the image hasn't been uploaded. It gets runtime-cached on first view.
-  './js/interfaces/vespera/index.js',
-  './js/interfaces/vespera/style.css',
+  // Spatial Interface 1 (formerly "Vespera"). Note: img/hub.png is
+  // deliberately NOT precached -- the art is optional (CSS paints a
+  // fallback), and cache.addAll() rejects the whole install on any single
+  // 404, which would brick offline support whenever the image hasn't been
+  // uploaded. It gets runtime-cached on first view.
+  './js/interfaces/spatial-1/index.js',
+  './js/interfaces/spatial-1/style.css',
   // Mobile Interface 1. img/hub.png is likewise not precached, same
-  // reasoning as Vespera's hub art above -- unlike Vespera there's no CSS
-  // fallback if it's missing (the dashboard route needs the image), but the
-  // install-breaking risk of precaching a binary asset outweighs that here
-  // too. Runtime-cached on first view.
+  // reasoning as the spatial interface's hub art above -- unlike that one
+  // there's no CSS fallback if it's missing (the dashboard route needs the
+  // image), but the install-breaking risk of precaching a binary asset
+  // outweighs that here too. Runtime-cached on first view.
   './js/interfaces/mobile-1/index.js',
   './js/interfaces/mobile-1/style.css',
-  // Vespera room signage faces (small; load-bearing for the look, so unlike
-  // the optional room art these ARE precached).
+  // Spatial interface room signage faces (small; load-bearing for the
+  // look, so unlike the optional room art these ARE precached).
   './vendor/fonts/oxanium-600.woff2',
   './vendor/fonts/rajdhani-600.woff2',
   './js/interfaces/default/dom.js',
   './js/interfaces/default/icons.js',
-  './js/interfaces/default/knob.js',
   './js/interfaces/default/leaflet-loader.js',
   './js/interfaces/default/style.css',
   './js/interfaces/default/views/dashboard.js',
@@ -75,8 +75,6 @@ const APP_SHELL = [
   './js/interfaces/default/views/habits.js',
   './js/interfaces/default/views/health.js',
   './js/interfaces/default/views/photos.js',
-  './js/interfaces/default/views/languages.js',
-  './js/interfaces/default/views/chords.js',
   './js/interfaces/default/views/sharebox.js',
   './js/interfaces/default/views/museum.js',
   './js/interfaces/default/views/timecapsules.js',
@@ -100,15 +98,6 @@ const APP_SHELL = [
   './js/interfaces/default/views/assistant.js',
   './js/interfaces/default/views/ideas.js',
   './js/interfaces/default/views/recall.js',
-  './js/theory/notes.js',
-  './js/theory/chords.js',
-  './js/theory/voicings.js',
-  './js/theory/harmony.js',
-  './js/theory/barry.js',
-  './js/theory/lessons.js',
-  './js/theory/voicelead.js',
-  './js/theory/graph.js',
-  './js/theory/drills.js',
   './js/audio/synth.js',
   './js/reader/epub.js',
   './vendor/fflate/fflate.module.js',

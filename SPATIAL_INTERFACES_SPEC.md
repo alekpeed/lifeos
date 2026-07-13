@@ -1,23 +1,33 @@
-# Vespera — Spatial Interface Plan
+# Spatial Interface(s) — Plan
 
-A second full interface (alongside Equator) built around the concept
-ChatGPT drafted: LifeOS as a place — the orbital station **Vespera** — rather
-than a dashboard. Full source concept in
-`LifeOS_Vespera_Spatial_Architecture_v3.md` (as uploaded). This doc is the
-build-ready version of it: every space below maps to something the app
-actually does, or is explicitly marked as reserved for a module that
-doesn't exist yet. Nothing here is decoration with no function behind it —
-that's the one hard rule carried over from the source concept.
+**Naming, settled 2026-07-13:** same rule as `MOBILE_INTERFACES_SPEC.md` —
+no interface gets a permanent "name brand." This was originally built and
+named "Vespera"; the product name is dropped, the spatial *concept*
+persists as the first realized instance, registered generically as
+**`spatial-1`** (`js/interfaces/spatial-1/`). A future `spatial-2` (or
+beyond) would follow the same pattern.
+
+A second full interface (alongside Test Mode) built around the concept
+ChatGPT drafted: LifeOS as a place — an orbital station — rather than a
+dashboard. Full source concept in `LifeOS_Vespera_Spatial_Architecture_v3.md`
+(as uploaded, kept under its original filename since it's a historical
+source document, not live spec). This doc is the build-ready version of it:
+every space below maps to something the app actually does, or is
+explicitly marked as reserved for a module that doesn't exist yet. Nothing
+here is decoration with no function behind it — that's the one hard rule
+carried over from the source concept.
 
 Status: **v1 built** (2026-07-10, Fable+high, flagged and confirmed per
-protocol). `js/interfaces/vespera/` implements the Hub (nine district
-plaques + Central Directory), district door screens, travel transitions,
-and Spaces hosting the canonical module views (shared via
-`js/interfaces/view-library.js`) inside station chrome. The hub expects
-its concourse art at `js/interfaces/vespera/img/hub.png` and paints a
-pure-CSS starfield until that file is uploaded — art is atmosphere, never
-load-bearing. Remaining from this spec: per-district room art (the ~16
-other images) and richer per-space chrome.
+protocol; renamed to `spatial-1` 2026-07-13). `js/interfaces/spatial-1/`
+implements the Hub (now seven district plaques + Central Directory — the
+Conservatory district was removed 2026-07-13 when Languages and Chords
+were cut from the app entirely, see `CHORDS_APP_HANDOFF.md`), district
+door screens, travel transitions, and Spaces hosting the canonical module
+views (shared via `js/interfaces/view-library.js`) inside station chrome.
+The hub expects its concourse art at `js/interfaces/spatial-1/img/hub.png`
+and paints a pure-CSS starfield until that file is uploaded — art is
+atmosphere, never load-bearing. Remaining from this spec: per-district
+room art (the ~16 other images) and richer per-space chrome.
 
 ## Navigation shape
 

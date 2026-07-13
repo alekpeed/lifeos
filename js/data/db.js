@@ -2,7 +2,7 @@
 // touch `indexedDB` directly — everything else (api.js and, through it,
 // every interface) goes through the promise-based helpers below.
 
-import { DB_NAME, DB_VERSION, STORES } from './schema.js';
+import { DB_NAME, DB_VERSION, STORES, RETIRED_STORES } from './schema.js';
 
 let dbPromise = null;
 
@@ -18,6 +18,12 @@ function runUpgrade(db) {
     for (const index of store.indexes || []) {
       objectStore.createIndex(index.name, index.keyPath, index.options || {});
     }
+  }
+  // A retired store only exists on installs old enough to have created it;
+  // deleteObjectStore is a no-op error if called on a name that isn't
+  // present, so this is guarded the same way store creation is above.
+  for (const name of RETIRED_STORES) {
+    if (db.objectStoreNames.contains(name)) db.deleteObjectStore(name);
   }
 }
 

@@ -2,10 +2,10 @@
 //
 // isTouchPrimaryDevice() -- "is this a phone/touch-first device," full
 // stop, regardless of install state. A browser tab counts. Used to decide
-// interface SUITABILITY: Vespera's spatial hub genuinely doesn't work on a
-// small touchscreen, installed or not, so anything touch-primary falls
-// back to the plain Equator interface instead (see vespera/index.js's
-// `touchSafe: false`) -- still the FULL 43-module app, just not Vespera.
+// interface SUITABILITY: the spatial interface's hub genuinely doesn't work
+// on a small touchscreen, installed or not, so anything touch-primary falls
+// back to the plain Test Mode interface instead (see spatial-1/index.js's
+// `touchSafe: false`) -- still the FULL 43-module app, just not that one.
 //
 // isMobileRemoteContext() -- "is this the installed mobile remote"
 // specifically (see MOBILE_INTERFACES_SPEC.md / PROJECT_SPEC.md's "Device

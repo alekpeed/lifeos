@@ -2,7 +2,7 @@
 // import side effects), then hand control to the shell.
 
 import { openDatabase } from './data/db.js';
-import { migrateLegacyPeopleToContacts, migrateLegacyJapaneseToLanguagePacks, ensureLanguagePack, Settings, verifyAppLock, runAutomations } from './data/api.js';
+import { migrateLegacyPeopleToContacts, Settings, verifyAppLock, runAutomations } from './data/api.js';
 import { completePendingRedirectIfAny } from './data/supabase-auth.js';
 import './interfaces/manifest.js';
 import { startShell } from './shell.js';
@@ -62,8 +62,6 @@ async function boot() {
     if (lockEnabled && lockCredentialId) await showLockScreen(lockCredentialId);
 
     await migrateLegacyPeopleToContacts();
-    await migrateLegacyJapaneseToLanguagePacks();
-    await ensureLanguagePack('ja', 'Japanese', 'ja-JP');
     await runAutomations();
     await startShell();
   } catch (err) {

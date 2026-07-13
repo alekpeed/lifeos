@@ -1,4 +1,4 @@
-// A small, original line-icon set for Equator's nav -- one per module.
+// A small, original line-icon set for Test Mode's nav -- one per module.
 // Deliberately basic: every icon is built from plain SVG primitives (line,
 // circle, rect, polyline), not illustrative artwork, so the nav reads as a
 // considered instrument panel rather than a picture book. All icons share
@@ -37,8 +37,6 @@ const ICONS = {
   ghostdays: svg('<rect x="3" y="4.5" width="14" height="12" rx="1.3"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="6.5" y1="2.8" x2="6.5" y2="6"/><line x1="13.5" y1="2.8" x2="13.5" y2="6"/><circle cx="10" cy="12.3" r="1.7"/>'),
   starters: svg('<path d="M3 4.5h14v8.5H8.5L5 16v-3H3z"/>'),
   rabbitholes: svg('<path d="M17 10a7 7 0 1 1-3-5.7"/><path d="M17 4v4h-4"/>'),
-  languages: svg('<circle cx="10" cy="10" r="7"/><ellipse cx="10" cy="10" rx="3" ry="7"/><line x1="3" y1="10" x2="17" y2="10"/>'),
-  chords: svg('<circle cx="6" cy="15.5" r="2.2"/><circle cx="14" cy="13.5" r="2.2"/><line x1="8.2" y1="15.5" x2="8.2" y2="4" /><line x1="16.2" y1="13.5" x2="16.2" y2="3.3"/><line x1="8.2" y1="4" x2="16.2" y2="3.3"/>'),
   lifeasmusic: svg('<line x1="4" y1="12" x2="4" y2="16"/><line x1="7.5" y1="7" x2="7.5" y2="16"/><line x1="11" y1="4" x2="11" y2="16"/><line x1="14.5" y1="8.5" x2="14.5" y2="16"/><line x1="18" y1="11" x2="18" y2="16"/>'),
   habits: svg('<path d="M4 10a6 6 0 0 1 10.4-4.1"/><polyline points="14.4,2.8 14.4,5.9 11.3,5.9"/><path d="M16 10a6 6 0 0 1-10.4 4.1"/><polyline points="5.6,17.2 5.6,14.1 8.7,14.1"/>'),
   health: svg('<path d="M10 17S3 12.3 3 7.6A3.6 3.6 0 0 1 10 6a3.6 3.6 0 0 1 7 1.6C17 12.3 10 17 10 17z"/>'),

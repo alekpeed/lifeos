@@ -36,9 +36,7 @@ export const MODULES = [
   { id: 'ghostdays', label: 'Ghost Days', group: 'life' },
   { id: 'starters', label: 'Conversation Starters', group: 'life', remote: true },
   { id: 'rabbitholes', label: 'Rabbit Holes', group: 'life' },
-  { id: 'languages', label: 'Languages', group: 'study', remote: true },
-  { id: 'chords', label: 'Chords', group: 'study' },
-  { id: 'lifeasmusic', label: 'Life as Music', group: 'study' },
+  { id: 'lifeasmusic', label: 'Life as Music', group: 'life' },
   { id: 'habits', label: 'Habits', group: 'health', remote: true },
   { id: 'health', label: 'Health', group: 'health', remote: true },
   { id: 'skilltree', label: 'Skill Trees', group: 'health' },
@@ -60,7 +58,6 @@ export const MODULES = [
 export const MODULE_GROUPS = [
   { id: 'core', label: 'Core' },
   { id: 'life', label: 'Life' },
-  { id: 'study', label: 'Study' },
   { id: 'health', label: 'Health' },
   { id: 'utility', label: 'Utility' },
 ];

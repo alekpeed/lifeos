@@ -86,8 +86,9 @@ function buildContext() {
     navigate,                   // request a route change
     parseRoute,                 // read the current route
     // On any touch-primary device (installed remote or a plain phone
-    // browser tab), touch-unsafe interfaces (e.g. Vespera) aren't offered
-    // as a switch target in the first place -- not just rejected on pick.
+    // browser tab), touch-unsafe interfaces (e.g. the spatial interface)
+    // aren't offered as a switch target in the first place -- not just
+    // rejected on pick.
     listInterfaces: () => {
       const all = listInterfaces();
       if (!isTouchPrimaryDevice()) return all;

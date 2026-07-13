@@ -1,10 +1,11 @@
-/* Vespera — spatial interface chrome.
-   The @import pulls in Equator's stylesheet so hosted module views keep
+/* Spatial Interface 1 — spatial interface chrome (formerly "Vespera").
+   The @import pulls in Test Mode's stylesheet so hosted module views keep
    their full styling: every mer-* rule there is scoped under
-   [data-interface='default'], which Vespera's content well opts into via a
-   data-interface="default" wrapper attribute (attribute selectors match any
-   ancestor). Vespera's own chrome uses vsp-* under [data-interface='vespera']
-   so the two skins can't bleed into each other. */
+   [data-interface='default'], which this interface's content well opts
+   into via a data-interface="default" wrapper attribute (attribute
+   selectors match any ancestor). This interface's own chrome uses sp1-*
+   under [data-interface='spatial-1'] so the two skins can't bleed into
+   each other. */
 @import url('../default/style.css');
 
 /* Self-hosted display faces for immersive room signage (SIL OFL, vendored
@@ -21,7 +22,7 @@
   font-weight: 600; font-style: normal; font-display: swap;
 }
 
-[data-interface='vespera'] .vsp-root {
+[data-interface='spatial-1'] .sp1-root {
   min-height: 100vh;
   background:
     radial-gradient(1px 1px at 12% 22%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
@@ -44,7 +45,7 @@
    cover-cropped the art whenever the window wasn't exactly 16:9, drifting
    every hotspot off its sign -- and passed testing only because the test
    viewport happened to be exactly 16:9. */
-[data-interface='vespera'] .vsp-hub {
+[data-interface='spatial-1'] .sp1-hub {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -60,7 +61,7 @@
   transition: transform 0.45s ease-in, opacity 0.45s ease-in;
 }
 
-[data-interface='vespera'] .vsp-stage {
+[data-interface='spatial-1'] .sp1-stage {
   position: relative;
   height: 100%;
   max-width: 100%;
@@ -80,12 +81,12 @@
   background-position: center;
 }
 
-[data-interface='vespera'] .vsp-hub.is-depart {
+[data-interface='spatial-1'] .sp1-hub.is-depart {
   transform: scale(2.1);
   opacity: 0;
 }
 
-[data-interface='vespera'] .vsp-masthead {
+[data-interface='spatial-1'] .sp1-masthead {
   position: absolute;
   top: 2.5%;
   left: 0;
@@ -95,7 +96,7 @@
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
 }
 
-[data-interface='vespera'] .vsp-title {
+[data-interface='spatial-1'] .sp1-title {
   margin: 0;
   font-family: var(--font-display);
   font-size: clamp(1.2rem, 2.6vw, 2.2rem);
@@ -104,7 +105,7 @@
   color: #eef2ff;
 }
 
-[data-interface='vespera'] .vsp-subtitle {
+[data-interface='spatial-1'] .sp1-subtitle {
   margin: 0.15rem 0 0;
   font-size: clamp(0.6rem, 1.1vw, 0.85rem);
   letter-spacing: 0.35em;
@@ -112,7 +113,7 @@
   color: rgba(160, 210, 255, 0.75);
 }
 
-[data-interface='vespera'] .vsp-plaque-layer {
+[data-interface='spatial-1'] .sp1-plaque-layer {
   position: absolute;
   inset: 0;
 }
@@ -122,7 +123,7 @@
    inset outline clipped to the sign's real shape -- brightening to a glow
    on hover/focus. The station art is the label; this is just the invisible
    click target on top of it. */
-[data-interface='vespera'] .vsp-plaque {
+[data-interface='spatial-1'] .sp1-plaque {
   position: absolute;
   display: flex;
   align-items: center;
@@ -138,13 +139,13 @@
   transition: box-shadow 0.2s, background 0.2s;
 }
 
-[data-interface='vespera'] .vsp-plaque:hover,
-[data-interface='vespera'] .vsp-plaque:focus-visible {
+[data-interface='spatial-1'] .sp1-plaque:hover,
+[data-interface='spatial-1'] .sp1-plaque:focus-visible {
   background: rgba(64, 160, 255, 0.1);
   box-shadow: inset 0 0 0 1px rgba(140, 245, 255, 0.6), 0 0 22px rgba(90, 225, 255, 0.4);
 }
 
-[data-interface='vespera'] .vsp-plaque-chrome {
+[data-interface='spatial-1'] .sp1-plaque-chrome {
   display: none;
   align-items: center;
   gap: 0.55rem;
@@ -155,18 +156,18 @@
    via inline style (left/top/width/height/clip-path, measured from the
    real art in index.js) -- see the DISTRICTS comment there. */
 
-[data-interface='vespera'] .vsp-plaque-icon {
+[data-interface='spatial-1'] .sp1-plaque-icon {
   font-size: 1.15rem;
   filter: drop-shadow(0 0 6px rgba(120, 220, 255, 0.8));
 }
 
-[data-interface='vespera'] .vsp-plaque-text {
+[data-interface='spatial-1'] .sp1-plaque-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-[data-interface='vespera'] .vsp-plaque-name {
+[data-interface='spatial-1'] .sp1-plaque-name {
   font-size: clamp(0.62rem, 1.05vw, 0.9rem);
   font-weight: 700;
   letter-spacing: 0.09em;
@@ -176,7 +177,7 @@
   text-overflow: ellipsis;
 }
 
-[data-interface='vespera'] .vsp-plaque-tag {
+[data-interface='spatial-1'] .sp1-plaque-tag {
   font-size: clamp(0.55rem, 0.85vw, 0.75rem);
   color: rgba(170, 215, 255, 0.8);
   white-space: nowrap;
@@ -186,12 +187,12 @@
 
 /* --- Central Directory --- */
 
-[data-interface='vespera'] .vsp-directory {
+[data-interface='spatial-1'] .sp1-directory {
   padding: 0.6rem 1rem 1.4rem;
   text-align: center;
 }
 
-[data-interface='vespera'] .vsp-dir-toggle {
+[data-interface='spatial-1'] .sp1-dir-toggle {
   background: transparent;
   border: 1px solid rgba(124, 96, 255, 0.5);
   color: rgba(200, 190, 255, 0.9);
@@ -203,7 +204,7 @@
   cursor: pointer;
 }
 
-[data-interface='vespera'] .vsp-dir-list {
+[data-interface='spatial-1'] .sp1-dir-list {
   display: none;
   flex-wrap: wrap;
   justify-content: center;
@@ -211,9 +212,9 @@
   margin-top: 0.8rem;
 }
 
-[data-interface='vespera'] .vsp-directory.is-open .vsp-dir-list { display: flex; }
+[data-interface='spatial-1'] .sp1-directory.is-open .sp1-dir-list { display: flex; }
 
-[data-interface='vespera'] .vsp-dir-item {
+[data-interface='spatial-1'] .sp1-dir-item {
   color: #cfe2ff;
   text-decoration: none;
   font-size: 0.78rem;
@@ -223,13 +224,13 @@
   background: rgba(10, 14, 34, 0.6);
 }
 
-[data-interface='vespera'] .vsp-dir-item:hover {
+[data-interface='spatial-1'] .sp1-dir-item:hover {
   border-color: rgba(140, 245, 255, 0.8);
 }
 
 /* --- District + Space screens --- */
 
-[data-interface='vespera'] .vsp-screen {
+[data-interface='spatial-1'] .sp1-screen {
   animation: vspArrive 0.35s ease-out;
   min-height: 100vh;
 }
@@ -239,7 +240,7 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-[data-interface='vespera'] .vsp-bar {
+[data-interface='spatial-1'] .sp1-bar {
   display: flex;
   align-items: center;
   gap: 0.8rem;
@@ -253,7 +254,7 @@
   backdrop-filter: blur(6px);
 }
 
-[data-interface='vespera'] .vsp-back {
+[data-interface='spatial-1'] .sp1-back {
   background: transparent;
   border: 1px solid rgba(84, 225, 255, 0.5);
   color: #bfeaff;
@@ -264,9 +265,9 @@
   letter-spacing: 0.06em;
 }
 
-[data-interface='vespera'] .vsp-back:hover { border-color: rgba(140, 245, 255, 0.95); }
+[data-interface='spatial-1'] .sp1-back:hover { border-color: rgba(140, 245, 255, 0.95); }
 
-[data-interface='vespera'] .vsp-bar-title {
+[data-interface='spatial-1'] .sp1-bar-title {
   font-family: var(--font-display);
   font-size: 1rem;
   letter-spacing: 0.12em;
@@ -274,13 +275,13 @@
   color: #eef4ff;
 }
 
-[data-interface='vespera'] .vsp-bar-tag {
+[data-interface='spatial-1'] .sp1-bar-tag {
   font-size: 0.75rem;
   color: rgba(170, 215, 255, 0.7);
   letter-spacing: 0.08em;
 }
 
-[data-interface='vespera'] .vsp-doors {
+[data-interface='spatial-1'] .sp1-doors {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: 1rem;
@@ -289,7 +290,7 @@
   margin: 0 auto;
 }
 
-[data-interface='vespera'] .vsp-door {
+[data-interface='spatial-1'] .sp1-door {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -305,20 +306,20 @@
   transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
 }
 
-[data-interface='vespera'] .vsp-door:hover,
-[data-interface='vespera'] .vsp-door:focus-visible {
+[data-interface='spatial-1'] .sp1-door:hover,
+[data-interface='spatial-1'] .sp1-door:focus-visible {
   border-color: rgba(140, 245, 255, 0.95);
   box-shadow: 0 0 28px rgba(90, 225, 255, 0.45);
   transform: translateY(-2px);
 }
 
-[data-interface='vespera'] .vsp-door-name {
+[data-interface='spatial-1'] .sp1-door-name {
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
-[data-interface='vespera'] .vsp-door-enter {
+[data-interface='spatial-1'] .sp1-door-enter {
   font-size: 0.75rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -327,11 +328,11 @@
 
 /* --- Immersive district room --- */
 
-/* .vsp-room reuses .vsp-hub (sizing + is-depart zoom) and .vsp-room-stage
-   reuses .vsp-stage (aspect-lock to the room image, set inline).
+/* .sp1-room reuses .sp1-hub (sizing + is-depart zoom) and .sp1-room-stage
+   reuses .sp1-stage (aspect-lock to the room image, set inline).
 
    The room art (img/conservatory.png) is a plain establishing shot with NO
-   text baked in. All signage is real DOM text (.vsp-room-quad and its
+   text baked in. All signage is real DOM text (.sp1-room-quad and its
    children), laid out flat in a fixed design box, then mapped onto the
    wall's measured quad by a matrix3d homography computed in index.js.
    Hover is plain color + text-shadow -- no pixel compositing anywhere, so
@@ -339,13 +340,13 @@
    signage into the image can happen here. Font sizes are fixed px relative
    to the design box: the matrix scales them with the wall at every
    viewport. */
-[data-interface='vespera'] .vsp-room-quad {
+[data-interface='spatial-1'] .sp1-room-quad {
   display: flex;
   flex-direction: column;
   padding: 22px 26px;
 }
 
-[data-interface='vespera'] .vsp-room-title {
+[data-interface='spatial-1'] .sp1-room-title {
   font-family: 'Oxanium', var(--font-display);
   font-weight: 600;
   font-size: 38px;
@@ -359,7 +360,7 @@
     0 0 32px rgba(64, 180, 255, 0.35);
 }
 
-[data-interface='vespera'] .vsp-room-sub {
+[data-interface='spatial-1'] .sp1-room-sub {
   font-family: 'Rajdhani', sans-serif;
   font-size: 15px;
   letter-spacing: 0.22em;
@@ -370,7 +371,7 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-[data-interface='vespera'] .vsp-room-links {
+[data-interface='spatial-1'] .sp1-room-links {
   margin-top: 22px;
   display: flex;
   flex-direction: column;
@@ -378,7 +379,7 @@
   justify-content: space-evenly;
 }
 
-[data-interface='vespera'] .vsp-room-link {
+[data-interface='spatial-1'] .sp1-room-link {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -391,7 +392,7 @@
   transition: border-color 0.3s;
 }
 
-[data-interface='vespera'] .vsp-room-link-name {
+[data-interface='spatial-1'] .sp1-room-link-name {
   font-family: 'Oxanium', var(--font-display);
   font-weight: 600;
   font-size: 24px;
@@ -404,7 +405,7 @@
   transition: color 0.3s, text-shadow 0.3s;
 }
 
-[data-interface='vespera'] .vsp-room-link-sub {
+[data-interface='spatial-1'] .sp1-room-link-sub {
   font-family: 'Rajdhani', sans-serif;
   font-size: 12px;
   letter-spacing: 0.15em;
@@ -416,12 +417,12 @@
 
 /* Hover/focus: plain color + text-shadow change, no image compositing --
    there is nothing underneath to blend with or seam against. */
-[data-interface='vespera'] .vsp-room-link:hover,
-[data-interface='vespera'] .vsp-room-link:focus-visible {
+[data-interface='spatial-1'] .sp1-room-link:hover,
+[data-interface='spatial-1'] .sp1-room-link:focus-visible {
   border-bottom-color: rgba(255, 90, 190, 0.7);
 }
-[data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-name,
-[data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-name {
+[data-interface='spatial-1'] .sp1-room-link:hover .sp1-room-link-name,
+[data-interface='spatial-1'] .sp1-room-link:focus-visible .sp1-room-link-name {
   color: #ff5cc0;
   text-shadow:
     0 2px 3px rgba(0, 0, 0, 0.85),
@@ -429,21 +430,22 @@
     0 0 18px rgba(255, 50, 165, 0.85),
     0 0 38px rgba(255, 30, 150, 0.65);
 }
-[data-interface='vespera'] .vsp-room-link:hover .vsp-room-link-sub,
-[data-interface='vespera'] .vsp-room-link:focus-visible .vsp-room-link-sub {
+[data-interface='spatial-1'] .sp1-room-link:hover .sp1-room-link-sub,
+[data-interface='spatial-1'] .sp1-room-link:focus-visible .sp1-room-link-sub {
   color: #ff9ad6;
 }
 
 /* --- Hosted module content --- */
 
-/* The well keeps Equator's ink-navy canvas feel inside the station so the
-   hosted views read on their intended background, not Vespera's deep space. */
-[data-interface='vespera'] .vsp-content {
+/* The well keeps Test Mode's ink-navy canvas feel inside the station so the
+   hosted views read on their intended background, not this interface's deep
+   space. */
+[data-interface='spatial-1'] .sp1-content {
   background: var(--color-bg);
   min-height: calc(100vh - 3rem);
 }
 
-[data-interface='vespera'] .vsp-content .mer-canvas {
+[data-interface='spatial-1'] .sp1-content .mer-canvas {
   padding: var(--space-lg) var(--space-xl);
   max-width: 60rem;
   margin: 0 auto;
@@ -452,7 +454,7 @@
 /* --- Mobile: plaques become a stacked grid under a banner crop --- */
 
 @media (max-width: 700px) {
-  [data-interface='vespera'] .vsp-hub {
+  [data-interface='spatial-1'] .sp1-hub {
     aspect-ratio: auto;
     min-height: 100vh;
     max-height: none;
@@ -469,21 +471,21 @@
      plain stylesheet rule regardless of media query -- without it, the
      art bled through behind the mobile stacked list instead of being
      replaced by the hub's plain gradient. */
-  [data-interface='vespera'] .vsp-stage {
+  [data-interface='spatial-1'] .sp1-stage {
     position: static !important;
     height: auto !important;
     aspect-ratio: auto !important;
     background: none !important;
   }
 
-  [data-interface='vespera'] .vsp-plaque-layer {
+  [data-interface='spatial-1'] .sp1-plaque-layer {
     position: static;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.6rem;
   }
 
-  /* Mobile drops the background art entirely (see .vsp-hub above), so
+  /* Mobile drops the background art entirely (see .sp1-hub above), so
      plaques switch back to always-visible chrome in a static stacked grid
      rather than invisible hotspots over nothing. !important is load-
      bearing, not decorative: each plaque carries its hotspot as inline
@@ -492,7 +494,7 @@
      overriding all of that back to a plain static grid item, including
      the clip-path shape that only makes sense against the desktop art, is
      exactly the case !important exists for. */
-  [data-interface='vespera'] .vsp-plaque {
+  [data-interface='spatial-1'] .sp1-plaque {
     position: static !important;
     left: auto !important;
     top: auto !important;
@@ -508,34 +510,34 @@
     box-shadow: 0 0 14px rgba(64, 200, 255, 0.25), inset 0 0 18px rgba(64, 120, 255, 0.12);
   }
 
-  [data-interface='vespera'] .vsp-plaque-chrome { display: flex; }
+  [data-interface='spatial-1'] .sp1-plaque-chrome { display: flex; }
 
-  [data-interface='vespera'] .vsp-plaque--news { grid-column: 1 / -1; }
+  [data-interface='spatial-1'] .sp1-plaque--news { grid-column: 1 / -1; }
 
-  [data-interface='vespera'] .vsp-plaque:hover,
-  [data-interface='vespera'] .vsp-plaque:focus-visible {
+  [data-interface='spatial-1'] .sp1-plaque:hover,
+  [data-interface='spatial-1'] .sp1-plaque:focus-visible {
     transform: none !important;
     border-color: rgba(140, 245, 255, 0.95);
     background: rgba(6, 10, 26, 0.72);
     box-shadow: 0 0 26px rgba(90, 225, 255, 0.55), inset 0 0 22px rgba(90, 160, 255, 0.2);
   }
 
-  [data-interface='vespera'] .vsp-plaque-name,
-  [data-interface='vespera'] .vsp-plaque-tag { white-space: normal; }
+  [data-interface='spatial-1'] .sp1-plaque-name,
+  [data-interface='spatial-1'] .sp1-plaque-tag { white-space: normal; }
 
-  [data-interface='vespera'] .vsp-content .mer-canvas {
+  [data-interface='spatial-1'] .sp1-content .mer-canvas {
     padding: var(--space-md);
   }
 
-  [data-interface='vespera'] .vsp-doors { padding: 1rem; }
+  [data-interface='spatial-1'] .sp1-doors { padding: 1rem; }
 
-  /* Room: the stage drops its art (shared .vsp-stage rule above), so the
+  /* Room: the stage drops its art (shared .sp1-stage rule above), so the
      signage plane flattens into a normal stacked list -- no absolute
      positioning, no homography against art that isn't there. !important
      overrides the inline width/height/transform from index.js (they are
      inline, kept atomic with the matrix on purpose -- only an !important
      stylesheet rule can outrank an inline style). */
-  [data-interface='vespera'] .vsp-room-quad {
+  [data-interface='spatial-1'] .sp1-room-quad {
     position: static !important;
     width: auto !important;
     height: auto !important;
@@ -543,11 +545,11 @@
     margin: 0.5rem 1rem 1rem;
     padding: 0;
   }
-  [data-interface='vespera'] .vsp-room-title { font-size: 1.6rem; }
-  [data-interface='vespera'] .vsp-room-link-name { font-size: 1.05rem; }
+  [data-interface='spatial-1'] .sp1-room-title { font-size: 1.6rem; }
+  [data-interface='spatial-1'] .sp1-room-link-name { font-size: 1.05rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-interface='vespera'] .vsp-hub { transition: none; }
-  [data-interface='vespera'] .vsp-screen { animation: none; }
+  [data-interface='spatial-1'] .sp1-hub { transition: none; }
+  [data-interface='spatial-1'] .sp1-screen { animation: none; }
 }

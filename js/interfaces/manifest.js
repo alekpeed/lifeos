@@ -4,5 +4,5 @@
 // then add one import line here. Nothing else in the app changes.
 
 import './default/index.js';
-import './vespera/index.js';
+import './spatial-1/index.js';
 import './mobile-1/index.js';

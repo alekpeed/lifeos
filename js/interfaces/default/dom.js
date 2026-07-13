@@ -1,4 +1,4 @@
-// Tiny DOM-building helper shared by Equator's view modules. Not a
+// Tiny DOM-building helper shared by Test Mode's view modules. Not a
 // framework — just enough to avoid innerHTML string-building for views
 // that stay reactive to data-layer events.
 

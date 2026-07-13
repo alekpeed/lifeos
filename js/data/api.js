@@ -214,14 +214,6 @@ export const Books = entities.books;
 export const ReadingLogs = entities.readingLogs;
 export const Recipes = entities.recipes;
 export const CookLogs = entities.cookLogs;
-export const LanguagePacks = entities.languagePacks;
-export const LanguageDecks = entities.languageDecks;
-export const LanguageCards = entities.languageCards;
-export const LanguageReviewLogs = entities.languageReviewLogs;
-export const ChordProgressions = entities.chordProgressions;
-export const ChordSkills = entities.chordSkills;
-export const ChordDrillLogs = entities.chordDrillLogs;
-export const ChordPracticeLogs = entities.chordPracticeLogs;
 export const ShareboxItems = entities.shareboxItems;
 export const ShareboxFiles = entities.shareboxFiles;
 
@@ -278,7 +270,6 @@ export const PackingItems = entities.packingItems;
 export const InventoryItems = entities.inventoryItems;
 export const DreamEntries = entities.dreamEntries;
 export const RabbitHoles = entities.rabbitHoles;
-export const LibraryStories = entities.libraryStories;
 export const PlaceNotes = entities.placeNotes;
 export const AiConversations = entities.aiConversations;
 export const AiMessages = entities.aiMessages;
@@ -382,85 +373,6 @@ export async function migrateLegacyPeopleToContacts() {
   await db.clear('people');
 }
 
-// --- One-time migration: the Japanese module used to own its own
-// japaneseDecks/japaneseCards/japaneseReviewLogs stores. Language learning
-// is now plug-and-play (multiple packs, Japanese being the first), so those
-// become languageDecks/languageCards/languageReviewLogs scoped to a
-// "Japanese" LanguagePacks record. Safe to call on every boot -- a no-op
-// once the legacy stores are empty or were never created.
-export async function migrateLegacyJapaneseToLanguagePacks() {
-  let legacyDecks;
-  try {
-    legacyDecks = await db.getAll('japaneseDecks');
-  } catch {
-    return; // store doesn't exist on this device -- nothing to migrate
-  }
-  if (!legacyDecks.length) return;
-
-  const pack = await ensureLanguagePack('ja', 'Japanese', 'ja-JP');
-
-  const deckIdMap = new Map();
-  for (const deck of legacyDecks) {
-    const newDeck = await LanguageDecks.create({ packId: pack.id, name: deck.name });
-    deckIdMap.set(deck.id, newDeck.id);
-  }
-
-  const legacyCards = await db.getAll('japaneseCards');
-  const cardIdMap = new Map();
-  for (const card of legacyCards) {
-    const newDeckId = deckIdMap.get(card.deckId);
-    if (!newDeckId) continue;
-    const newCard = await LanguageCards.create({ deckId: newDeckId, front: card.front, back: card.back, srs: card.srs });
-    cardIdMap.set(card.id, newCard.id);
-  }
-
-  const legacyLogs = await db.getAll('japaneseReviewLogs');
-  for (const log of legacyLogs) {
-    const newCardId = cardIdMap.get(log.cardId);
-    if (!newCardId) continue;
-    await LanguageReviewLogs.create({ cardId: newCardId, date: log.date, quality: log.quality });
-  }
-
-  await db.clear('japaneseDecks');
-  await db.clear('japaneseCards');
-  await db.clear('japaneseReviewLogs');
-}
-
-// Creates the pack if it doesn't already exist (matched by code); returns
-// the existing or newly-created record either way. Called at boot to
-// guarantee Japanese is always available out of the box, and reused by
-// the migration above.
-//
-// Two sync-correctness details live here:
-//   • Boot-seeded packs get a DETERMINISTIC id ("languagepack-<code>"), not
-//     a random UUID — otherwise every device mints its own "Japanese" pack
-//     and the first sync (Drive or QR) leaves both devices with duplicates.
-//     With a shared id, the two seeds are the same record and merge cleanly.
-//   • Self-healing for installs that already duplicated: if more than one
-//     pack shares a code, keep the deterministic winner (oldest createdAt,
-//     id as tiebreak — both devices independently pick the SAME winner),
-//     re-point decks/stories at it, and delete the rest. The deletions
-//     tombstone, so the cleanup itself propagates on the next sync.
-export async function ensureLanguagePack(code, name, ttsLocale) {
-  const matches = await LanguagePacks.byIndex('code', code);
-  if (matches.length > 1) {
-    matches.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '') || a.id.localeCompare(b.id));
-    const keeper = matches[0];
-    for (const dupe of matches.slice(1)) {
-      for (const deck of await LanguageDecks.byIndex('packId', dupe.id)) {
-        await LanguageDecks.update(deck.id, { packId: keeper.id });
-      }
-      for (const story of await LibraryStories.byIndex('packId', dupe.id)) {
-        await LibraryStories.update(story.id, { packId: keeper.id });
-      }
-      await LanguagePacks.remove(dupe.id);
-    }
-    return keeper;
-  }
-  if (matches.length === 1) return matches[0];
-  return LanguagePacks.create({ id: `languagepack-${code}`, code, name, ttsLocale });
-}
-
 // --- Settings: plain key-value store, separate shape from the entity stores. ---
 
 const SETTING_DEFAULTS = {
@@ -468,12 +380,12 @@ const SETTING_DEFAULTS = {
   accent: 'brass',
   density: 'comfortable',
   // Temporary: default a no-preference session (new device, or a "Clear
-  // site data" that wiped IndexedDB along with the cache) into Vespera
-  // instead of Equator while it's the one being actively worked on -- flip
-  // back to 'default' once Vespera is done getting shaped. Anyone who has
-  // explicitly picked an interface via Settings has a real stored value
-  // here and is unaffected.
-  activeInterface: 'vespera',
+  // site data" that wiped IndexedDB along with the cache) into the spatial
+  // interface instead of Test Mode while it's the one being actively worked
+  // on -- flip back to 'default' once the spatial interface is done getting
+  // shaped. Anyone who has explicitly picked an interface via Settings has a
+  // real stored value here and is unaffected.
+  activeInterface: 'spatial-1',
   wordsPerPageDefault: 275,
   billDueSoonDays: 7,
   documentExpiryDays: 30,
@@ -861,46 +773,6 @@ export async function sendAiMessage(conversationId, userText) {
   return AiMessages.create({ conversationId, role: 'assistant', content: text });
 }
 
-// --- Library of Babel: AI-generated stories, gated the same way as the
-// AI Assistant chat -- each device needs the active provider's own key in
-// Settings (no shared/sponsored path here), so this naturally stays
-// per-person if other people ever pick up the same pack. ---
-
-function parseGeneratedStory(text) {
-  const storyMatch = text.match(/STORY:\s*([\s\S]*?)(?:\nTRANSLATION:|$)/i);
-  const translationMatch = text.match(/TRANSLATION:\s*([\s\S]*)$/i);
-  const titleMatch = text.match(/TITLE:\s*(.+)/i);
-  return {
-    title: titleMatch ? titleMatch[1].trim() : 'Generated story',
-    body: (storyMatch ? storyMatch[1] : text).trim(),
-    translation: translationMatch ? translationMatch[1].trim() : '',
-  };
-}
-
-// Generates one short story at `level` for the given language, avoiding
-// recent titles so the shelf doesn't repeat itself. Throws (key missing,
-// rate limit, etc.) rather than swallowing errors -- the caller decides how
-// to surface that.
-export async function generateLibraryStory(packName, level, recentTitles = []) {
-  const { send, apiKey, model } = await getActiveAiProvider();
-  const avoid = recentTitles.length ? ` Avoid repeating these previous titles/themes: ${recentTitles.join(', ')}.` : '';
-  const prompt = `Write a very short story in ${packName} for a ${level} learner of the language.${avoid} `
-    + `Keep vocabulary and grammar appropriate for that level. Respond in exactly this format, nothing else:\n\n`
-    + `TITLE: <short title in ${packName}>\nSTORY:\n<the story, in ${packName}>\nTRANSLATION:\n<full English translation>`;
-  const { text } = await send(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 1200 });
-  return parseGeneratedStory(text);
-}
-
-// Nudges a pack's tracked difficulty level after read-story feedback.
-// Clamped at the ends of LEVELS (views/languages.js) rather than passed in,
-// since the ordering itself is fixed there.
-export function adjustLevel(levels, currentLevel, feedback) {
-  const i = Math.max(0, levels.indexOf(currentLevel));
-  if (feedback === 'easy') return levels[Math.min(levels.length - 1, i + 1)];
-  if (feedback === 'hard') return levels[Math.max(0, i - 1)];
-  return levels[i];
-}
-
 // --- Daily Paper: AI-written editorial (provider-switchable, direct
 // browser-to-API, same per-device key as the Assistant chat -- no
 // sponsored/shared path). Caching (which local date it belongs to) lives in
@@ -1052,8 +924,6 @@ const SEARCH_FIELDS = {
   contacts: (r) => [r.name, r.company].filter(Boolean).join(' '),
   milestones: (r) => r.title,
   habits: (r) => r.name,
-  languageDecks: (r) => r.name,
-  chordProgressions: (r) => r.name,
   albums: (r) => r.name,
 };
 
@@ -1061,8 +931,7 @@ const SEARCH_MODULE_ROUTE = {
   tasks: 'tasks', places: 'places', links: 'links', semesters: 'education', courses: 'education',
   assignments: 'education', bills: 'finance', subscriptions: 'finance', books: 'books',
   recipes: 'recipes', documents: 'documents', contacts: 'contacts', milestones: 'milestones',
-  habits: 'habits', languageDecks: 'languages',
-  chordProgressions: 'chords', albums: 'photos',
+  habits: 'habits', albums: 'photos',
 };
 
 export async function globalSearch(query) {
@@ -1374,12 +1243,11 @@ export async function importAppleHealthDays(days) {
   return { created, updated };
 }
 
-// --- Recall: the Languages module's SRS engine generalized to resurface any
+// --- Recall: a generalized spaced-repetition engine that can resurface any
 // record -- reuses the exact same addressing (graphKey/resolveGraphNode) as
 // the Knowledge Graph, so "what's schedulable" is "what Search can find,"
-// same reasoning that already governs the graph. Grading uses the identical
-// interval scheme as languageCards' review flow (views/languages.js):
-// again resets to 1 day, good doubles, easy triples.
+// same reasoning that already governs the graph. Grading uses a standard
+// SRS interval scheme: again resets to 1 day, good doubles, easy triples.
 
 export const ResurfaceItems = entities.resurfaceItems;
 export const ResurfaceReviewLogs = entities.resurfaceReviewLogs;

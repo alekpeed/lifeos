@@ -5,8 +5,8 @@
   header hosting the real module views. Deliberately its own palette (per
   tokens.css's note that interfaces may define an accent scale entirely
   their own) so the slim header matches the mockup's hot-pink + cyan look.
-  Scoped under [data-interface='mobile-1'] so it never leaks into Equator,
-  Vespera, or any other mobile interface added later.
+  Scoped under [data-interface='mobile-1'] so it never leaks into Test Mode,
+  the spatial interface, or any other mobile interface added later.
 */
 
 [data-interface='mobile-1'] {

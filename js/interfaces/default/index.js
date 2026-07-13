@@ -1,4 +1,11 @@
-// "Equator" — the default interface. A calm rail-and-canvas daily driver.
+// "Test Mode" — the default interface (registry id 'default'). Originally
+// built and named "Equator" as a baseline for testing; renamed 2026-07-13
+// when Alek confirmed it isn't the model going forward, just the baseline
+// rail-and-canvas daily driver everything else was validated against. The
+// folder/id/CSS scope (default/mer-) were already generic and didn't need
+// to change -- this interface never rendered its own name anywhere on
+// screen, so this is a metadata-only rename, not a UI change.
+//
 // Interface-contract plumbing (mount/renderRoute/unmount, ctx-only data
 // access, reactive re-render via ctx.events) lives here; each module's
 // actual view lives in views/*.js so this file stays a router, not a
@@ -124,7 +131,7 @@ function scheduleRerender() {
 
 registerInterface({
   id: 'default',
-  name: 'Equator',
+  name: 'Test Mode',
   description: 'Calm rail-and-canvas layout — the reliable daily driver.',
   stylesheet: 'js/interfaces/default/style.css',
 

@@ -30,9 +30,25 @@ export const DB_NAME = 'lifeos';
 // app). v15 adds `assignmentProgressLogs` (the academic pacing check's
 // dated progress log, one entry per logging session -- pacing target/unit/
 // checkpoints themselves live directly on the assignment record, no schema
-// change needed there). runUpgrade in db.js creates any store that doesn't
-// yet exist, so these bumps are non-destructive for existing data.
-export const DB_VERSION = 15;
+// change needed there). v16 retires Languages and Chords (cut from the app
+// to keep scope tight -- the Chords engine lives on as a standalone starting
+// point in CHORDS_APP_HANDOFF.md) -- see RETIRED_STORES below; this is the
+// first version bump that actually deletes existing object stores rather
+// than only skipping their creation for new installs. runUpgrade in db.js
+// creates any store in STORES that doesn't yet exist and deletes any store
+// in RETIRED_STORES that does, so these bumps are otherwise non-destructive.
+export const DB_VERSION = 16;
+
+// Stores that used to exist and are now actively deleted on upgrade, not
+// just omitted from STORES going forward. `languageLessons` was retired
+// earlier (see the old comment, now removed) by omission only -- it was
+// never actually deleted from existing installs' databases; included here
+// too so that gap finally closes.
+export const RETIRED_STORES = [
+  'languageLessons',
+  'languagePacks', 'languageDecks', 'languageCards', 'languageReviewLogs',
+  'chordProgressions', 'chordSkills', 'chordDrillLogs', 'chordPracticeLogs',
+];
 
 export const STORES = [
   { name: 'settings', keyPath: 'key' },
@@ -98,49 +114,11 @@ export const STORES = [
     { name: 'recipeId', keyPath: 'recipeId' },
   ] },
 
-  // Plug-and-play language learning: one or more "packs" (Japanese, Spanish,
-  // ...), each owning its own decks/cards (flashcard SRS) and lessons
-  // (grammar/syntax/morphology explainers). Adding a language later is a
-  // new LanguagePacks record, not a schema change.
-  { name: 'languagePacks', keyPath: 'id', indexes: [
-    { name: 'code', keyPath: 'code' },
-  ] },
-  { name: 'languageDecks', keyPath: 'id', indexes: [
-    { name: 'packId', keyPath: 'packId' },
-  ] },
-  { name: 'languageCards', keyPath: 'id', indexes: [
-    { name: 'deckId', keyPath: 'deckId' },
-    { name: 'srsDueDate', keyPath: 'srs.dueDate' },
-  ] },
-  { name: 'languageReviewLogs', keyPath: 'id', indexes: [
-    { name: 'cardId', keyPath: 'cardId' },
-    { name: 'date', keyPath: 'date' },
-  ] },
-  // languageLessons was retired along with the Languages module's Lessons
-  // tab, replaced by the Library of Babel module. Removed from the schema
-  // list (not just unused) so new installs never create it and global
-  // search's SEARCH_FIELDS/SEARCH_MODULE_ROUTE (js/data/api.js) no longer
-  // reference it either -- leaving it in either place while removed here
-  // would throw "object store not found" for any browser that never had it.
-
-  { name: 'chordProgressions', keyPath: 'id' },
-
-  // Chord practice drills. `chordSkills` is keyed by CONCEPT id (e.g.
-  // 'spell:maj7', 'voicing:drop2') — one record per trackable skill, holding
-  // SRS state (interval/dueDate) and accuracy counters (attempts/correct).
-  // `chordDrillLogs` is the append-only history of every graded answer.
-  { name: 'chordSkills', keyPath: 'id' },
-  { name: 'chordDrillLogs', keyPath: 'id', indexes: [
-    { name: 'date', keyPath: 'date' },
-    { name: 'conceptId', keyPath: 'conceptId' },
-  ] },
-
-  // Freeform practice-session log: date, duration, what you worked on.
-  // Separate from chordDrillLogs (auto-tracked, self-graded drill accuracy) --
-  // this is for actual instrument practice, which the drills don't capture.
-  { name: 'chordPracticeLogs', keyPath: 'id', indexes: [
-    { name: 'date', keyPath: 'date' },
-  ] },
+  // Languages and Chords (and their data stores: languagePacks/Decks/Cards/
+  // ReviewLogs, chordProgressions/Skills/DrillLogs/PracticeLogs) were cut
+  // from the app (2026-07-13) to keep scope tight -- see RETIRED_STORES
+  // above and CHORDS_APP_HANDOFF.md, which preserves the Chords engine as a
+  // standalone starting point for a separate music app.
 
   { name: 'financeSnapshots', keyPath: 'id', indexes: [
     { name: 'date', keyPath: 'date' },
@@ -251,16 +229,6 @@ export const STORES = [
   { name: 'graphLinks', keyPath: 'id', indexes: [
     { name: 'fromKey', keyPath: 'fromKey' },
     { name: 'toKey', keyPath: 'toKey' },
-  ] },
-
-  // Library of Babel: a story-based reading library per language pack --
-  // short graded stories (with an optional translation/gloss) you write or
-  // paste in yourself, read in-app, and mark as read. Additive alongside
-  // the Languages module's existing Lessons tab (grammar explainers) rather
-  // than replacing it -- both are useful, and removing already-shipped
-  // functionality isn't this feature's call to make unilaterally.
-  { name: 'libraryStories', keyPath: 'id', indexes: [
-    { name: 'packId', keyPath: 'packId' },
   ] },
 
   // Geofenced notes-to-self on Places: a short note attached to a place that

@@ -4,10 +4,10 @@
 // them a permanent "the" mobile interface. This one is built from Alek's own
 // Figma mockup, shipped close to literally: the mockup image (img/hub.png)
 // is the actual home-screen background art, with real, precisely-positioned
-// click regions mapped onto it — the same technique Vespera uses for its hub
-// (img/hub.png + hotspot polygons). Those hotspot coordinates were extracted
-// from a GPT-drawn reference trace and corrected twice against direct user
-// review before landing here.
+// click regions mapped onto it — the same technique the spatial interface
+// uses for its hub (img/hub.png + hotspot polygons). Those hotspot
+// coordinates were extracted from a GPT-drawn reference trace and corrected
+// twice against direct user review before landing here.
 //
 // The image is decorative chrome, not a live data surface — its baked-in
 // numbers (a specific temperature, specific fake task titles) are mockup
@@ -20,8 +20,8 @@
 //
 // Away from the dashboard route, there's no mockup art for other screens,
 // so those get a plain slim header (clock/back) hosting the real module
-// views from the shared view library — same pattern as Vespera's Space
-// screens.
+// views from the shared view library — same pattern as the spatial
+// interface's Space screens.
 
 import { registerInterface } from '../registry.js';
 import { VIEWS } from '../view-library.js';

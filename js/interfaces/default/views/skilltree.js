@@ -1,7 +1,6 @@
 // Skill Trees — an RPG-style character sheet computed entirely from
-// activity you already have elsewhere (habits, books, chords, tasks,
-// languages). No new storage; pure view, same spirit as the Daily Paper and
-// the Museum.
+// activity you already have elsewhere (habits, books, tasks). No new
+// storage; pure view, same spirit as the Daily Paper and the Museum.
 //
 // Leveling curve: level = floor(sqrt(xp / 10)) + 1, so early levels come
 // fast and later ones take meaningfully more — a familiar RPG shape without
@@ -41,24 +40,17 @@ function skillBar(name, icon, xp, blurb) {
 }
 
 export async function renderSkillTree(canvas, ctx) {
-  const [tasks, assignments, habits, habitLogs, books, chordSkills, chordLogs, langCards, langLogs] = await Promise.all([
+  const [tasks, assignments, habits, habitLogs, books] = await Promise.all([
     ctx.data.Tasks.list(),
     ctx.data.Assignments.list(),
     ctx.data.Habits.list(),
     ctx.data.HabitLogs.list(),
     ctx.data.Books.list(),
-    ctx.data.ChordSkills.list(),
-    ctx.data.ChordDrillLogs.list(),
-    ctx.data.LanguageCards.list(),
-    ctx.data.LanguageReviewLogs.list(),
   ]);
 
   const doneCount = tasks.filter((t) => t.status === 'done').length + assignments.filter((a) => a.status === 'done').length;
   const habitCheckIns = habitLogs.length;
   const booksFinished = books.filter((b) => b.status === 'finished').length;
-  const chordMastered = chordSkills.filter((s) => (s.interval || 0) >= 21).length;
-  const chordAttempts = chordLogs.length;
-  const langReviews = langLogs.length;
 
   const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -66,8 +58,6 @@ export async function renderSkillTree(canvas, ctx) {
     { name: 'Executor', icon: '✅', xp: doneCount * 10, blurb: `${plural(doneCount, 'task/assignment')} completed` },
     { name: 'Discipline', icon: '🔥', xp: habitCheckIns * 5, blurb: `${plural(habits.length, 'habit')}, ${plural(habitCheckIns, 'check-in')} logged` },
     { name: 'Scholar', icon: '📖', xp: booksFinished * 40, blurb: `${plural(booksFinished, 'book')} finished` },
-    { name: 'Music Theory', icon: '🎹', xp: chordMastered * 30 + chordAttempts, blurb: `${plural(chordMastered, 'concept')} mastered, ${plural(chordAttempts, 'drill')} done` },
-    { name: 'Linguist', icon: '🗣️', xp: langReviews * 2, blurb: `${plural(langCards.length, 'card')}, ${plural(langReviews, 'review')} done` },
   ];
 
   const totalLevel = skills.reduce((sum, s) => sum + levelOf(s.xp), 0);

@@ -1,5 +1,9 @@
-// "Vespera" — the spatial interface. Life OS as an orbital station you
-// navigate, not a dashboard (see VESPERA_SPEC.md). Navigation shape:
+// Spatial Interface 1 (registry id 'spatial-1') — Life OS as an orbital
+// station you navigate, not a dashboard. Originally built and named
+// "Vespera"; renamed 2026-07-13 along with every other interface's brand
+// name, per the same "no permanent name brand" decision that produced
+// mobile-1 -- the spatial CONCEPT persists, the product name doesn't (see
+// SPATIAL_INTERFACES_SPEC.md, formerly VESPERA_SPEC.md). Navigation shape:
 //
 //   Hub (Grand Concourse) → District → Space (a module) → Content
 //
@@ -7,12 +11,12 @@
 // with a spatial skin and a travel animation instead of an instant cut.
 // The hub replaces #/dashboard as home; districts are interface-internal
 // state (no hash change until you actually enter a Space). Module content
-// comes from the shared view library — the same canonical views Equator
+// comes from the shared view library — the same canonical views Test Mode
 // renders, hosted inside station chrome (see view-library.js for why
 // that's sanctioned).
 //
 // Room art: the hub expects its generated concourse image at
-// js/interfaces/vespera/img/hub.png. Until that file exists the CSS paints
+// js/interfaces/spatial-1/img/hub.png. Until that file exists the CSS paints
 // a pure-gradient starfield fallback, so the interface works (and every
 // door still functions) with no image at all — the art is atmosphere,
 // never load-bearing.
@@ -20,7 +24,7 @@
 import { registerInterface } from '../registry.js';
 import { VIEWS } from '../view-library.js';
 
-// Local minimal element helper. Deliberately not imported from Equator's
+// Local minimal element helper. Deliberately not imported from Test Mode's
 // dom.js: chrome-level code stays self-contained per the registry rule;
 // only the view library is shared.
 function el(tag, attrs = {}, children = []) {
@@ -38,7 +42,7 @@ function el(tag, attrs = {}, children = []) {
   return node;
 }
 
-// The eight districts, plus Station News (center floor). Taglines describe
+// The seven districts, plus Station News (center floor). Taglines describe
 // what the doors actually open -- where the image's painted label (if any)
 // drifts from built reality (e.g. "Japanese" before the Languages module
 // generalized, "ChatGPT, Gemini" before they exist), the code label tells
@@ -58,33 +62,8 @@ const DISTRICTS = [
     hotspot: { points: [[1.85, 55.9], [24.88, 55.9], [26.2, 57.81], [26.2, 63.55], [24.7, 65.67], [2.69, 65.67], [1.32, 63.76], [1.32, 58.02]] } },
   { id: 'ledger', name: 'The Ledger', tagline: 'Bills, Finance & Documents', icon: '🧾', modules: ['finance', 'documents', 'quartermaster'],
     hotspot: { points: [[2.03, 77.05], [24.82, 77.05], [26.44, 78.85], [26.32, 84.59], [24.82, 86.61], [2.87, 86.61], [1.44, 84.8], [1.44, 79.06]] } },
-  { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules', 'starters', 'dreamjournal'],
+  { id: 'quarters', name: 'Personal Quarters', tagline: 'Contacts, Milestones & Recipes', icon: '👤', modules: ['contacts', 'milestones', 'recipes', 'photos', 'sharebox', 'timecapsules', 'starters', 'dreamjournal', 'lifeasmusic'],
     hotspot: { points: [[74.03, 18.32], [95.79, 10.07], [97.16, 11.02], [98.37, 15.54], [97.68, 17.59], [75.9, 23.43], [74.67, 22.32], [73.96, 19.66]] } },
-  { id: 'conservatory', name: 'The Conservatory', tagline: 'Languages & Music', icon: '🎵', modules: ['languages', 'chords', 'lifeasmusic'],
-    hotspot: { points: [[73.33, 36.56], [96.77, 34.75], [98.21, 35.92], [98.21, 41.13], [96.89, 43.15], [74.34, 43.15], [72.79, 41.34], [72.79, 38.26]] },
-    // Immersive entry room (see renderRoom). `image` is a plain
-    // establishing shot (no text, no markers) rendered on an aspect-locked
-    // stage (same technique as the hub). `quad` is the wall plane the
-    // signage is projected onto: four corners (TL,TR,BR,BL as % of the
-    // image), measured -- not eyeballed -- from a GPT-placed 4-marker
-    // reference image (Alek iterated the marker placement twice; these are
-    // the corners that used the most of the wall while staying clear of
-    // the floor trim and the architecture on the right, verified by pixel-
-    // detecting the actual marker centers before the markers were inpainted
-    // out for the shipped image). Real DOM text (title/subtitle/links,
-    // rendered in renderRoom) is mapped onto this quad via a 4-point
-    // perspective homography (matrix3d) -- this superseded a prior CSS
-    // attempt that used an eyeballed quad and looked "not glued to the
-    // wall"; the theory is that was a bad-data problem, not a bad-math one,
-    // since a true homography against accurate corners has no freedom to
-    // look wrong. Verify that theory with a screenshot before trusting it
-    // twice.
-    room: {
-      image: 'img/conservatory.png',
-      ratio: '1672 / 941',
-      designW: 460, designH: 348,
-      quad: [[4.52, 20.72], [32.18, 29.49], [33.43, 62.11], [4.25, 64.45]],
-    } },
   { id: 'core', name: 'Systems Core', tagline: 'Tools & Settings', icon: '🛠️', modules: ['tools', 'settings', 'search', 'qrsync', 'timemachine', 'entropy', 'almanac', 'themefromphoto'],
     hotspot: { points: [[73.39, 57.7], [97.31, 56.32], [98.5, 57.39], [98.5, 62.81], [97.31, 64.93], [74.4, 64.93], [73.09, 63.12], [73.09, 59.3]] } },
   { id: 'relay', name: 'AI Relay', tagline: 'AI Assistant — Gemini', icon: '🤖', modules: ['assistant', 'stationcat'],
@@ -118,8 +97,6 @@ function moduleLabel(id) {
 // links inside an immersive room; anything without an entry falls back to
 // the module's own label so a new room never renders a blank sub-line.
 const MODULE_TAGLINES = {
-  languages: 'Study packs & drills',
-  chords: 'Harmony & voicings',
   lifeasmusic: 'Your life, played back',
 };
 function moduleTagline(id) {
@@ -204,17 +181,17 @@ function plaque(district, hub) {
   const posStyle = hotspotStyle(district.hotspot);
   const btn = el('button', {
     type: 'button',
-    class: `vsp-plaque vsp-plaque--${district.id}`,
+    class: `sp1-plaque sp1-plaque--${district.id}`,
     style: posStyle,
     title: `${district.name} — ${district.tagline}`,
     'aria-label': `${district.name}. ${district.tagline}.`,
     onclick: () => depart(district, btn, hub),
   }, [
-    el('span', { class: 'vsp-plaque-chrome' }, [
-      el('span', { class: 'vsp-plaque-icon', text: district.icon }),
-      el('span', { class: 'vsp-plaque-text' }, [
-        el('span', { class: 'vsp-plaque-name', text: district.name }),
-        el('span', { class: 'vsp-plaque-tag', text: district.tagline }),
+    el('span', { class: 'sp1-plaque-chrome' }, [
+      el('span', { class: 'sp1-plaque-icon', text: district.icon }),
+      el('span', { class: 'sp1-plaque-text' }, [
+        el('span', { class: 'sp1-plaque-name', text: district.name }),
+        el('span', { class: 'sp1-plaque-tag', text: district.tagline }),
       ]),
     ]),
   ]);
@@ -237,20 +214,20 @@ function depart(district, plaqueEl, hub) {
 }
 
 function renderHub(root) {
-  const hub = el('div', { class: 'vsp-hub' });
+  const hub = el('div', { class: 'sp1-hub' });
   // The stage is what the art and the plaques share: a box locked to the
   // image's exact aspect ratio, letterboxed inside the hub. Hotspot
   // percentages only mean anything measured against the image itself --
   // putting them on a container that cover-crops the art (the previous
   // structure) silently breaks alignment at any viewport that isn't
   // exactly 16:9, which is most real browser windows.
-  const stage = el('div', { class: 'vsp-stage' });
-  const layer = el('div', { class: 'vsp-plaque-layer' });
+  const stage = el('div', { class: 'sp1-stage' });
+  const layer = el('div', { class: 'sp1-plaque-layer' });
   for (const d of DISTRICTS) layer.append(plaque(d, hub));
   stage.append(
-    el('header', { class: 'vsp-masthead' }, [
-      el('h1', { class: 'vsp-title', text: 'VESPERA' }),
-      el('p', { class: 'vsp-subtitle', text: 'Grand Concourse' }),
+    el('header', { class: 'sp1-masthead' }, [
+      el('h1', { class: 'sp1-title', text: 'LIFE OS' }),
+      el('p', { class: 'sp1-subtitle', text: 'Grand Concourse' }),
     ]),
     layer,
   );
@@ -259,14 +236,14 @@ function renderHub(root) {
 
   // Central Directory: the flat every-module list, so nothing is
   // unreachable while most districts only surface their headline spaces.
-  const dir = el('div', { class: 'vsp-directory' });
+  const dir = el('div', { class: 'sp1-directory' });
   const toggle = el('button', {
-    type: 'button', class: 'vsp-dir-toggle', text: '◈ Central Directory',
+    type: 'button', class: 'sp1-dir-toggle', text: '◈ Central Directory',
     onclick: () => dir.classList.toggle('is-open'),
   });
-  const list = el('div', { class: 'vsp-dir-list' });
+  const list = el('div', { class: 'sp1-dir-list' });
   for (const mod of ctx.modules) {
-    list.append(el('a', { class: 'vsp-dir-item', href: '#/' + mod.id, text: mod.label }));
+    list.append(el('a', { class: 'sp1-dir-item', href: '#/' + mod.id, text: mod.label }));
   }
   dir.append(toggle, list);
   root.append(dir);
@@ -277,22 +254,22 @@ function renderHub(root) {
 function renderDistrict(root, district) {
   if (district.room) { renderRoom(root, district); return; }
 
-  const screen = el('div', { class: 'vsp-screen vsp-district' });
-  screen.append(el('div', { class: 'vsp-bar' }, [
+  const screen = el('div', { class: 'sp1-screen sp1-district' });
+  screen.append(el('div', { class: 'sp1-bar' }, [
     el('button', {
-      type: 'button', class: 'vsp-back', text: '◂ Concourse',
+      type: 'button', class: 'sp1-back', text: '◂ Concourse',
       onclick: () => { state.district = null; requestRender(currentRoute); },
     }),
-    el('span', { class: 'vsp-bar-title', text: `${district.icon} ${district.name}` }),
-    el('span', { class: 'vsp-bar-tag', text: district.tagline }),
+    el('span', { class: 'sp1-bar-title', text: `${district.icon} ${district.name}` }),
+    el('span', { class: 'sp1-bar-tag', text: district.tagline }),
   ]));
-  const doors = el('div', { class: 'vsp-doors' });
+  const doors = el('div', { class: 'sp1-doors' });
   for (const id of district.modules) {
     doors.append(el('button', {
-      type: 'button', class: 'vsp-door', onclick: () => ctx.navigate(id),
+      type: 'button', class: 'sp1-door', onclick: () => ctx.navigate(id),
     }, [
-      el('span', { class: 'vsp-door-name', text: moduleLabel(id) }),
-      el('span', { class: 'vsp-door-enter', text: 'Enter ▸' }),
+      el('span', { class: 'sp1-door-name', text: moduleLabel(id) }),
+      el('span', { class: 'sp1-door-enter', text: 'Enter ▸' }),
     ]));
   }
   screen.append(doors);
@@ -307,23 +284,23 @@ function renderDistrict(root, district) {
 // and the hook for future room-to-room animation.
 function renderRoom(root, district) {
   const { room } = district;
-  const screen = el('div', { class: 'vsp-screen vsp-district' });
-  screen.append(el('div', { class: 'vsp-bar' }, [
+  const screen = el('div', { class: 'sp1-screen sp1-district' });
+  screen.append(el('div', { class: 'sp1-bar' }, [
     el('button', {
-      type: 'button', class: 'vsp-back', text: '◂ Concourse',
+      type: 'button', class: 'sp1-back', text: '◂ Concourse',
       onclick: () => { state.district = null; requestRender(currentRoute); },
     }),
-    el('span', { class: 'vsp-bar-title', text: `${district.icon} ${district.name}` }),
-    el('span', { class: 'vsp-bar-tag', text: district.tagline }),
+    el('span', { class: 'sp1-bar-title', text: `${district.icon} ${district.name}` }),
+    el('span', { class: 'sp1-bar-tag', text: district.tagline }),
   ]));
 
-  const zoom = el('div', { class: 'vsp-hub vsp-room' });
+  const zoom = el('div', { class: 'sp1-hub sp1-room' });
   // Resolve the art path against THIS module's URL, not the document base:
   // an inline background-image url() would otherwise resolve relative to
   // index.html (wrong folder, and wrong again under GitHub Pages' subpath).
   const imgUrl = new URL(room.image, import.meta.url).href;
   const stage = el('div', {
-    class: 'vsp-stage vsp-room-stage',
+    class: 'sp1-stage sp1-room-stage',
     style: `aspect-ratio: ${room.ratio}; background-image: url('${imgUrl}');`,
   });
 
@@ -334,21 +311,21 @@ function renderRoom(root, district) {
   // stylesheet) so a stale cached stylesheet can never detach them from
   // the matrix -- that exact mismatch shipped once already.
   const panel = el('div', {
-    class: 'vsp-room-quad',
+    class: 'sp1-room-quad',
     style: `position:absolute; left:0; top:0; transform-origin:0 0;`
       + ` width:${room.designW}px; height:${room.designH}px;`,
   }, [
-    el('div', { class: 'vsp-room-title', text: district.name }),
-    el('div', { class: 'vsp-room-sub', text: district.tagline }),
+    el('div', { class: 'sp1-room-title', text: district.name }),
+    el('div', { class: 'sp1-room-sub', text: district.tagline }),
   ]);
-  const links = el('div', { class: 'vsp-room-links' });
+  const links = el('div', { class: 'sp1-room-links' });
   for (const id of district.modules) {
     const link = el('button', {
-      type: 'button', class: 'vsp-room-link',
+      type: 'button', class: 'sp1-room-link',
       onclick: () => travel(zoom, link, () => ctx.navigate(id)),
     }, [
-      el('span', { class: 'vsp-room-link-name', text: moduleLabel(id) }),
-      el('span', { class: 'vsp-room-link-sub', text: moduleTagline(id) }),
+      el('span', { class: 'sp1-room-link-name', text: moduleLabel(id) }),
+      el('span', { class: 'sp1-room-link-sub', text: moduleTagline(id) }),
     ]);
     links.append(link);
   }
@@ -381,26 +358,26 @@ function renderRoom(root, district) {
 
 async function renderSpace(root, route) {
   const district = districtOf(route.module);
-  const screen = el('div', { class: 'vsp-screen vsp-space' });
-  screen.append(el('div', { class: 'vsp-bar' }, [
+  const screen = el('div', { class: 'sp1-screen sp1-space' });
+  screen.append(el('div', { class: 'sp1-bar' }, [
     el('button', {
-      type: 'button', class: 'vsp-back', text: '◂ Concourse',
+      type: 'button', class: 'sp1-back', text: '◂ Concourse',
       onclick: () => ctx.navigate('dashboard'),
     }),
     district
       ? el('button', {
-        type: 'button', class: 'vsp-back', text: `${district.icon} ${district.name}`,
+        type: 'button', class: 'sp1-back', text: `${district.icon} ${district.name}`,
         onclick: () => { state.district = district; ctx.navigate('dashboard'); },
       })
-      : el('span', { class: 'vsp-bar-tag', text: '◈ Directory' }),
-    el('span', { class: 'vsp-bar-title', text: moduleLabel(route.module) }),
+      : el('span', { class: 'sp1-bar-tag', text: '◈ Directory' }),
+    el('span', { class: 'sp1-bar-title', text: moduleLabel(route.module) }),
   ]));
 
-  // The content well opts back into Equator's view styling: mer-* rules are
-  // scoped under [data-interface='default'], and attribute selectors match
-  // any ancestor, so this wrapper turns them on for the hosted view only —
-  // Vespera's own chrome stays outside it.
-  const well = el('div', { class: 'vsp-content', 'data-interface': 'default' });
+  // The content well opts back into Test Mode's view styling: mer-* rules
+  // are scoped under [data-interface='default'], and attribute selectors
+  // match any ancestor, so this wrapper turns them on for the hosted view
+  // only — this interface's own chrome stays outside it.
+  const well = el('div', { class: 'sp1-content', 'data-interface': 'default' });
   const canvas = el('main', { class: 'mer-canvas' });
   well.append(canvas);
   screen.append(well);
@@ -426,13 +403,13 @@ async function doRender(route) {
   }
 }
 
-// Same serialized render chain as Equator, for the same reason: concurrent
+// Same serialized render chain as Test Mode, for the same reason: concurrent
 // triggers (a view's own refresh racing a data-event refresh) must never
 // interleave DOM writes.
 function requestRender(route) {
   currentRoute = route;
   renderChain = renderChain.then(() => doRender(route)).catch((err) => {
-    console.error('vespera: render failed', err);
+    console.error('spatial-1: render failed', err);
   });
   return renderChain;
 }
@@ -455,10 +432,10 @@ function scheduleRerender() {
 }
 
 registerInterface({
-  id: 'vespera',
-  name: 'Vespera',
+  id: 'spatial-1',
+  name: 'Spatial 1',
   description: 'The orbital station — Life OS as a place you navigate.',
-  stylesheet: 'js/interfaces/vespera/style.css',
+  stylesheet: 'js/interfaces/spatial-1/style.css',
   // Non-touch only (see PROJECT_SPEC.md's "Device philosophy" section) —
   // the spatial hub navigation genuinely doesn't work on a small
   // touchscreen, browser tab or installed. The shell falls back to
@@ -468,7 +445,7 @@ registerInterface({
 
   async mount(container, context) {
     ctx = context;
-    const root = el('div', { class: 'vsp-root' });
+    const root = el('div', { class: 'sp1-root' });
     container.append(root);
     els = { root };
     state = { district: null };
