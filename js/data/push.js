@@ -17,12 +17,13 @@ import { getSupabaseClient } from './supabase-client.js';
 import { isSupabaseConfigured } from './supabase-config.js';
 
 // The PUBLIC half of a VAPID key pair. Safe to ship client-side (it only lets
-// a browser subscribe to THIS app server; the private half, which signs pushes,
-// lives only in Supabase secrets). Generate a pair once with
-// `npx web-push generate-vapid-keys` -- paste the public key here, put the
-// private key in Supabase secrets (see the runbook). Empty = push not set up,
-// and getPushState() reports configured:false so the UI stays inert.
-export const VAPID_PUBLIC_KEY = '';
+// a browser subscribe to THIS app server; the private half, which signs
+// pushes, lives only in secrets, never in the repo). The matching private key
+// is a GitHub Actions secret (VAPID_PRIVATE_KEY) that the deploy workflow
+// pushes to the Supabase function -- see SUPABASE_MIGRATION.md. Empty would
+// mean push isn't set up (getPushState reports configured:false); this pair
+// was generated 2026-07-13.
+export const VAPID_PUBLIC_KEY = 'BIyvZOWXLeZFcndZ4E1NXgw8Eib0syM5q7iGEtQUyun0dMPJxRyinqiXyefvY6o6qYseZtnfYRLEzadN9ElJJic';
 
 const TABLE = 'push_subscriptions';
 

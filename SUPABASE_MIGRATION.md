@@ -189,47 +189,38 @@ the app *closed*. Unblocked by the personal-data backend above.
   VAPID-signed Web Push to their subscriptions, prunes dead ones. **Untested
   against the live Deno runtime** — expect to iterate once deployed.
 
-## Deploy runbook (your part)
+## Setup — all in web UIs, no terminal
 
-1. **Generate a VAPID key pair** (once):
-   ```
-   npx web-push generate-vapid-keys
-   ```
-   It prints a Public Key and a Private Key.
-2. **Paste the PUBLIC key** into `js/data/push.js` → `VAPID_PUBLIC_KEY = '...'`
-   (safe to commit — it's public by design), then redeploy the site. The
-   Settings "Push notifications" block goes from "not set up" to a real toggle.
-3. **Apply the SQL:** run `sql/supabase-push-schema.sql` in the SQL Editor
-   (idempotent — a no-op if the table's already there).
-4. **Set the secrets** (the private key never leaves Supabase):
-   ```
-   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:alekpeed@gmail.com
-   ```
-   (`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected — don't set them.)
-5. **Deploy the function:**
-   ```
-   supabase functions deploy send-push
-   ```
-6. **Schedule it** (daily ~8am) via pg_cron + pg_net in the SQL Editor — enable
-   the `pg_cron` and `pg_net` extensions first (Database → Extensions), then:
-   ```sql
-   select cron.schedule('lifeos-daily-push', '0 8 * * *', $$
-     select net.http_post(
-       url := 'https://<project-ref>.functions.supabase.co/send-push',
-       headers := jsonb_build_object(
-         'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
-         'Content-Type', 'application/json')
-     );
-   $$);
-   ```
-7. **Test:** in the app (signed in), turn on push in Settings; then invoke the
-   function once by hand (`supabase functions invoke send-push`, or hit its URL)
-   and confirm a notification arrives — try it with the app closed.
+The VAPID keys are already generated: the **public** key is committed
+(`js/data/push.js` + the deploy workflow), so it's live. Deploys run from
+GitHub Actions (`.github/workflows/deploy-supabase-functions.yml`) — you never
+touch a local CLI. Your one-time steps:
 
-**If `npm:web-push` won't load** under Supabase's Deno runtime, swap it for the
-Deno-native `jsr:@negrel/webpush` (its API differs: you build an
-`ApplicationServer` from the VAPID keys and call `.subscribe(...).pushTextMessage(...)`);
-ping me and I'll adapt the function.
+1. **Add two GitHub Actions secrets.** GitHub → the repo → Settings → Secrets
+   and variables → Actions → New repository secret:
+   - `SUPABASE_ACCESS_TOKEN` — make one at Supabase → Account → Access Tokens.
+   - `VAPID_PRIVATE_KEY` — the private key value (sent to you separately; it is
+     NOT in the repo). This is the only sensitive value you paste anywhere.
+2. **Run two SQL files** in the Supabase SQL Editor (web):
+   - `sql/supabase-push-schema.sql` (the subscriptions table; idempotent).
+   - `sql/supabase-push-cron.sql` (the daily schedule; already filled in with
+     the project URL + public anon key — copy-paste as-is, tweak the time if
+     you like). Enable the `pg_cron` + `pg_net` extensions first if prompted
+     (Database → Extensions).
+3. **Run the deploy workflow.** GitHub → Actions → "Deploy Supabase Functions"
+   → Run workflow. (It also runs automatically whenever the function changes.)
+   This sets the VAPID secrets on Supabase and deploys `send-push`.
+4. **Test:** open the app signed in → Settings → turn on Push notifications →
+   allow the browser prompt. Then either wait for the daily cron, or in the
+   Supabase dashboard → Edge Functions → send-push → Invoke, and confirm a
+   notification arrives (try it with the app closed / phone locked).
+
+**If the deploy workflow fails** because `npm:web-push` won't load under
+Supabase's Deno runtime, the fix is swapping it for the Deno-native
+`jsr:@negrel/webpush` in `supabase/functions/send-push/index.ts` (different API:
+build an `ApplicationServer` from the VAPID keys, call
+`.subscribe(...).pushTextMessage(...)`). Send me the failed run's log and I'll
+adapt it — that's a code change I make in the repo, not something you run.
 
 **Known v1 limitation:** the digest runs on a schedule and doesn't de-dup
 across days, so the same item can be mentioned on consecutive mornings until
