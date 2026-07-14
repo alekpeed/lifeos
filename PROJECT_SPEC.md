@@ -555,12 +555,6 @@ several are foundational (they change how the whole app works underneath,
 not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 
 **AI & intelligence**
-- **Fully local LLM, zero API key** — a small model running in-browser
-  (WebGPU / WebLLM) so the AI Daily Paper, smarter search, and any assistant
-  work fully offline, free, and with data never leaving the device. Extends
-  the app's local-first ethos to AI itself. This is the one idea that changes
-  the app's *size class* (a bundled/downloaded model is hundreds of MB to
-  multiple GB).
 - **Semantic memory across your whole life** — embed every record from every
   module into a local vector index, so "when did I last see Sarah?" or "what
   was bugging me in March?" returns a real answer from your actual history,
@@ -576,6 +570,11 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 - **CRDT-based sync** — replace last-write-wins Drive sync with a real
   conflict-free merge engine, so simultaneous edits on two devices combine
   automatically instead of one silently clobbering the other.
+
+*(Ruled out 2026-07-13: a fully local in-browser LLM (WebGPU/WebLLM) — the
+multi-GB download changes the app's size class for value that only lands
+offline, a scenario Alek is rarely in and where the AI garnish isn't a
+deal-breaker. See FUTURE_FEATURES.md §7 for the full note.)*
 
 **Capture & reach**
 - **Real background push** — true background sync / Web Push (not just

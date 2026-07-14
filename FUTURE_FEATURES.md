@@ -340,11 +340,6 @@ for a stripped-down version.)
 🌙 unless noted.
 
 **AI & intelligence**
-- **Fully local LLM, zero API key** — a small model running in-browser
-  (WebGPU/WebLLM) so the AI Daily Paper, smarter search, and any assistant
-  work fully offline, free, with data never leaving the device. The one
-  idea that changes the app's *size class* (a bundled/downloaded model is
-  hundreds of MB to multiple GB).
 - **Semantic memory across your whole life** — embed every record from
   every module into a local vector index, so "when did I last see Sarah?"
   or "what was bugging me in March?" returns a real answer from your actual
@@ -365,6 +360,15 @@ for a stripped-down version.)
 - **Real background push** — true background sync/Web Push (not just
   foreground-only PWA behavior) so alerts land with the app closed, on
   platforms that genuinely support it.
+
+*(Ruled out 2026-07-13, dead, not parked, don't resurface: a fully local
+in-browser LLM (WebGPU/WebLLM). Alek's call — the multi-GB model download
+changes the app's whole size class for value that only lands in a scenario
+he's rarely in (offline), and the offline AI garnish isn't a deal-breaker
+when it is. Offline storage already works without it; the API-key AI
+features simply resume on reconnect. The privacy angle (AI calls never
+leaving the device) was weighed and judged too narrow to justify it, since
+data already lives local-first and only the AI calls reach out.)*
 
 ## 8. Moonshot tier — round 2: capture, privacy, self-awareness, platform
 
