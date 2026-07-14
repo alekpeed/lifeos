@@ -168,3 +168,69 @@ and surfaces in the status line *before* any local data is touched.
 Once that's confirmed, personal-data sync is proven live. Only *then* does the
 Drive engine (`js/data/sync.js` + its Settings block) get retired — a clean,
 separate follow-up, not part of this change.
+
+---
+
+# Web Push — real background notifications
+
+**Status (2026-07-13): client built + deployed (inert), server function
+written, not yet deployed/tested.** Alerts (due bills, streaks) that land with
+the app *closed*. Unblocked by the personal-data backend above.
+
+## What's built
+
+- **Client (live, inert):** `js/data/push.js` (subscribe/unsubscribe, stores
+  the subscription in `push_subscriptions`), service-worker `push` +
+  `notificationclick` handlers, a "Push notifications" Settings block, and
+  `sql/supabase-push-schema.sql`. All gated on a VAPID key existing — until
+  one's configured, Settings just says "not set up yet." Nothing fires.
+- **Server (written, your deploy):** `supabase/functions/send-push/index.ts` —
+  reads due-soon items from `sync_records`, builds one digest per user, sends
+  VAPID-signed Web Push to their subscriptions, prunes dead ones. **Untested
+  against the live Deno runtime** — expect to iterate once deployed.
+
+## Deploy runbook (your part)
+
+1. **Generate a VAPID key pair** (once):
+   ```
+   npx web-push generate-vapid-keys
+   ```
+   It prints a Public Key and a Private Key.
+2. **Paste the PUBLIC key** into `js/data/push.js` → `VAPID_PUBLIC_KEY = '...'`
+   (safe to commit — it's public by design), then redeploy the site. The
+   Settings "Push notifications" block goes from "not set up" to a real toggle.
+3. **Apply the SQL:** run `sql/supabase-push-schema.sql` in the SQL Editor
+   (idempotent — a no-op if the table's already there).
+4. **Set the secrets** (the private key never leaves Supabase):
+   ```
+   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:alekpeed@gmail.com
+   ```
+   (`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected — don't set them.)
+5. **Deploy the function:**
+   ```
+   supabase functions deploy send-push
+   ```
+6. **Schedule it** (daily ~8am) via pg_cron + pg_net in the SQL Editor — enable
+   the `pg_cron` and `pg_net` extensions first (Database → Extensions), then:
+   ```sql
+   select cron.schedule('lifeos-daily-push', '0 8 * * *', $$
+     select net.http_post(
+       url := 'https://<project-ref>.functions.supabase.co/send-push',
+       headers := jsonb_build_object(
+         'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
+         'Content-Type', 'application/json')
+     );
+   $$);
+   ```
+7. **Test:** in the app (signed in), turn on push in Settings; then invoke the
+   function once by hand (`supabase functions invoke send-push`, or hit its URL)
+   and confirm a notification arrives — try it with the app closed.
+
+**If `npm:web-push` won't load** under Supabase's Deno runtime, swap it for the
+Deno-native `jsr:@negrel/webpush` (its API differs: you build an
+`ApplicationServer` from the VAPID keys and call `.subscribe(...).pushTextMessage(...)`);
+ping me and I'll adapt the function.
+
+**Known v1 limitation:** the digest runs on a schedule and doesn't de-dup
+across days, so the same item can be mentioned on consecutive mornings until
+it's handled. Per-item "already notified" tracking is a later refinement.
