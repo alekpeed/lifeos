@@ -383,13 +383,14 @@ const SETTING_DEFAULTS = {
   theme: 'dark',
   accent: 'brass',
   density: 'comfortable',
-  // Temporary: default a no-preference session (new device, or a "Clear
-  // site data" that wiped IndexedDB along with the cache) into the spatial
-  // interface instead of Test Mode while it's the one being actively worked
-  // on -- flip back to 'default' once the spatial interface is done getting
-  // shaped. Anyone who has explicitly picked an interface via Settings has a
-  // real stored value here and is unaffected.
-  activeInterface: 'spatial-1',
+  // A no-preference session (new device, or a "Clear site data" that wiped
+  // IndexedDB along with the cache) lands on Test Mode -- the sidebar default,
+  // and the only one that works on any device (spatial-1 is desktop-only, not
+  // touch-safe). Was temporarily 'spatial-1' while that interface was being
+  // actively shaped (2026-07); reverted to 'default' 2026-07-13 now that focus
+  // has moved off it. Anyone who has explicitly picked an interface via
+  // Settings has a real stored value here and is unaffected.
+  activeInterface: 'default',
   wordsPerPageDefault: 275,
   billDueSoonDays: 7,
   documentExpiryDays: 30,
