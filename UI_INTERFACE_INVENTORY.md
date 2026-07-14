@@ -25,7 +25,7 @@ Every module's view is a single function `render<Name>(canvas, ctx, rerender)` r
 
 ## 1. Application structure
 
-The app is a flat set of **38 modules**, each a single top-level nav destination (`#/<moduleId>`) — there is no deeper URL structure (`js/shell.js:19-27` parses only the first hash segment as `module`, the rest as an opaque `rest` array most modules ignore). Modules are grouped for nav-label purposes only (`js/modules.js:57-63`): **Core** (9), **Memory & Keepsakes** (8), **People & Logistics** (6), **Health** (4), **Utility** (11). (Editorial note: this doc originally documented 43 modules across **Core/Life/Study/Health/Utility**; Conversation Starters, Languages, Chords, and Dream Journal were cut from the app entirely on 2026-07-13, the old flat **Life** group was split into **Memory & Keepsakes**/**People & Logistics**, and **Study** was removed once its only members — Languages and Chords — were gone. See `CLAUDE.md`/`PROJECT_SPEC.md` for the full record.)
+The app is a flat set of **39 modules**, each a single top-level nav destination (`#/<moduleId>`) — there is no deeper URL structure (`js/shell.js:19-27` parses only the first hash segment as `module`, the rest as an opaque `rest` array most modules ignore). Modules are grouped for nav-label purposes only (`js/modules.js`): **Core** (9), **Memory & Keepsakes** (8), **People & Logistics** (6), **Health** (4), **Insight** (6), **System & Tools** (6). (Editorial note: this doc originally documented 43 modules across **Core/Life/Study/Health/Utility**; Conversation Starters, Languages, Chords, and Dream Journal were cut from the app entirely on 2026-07-13, the old flat **Life** group was split into **Memory & Keepsakes**/**People & Logistics**, and **Study** was removed once its only members — Languages and Chords — were gone. Also on 2026-07-13 the **Notifications** module was added and the catch-all **Utility** group was split into **Insight** and **System & Tools**. See `CLAUDE.md`/`PROJECT_SPEC.md` for the full record.)
 
 Every module's source file lives at `js/interfaces/default/views/<id>.js` and is registered in `js/interfaces/view-library.js:59-103`. "Whether it must be directly accessible from the main interface" below reflects the existing `remote: true` flag in `js/modules.js:14-58` — the already-negotiated set of 19 modules meant for the mobile remote's curated nav (see `MOBILE_INTERFACES_SPEC.md`'s "Draft: what actually ships on the remote"; originally 21, reduced by 2 when Conversation Starters and Languages — both `remote: true` — were cut 2026-07-13). This is a real, already-made product decision, not a guess.
 
@@ -552,17 +552,18 @@ Things that are easy to accidentally drop when replacing the interface, because 
     {"id":"health","label":"Health","group":"health","navCategory":"primary","remote":true},
     {"id":"skilltree","label":"Skill Trees","group":"health","navCategory":"secondary","remote":false},
     {"id":"almanac","label":"The Almanac","group":"health","navCategory":"secondary","remote":false},
-    {"id":"assistant","label":"AI Assistant","group":"utility","navCategory":"secondary","remote":false},
-    {"id":"knowledge","label":"Knowledge Graph","group":"utility","navCategory":"secondary","remote":false},
-    {"id":"recall","label":"Recall","group":"utility","navCategory":"primary","remote":true},
-    {"id":"timemachine","label":"Time Machine","group":"utility","navCategory":"secondary","remote":false},
-    {"id":"qrsync","label":"QR Sync","group":"utility","navCategory":"primary","remote":true},
-    {"id":"entropy","label":"Entropy","group":"utility","navCategory":"secondary","remote":false},
-    {"id":"stationcat","label":"Station Cat","group":"utility","navCategory":"secondary","remote":false},
-    {"id":"themefromphoto","label":"Theme from Photo","group":"utility","navCategory":"secondary","remote":false},
-    {"id":"tools","label":"Tools","group":"utility","navCategory":"primary","remote":true},
-    {"id":"search","label":"Search","group":"utility","navCategory":"primary","remote":true},
-    {"id":"settings","label":"Settings","group":"utility","navCategory":"settings","remote":true}
+    {"id":"assistant","label":"AI Assistant","group":"insight","navCategory":"secondary","remote":false},
+    {"id":"knowledge","label":"Knowledge Graph","group":"insight","navCategory":"secondary","remote":false},
+    {"id":"recall","label":"Recall","group":"insight","navCategory":"primary","remote":true},
+    {"id":"notifications","label":"Notifications","group":"insight","navCategory":"primary","remote":true},
+    {"id":"entropy","label":"Entropy","group":"insight","navCategory":"secondary","remote":false},
+    {"id":"timemachine","label":"Time Machine","group":"insight","navCategory":"secondary","remote":false},
+    {"id":"search","label":"Search","group":"system","navCategory":"primary","remote":true},
+    {"id":"tools","label":"Tools","group":"system","navCategory":"primary","remote":true},
+    {"id":"qrsync","label":"QR Sync","group":"system","navCategory":"primary","remote":true},
+    {"id":"themefromphoto","label":"Theme from Photo","group":"system","navCategory":"secondary","remote":false},
+    {"id":"stationcat","label":"Station Cat","group":"system","navCategory":"secondary","remote":false},
+    {"id":"settings","label":"Settings","group":"system","navCategory":"settings","remote":true}
   ],
   "actionsByModule": {
     "dashboard": ["dashboard.surpriseMe","dashboard.goToSurprise","dashboard.useMyLocation","dashboard.removeWeather"],

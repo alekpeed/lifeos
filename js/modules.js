@@ -41,18 +41,21 @@ export const MODULES = [
   { id: 'health', label: 'Health', group: 'health', remote: true },
   { id: 'skilltree', label: 'Skill Trees', group: 'health' },
   { id: 'almanac', label: 'The Almanac', group: 'health' },
-  { id: 'assistant', label: 'AI Assistant', group: 'utility' },
-  { id: 'knowledge', label: 'Knowledge Graph', group: 'utility' },
-  { id: 'recall', label: 'Recall', group: 'utility', remote: true },
-  { id: 'notifications', label: 'Notifications', group: 'utility', remote: true },
-  { id: 'timemachine', label: 'Time Machine', group: 'utility' },
-  { id: 'qrsync', label: 'QR Sync', group: 'utility', remote: true },
-  { id: 'entropy', label: 'Entropy', group: 'utility' },
-  { id: 'stationcat', label: 'Station Cat', group: 'utility' },
-  { id: 'themefromphoto', label: 'Theme from Photo', group: 'utility' },
-  { id: 'tools', label: 'Tools', group: 'utility', remote: true },
-  { id: 'search', label: 'Search', group: 'utility', remote: true },
-  { id: 'settings', label: 'Settings', group: 'utility', remote: true },
+  // Insight: the app surfacing/connecting/reasoning over your own data --
+  // things you couldn't get by just opening a module's list.
+  { id: 'assistant', label: 'AI Assistant', group: 'insight' },
+  { id: 'knowledge', label: 'Knowledge Graph', group: 'insight' },
+  { id: 'recall', label: 'Recall', group: 'insight', remote: true },
+  { id: 'notifications', label: 'Notifications', group: 'insight', remote: true },
+  { id: 'entropy', label: 'Entropy', group: 'insight' },
+  { id: 'timemachine', label: 'Time Machine', group: 'insight' },
+  // System & Tools: app machinery, everyday utilities, config, cosmetic.
+  { id: 'search', label: 'Search', group: 'system', remote: true },
+  { id: 'tools', label: 'Tools', group: 'system', remote: true },
+  { id: 'qrsync', label: 'QR Sync', group: 'system', remote: true },
+  { id: 'themefromphoto', label: 'Theme from Photo', group: 'system' },
+  { id: 'stationcat', label: 'Station Cat', group: 'system' },
+  { id: 'settings', label: 'Settings', group: 'system', remote: true },
 ];
 
 export const MODULE_GROUPS = [
@@ -60,7 +63,8 @@ export const MODULE_GROUPS = [
   { id: 'memory', label: 'Memory & Keepsakes' },
   { id: 'people', label: 'People & Logistics' },
   { id: 'health', label: 'Health' },
-  { id: 'utility', label: 'Utility' },
+  { id: 'insight', label: 'Insight' },
+  { id: 'system', label: 'System & Tools' },
 ];
 
 export const DEFAULT_MODULE = 'dashboard';
