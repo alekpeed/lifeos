@@ -214,6 +214,52 @@ async function renderSyncSection(canvas, ctx, rerender) {
   canvas.append(row, status);
 }
 
+async function renderSupabaseSyncSection(canvas, ctx, rerender) {
+  const state = await ctx.data.getSupabaseSyncState();
+  if (!state.configured) return; // no Supabase project wired -> hide entirely
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Cloud sync (Supabase)' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'The newer sync path: your data reconciles between devices through the app\'s Supabase backend instead of Google Drive, scoped to your signed-in account. Same last-write-wins behavior as Drive sync, and your device preferences (theme, density, active interface) still stay local. Being rolled out alongside Drive sync — you can run either, or both, during the transition.' }));
+
+  const status = el('p', { class: 'mer-muted' });
+  const setStatus = (text, isError) => { status.textContent = text; status.classList.toggle('mer-sync-error', !!isError); };
+
+  if (!state.signedIn) {
+    setStatus('Sign in with your account above to enable cloud sync.');
+    canvas.append(status);
+    return;
+  }
+  setStatus(state.enabled ? `Last synced: ${fmtSyncTime(state.lastSyncedAt)}` : 'Not connected yet.');
+
+  const runSync = async (fn, label) => {
+    row.querySelectorAll('button').forEach((b) => (b.disabled = true));
+    setStatus(`${label}…`);
+    try {
+      const res = await fn();
+      const changed = res?.affected?.length ? ` (updated ${res.affected.join(', ')})` : '';
+      setStatus(`Synced ${fmtSyncTime(new Date().toISOString())}${changed}.`);
+      await rerender();
+    } catch (err) {
+      setStatus(err.message || String(err), true);
+      row.querySelectorAll('button').forEach((b) => (b.disabled = false));
+    }
+  };
+
+  const connectBtn = el('button', {
+    type: 'button', text: state.enabled ? 'Sync now' : 'Turn on cloud sync',
+    onclick: () => runSync(state.enabled ? ctx.data.syncSupabaseNow : ctx.data.connectSupabaseSync, state.enabled ? 'Syncing' : 'Connecting'),
+  });
+  const buttons = [connectBtn];
+  if (state.enabled) {
+    buttons.push(el('button', {
+      type: 'button', text: 'Turn off',
+      onclick: async () => { await ctx.data.disconnectSupabaseSync(); await rerender(); },
+    }));
+  }
+  const row = el('div', { class: 'mer-toolbar' }, buttons);
+  canvas.append(row, status);
+}
+
 async function renderCalendarSection(canvas, ctx, rerender) {
   const [state, horizon] = await Promise.all([
     ctx.data.getCalendarState(),
@@ -552,6 +598,7 @@ export async function renderSettings(canvas, ctx, rerender) {
 
   await renderAccountSection(canvas, ctx, rerender || (() => {}));
   await renderSyncSection(canvas, ctx, rerender || (() => {}));
+  await renderSupabaseSyncSection(canvas, ctx, rerender || (() => {}));
   await renderCalendarSection(canvas, ctx, rerender || (() => {}));
   await renderAiAssistantSection(canvas, ctx, rerender || (() => {}));
   await renderAppLockSection(canvas, ctx, rerender || (() => {}));

@@ -102,3 +102,69 @@ second human. So the remaining validation is manual:
 
 Once that's confirmed, v2 is proven live. The Drive path stays regardless as
 the fallback.
+
+---
+
+# Personal-data sync — Supabase migration (the rest of the app, not Sharebox)
+
+**Status (2026-07-13): built alongside Drive, not yet live-verified.** This is
+the bigger migration — moving *all* the app's personal data (Tasks, Places,
+Finance, Books… everything except Sharebox, which is already on Supabase) off
+the Drive snapshot sync and onto Postgres. Decided direction: keep local-first
+(IndexedDB stays the source of truth, offline unchanged), swap the *sync
+transport* from Drive to Supabase. Same side-by-side rollout: Drive sync is
+untouched and keeps working until this is proven.
+
+## Design (locked)
+
+- **One generic table**, not ~57 per-module tables: `sync_records`
+  (`user_id`, `store`, `record_id`, `data jsonb`, `updated_at`, `deleted_at`),
+  a near-mechanical port of the IndexedDB object-store model. Still queryable
+  server-side later via JSONB operators. RLS scopes every row to `auth.uid()`.
+- **Last-write-wins**, identical semantics to the Drive `mergeState`: newest
+  `updatedAt` wins; soft-delete tombstones (`deleted_at`) win only if `>=` the
+  record's `updatedAt` (so an edit after a delete resurrects). No CRDT — that
+  stays a separate future item.
+- **Attachments** → a private `lifeos-attachments` Storage bucket, one folder
+  per user; only metadata rides in the JSONB row.
+
+## What's built (inert until you apply the SQL + turn it on)
+
+- `sql/supabase-personal-sync-schema.sql` — the `sync_records` table, its RLS
+  policies, and the attachments Storage bucket + policies. **You apply this.**
+- `js/data/supabase-sync.js` — the engine. Pure `reconcile()` (unit-tested
+  headlessly across the full LWW matrix, incl. the `Z` vs `+00:00` timestamp-
+  format trap) + full pull/apply/push IO + attachment binaries to Storage.
+- `js/data/api.js` — exposes `connectSupabaseSync` / `syncSupabaseNow` /
+  `disconnectSupabaseSync` / `getSupabaseSyncState` through `ctx.data`.
+- `js/interfaces/default/views/settings.js` — a **"Cloud sync (Supabase)"**
+  block beside the Drive one. Shows "sign in to enable" when signed out;
+  otherwise a Turn-on / Sync-now / Turn-off control. Smoke-tested: renders
+  with zero console errors in the signed-out state.
+
+**No separate Drive→Supabase import needed.** Because local IndexedDB is the
+source of truth, your existing data seeds Supabase automatically on the first
+"Turn on cloud sync" (reconcile pushes every local record up). Even the
+failure mode is safe: if you click it before applying the SQL, the fetch throws
+and surfaces in the status line *before* any local data is touched.
+
+## The live test — your runbook
+
+1. **Apply the schema.** Run `sql/supabase-personal-sync-schema.sql` in the
+   Supabase SQL Editor (or via the Management API's
+   `POST /v1/projects/{ref}/database/query`), same as the Sharebox schema was
+   run. It creates one table + policies + one Storage bucket.
+2. **Sign in.** Settings → Account → sign in (the section only offers cloud
+   sync once you're signed in).
+3. **Turn on cloud sync** in the new "Cloud sync (Supabase)" block. First run
+   pushes your local data up; the status line reports what changed.
+4. **Verify round-trip on a second device** (or a second browser profile):
+   sign in as the same account, turn on cloud sync, confirm your data appears.
+   Edit a record on one, sync both, confirm the newer edit wins. Delete on one,
+   sync both, confirm it's gone on the other (and doesn't resurrect).
+5. **Attachments:** add a photo/PDF on one device, sync, confirm it downloads
+   on the other.
+
+Once that's confirmed, personal-data sync is proven live. Only *then* does the
+Drive engine (`js/data/sync.js` + its Settings block) get retired — a clean,
+separate follow-up, not part of this change.
