@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.31';
+const CACHE_VERSION = 'lifeos-v1.32';
 const APP_SHELL = [
   './',
   './index.html',
@@ -28,6 +28,7 @@ const APP_SHELL = [
   './js/data/sharebox-supabase.js',
   './js/data/profile-supabase.js',
   './js/data/supabase-sync.js',
+  './js/data/push.js',
   './js/data/claude-client.js',
   './js/data/gemini-client.js',
   './js/data/telegram-client.js',
@@ -152,6 +153,48 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => caches.match('./index.html'));
+    })
+  );
+});
+
+// --- Web Push (real background notifications) ---
+// The server half (a Supabase Edge Function, deployed separately) sends a
+// VAPID-signed message with a JSON payload { title, body, url, tag }. This
+// fires even when the app is closed; userVisibleOnly means we MUST show a
+// notification for each one.
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { body: event.data ? event.data.text() : '' };
+  }
+  const title = payload.title || 'Life OS';
+  const options = {
+    body: payload.body || '',
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    tag: payload.tag || undefined,       // same tag -> replaces, no stacking
+    data: { url: payload.url || './' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Tapping a notification focuses an existing window (navigating it to the
+// target route) or opens a new one.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || './';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if ('focus' in w) {
+          w.focus();
+          if (url && w.navigate) w.navigate(url).catch(() => {});
+          return;
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
     })
   );
 });

@@ -459,6 +459,54 @@ async function renderLifeMusicSection(canvas, ctx, rerender) {
   ));
 }
 
+// --- Web Push (real background notifications) ---
+
+async function renderPushSection(canvas, ctx, rerender) {
+  const state = await ctx.data.getPushState();
+  if (!state.supported) return; // browser can't do Web Push -> hide entirely
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Push notifications' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Real background alerts — due bills and streak reminders that reach you even when Life OS is closed. Requires being signed in (so the server knows where to send). On iPhone, this only works if you\'ve added Life OS to your Home Screen.' }));
+
+  const status = el('p', { class: 'mer-muted' });
+  const setStatus = (text, isError) => { status.textContent = text; status.classList.toggle('mer-sync-error', !!isError); };
+
+  if (!state.configured) {
+    setStatus('Push isn\'t set up on the server yet (no VAPID key / Supabase backend).');
+    canvas.append(status);
+    return;
+  }
+  if (!state.signedIn) {
+    setStatus('Sign in with your account above to enable push notifications.');
+    canvas.append(status);
+    return;
+  }
+  if (state.permission === 'denied') {
+    setStatus('Notifications are blocked for this site in your browser settings — allow them there first, then reload.', true);
+    canvas.append(status);
+    return;
+  }
+
+  setStatus(state.subscribed ? 'On — this device will receive background alerts.' : 'Off.');
+
+  const toggleBtn = el('button', {
+    type: 'button', text: state.subscribed ? 'Turn off' : 'Turn on push notifications',
+    onclick: async () => {
+      toggleBtn.disabled = true;
+      setStatus(state.subscribed ? 'Turning off…' : 'Requesting permission…');
+      try {
+        if (state.subscribed) await ctx.data.disablePush();
+        else await ctx.data.enablePush();
+        await rerender();
+      } catch (err) {
+        setStatus(err.message || String(err), true);
+        toggleBtn.disabled = false;
+      }
+    },
+  });
+  canvas.append(el('div', { class: 'mer-toolbar' }, [toggleBtn]), status);
+}
+
 // --- Telegram (send-only) ---
 
 async function renderTelegramSection(canvas, ctx, rerender) {
@@ -603,6 +651,7 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderAiAssistantSection(canvas, ctx, rerender || (() => {}));
   await renderAppLockSection(canvas, ctx, rerender || (() => {}));
   await renderAutomationsSection(canvas, ctx, rerender || (() => {}));
+  await renderPushSection(canvas, ctx, rerender || (() => {}));
   await renderLifeMusicSection(canvas, ctx, rerender || (() => {}));
   await renderTelegramSection(canvas, ctx, rerender || (() => {}));
 }

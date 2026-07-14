@@ -16,6 +16,9 @@ export { connectDrive, syncNow, disconnectDrive, getSyncState } from './sync.js'
 // exposed alongside it during the side-by-side transition (see
 // js/data/supabase-sync.js / sql/supabase-personal-sync-schema.sql).
 export { connectSupabaseSync, syncSupabaseNow, disconnectSupabaseSync, getSupabaseSyncState } from './supabase-sync.js';
+// Web Push (real background notifications). Client half only -- the sending
+// server is a separately-deployed Supabase Edge Function. See js/data/push.js.
+export { getPushState, enablePush, disablePush } from './push.js';
 
 // Google Calendar sync (one-way push of due-soon items) rides the same api
 // surface. Independent of Drive sync — either can be used without the other.
