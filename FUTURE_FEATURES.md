@@ -585,9 +585,16 @@ real requirements instead of guessing.)*
 > CI-verified — the app packages into an installable APK via GitHub Actions with
 > no local machine (see `CAPACITOR_BUILD.md` for the web-only build/install
 > runbook). Also built: the capability-detection layer (`js/native/`) every
-> feature gates through, and the first native feature — **device reminders**
-> (local notifications). The rest of the wishlist below is staged, wake word
-> included (needs Alek's Picovoice key + on-device tuning).
+> feature gates through, plus these native features (all CI-verified, all a
+> no-op on web/iOS): **device reminders** (local notifications), **outbound
+> share**, **keep-awake / cooking mode**, **read-aloud briefing**, **home-screen
+> app shortcuts + deep links**, **actionable notification buttons** (Mark paid /
+> Mark done / Snooze / Renew straight from the reminder), a pinned **"next up"
+> ticker** (persistent notification of the top Briefing item, opt-in), and the
+> **inbound system share sheet** (LifeOS in Android's Share menu → links to
+> Links, text to Ideas). The rest of the wishlist below is staged, wake word
+> included (needs Alek's Picovoice key + on-device tuning). On-device receive/
+> behavior tuning for the share sheet is the next iteration point.
 
 **The platform strategy, settled by Alek:** the same vanilla-JS codebase
 ships as (a) a **native Android app via Capacitor** — first and the
