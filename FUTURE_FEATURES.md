@@ -703,6 +703,77 @@ auto local backups to SD/USB, Chromecast casting, a Wear OS companion,
 Tasker/intents automation hooks, haptic feedback patterns, and step
 counter / raw motion-sensor access feeding Health.)*
 
+## 14. Smart-home / home-automation tier (logged 2026-07-15)
+
+**The vision:** every light and smart device Alek owns — regardless of
+which app or radio it came with — on **one list inside LifeOS**, controlled
+**locally**, from home or 500 miles away. Ties into §13: geofence "arrived
+home" → lights on; the charging-cable bedtime ritual → whole house to night
+mode; Briefing surfaces "you left the garage light on."
+
+**The core architecture decision: don't build N vendor integrations —
+bridge through one hub.** LifeOS talks to a single **Home Assistant** local
+API (REST + WebSocket, long-lived token); Home Assistant does the dirty work
+of speaking every device's language. LifeOS speaks one clean language to HA;
+HA speaks Tuya, Bluetooth, Matter, Zigbee, etc. to the gear.
+
+**Why a hub at all (and why it enables remote control of local-only
+devices):** the hub is a small always-home machine (Raspberry Pi / old
+laptop / ~$100 mini PC) that stays physically in the house, in range of the
+short-range radios. You reach the *hub* over the internet; the hub performs
+the short-range hop locally. So even **Bluetooth-only lights are
+controllable from anywhere** — you → internet → home hub → local Bluetooth →
+bulb. The hub is your "hands" in the house; remote access only needs to
+reach the hub, never the individual device. Remote reach via **Tailscale/
+WireGuard** (free, private, phone + hub on one encrypted network — LifeOS
+sees the hub as if on the home LAN; the local-first choice) or **Home
+Assistant Cloud / Nabu Casa** (~$6.50/mo, zero-config). Conditions: hub +
+any BLE bridge stay powered/in-range at home, and home internet is up.
+
+**Alek's real-world gear (the test case), and each one's local path:**
+- **Smart Life → Tuya, Wi-Fi.** The easy one. Fully local via HA's
+  LocalTuya / tuya-local (extract each device's local key once, then LAN
+  control, no cloud). ([tuya-local](https://github.com/make-all/tuya-local),
+  [localtuya](https://github.com/rospogrigio/localtuya))
+- **DayBetter → Wi-Fi, split personality.** Older units are plain Tuya
+  (pair with Smart Life → same easy local path). Post-2021 units use
+  DayBetter's **own app on a walled-off slice of the Tuya cloud** — NOT
+  visible to Smart Life or the standard Tuya dev API, so those are the
+  awkward wildcard; verify in-hand which kind. Some DayBetter strips are
+  Bluetooth/IR-only.
+- **BrMesh → Bluetooth Mesh, not Wi-Fi.** Uses the Broadlink **"Fastcon"**
+  BLE protocol — commands are broadcast as Bluetooth advertisements, no
+  cloud, no Wi-Fi, no pairing state (fire-and-forget, which makes it robust
+  behind a bridge). Driven by a cheap **ESP32 (~$5)** running a Fastcon→MQTT
+  bridge into HA. ([HA thread](https://community.home-assistant.io/t/brmesh-app-bluetooth-lights/473486),
+  [ESPHome guide](https://stephencross.site/posts/brmesh-esphome-homeassistant/),
+  [brMeshMQTT](https://github.com/ArcadeMachinist/brMeshMQTT))
+
+**The honest truth about "one list":** three different radios (Wi-Fi Tuya,
+walled-cloud DayBetter, BLE-broadcast Fastcon) mean LifeOS can NOT unify
+them by talking to each directly. The one-list outcome is real but routes
+through the HA bridge — HA absorbs all three, LifeOS reads one endpoint.
+
+**How to identify an unknown device (when home):** Wi-Fi setup asking for a
+2.4GHz network + works from anywhere → Tuya-class. Only works within
+Bluetooth range, no internet needed → BLE mesh (BrMesh). Definitive:
+`tinytuya scan` finds Tuya devices + local keys on the LAN; a plain
+Bluetooth scanner app shows the BrMesh ones advertising.
+
+**LifeOS side, when built:** a "Home" module reading the HA API — one list
+of all entities, toggle/dim/color, scenes tied to routines. Note the
+transport wall: a browser PWA on HTTPS GitHub Pages can't reach a local
+`http://` hub (mixed-content/CORS), so this pairs naturally with either the
+**§13 Capacitor native shell** (native HTTP, no CORS) or a Tailscale/HTTPS
+path to HA. Buildable-today alternative for any pure cloud-token brand
+(e.g. LIFX): a direct bearer-token integration, device-local key, no hub —
+but the hub is the right answer for Alek's actual mixed, local-first gear.
+
+*Prereqs that are Alek's to stand up (not buildable from the repo): the
+Home Assistant box itself, the ESP32 BrMesh bridge, and the remote-access
+choice (Tailscale vs Nabu Casa). LifeOS's part is the "Home" module +
+capability wiring once the hub exists.*
+
 ---
 
 Nothing here is fixed in stone. This is meant to be read on its own, but
