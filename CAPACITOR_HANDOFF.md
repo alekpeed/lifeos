@@ -165,6 +165,8 @@ added this session). (Bump the hundredths per shipped change per CLAUDE.md.)
 - Feature 13 (arrival geofencing, custom native plugin): commit `d08d412` —
   **SUCCESS** (compiled first try, incl. play-services-location + the Java
   plugin/receiver).
+- Wake word stage 1 (Life OS as digital assistant): commit `69d8c12` —
+  **SUCCESS** (VoiceInteractionService framework compiled first try).
 - **`dev` was fast-forwarded to `main`** after the fixes and after each feature
   batch. main == dev.
 - Compact CI check (the full run list is huge and blows context): use
@@ -201,11 +203,31 @@ Android build can't run locally (no SDK; JDK is 21, Gradle 8.2.1 needs ≤20) �
    dedup; (d) **charging ritual** (Settings → Evening ritual, opt-in) — plug in
    in the evening with the app open. Actionable notification buttons + next-up
    ticker (Settings → Device reminders) are the earlier ones still to poke.
-2. **Wake word** (the headline, still unbuilt): foreground-service plugin
-   (Picovoice Porcupine or openWakeWord), custom wake phrase, feed the existing
-   **Command** module (`parseCommand` in `api.js`). **Needs Alek's Picovoice
-   access key** (free, console.picovoice.ai) — device-local like the AI keys,
-   NOT a repo secret. Expect real on-device iteration.
+2. **Wake word** (the headline) — **DIRECTION CHANGED 2026-07-15:** Alek wants
+   **Life OS to be the phone's default assistant, replacing Google Assistant**
+   (he doesn't use "Hey Google"). That's the *legitimate* path to a green-dot-
+   exempt hotword — the dot exemption + `HotwordDetectionService` are only
+   available to the active assistant. Key facts established this session: a
+   sideloaded app CANNOT hide the mic green dot (system-enforced; no "apply to
+   remove it" program) *unless* it's the default assistant; even then only the
+   DOT goes away, not the battery (a custom "Hey Life OS" can't use the near-
+   zero-power hardware DSP, so detection still runs on the CPU). Plan is 3 stages:
+   - **Stage 1 — DONE (`69d8c12`, CI green):** `LifeOSVoiceInteractionService` +
+     Session/SessionService + minimal `RecognitionService`
+     (`res/xml/interaction_service.xml`, `supportsAssist=true`). On the assist
+     gesture the session opens `lifeos://open/command`. **Device test:** Settings
+     → Default apps → Digital assistant → Life OS, then assist-gesture → Command
+     screen. (Compilation ≠ registration — registration is unverified until Alek
+     tests on-device; the manifest metadata may need tuning.)
+   - **Stage 2 — next:** "Hey Life OS" hotword via the assistant's
+     `HotwordDetectionService` sandbox (dot-exempt). **Likely openWakeWord, not
+     Picovoice** — the sandbox blocks network and Porcupine's AccessKey
+     validation wants it, so openWakeWord (offline, keyless) fits better and may
+     mean **no Picovoice key needed at all**. Default the mic gated to
+     charging/screen-on; measure battery on-device before allowing 24/7.
+   - **Stage 3:** capture-after-wake → native STT → the existing `parseCommand`
+     (in `api.js`) → confirm → create. STT here also covers the §13 "offline STT"
+     item. Expect real on-device iteration throughout.
 3. **More §13 fast wins** (DONE so far: share-sheet inbound, actionable
    notifications, next-up ticker, clipboard catcher, contacts import, charging
    ritual, NFC read, arrival geofencing): still open — offline STT, home widgets,
