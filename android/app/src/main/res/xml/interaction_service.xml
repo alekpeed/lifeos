@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Declares Life OS as a digital-assistant (voice interaction) service, so it
+     can be chosen as the phone's default assistant. supportsAssist=true lets the
+     assist gesture (power-button / swipe) invoke it. sessionService hosts the
+     assist UI; recognitionService is the required companion speech service. -->
+<voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="com.alekpeed.lifeos.LifeOSInteractionSessionService"
+    android:recognitionService="com.alekpeed.lifeos.LifeOSRecognitionService"
+    android:supportsAssist="true"
+    android:supportsLaunchVoiceAssistFromKeyguard="false" />

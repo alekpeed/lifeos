@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minimal recognition-service metadata. Required as the companion of the
+     voice-interaction service; the actual speech capture is handled in-app for
+     now (the assist session opens the Command voice screen). -->
+<recognition-service xmlns:android="http://schemas.android.com/apk/res/android" />
