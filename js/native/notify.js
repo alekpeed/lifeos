@@ -69,9 +69,60 @@ function idFor(key) {
   return Math.abs(h) % 2000000000;
 }
 
+// --- Actionable notifications (FUTURE_FEATURES.md §13) -------------------
+// Buttons on the notification itself — "Mark paid", "Mark done", "Snooze" —
+// so a due-item reminder can be acted on without opening the app. Each reminder
+// carries an `actionTypeId` matching its module; the button ids below are what
+// the localNotificationActionPerformed handler (wired in native-boot.js) reads.
+export const NOTIFY_ACTION_TYPES = [
+  { id: 'lifeos-bill',       actions: [{ id: 'mark-paid', title: 'Mark paid' }, { id: 'snooze', title: 'Snooze 1 day' }] },
+  { id: 'lifeos-task',       actions: [{ id: 'mark-done', title: 'Mark done' }, { id: 'snooze', title: 'Snooze 1 day' }] },
+  { id: 'lifeos-assignment', actions: [{ id: 'mark-done', title: 'Mark done' }] },
+  { id: 'lifeos-document',   actions: [{ id: 'renew', title: 'Create renew task' }] },
+];
+
+/** Map a due-soon feed module to its notification action-type id (null if none). */
+export function actionTypeForModule(module) {
+  switch (module) {
+    case 'bills':       return 'lifeos-bill';
+    case 'tasks':       return 'lifeos-task';
+    case 'assignments': return 'lifeos-assignment';
+    case 'documents':   return 'lifeos-document';
+    default:            return null;
+  }
+}
+
+let actionsRegistered = false;
+/** Register the notification action-button types once. Idempotent; no-op off-native. */
+export async function registerNotificationActions() {
+  const p = plugin();
+  if (!canNotify() || !p || actionsRegistered) return;
+  try {
+    await p.registerActionTypes({ types: NOTIFY_ACTION_TYPES });
+    actionsRegistered = true;
+  } catch {
+    /* older plugin w/o action types -- reminders still fire, just without buttons */
+  }
+}
+
+/**
+ * Attach a handler for notification action-button taps.
+ * @param {(event:{actionId:string, notification:object}) => void} handler
+ * Returns the listener handle (or null off-native / on failure).
+ */
+export function onNotificationAction(handler) {
+  const p = plugin();
+  if (!canNotify() || !p || typeof handler !== 'function') return null;
+  try {
+    return p.addListener('localNotificationActionPerformed', handler);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Schedule (or reschedule) a single reminder.
- * @param {{key:string, title:string, body?:string, at:Date}} r
+ * @param {{key:string, title:string, body?:string, at:Date, actionTypeId?:string, extra?:object}} r
  * Past-dated or invalid times are skipped. Returns true if scheduled.
  */
 export async function scheduleReminder(r) {
@@ -80,14 +131,15 @@ export async function scheduleReminder(r) {
   const when = r.at instanceof Date ? r.at : new Date(r.at);
   if (isNaN(when.getTime()) || when.getTime() <= Date.now()) return false;
   try {
-    await p.schedule({
-      notifications: [{
-        id: idFor(r.key),
-        title: r.title || 'LifeOS',
-        body: r.body || '',
-        schedule: { at: when, allowWhileIdle: true },
-      }],
-    });
+    const note = {
+      id: idFor(r.key),
+      title: r.title || 'LifeOS',
+      body: r.body || '',
+      schedule: { at: when, allowWhileIdle: true },
+    };
+    if (r.actionTypeId) note.actionTypeId = r.actionTypeId;
+    if (r.extra) note.extra = r.extra;
+    await p.schedule({ notifications: [note] });
     return true;
   } catch {
     return false;
