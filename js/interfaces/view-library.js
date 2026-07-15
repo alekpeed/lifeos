@@ -52,6 +52,7 @@ import { renderAssistant } from './default/views/assistant.js';
 import { renderIdeas } from './default/views/ideas.js';
 import { renderRecall } from './default/views/recall.js';
 import { renderNotifications } from './default/views/notifications.js';
+import { renderAsk } from './default/views/ask.js';
 
 export const VIEWS = {
   dashboard: renderDashboard,
@@ -93,4 +94,5 @@ export const VIEWS = {
   ideas: renderIdeas,
   recall: renderRecall,
   notifications: renderNotifications,
+  ask: renderAsk,
 };

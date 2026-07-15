@@ -42,7 +42,9 @@ export const DB_NAME = 'lifeos';
 // with Languages at v16) was removed from STORES but never added to
 // RETIRED_STORES, so it was never actually deleted from existing installs.
 // v18 adds `importedTransactions` (Finance's statement-import reconciliation).
-export const DB_VERSION = 18;
+// v19 adds `embeddings` (Semantic memory -- one vector per record for the Ask
+// module's natural-language search; derived data, device-local, not synced).
+export const DB_VERSION = 19;
 
 // Stores that used to exist and are now actively deleted on upgrade, not
 // just omitted from STORES going forward. `languageLessons` was retired
@@ -133,6 +135,13 @@ export const STORES = [
   { name: 'subscriptions', keyPath: 'id', indexes: [
     { name: 'stillInUse', keyPath: 'stillInUse' },
   ] },
+
+  // Semantic memory: one embedding vector per indexed record, keyed by
+  // `<store>:<recordId>`. Derived from record text via the Gemini embedding
+  // API; used by the Ask module for natural-language search (client-side
+  // cosine similarity). Device-local -- excluded from sync (each device
+  // rebuilds its own index; vectors are big and cheap to regenerate).
+  { name: 'embeddings', keyPath: 'id' },
 
   // Statement import: a one-time CSV import of bank/card transactions,
   // reconciled against Bills/Subscriptions by name+amount+date proximity.

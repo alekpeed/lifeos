@@ -555,10 +555,10 @@ several are foundational (they change how the whole app works underneath,
 not just what it can do). All Tier 2+; subject to change. Grouped loosely.
 
 **AI & intelligence**
-- **Semantic memory across your whole life** — embed every record from every
-  module into a local vector index, so "when did I last see Sarah?" or "what
-  was bugging me in March?" returns a real answer from your actual history,
-  not keyword matching.
+- ✅ **Semantic memory across your whole life** — DONE (2026-07-13): the **Ask**
+  module. Records are embedded (Gemini text-embedding-004) into a device-local
+  vector index; a natural-language query ranks them by cosine similarity. See
+  `buildSemanticIndex`/`semanticSearch` in `js/data/api.js`.
 - **Autonomous daily chief-of-staff** — an agent that reviews everything each
   morning, drafts a prioritized brief (bills at risk, streaks about to break,
   rabbit holes gone cold), and can act on pre-approved simple tasks itself.

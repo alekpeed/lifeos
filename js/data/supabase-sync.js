@@ -33,7 +33,9 @@ const UPSERT_CHUNK = 500;
 // stores (their own Supabase tables, not this generic one).
 const SHAREBOX_STORES = ['shareboxItems', 'shareboxFiles', '_shareboxTombstones'];
 const SYNC_STORES = STORE_NAMES.filter(
-  (n) => n !== 'settings' && n !== '_tombstones' && !SHAREBOX_STORES.includes(n)
+  // `embeddings` is derived, device-local data (each device rebuilds its own
+  // Ask index); never sync the vectors.
+  (n) => n !== 'settings' && n !== '_tombstones' && n !== 'embeddings' && !SHAREBOX_STORES.includes(n)
 );
 
 let inFlight = null;

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.35';
+const CACHE_VERSION = 'lifeos-v1.36';
 const APP_SHELL = [
   './',
   './index.html',
@@ -99,6 +99,7 @@ const APP_SHELL = [
   './js/interfaces/default/views/ideas.js',
   './js/interfaces/default/views/recall.js',
   './js/interfaces/default/views/notifications.js',
+  './js/interfaces/default/views/ask.js',
   './js/audio/synth.js',
   './js/audio/lifemusic.js',
   './js/reader/epub.js',

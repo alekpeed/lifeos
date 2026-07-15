@@ -744,7 +744,7 @@ export async function getDjiaPrice() {
 // ones -- a small toggle in Settings > AI Assistant -- so switching back
 // and forth costs nothing and neither client needs deleting.
 import { sendClaudeMessage } from './claude-client.js';
-import { sendGeminiMessage } from './gemini-client.js';
+import { sendGeminiMessage, embedTextGemini } from './gemini-client.js';
 
 export const AI_PROVIDERS = {
   gemini: { label: 'Gemini', send: sendGeminiMessage, keySetting: 'geminiApiKey', modelSetting: 'geminiModel', keyPlaceholder: 'AIza…', modelDefault: 'gemini-2.5-flash' },
@@ -1260,6 +1260,123 @@ export async function judgeStockFromImage(file, references) {
   const parsed = parseJsonLoosely(text);
   if (!parsed || !parsed.placement) throw new Error(`${(await getActiveAiProvider()).label} returned something unexpected. Try again.`);
   return { placement: String(parsed.placement).trim(), note: (parsed.note || '').trim() };
+}
+
+// --- Semantic memory (the Ask module) -----------------------------------
+// Embed every meaningful record into a vector (Gemini text-embedding-004,
+// Gemini-only -- Anthropic has no embeddings API), stored device-local in the
+// `embeddings` store keyed by `<store>:<id>`. A natural-language query embeds
+// the same way and ranks records by cosine similarity, all client-side, so
+// "when did I last see Sarah?" surfaces the actual records rather than a
+// keyword match. The index is built/refreshed on demand and incrementally --
+// only records whose text changed (or new ones) are re-embedded, and gone
+// records are pruned.
+
+// Stores worth embedding, and the text fields to pull from each record. A
+// generic field sweep keeps this maintainable across ~40 modules without
+// per-store code; ids/dates/flags are excluded by simply not listing them.
+// store -> the module id to navigate to (mostly identity; the two camelCase
+// stores map to their lowercase module ids).
+const SEMANTIC_STORES = {
+  tasks: 'tasks', ideas: 'ideas', places: 'places', links: 'links',
+  books: 'books', recipes: 'recipes', documents: 'documents', contacts: 'contacts',
+  milestones: 'milestones', rabbitHoles: 'rabbitholes', timeCapsules: 'timecapsules',
+  habits: 'habits',
+};
+const SEMANTIC_TEXT_FIELDS = [
+  'title', 'name', 'text', 'topic', 'body', 'notes', 'description',
+  'author', 'company', 'relationship', 'url', 'message',
+];
+
+function semanticTextFor(record) {
+  const parts = [];
+  for (const f of SEMANTIC_TEXT_FIELDS) {
+    if (typeof record[f] === 'string' && record[f].trim()) parts.push(record[f].trim());
+  }
+  return parts.join(' — ').slice(0, 2000);
+}
+
+function cosineSim(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+  if (!na || !nb) return 0;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+
+async function geminiKey() {
+  return (await Settings.get('geminiApiKey')) || '';
+}
+
+// All (store, record) pairs worth embedding, with their current text.
+async function semanticCandidates() {
+  const out = [];
+  for (const store of Object.keys(SEMANTIC_STORES)) {
+    let records;
+    try { records = await db.getAll(store); } catch { continue; }
+    for (const r of records) {
+      const text = semanticTextFor(r);
+      if (text) out.push({ id: `${store}:${r.id}`, store, recordId: r.id, title: SEMANTIC_TEXT_FIELDS.map((f) => r[f]).find((v) => typeof v === 'string' && v.trim()) || '(untitled)', text });
+    }
+  }
+  return out;
+}
+
+export async function getSemanticIndexState() {
+  const key = await geminiKey();
+  const [candidates, existing] = await Promise.all([semanticCandidates(), db.getAll('embeddings')]);
+  return {
+    hasKey: Boolean(key),
+    total: candidates.length,
+    indexed: existing.length,
+    stale: candidates.filter((c) => {
+      const e = existing.find((x) => x.id === c.id);
+      return !e || e.text !== c.text;
+    }).length,
+  };
+}
+
+// Embed anything new/changed and prune anything gone. onProgress({done,total}).
+export async function buildSemanticIndex(onProgress) {
+  const key = await geminiKey();
+  if (!key) throw new Error('Semantic memory needs a Gemini API key (Settings > AI Assistant). Anthropic has no embeddings API.');
+
+  const [candidates, existing] = await Promise.all([semanticCandidates(), db.getAll('embeddings')]);
+  const candidateIds = new Set(candidates.map((c) => c.id));
+
+  // Prune embeddings whose source record is gone or no longer indexable.
+  for (const e of existing) {
+    if (!candidateIds.has(e.id)) await db.remove('embeddings', e.id);
+  }
+
+  const existingById = new Map(existing.map((e) => [e.id, e]));
+  const todo = candidates.filter((c) => {
+    const e = existingById.get(c.id);
+    return !e || e.text !== c.text;
+  });
+
+  let done = 0;
+  for (const c of todo) {
+    const vector = await embedTextGemini(key, c.text);
+    await db.put('embeddings', { id: c.id, store: c.store, recordId: c.recordId, title: c.title, text: c.text, vector });
+    done += 1;
+    onProgress?.({ done, total: todo.length });
+  }
+  return { embedded: done, pruned: existing.length - existingById.size, total: candidates.length };
+}
+
+// Embed the query and return the top matches, each with its module + score.
+export async function semanticSearch(query, topN = 15) {
+  const key = await geminiKey();
+  if (!key) throw new Error('Semantic memory needs a Gemini API key (Settings > AI Assistant).');
+  const q = String(query || '').trim();
+  if (!q) return [];
+
+  const [qVec, rows] = await Promise.all([embedTextGemini(key, q), db.getAll('embeddings')]);
+  return rows
+    .map((r) => ({ store: r.store, id: r.recordId, title: r.title, module: SEMANTIC_STORES[r.store] || r.store, score: cosineSim(qVec, r.vector) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topN);
 }
 
 // --- Statement import & reconciliation: a one-time CSV import of bank/card

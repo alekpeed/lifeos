@@ -55,3 +55,22 @@ export async function sendGeminiMessage(apiKey, messages, { model, maxTokens = 1
   }
   return { text };
 }
+
+// Embeddings for Semantic memory (the Ask module). Gemini has a free embedding
+// endpoint on the same key; Anthropic has no first-party embeddings API, which
+// is why this is Gemini-only. Returns a Float32-friendly number[] (768 dims
+// for text-embedding-004). Throws with Gemini's own message on failure.
+const GEMINI_EMBED_MODEL = 'text-embedding-004';
+export async function embedTextGemini(apiKey, text) {
+  if (!apiKey) throw new Error('Semantic memory needs a Gemini API key (Settings > AI Assistant) — Anthropic has no embeddings API.');
+  const res = await fetch(`${GEMINI_API_BASE}/${GEMINI_EMBED_MODEL}:embedContent`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({ content: { parts: [{ text: String(text).slice(0, 8000) }] } }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.error?.message || `Gemini embedding error (HTTP ${res.status})`);
+  const values = data?.embedding?.values;
+  if (!Array.isArray(values) || !values.length) throw new Error('Gemini returned no embedding.');
+  return values;
+}

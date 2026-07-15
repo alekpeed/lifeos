@@ -44,6 +44,7 @@ export const MODULES = [
   // Insight: the app surfacing/connecting/reasoning over your own data --
   // things you couldn't get by just opening a module's list.
   { id: 'assistant', label: 'AI Assistant', group: 'insight' },
+  { id: 'ask', label: 'Ask', group: 'insight' },
   { id: 'knowledge', label: 'Knowledge Graph', group: 'insight' },
   { id: 'recall', label: 'Recall', group: 'insight', remote: true },
   { id: 'notifications', label: 'Notifications', group: 'insight', remote: true },

@@ -30,7 +30,8 @@ import {
 // never through the user's private LifeOS/ folder).
 const SHAREBOX_STORES = ['shareboxItems', 'shareboxFiles', '_shareboxTombstones'];
 const SYNC_STORES = STORE_NAMES.filter(
-  (n) => n !== 'settings' && n !== '_tombstones' && !SHAREBOX_STORES.includes(n)
+  // `embeddings` is derived, device-local (rebuilt per device); never synced.
+  (n) => n !== 'settings' && n !== '_tombstones' && n !== 'embeddings' && !SHAREBOX_STORES.includes(n)
 );
 
 let inFlight = null; // serializes concurrent sync() calls

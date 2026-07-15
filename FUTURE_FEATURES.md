@@ -340,10 +340,17 @@ for a stripped-down version.)
 🌙 unless noted.
 
 **AI & intelligence**
-- **Semantic memory across your whole life** — embed every record from
-  every module into a local vector index, so "when did I last see Sarah?"
-  or "what was bugging me in March?" returns a real answer from your actual
-  history, not keyword matching.
+- ✅ **Semantic memory across your whole life** — DONE (2026-07-13). A new
+  **Ask** module (Insight group): type a natural-language question and get
+  the actual records ranked by meaning. Every indexable record is embedded
+  (Gemini `text-embedding-004` — Gemini-only, since Anthropic has no
+  embeddings API) into a device-local vector index (`embeddings` store, not
+  synced), and a query embeds the same way for client-side cosine-similarity
+  ranking. The index builds/refreshes on demand and incrementally (only
+  changed/new records re-embed; gone records prune). See
+  `buildSemanticIndex`/`semanticSearch` in `js/data/api.js`. (v1 ranks +
+  links to the matching module; a generative "here's the answer" summary on
+  top is a natural follow-up.)
 - **Autonomous daily chief-of-staff** — an agent that reviews everything
   each morning, drafts a prioritized brief (bills at risk, streaks about to
   break, rabbit holes gone cold), and can act on pre-approved simple tasks
