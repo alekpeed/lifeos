@@ -363,13 +363,9 @@ for a stripped-down version.)
   **Still open — the "autonomous" half:** acting *without asking*, for
   pre-approved categories. v1 is propose-and-approve; true autonomy is a
   trust/design follow-up (what it's allowed to touch on its own).
-**Foundational rearchitecture**
-- **Event-sourced core** — every change becomes an immutable event instead
-  of an in-place edit. Unlocks real undo/redo everywhere and per-record
-  history, and makes Time Machine (above) trivial once it exists.
-- **CRDT-based sync** — replace last-write-wins Drive sync with a real
-  conflict-free merge engine, so simultaneous edits on two devices combine
-  automatically instead of one silently clobbering the other.
+**Foundational rearchitecture** — moved to their own section (§12,
+"Conditional rearchitecture") 2026-07-13. Both event sourcing and CRDT sync
+are deferred-with-a-trigger, not pending work; see there.
 
 **Capture & reach**
 - ✅ **Real background push** — DONE (2026-07-13), proven live end to end.
@@ -530,6 +526,48 @@ accounts+AI Paper first, decide the rest later). Several items above
 (encrypted vault, event sourcing, CRDT sync) would look different
 depending on which way this goes, so it's worth resolving before going too
 deep into any one of them.
+
+**Update (2026-07-13):** largely settled toward **hybrid** — the personal-data
+Supabase sync shipped (see `SUPABASE_MIGRATION.md`), so any device can now
+sync the whole app through Supabase, but **IndexedDB stays the source of
+truth and offline is unchanged** (Supabase is the sync transport, not the
+home of record). The remaining "depends on this" items are the §12
+rearchitectures below.
+
+## 12. Conditional rearchitecture — someday, only if a real need appears
+
+*(Not on the active list — treated like the Parked section and the Far tier:
+excluded from default "what's on our list" / status-recap answers. These are
+foundational data-layer REWRITES, not features — high blast radius, dangerous
+half-done, and each solves a problem that isn't pressing today. Each has a
+concrete TRIGGER that would justify taking it on; until that trigger fires,
+building it speculatively is high-risk work for a maybe. Deferring costs
+almost nothing — the current architecture works and there's no lock-in
+penalty to waiting, because when a trigger does fire you'd design against
+real requirements instead of guessing.)*
+
+- **Event-sourced core** — every change becomes an immutable event instead of
+  an in-place edit; current state is derived by replaying events. Unlocks real
+  undo/redo everywhere, per-record history, and true point-in-time Time
+  Machine. *Cost:* rewrites the entire data layer (~40 modules' write paths +
+  everything that reads records + sync), unbounded event-log growth, a
+  permanent complexity tax. *Trigger:* you genuinely want undo/history
+  everywhere as a priority. *Cheaper 80% first:* a scoped per-record
+  change-log on 1–2 high-value modules (Tasks, notes) gives history/undo
+  where it actually matters without rearchitecting anything — do that before
+  ever considering the full version.
+- **CRDT-based sync** — replace last-write-wins with conflict-free merge, so
+  concurrent edits to the SAME record combine automatically instead of one
+  silently winning. *Cost:* every field becomes a CRDT type carrying merge
+  metadata (bloats every record), likely a heavyweight library (Yjs/Automerge,
+  WASM — cuts against the no-build lightweight ethos, same size-class concern
+  that killed the local LLM), and it reworks the just-proven LWW sync.
+  *Why deferred:* the problem barely exists here — single user, two devices,
+  and even a handful of users each have their OWN data (nobody co-edits the
+  same records; Sharebox, the only shared surface, already uses a
+  server-authoritative model, not LWW). *Trigger:* the app gains **real-time
+  multi-user editing of the same records** (e.g. Sharebox grows into shared
+  editable documents). Until then LWW is correct.
 
 ---
 

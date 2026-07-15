@@ -70,6 +70,13 @@ section stay fully written and in the spec, just excluded by default from
 asks what's further out, names a far-tier item directly, or says the word
 to bring the tier back into view.
 
+**Conditional rearchitecture (2026-07-13):** same default suppression as the
+Far Tier — `FUTURE_FEATURES.md` §12 (event-sourced core, CRDT sync). These
+are foundational data-layer rewrites deferred until a concrete trigger fires
+(undo/history everywhere for event sourcing; real-time multi-user same-record
+editing for CRDT). Don't list them in "what's open" / status recaps unless
+Alek names one, asks about rearchitecture, or a trigger becomes real.
+
 Deploy: `main` branch via GitHub Pages. Routine convention this session:
 commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
 `main`, push `main`, checkout back to the dev branch.

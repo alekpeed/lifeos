@@ -566,13 +566,14 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   distinct from the read-only Daily Paper. `getBriefing` in `js/data/api.js`.
   The autonomous "acts without asking" half is a later trust/design follow-up.
 
-**Foundational rearchitecture**
-- **Event-sourced core** — every change becomes an immutable event instead of
-  an in-place edit. Unlocks real undo/redo everywhere and per-record history,
-  and makes the already-planned Time Machine trivial once it exists.
-- **CRDT-based sync** — replace last-write-wins Drive sync with a real
-  conflict-free merge engine, so simultaneous edits on two devices combine
-  automatically instead of one silently clobbering the other.
+**Foundational rearchitecture** — **Event-sourced core** and **CRDT-based
+sync** were moved to `FUTURE_FEATURES.md` §12 "Conditional rearchitecture"
+(2026-07-13): deferred-with-a-trigger, not pending work. Both are data-layer
+rewrites solving problems that aren't pressing (undo/history; concurrent-edit
+loss for a solo/two-device user). Event sourcing → do a scoped per-record
+change-log first if history is ever wanted; CRDT → revisit only if the app
+gains real-time multi-user editing of the same records. See §12 for the full
+reasoning and triggers.
 
 *(Ruled out 2026-07-13: a fully local in-browser LLM (WebGPU/WebLLM) — the
 multi-GB download changes the app's size class for value that only lands
