@@ -594,8 +594,10 @@ real requirements instead of guessing.)*
 > **inbound system share sheet** (LifeOS in Android's Share menu → links to
 > Links, text to Ideas), a **clipboard catcher** (on app foreground, offers to
 > file a copied link/note), **one-tap phone-contacts import** (Settings →
-> address book into Contacts, deduped), and a **charging-cable evening ritual**
-> (plug in at night → offers to read your Briefing aloud, opt-in). The rest of
+> address book into Contacts, deduped), a **charging-cable evening ritual**
+> (plug in at night → offers to read your Briefing aloud, opt-in), and **NFC tag
+> reading** (tap a tag → open its `lifeos://` route, or save its URL/text to
+> Links/Ideas; needs Android 13+). The rest of
 > the wishlist below is staged, wake word included (needs Alek's Picovoice key +
 > on-device tuning). On-device behavior tuning for the share sheet / clipboard /
 > contacts-permission flows is the next iteration point.

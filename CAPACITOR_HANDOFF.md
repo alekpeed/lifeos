@@ -101,18 +101,33 @@ gates through the capability layer so the identical code is a safe no-op on web:
   (`window.Capacitor.Plugins.Device.getBatteryInfo`) → when charging in the
   evening with the app open, offers to read the Briefing aloud. Opt-in
   (`chargingRitualEnabled`), once/day. New `battery` capability.
+- **Feature 12 — NFC tag reading** (`js/native/nfc.js` + `initNfc` in
+  native-boot): `@exxili/capacitor-nfc` (v0.0.13, Cap6). On Android the plugin
+  sets up NFC foreground dispatch, so reading is automatic while the app is open
+  (no `startScan`) — we just listen for `nfcTag` and decode NDEF Text/URI
+  records (base64 → bytes → URI-prefix table). A `lifeos://open/<route>` tag
+  navigates; a URL → Links; text → Ideas. Added `android.permission.NFC` +
+  `uses-feature` (not required); fixed the capability id to the registered name
+  `NFC`. **Read needs Android 13+.** Tag *writing* is a fast follow. **BUILD
+  GOTCHA (fixed):** this plugin transitively pulled `androidx.core` 1.16, which
+  wants compileSdk 35 / AGP 8.6 — our toolchain is AGP 8.2.1 / SDK 34, so the
+  build failed. Fixed by forcing `androidx.core`/`core-ktx` to 1.13.1 via a
+  `resolutionStrategy` in `android/build.gradle` (commit `24cac80`). Watch for
+  the same when adding other recent plugins — pin the transitive down rather
+  than bumping the whole toolchain.
 
 Plugins installed: `@capacitor/core`, `/android`, `/cli`, `/local-notifications`,
 `/share`, `/app`, `/device`, `@capacitor-community/keep-awake`,
-`/text-to-speech`, `/contacts`. **Adding a plugin works from the cloud session:**
-`npm install <pkg>@^6` (pin the Capacitor-6 major) updates `package.json` +
-`package-lock.json`, and CI's `npm ci` + `cap sync` compiles it. Re-create the
-Playwright symlinks after any `npm install` (it prunes them). Reach every plugin
-via `window.Capacitor.Plugins.X` — never a bare import (buildless web app).
+`/text-to-speech`, `/contacts`, `@exxili/capacitor-nfc`. **Adding a plugin works
+from the cloud session:** `npm install <pkg>@^6` (pin the Capacitor-6 major)
+updates `package.json` + `package-lock.json`, and CI's `npm ci` + `cap sync`
+compiles it. Re-create the Playwright symlinks after any `npm install` (it prunes
+them). Reach every plugin via `window.Capacitor.Plugins.X` — never a bare import
+(buildless web app). Watch transitive AndroidX versions (see the NFC gotcha).
 
-Service worker: `CACHE_VERSION` now **`lifeos-v1.48`**; all `js/native/*` files
-are in APP_SHELL (add new ones — `contacts.js` was added this session). (Bump
-the hundredths per shipped change per CLAUDE.md.)
+Service worker: `CACHE_VERSION` now **`lifeos-v1.49`**; all `js/native/*` files
+are in APP_SHELL (add new ones — `contacts.js` + `nfc.js` were added this
+session). (Bump the hundredths per shipped change per CLAUDE.md.)
 
 ## CI STATUS (all green as of the 2026-07-15 continuation session)
 
@@ -128,6 +143,9 @@ the hundredths per shipped change per CLAUDE.md.)
   transient `android-actions/setup-android` SDK-download flake — "Error on
   ZipFile unknown archive" in the Set up Android SDK step, before any code ran;
   a `rerun_failed_jobs` went green. If a build fails in SDK setup, just re-run.)
+- Feature 12 (NFC): commit `d0341fe` **FAILED** on the androidx.core 1.16
+  transitive (compileSdk-35 requirement); fix `24cac80` (pin core to 1.13.1)
+  is **SUCCESS**.
 - **`dev` was fast-forwarded to `main`** after the fixes and after each feature
   batch. main == dev.
 - Compact CI check (the full run list is huge and blows context): use
@@ -171,9 +189,14 @@ Android build can't run locally (no SDK; JDK is 21, Gradle 8.2.1 needs ≤20) �
    NOT a repo secret. Expect real on-device iteration.
 3. **More §13 fast wins** (DONE so far: share-sheet inbound, actionable
    notifications, next-up ticker, clipboard catcher, contacts import, charging
-   ritual): geofencing, NFC, offline STT, home widgets, biometric gate,
-   screenshot reflex, auto-sorting file inbox, full-screen alarm alerts. Full
-   curated list + ruled-out items in `FUTURE_FEATURES.md` §13.
+   ritual, NFC read): still open — offline STT, home widgets, biometric gate,
+   screenshot reflex, auto-sorting file inbox, full-screen alarm alerts, NFC
+   tag *writing*. **Geofencing** is mid-decision: no free Cap6 native-geofence
+   plugin exists, so the low-power "real" version (Android `GeofencingClient`,
+   background, no persistent notification) means writing a small custom native
+   plugin; the heavy `background-geolocation` route (continuous GPS + permanent
+   notification) was set aside. Awaiting Alek's go on the custom-plugin build.
+   Full curated list + ruled-out items in `FUTURE_FEATURES.md` §13.
 4. **Later:** Windows `.exe` / macOS app; smart-home "Home" module (§14, blocked
    on Alek standing up Home Assistant + an ESP32 for his BrMesh lights).
 
