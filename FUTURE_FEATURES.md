@@ -665,7 +665,6 @@ survived Alek's cut):
   Places, dates/faces → Milestones suggestions, best → Photos/Museum)
 - Screen-time mirror (phone usage stats → Entropy/Health — your attention
   data in your own vault)
-- Step counter / raw sensor access feeding Health (no wearable needed)
 
 **Physical world & devices**
 - Home-screen widgets + quick-capture tile (Briefing widget, habit-streak
@@ -701,7 +700,8 @@ going straight to our own full wake word instead of bridging through
 Google's), floating capture bubble (chat-head overlay), alarm-clock
 handoff (alarm dismissal → TTS briefing), `.lifeos` file association +
 auto local backups to SD/USB, Chromecast casting, a Wear OS companion,
-Tasker/intents automation hooks, and haptic feedback patterns.)*
+Tasker/intents automation hooks, haptic feedback patterns, and step
+counter / raw motion-sensor access feeding Health.)*
 
 ---
 
