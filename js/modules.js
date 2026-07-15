@@ -43,6 +43,7 @@ export const MODULES = [
   { id: 'almanac', label: 'The Almanac', group: 'health' },
   // Insight: the app surfacing/connecting/reasoning over your own data --
   // things you couldn't get by just opening a module's list.
+  { id: 'briefing', label: 'Briefing', group: 'insight', remote: true },
   { id: 'assistant', label: 'AI Assistant', group: 'insight' },
   { id: 'ask', label: 'Ask', group: 'insight' },
   { id: 'knowledge', label: 'Knowledge Graph', group: 'insight' },

@@ -559,9 +559,12 @@ not just what it can do). All Tier 2+; subject to change. Grouped loosely.
   module. Records are embedded (Gemini text-embedding-004) into a device-local
   vector index; a natural-language query ranks them by cosine similarity. See
   `buildSemanticIndex`/`semanticSearch` in `js/data/api.js`.
-- **Autonomous daily chief-of-staff** — an agent that reviews everything each
-  morning, drafts a prioritized brief (bills at risk, streaks about to break,
-  rabbit holes gone cold), and can act on pre-approved simple tasks itself.
+- ✅ **Chief-of-staff (v1)** — DONE (2026-07-13): the **Briefing** module. A
+  prioritized worklist of what needs you now (due bills/tasks/assignments,
+  expiring docs, at-risk habit streaks, cold rabbit holes), each with a
+  one-tap action (check in / snooze / renew-task). Real computed data, no AI;
+  distinct from the read-only Daily Paper. `getBriefing` in `js/data/api.js`.
+  The autonomous "acts without asking" half is a later trust/design follow-up.
 
 **Foundational rearchitecture**
 - **Event-sourced core** — every change becomes an immutable event instead of

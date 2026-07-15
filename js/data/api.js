@@ -1379,6 +1379,84 @@ export async function semanticSearch(query, topN = 15) {
     .slice(0, topN);
 }
 
+// --- Chief-of-staff briefing (the Briefing module) ----------------------
+// A PRIORITIZED worklist of what actually needs you, distinct from the Daily
+// Paper's read-only editorial: this triages (ranks by urgency), catches
+// non-obvious risks (a streak about to break, a rabbit hole gone cold), and
+// each item can carry a one-tap suggested action. Everything here is real,
+// computed data -- no AI, no invention.
+
+function daysUntilLocal(dateStr) {
+  if (!dateStr) return null;
+  const target = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(target.getTime())) return null;
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target - midnight) / 86400000);
+}
+
+function urgencyPhrase(n) {
+  return n < 0 ? `overdue by ${-n}d` : n === 0 ? 'due today' : `due in ${n}d`;
+}
+
+export async function getBriefing() {
+  const [bills, tasks, assignments, documents, habits, habitLogs, rabbitHoles] = await Promise.all([
+    Bills.list(), Tasks.list(), Assignments.list(), Documents.list(),
+    Habits.list(), HabitLogs.list(), RabbitHoles.list(),
+  ]);
+  const today = new Date();
+  const todayStr = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0, 10);
+  const items = [];
+
+  for (const b of bills) {
+    if (b.paid || !b.dueDate) continue;
+    const n = daysUntilLocal(b.dueDate);
+    if (n === null || n > 3) continue;
+    items.push({ kind: 'bill', priority: n < 0 ? 100 : n === 0 ? 85 : 55, title: b.name || 'Bill', detail: `Bill ${urgencyPhrase(n)}`, module: 'finance' });
+  }
+  for (const t of tasks) {
+    if (t.status === 'done' || !t.dueDate) continue;
+    if (t.snoozedUntil && t.snoozedUntil > todayStr) continue;
+    const n = daysUntilLocal(t.dueDate);
+    if (n === null || n > 3) continue;
+    items.push({ kind: 'task', priority: n < 0 ? 90 : n === 0 ? 80 : 50, title: t.title || 'Task', detail: `Task ${urgencyPhrase(n)}`, module: 'tasks', action: { type: 'snooze', label: 'Snooze to tomorrow', id: t.id } });
+  }
+  for (const a of assignments) {
+    if (a.status === 'done' || !a.dueDate) continue;
+    const n = daysUntilLocal(a.dueDate);
+    if (n === null || n > 3) continue;
+    items.push({ kind: 'assignment', priority: n < 0 ? 88 : n === 0 ? 78 : 48, title: a.title || 'Assignment', detail: `Assignment ${urgencyPhrase(n)}`, module: 'education' });
+  }
+  for (const d of documents) {
+    if (!d.expiryDate) continue;
+    const n = daysUntilLocal(d.expiryDate);
+    if (n === null || n > 30) continue;
+    items.push({ kind: 'document', priority: n < 0 ? 65 : 60, title: d.title || 'Document', detail: `Expires ${urgencyPhrase(n)}`, module: 'documents', action: { type: 'renew', label: 'Create renew task', title: d.title || 'Document', expiryDate: d.expiryDate } });
+  }
+  const logsByHabit = new Map();
+  for (const l of habitLogs) {
+    if (!logsByHabit.has(l.habitId)) logsByHabit.set(l.habitId, []);
+    logsByHabit.get(l.habitId).push(l);
+  }
+  for (const h of habits) {
+    const logs = logsByHabit.get(h.id) || [];
+    if (logs.length < 3) continue;                          // established habits only
+    if (logs.some((l) => l.date === todayStr)) continue;    // already done today
+    items.push({ kind: 'habit', priority: 70, title: h.name || 'Habit', detail: 'Streak at risk — not checked in today', module: 'habits', action: { type: 'checkin', label: 'Check in', id: h.id } });
+  }
+  for (const r of rabbitHoles) {
+    if (r.status === 'resolved') continue;
+    const last = r.updatedAt || r.createdAt;
+    if (!last) continue;
+    const ageDays = Math.floor((today - new Date(last)) / 86400000);
+    if (ageDays < 21) continue;
+    items.push({ kind: 'rabbithole', priority: 30, title: r.topic || 'Rabbit hole', detail: `Gone cold — untouched ${ageDays} days`, module: 'rabbitholes' });
+  }
+
+  items.sort((a, b) => b.priority - a.priority);
+  return items.slice(0, 12);
+}
+
 // --- Statement import & reconciliation: a one-time CSV import of bank/card
 // transactions (Finance's "Import" tab), auto-matched against existing
 // Bills/Subscriptions by description + amount, so importing mostly means

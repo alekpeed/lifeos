@@ -351,10 +351,18 @@ for a stripped-down version.)
   `buildSemanticIndex`/`semanticSearch` in `js/data/api.js`. (v1 ranks +
   links to the matching module; a generative "here's the answer" summary on
   top is a natural follow-up.)
-- **Autonomous daily chief-of-staff** — an agent that reviews everything
-  each morning, drafts a prioritized brief (bills at risk, streaks about to
-  break, rabbit holes gone cold), and can act on pre-approved simple tasks
-  itself.
+- ✅ **Chief-of-staff (v1)** — DONE (2026-07-13). A new **Briefing** module
+  (Insight group): a PRIORITIZED worklist of what actually needs you now,
+  distinct from the Daily Paper's read-only editorial. It triages by urgency
+  and catches non-obvious risks — overdue/due-soon bills·tasks·assignments,
+  expiring documents, habit streaks about to break (established habit, not
+  checked in today), rabbit holes gone cold (untouched 21+ days) — each with
+  a one-tap suggested action where it helps (check in the habit, snooze the
+  task, create a renew task). All real computed data, no AI. See
+  `getBriefing` in `js/data/api.js`.
+  **Still open — the "autonomous" half:** acting *without asking*, for
+  pre-approved categories. v1 is propose-and-approve; true autonomy is a
+  trust/design follow-up (what it's allowed to touch on its own).
 **Foundational rearchitecture**
 - **Event-sourced core** — every change becomes an immutable event instead
   of an in-place edit. Unlocks real undo/redo everywhere and per-record
