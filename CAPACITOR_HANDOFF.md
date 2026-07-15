@@ -85,12 +85,34 @@ gates through the capability layer so the identical code is a safe no-op on web:
   untouched — native + JS only). **On-device receive behavior, esp. the
   cold-start timing, is the thing to iterate next** (web side re-checks the
   global a few times after boot as a backstop).
+- **Feature 9 — clipboard catcher** (`native-boot.js` `initClipboardCatcher`):
+  on app foreground (App `resume`/`appStateChange`), reads the clipboard and
+  offers to file a URL → Links / text → Ideas (reuses the share routing). A
+  self-contained confirm banner (`showCaptureBanner`); never re-offers the same
+  contents. No new plugin. Android only lets a foregrounded, focused app read
+  the clipboard — that timing is the device-iteration point.
+- **Feature 10 — one-tap phone-contacts import** (`js/native/contacts.js` +
+  Settings → Phone contacts): `@capacitor-community/contacts@^6`, reached via
+  `window.Capacitor.Plugins.Contacts`. Maps to LifeOS's Contact shape, tags
+  `imported`, dedups by name. First commit to add a plugin this session — CI's
+  `npm ci` + `cap sync` compiled it green, so the plugin path is proven.
+- **Feature 11 — charging-cable evening ritual** (`native-boot.js`
+  `maybeRunChargingRitual` + Settings → Evening ritual): `@capacitor/device@^6`
+  (`window.Capacitor.Plugins.Device.getBatteryInfo`) → when charging in the
+  evening with the app open, offers to read the Briefing aloud. Opt-in
+  (`chargingRitualEnabled`), once/day. New `battery` capability.
 
 Plugins installed: `@capacitor/core`, `/android`, `/cli`, `/local-notifications`,
-`/share`, `/app`, `@capacitor-community/keep-awake`, `/text-to-speech`.
+`/share`, `/app`, `/device`, `@capacitor-community/keep-awake`,
+`/text-to-speech`, `/contacts`. **Adding a plugin works from the cloud session:**
+`npm install <pkg>@^6` (pin the Capacitor-6 major) updates `package.json` +
+`package-lock.json`, and CI's `npm ci` + `cap sync` compiles it. Re-create the
+Playwright symlinks after any `npm install` (it prunes them). Reach every plugin
+via `window.Capacitor.Plugins.X` — never a bare import (buildless web app).
 
-Service worker: `CACHE_VERSION` now **`lifeos-v1.45`**; all `js/native/*` files
-are in APP_SHELL. (Bump the hundredths per shipped change per CLAUDE.md.)
+Service worker: `CACHE_VERSION` now **`lifeos-v1.48`**; all `js/native/*` files
+are in APP_SHELL (add new ones — `contacts.js` was added this session). (Bump
+the hundredths per shipped change per CLAUDE.md.)
 
 ## CI STATUS (all green as of the 2026-07-15 continuation session)
 
@@ -101,8 +123,13 @@ are in APP_SHELL. (Bump the hundredths per shipped change per CLAUDE.md.)
   labels needing `@string/` refs). Fix commits `d33cb48` + `a502c5c` are green.
 - Features 6–8 (actionable notifications, next-up ticker, inbound share sheet):
   commits `059be31`, `807a75b`, `bd13979` — all **SUCCESS**.
-- **`dev` was fast-forwarded to `main`** after the fixes and again after the
-  feature batch (both at the shas above). main == dev.
+- Features 9–11 (clipboard catcher, contacts import, charging ritual): commits
+  `e63a26c`, `b137477`, `d778beb` — all **SUCCESS**. (F11's first run hit a
+  transient `android-actions/setup-android` SDK-download flake — "Error on
+  ZipFile unknown archive" in the Set up Android SDK step, before any code ran;
+  a `rerun_failed_jobs` went green. If a build fails in SDK setup, just re-run.)
+- **`dev` was fast-forwarded to `main`** after the fixes and after each feature
+  batch. main == dev.
 - Compact CI check (the full run list is huge and blows context): use
   `mcp__github__actions_list` `list_workflow_runs` and `jq` the saved file for
   `id`/`head_sha`/`status`/`conclusion`, then `list_workflow_jobs` +
@@ -126,23 +153,27 @@ Android build can't run locally (no SDK; JDK is 21, Gradle 8.2.1 needs ≤20) �
 ## NEXT UP (priority order)
 
 1. **Alek's device pass:** install the debug APK (Actions → newest green run →
-   `lifeos-debug-apk` artifact → sideload) and test the now-8 features. Expect a
+   `lifeos-debug-apk` artifact → sideload) and test the now-11 features. Expect a
    punch-list — some device behavior will need fixes. `CAPACITOR_BUILD.md` has
-   his full runbook + test checklist. **Highest-value device test this round:
-   the inbound share sheet** — share a link from Chrome/YouTube to LifeOS and
-   confirm it lands in Links, and share plain text → Ideas. Cold-start timing is
-   the known risk; the actionable notification buttons and the next-up ticker
-   toggle (Settings → Device reminders) are the other new things to poke.
+   his full runbook + test checklist. **Highest-value device tests this round:**
+   (a) **inbound share sheet** — share a link from Chrome/YouTube → lands in
+   Links, plain text → Ideas (cold-start timing is the known risk); (b)
+   **clipboard catcher** — copy a link elsewhere, return to LifeOS, expect the
+   "File it" banner (Android only reads the clipboard for a focused foreground
+   app); (c) **contacts import** (Settings → Phone contacts) — permission +
+   dedup; (d) **charging ritual** (Settings → Evening ritual, opt-in) — plug in
+   in the evening with the app open. Actionable notification buttons + next-up
+   ticker (Settings → Device reminders) are the earlier ones still to poke.
 2. **Wake word** (the headline, still unbuilt): foreground-service plugin
    (Picovoice Porcupine or openWakeWord), custom wake phrase, feed the existing
    **Command** module (`parseCommand` in `api.js`). **Needs Alek's Picovoice
    access key** (free, console.picovoice.ai) — device-local like the AI keys,
    NOT a repo secret. Expect real on-device iteration.
-3. **More §13 fast wins** (share-sheet inbound + actionable notifications +
-   next-up ticker are now DONE): geofencing, NFC, clipboard catcher, offline
-   STT, home widgets, biometric gate, contacts read, screenshot reflex,
-   auto-sorting file inbox. Full curated list + ruled-out items in
-   `FUTURE_FEATURES.md` §13.
+3. **More §13 fast wins** (DONE so far: share-sheet inbound, actionable
+   notifications, next-up ticker, clipboard catcher, contacts import, charging
+   ritual): geofencing, NFC, offline STT, home widgets, biometric gate,
+   screenshot reflex, auto-sorting file inbox, full-screen alarm alerts. Full
+   curated list + ruled-out items in `FUTURE_FEATURES.md` §13.
 4. **Later:** Windows `.exe` / macOS app; smart-home "Home" module (§14, blocked
    on Alek standing up Home Assistant + an ESP32 for his BrMesh lights).
 

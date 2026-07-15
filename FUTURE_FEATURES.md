@@ -590,11 +590,15 @@ real requirements instead of guessing.)*
 > share**, **keep-awake / cooking mode**, **read-aloud briefing**, **home-screen
 > app shortcuts + deep links**, **actionable notification buttons** (Mark paid /
 > Mark done / Snooze / Renew straight from the reminder), a pinned **"next up"
-> ticker** (persistent notification of the top Briefing item, opt-in), and the
+> ticker** (persistent notification of the top Briefing item, opt-in), the
 > **inbound system share sheet** (LifeOS in Android's Share menu → links to
-> Links, text to Ideas). The rest of the wishlist below is staged, wake word
-> included (needs Alek's Picovoice key + on-device tuning). On-device receive/
-> behavior tuning for the share sheet is the next iteration point.
+> Links, text to Ideas), a **clipboard catcher** (on app foreground, offers to
+> file a copied link/note), **one-tap phone-contacts import** (Settings →
+> address book into Contacts, deduped), and a **charging-cable evening ritual**
+> (plug in at night → offers to read your Briefing aloud, opt-in). The rest of
+> the wishlist below is staged, wake word included (needs Alek's Picovoice key +
+> on-device tuning). On-device behavior tuning for the share sheet / clipboard /
+> contacts-permission flows is the next iteration point.
 
 **The platform strategy, settled by Alek:** the same vanilla-JS codebase
 ships as (a) a **native Android app via Capacitor** — first and the
