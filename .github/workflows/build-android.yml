@@ -1,0 +1,146 @@
+name: Build Android APK
+
+# Builds the LifeOS native Android app in the cloud -- no local machine needed.
+#
+# - Debug APK: builds on every push that touches the app, and on demand.
+#   Installs fine on your own phone for testing; needs NO secrets.
+# - Release APK: signed, updatable build. Runs on demand only, and only if
+#   you've added the 4 keystore secrets (see CAPACITOR_BUILD.md). If they're
+#   missing it skips cleanly instead of failing.
+#
+# Either way the APK is uploaded as a downloadable artifact at the bottom of
+# the run page (Actions tab -> this run -> Artifacts).
+
+on:
+  push:
+    branches: [claude/lifeos-dev-setup-dpipr6, main]
+    paths:
+      - 'index.html'
+      - 'manifest.json'
+      - 'service-worker.js'
+      - 'js/**'
+      - 'css/**'
+      - 'vendor/**'
+      - 'icons/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/assemble-www.mjs'
+      - '.github/workflows/build-android.yml'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Also build a signed release APK (needs keystore secrets)'
+        type: boolean
+        default: false
+
+jobs:
+  debug:
+    name: Debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Assemble web assets and sync Capacitor
+        run: |
+          npm run assemble
+          npx cap sync android
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: android
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifeos-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  release:
+    name: Signed Release APK
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for signing secrets
+        id: secretcheck
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KS" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret found -- skipping the signed release build. See CAPACITOR_BUILD.md to add the 4 keystore secrets."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node
+        if: steps.secretcheck.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Set up JDK 17
+        if: steps.secretcheck.outputs.present == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        if: steps.secretcheck.outputs.present == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install deps
+        if: steps.secretcheck.outputs.present == 'true'
+        run: npm ci
+
+      - name: Assemble web assets and sync Capacitor
+        if: steps.secretcheck.outputs.present == 'true'
+        run: |
+          npm run assemble
+          npx cap sync android
+
+      - name: Decode keystore
+        if: steps.secretcheck.outputs.present == 'true'
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+
+      - name: Build signed release APK
+        if: steps.secretcheck.outputs.present == 'true'
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release.keystore" \
+            -Pandroid.injected.signing.store.password="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
+
+      - name: Upload release APK
+        if: steps.secretcheck.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifeos-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
