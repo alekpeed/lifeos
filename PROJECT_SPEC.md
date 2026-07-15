@@ -577,9 +577,13 @@ offline, a scenario Alek is rarely in and where the AI garnish isn't a
 deal-breaker. See FUTURE_FEATURES.md §7 for the full note.)*
 
 **Capture & reach**
-- **Real background push** — true background sync / Web Push (not just
-  foreground-only PWA behavior) so bill-due and streak-at-risk alerts land
-  with the app closed, on platforms that genuinely support it.
+- ✅ **Real background push** — DONE (2026-07-13), live. Web Push end to end:
+  client subscribe + Settings toggle (`js/data/push.js`), subscriptions in
+  Supabase, a scheduled Edge Function (`supabase/functions/send-push`) that
+  reads due-soon items from `sync_records` and sends VAPID-signed pushes, and
+  a service-worker `push` handler that shows them with the app closed.
+  Deployed via GitHub Actions; proven with a live `{"sent":1}`. See
+  SUPABASE_MIGRATION.md.
 - **Natural-language command bar** — type or speak "remind me to call mom
   Friday" and it parses intent, picks the right module, and creates the
   record — no navigating. In-browser Whisper handles voice, fully offline.

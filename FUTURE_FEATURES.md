@@ -357,9 +357,16 @@ for a stripped-down version.)
   automatically instead of one silently clobbering the other.
 
 **Capture & reach**
-- **Real background push** — true background sync/Web Push (not just
-  foreground-only PWA behavior) so alerts land with the app closed, on
-  platforms that genuinely support it.
+- ✅ **Real background push** — DONE (2026-07-13), proven live end to end.
+  Web Push: the client subscribes (`js/data/push.js`, Settings toggle) and
+  stores the subscription in Supabase; a scheduled Supabase Edge Function
+  (`supabase/functions/send-push`) reads each user's due-soon items from
+  `sync_records`, signs a VAPID payload, and sends it; the service worker's
+  `push` handler shows the notification even with the app closed. Deployed
+  from GitHub Actions (no local tooling). Verified: a due task synced to the
+  cloud + push on -> the function returned `{"sent":1}`. See
+  SUPABASE_MIGRATION.md for the setup. (v1 sends a daily digest without
+  cross-day dedup -- a later refinement.)
 
 *(Ruled out 2026-07-13, dead, not parked, don't resurface: a fully local
 in-browser LLM (WebGPU/WebLLM). Alek's call — the multi-GB model download
