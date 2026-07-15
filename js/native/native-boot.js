@@ -193,6 +193,86 @@ function initShareReceiver() {
   }
 }
 
+// --- Clipboard catcher (FUTURE_FEATURES.md §13) --------------------------
+// Copy a link or a note anywhere on the phone, then return to LifeOS — it
+// offers to file what's on your clipboard (URL → Links, text → Ideas), reusing
+// the same routing as the share sheet. Runs when the app comes to foreground
+// (Android only allows a foreground, focused app to read the clipboard). Purely
+// opt-in per prompt; nothing is filed without a tap, and we never re-offer the
+// same clipboard contents twice.
+
+let lastClipboardSeen = '';
+
+// A small, self-contained confirm banner (no app toast helper exists). Native
+// capture UI only, so it's inline-styled rather than themed to an interface.
+function showCaptureBanner(message, onConfirm) {
+  try {
+    const existing = document.getElementById('lifeos-capture-banner');
+    if (existing) existing.remove();
+    const bar = document.createElement('div');
+    bar.id = 'lifeos-capture-banner';
+    bar.setAttribute('role', 'dialog');
+    bar.style.cssText = [
+      'position:fixed', 'left:12px', 'right:12px', 'bottom:16px', 'z-index:2147483000',
+      'background:#1b1f2a', 'color:#f4f6fb', 'border:1px solid #38405a', 'border-radius:12px',
+      'padding:12px 14px', 'box-shadow:0 8px 28px rgba(0,0,0,.45)', 'font:14px/1.4 system-ui,sans-serif',
+      'display:flex', 'gap:10px', 'align-items:center', 'justify-content:space-between',
+    ].join(';');
+    const label = document.createElement('span');
+    label.textContent = message;
+    label.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const dismiss = document.createElement('button');
+    dismiss.textContent = 'Dismiss';
+    dismiss.style.cssText = 'background:transparent;color:#aab3c8;border:0;padding:6px 8px;font:inherit;cursor:pointer';
+    dismiss.onclick = () => bar.remove();
+    const file = document.createElement('button');
+    file.textContent = 'File it';
+    file.style.cssText = 'background:#4f7cff;color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer';
+    file.onclick = async () => { bar.remove(); try { await onConfirm(); } catch { /* ignore */ } };
+    bar.append(label, dismiss, file);
+    document.body.appendChild(bar);
+    // Auto-dismiss if ignored, so it never lingers.
+    setTimeout(() => { if (bar.isConnected) bar.remove(); }, 12000);
+  } catch {
+    /* never let capture UI break the app */
+  }
+}
+
+async function checkClipboard() {
+  try {
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') return;
+    const text = (await navigator.clipboard.readText() || '').trim();
+    if (!text || text === lastClipboardSeen) return;      // nothing new
+    if (text.length > 4000) return;                       // too big to be a capture
+    const url = firstUrl(text);
+    // Only offer for things that look fileable: a URL, or a short-ish note.
+    if (!url && text.length < 3) return;
+    lastClipboardSeen = text;
+    const preview = text.length > 60 ? `${text.slice(0, 57)}…` : text;
+    const dest = url ? 'Links' : 'Ideas';
+    showCaptureBanner(`File clipboard to ${dest}? “${preview}”`, () => routeSharedContent({ text }));
+  } catch {
+    // readText rejects without focus/permission — just skip this pass.
+  }
+}
+
+// Offer to file the clipboard whenever the app returns to the foreground.
+function initClipboardCatcher() {
+  try {
+    const c = typeof window !== 'undefined' ? window.Capacitor : null;
+    const app = c && c.Plugins && c.Plugins.App;
+    if (!app || !isPluginAvailable('@capacitor/app')) return;
+    app.addListener('resume', () => { setTimeout(checkClipboard, 400); });
+    // Also treat a foregrounding appStateChange as a resume (covers cold-ish
+    // returns some launchers deliver as state changes rather than resume).
+    if (typeof app.addListener === 'function') {
+      app.addListener('appStateChange', (state) => { if (state && state.isActive) setTimeout(checkClipboard, 400); });
+    }
+  } catch {
+    /* no-op */
+  }
+}
+
 /**
  * Sync the persistent "next up" ticker notification with the top Briefing item.
  * Opt-in via the `nextUpTickerEnabled` setting; when off (or nothing needs
@@ -226,6 +306,7 @@ export async function initNative() {
       applyNotificationAction(event && event.actionId, event && event.notification);
     });
     initShareReceiver();
+    initClipboardCatcher();
     await refreshDeviceReminders();
     await refreshNextUp();
   } catch {
