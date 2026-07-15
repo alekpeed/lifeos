@@ -1,0 +1,11 @@
+{
+  "appId": "com.alekpeed.lifeos",
+  "appName": "LifeOS",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
