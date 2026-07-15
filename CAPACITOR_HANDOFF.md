@@ -115,19 +115,35 @@ gates through the capability layer so the identical code is a safe no-op on web:
   `resolutionStrategy` in `android/build.gradle` (commit `24cac80`). Watch for
   the same when adding other recent plugins — pin the transitive down rather
   than bumping the whole toolchain.
+- **Feature 13 — low-power arrival geofencing** (a **custom native plugin**, not
+  an npm one): `GeofencePlugin.java` + `GeofenceBroadcastReceiver.java` in the
+  app module, wrapping Play Services' `GeofencingClient`. Background arrival
+  triggers with no continuous GPS / no foreground service / no persistent
+  notification. Registered in `MainActivity` via `registerPlugin(GeofencePlugin.class)`
+  (before `super.onCreate()`); manifest gains fine/coarse/background location +
+  the (non-exported) receiver; `app/build.gradle` adds
+  `play-services-location:21.0.1`. `js/native/geofence.js` registers OS geofences
+  for flagged Places (notes-to-self + want-to-go, capped 90, 250 m) via
+  `window.Capacitor.Plugins.Geofence`; `native-boot`'s `refreshGeofences()`
+  re-syncs on boot (handles reboot re-registration). Settings → Arrival triggers
+  is the opt-in (needs "Allow all the time" location). New `geofence` capability.
+  **This is the pattern for custom native plugins** — a Java `@CapacitorPlugin`
+  in the app module + `registerPlugin(...)` in MainActivity, no npm package.
+  Compiled green first try.
 
 Plugins installed: `@capacitor/core`, `/android`, `/cli`, `/local-notifications`,
 `/share`, `/app`, `/device`, `@capacitor-community/keep-awake`,
-`/text-to-speech`, `/contacts`, `@exxili/capacitor-nfc`. **Adding a plugin works
+`/text-to-speech`, `/contacts`, `@exxili/capacitor-nfc`. Custom local plugins
+(no npm): **Geofence** (`android/app/.../GeofencePlugin.java`). **Adding a plugin works
 from the cloud session:** `npm install <pkg>@^6` (pin the Capacitor-6 major)
 updates `package.json` + `package-lock.json`, and CI's `npm ci` + `cap sync`
 compiles it. Re-create the Playwright symlinks after any `npm install` (it prunes
 them). Reach every plugin via `window.Capacitor.Plugins.X` — never a bare import
 (buildless web app). Watch transitive AndroidX versions (see the NFC gotcha).
 
-Service worker: `CACHE_VERSION` now **`lifeos-v1.49`**; all `js/native/*` files
-are in APP_SHELL (add new ones — `contacts.js` + `nfc.js` were added this
-session). (Bump the hundredths per shipped change per CLAUDE.md.)
+Service worker: `CACHE_VERSION` now **`lifeos-v1.50`**; all `js/native/*` files
+are in APP_SHELL (add new ones — `contacts.js`, `nfc.js`, `geofence.js` were
+added this session). (Bump the hundredths per shipped change per CLAUDE.md.)
 
 ## CI STATUS (all green as of the 2026-07-15 continuation session)
 
@@ -146,6 +162,9 @@ session). (Bump the hundredths per shipped change per CLAUDE.md.)
 - Feature 12 (NFC): commit `d0341fe` **FAILED** on the androidx.core 1.16
   transitive (compileSdk-35 requirement); fix `24cac80` (pin core to 1.13.1)
   is **SUCCESS**.
+- Feature 13 (arrival geofencing, custom native plugin): commit `d08d412` —
+  **SUCCESS** (compiled first try, incl. play-services-location + the Java
+  plugin/receiver).
 - **`dev` was fast-forwarded to `main`** after the fixes and after each feature
   batch. main == dev.
 - Compact CI check (the full run list is huge and blows context): use
@@ -189,14 +208,13 @@ Android build can't run locally (no SDK; JDK is 21, Gradle 8.2.1 needs ≤20) �
    NOT a repo secret. Expect real on-device iteration.
 3. **More §13 fast wins** (DONE so far: share-sheet inbound, actionable
    notifications, next-up ticker, clipboard catcher, contacts import, charging
-   ritual, NFC read): still open — offline STT, home widgets, biometric gate,
-   screenshot reflex, auto-sorting file inbox, full-screen alarm alerts, NFC
-   tag *writing*. **Geofencing** is mid-decision: no free Cap6 native-geofence
-   plugin exists, so the low-power "real" version (Android `GeofencingClient`,
-   background, no persistent notification) means writing a small custom native
-   plugin; the heavy `background-geolocation` route (continuous GPS + permanent
-   notification) was set aside. Awaiting Alek's go on the custom-plugin build.
-   Full curated list + ruled-out items in `FUTURE_FEATURES.md` §13.
+   ritual, NFC read, arrival geofencing): still open — offline STT, home widgets,
+   biometric gate, screenshot reflex, auto-sorting file inbox, full-screen alarm
+   alerts, NFC tag *writing*. Full curated list + ruled-out items in
+   `FUTURE_FEATURES.md` §13. **Geofencing device test:** enable Settings →
+   Arrival triggers, grant "Allow all the time" location, and check a saved
+   Place triggers on arrival (OS delivery can lag a few min; some OEMs need the
+   app whitelisted from battery optimization — that's the tuning surface).
 4. **Later:** Windows `.exe` / macOS app; smart-home "Home" module (§14, blocked
    on Alek standing up Home Assistant + an ESP32 for his BrMesh lights).
 
