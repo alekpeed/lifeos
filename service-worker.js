@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.38';
+const CACHE_VERSION = 'lifeos-v1.39';
 const APP_SHELL = [
   './',
   './index.html',
@@ -33,6 +33,9 @@ const APP_SHELL = [
   './js/data/gemini-client.js',
   './js/data/telegram-client.js',
   './js/data/telegram-link.js',
+  './js/native/capabilities.js',
+  './js/native/notify.js',
+  './js/native/native-boot.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
   './js/interfaces/view-library.js',

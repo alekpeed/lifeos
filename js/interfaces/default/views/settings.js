@@ -1,4 +1,7 @@
 import { el, fmtDate } from '../dom.js';
+import { isNativePlatform } from '../../../native/capabilities.js';
+import { canNotify, notifyPermissionState, requestNotifyPermission } from '../../../native/notify.js';
+import { refreshDeviceReminders } from '../../../native/native-boot.js';
 
 // --- Account (email/password + Google) ---
 // App-wide identity, shared with Sharebox v2 (same Supabase auth session --
@@ -459,6 +462,57 @@ async function renderLifeMusicSection(canvas, ctx, rerender) {
   ));
 }
 
+// --- Device reminders (native local notifications) ---
+// Native-only. On the web this section is hidden entirely -- Web Push above is
+// the browser's equivalent. These are scheduled on the phone itself, so they
+// fire offline with the app closed and need no server.
+
+async function renderNativeRemindersSection(canvas, ctx, rerender) {
+  if (!isNativePlatform() || !canNotify()) return;
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Device reminders' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'On-device reminders for bills and due items — scheduled right on your phone, so they fire even offline with the app closed. No server involved.' }));
+
+  const status = el('p', { class: 'mer-muted' });
+  const setStatus = (text, isError) => { status.textContent = text; status.classList.toggle('mer-sync-error', !!isError); };
+
+  const perm = await notifyPermissionState();
+  if (perm === 'granted') {
+    const n = await refreshDeviceReminders();
+    setStatus(`On — ${n} upcoming reminder${n === 1 ? '' : 's'} scheduled on this device.`);
+    canvas.append(status);
+    return;
+  }
+  if (perm === 'denied') {
+    setStatus('Notifications are blocked for LifeOS in your phone settings — allow them there, then reload.', true);
+    canvas.append(status);
+    return;
+  }
+
+  setStatus('Off.');
+  const btn = el('button', {
+    type: 'button', text: 'Turn on device reminders',
+    onclick: async () => {
+      btn.disabled = true;
+      setStatus('Requesting permission…');
+      try {
+        const ok = await requestNotifyPermission();
+        if (ok) {
+          const n = await refreshDeviceReminders();
+          setStatus(`On — ${n} reminder${n === 1 ? '' : 's'} scheduled on this device.`);
+        } else {
+          setStatus('Permission not granted.', true);
+          btn.disabled = false;
+        }
+      } catch (err) {
+        setStatus(err.message || String(err), true);
+        btn.disabled = false;
+      }
+    },
+  });
+  canvas.append(el('div', { class: 'mer-toolbar' }, [btn]), status);
+}
+
 // --- Web Push (real background notifications) ---
 
 async function renderPushSection(canvas, ctx, rerender) {
@@ -692,6 +746,7 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderAppLockSection(canvas, ctx, rerender || (() => {}));
   await renderAutomationsSection(canvas, ctx, rerender || (() => {}));
   await renderPushSection(canvas, ctx, rerender || (() => {}));
+  await renderNativeRemindersSection(canvas, ctx, rerender || (() => {}));
   await renderLifeMusicSection(canvas, ctx, rerender || (() => {}));
   await renderTelegramSection(canvas, ctx, rerender || (() => {}));
 }

@@ -8,6 +8,7 @@ import { events } from './data/events.js';
 import { startLifeMusic, stopLifeMusic } from './audio/lifemusic.js';
 import './interfaces/manifest.js';
 import { startShell } from './shell.js';
+import { initNative } from './native/native-boot.js';
 
 const appEl = document.getElementById('app');
 
@@ -73,6 +74,10 @@ async function boot() {
     });
 
     await startShell();
+
+    // Native-only startup extras (device reminders, etc.). Non-blocking and a
+    // no-op on the web — must never affect the boot outcome.
+    initNative();
   } catch (err) {
     appEl.dataset.bootState = 'error';
     appEl.innerHTML = '';
