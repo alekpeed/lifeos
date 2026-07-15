@@ -1457,6 +1457,37 @@ export async function getBriefing() {
   return items.slice(0, 12);
 }
 
+// --- Natural-language command bar (the Command module) ------------------
+// Turn a plain-language command ("remind me to call mom Friday", "note: try
+// the new ramen place", "add rent bill $1200 due the 1st") into ONE structured
+// action, via the active AI provider. Same closed-output discipline as the
+// vision scans: the model must return one of a fixed action set with a fixed
+// field shape, and the UI always shows the interpretation for confirmation
+// before writing anything -- the AI proposes, you approve.
+export async function parseCommand(text) {
+  const { send, apiKey, model } = await getActiveAiProvider();
+  if (!apiKey) throw new Error('Add an API key in Settings > AI Assistant to use the command bar.');
+
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const prompt = `You convert a natural-language command into exactly ONE structured action for a personal life-management app. Today is ${today} (${weekday}).\n`
+    + `Pick one action, or "none" if nothing clearly fits:\n`
+    + `- "task": a to-do. fields { "title": string, "dueDate": "YYYY-MM-DD"|null }. Resolve relative dates ("Friday", "tomorrow", "next week") to an absolute date from today.\n`
+    + `- "idea": a freeform note/idea to capture. fields { "text": string }.\n`
+    + `- "contact": add a person. fields { "name": string, "notes": string|null }.\n`
+    + `- "bill": a bill to pay. fields { "name": string, "amount": number|null, "dueDate": "YYYY-MM-DD"|null }.\n`
+    + `- "habit": check in / mark a habit done today, by name. fields { "habitName": string }.\n`
+    + `Respond with JSON only, no fences: { "action": string, "fields": object, "summary": string }. `
+    + `"summary" is one short human sentence of what will happen. If nothing fits: { "action": "none", "fields": {}, "summary": "reason" }.\n`
+    + `Command: ${String(text).trim()}`;
+
+  const { text: out } = await send(apiKey, [{ role: 'user', content: prompt }], { model, maxTokens: 300 });
+  const parsed = parseJsonLoosely(out);
+  if (!parsed || !parsed.action) throw new Error(`${(await getActiveAiProvider()).label} returned something unexpected. Try rephrasing.`);
+  return { action: parsed.action, fields: parsed.fields || {}, summary: parsed.summary || '' };
+}
+
 // --- Statement import & reconciliation: a one-time CSV import of bank/card
 // transactions (Finance's "Import" tab), auto-matched against existing
 // Bills/Subscriptions by description + amount, so importing mostly means

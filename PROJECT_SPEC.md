@@ -588,9 +588,11 @@ deal-breaker. See FUTURE_FEATURES.md §7 for the full note.)*
   a service-worker `push` handler that shows them with the app closed.
   Deployed via GitHub Actions; proven with a live `{"sent":1}`. See
   SUPABASE_MIGRATION.md.
-- **Natural-language command bar** — type or speak "remind me to call mom
-  Friday" and it parses intent, picks the right module, and creates the
-  record — no navigating. In-browser Whisper handles voice, fully offline.
+- ✅ **Natural-language command bar** — DONE (2026-07-13): the **Command**
+  module. Type/speak a plain command and the active AI provider parses it into
+  one structured action (task/idea/contact/bill/habit check-in), shown for
+  one-tap Confirm before writing. Voice via the browser's SpeechRecognition
+  (not Whisper — size-class). `parseCommand` in `js/data/api.js`.
 - **Real financial ingestion & reconciliation** — import bank/card
   statements (CSV/OFX), auto-categorize transactions, reconcile against
   logged bills/subscriptions. Turns Finance from all-manual into something

@@ -54,6 +54,7 @@ import { renderRecall } from './default/views/recall.js';
 import { renderNotifications } from './default/views/notifications.js';
 import { renderAsk } from './default/views/ask.js';
 import { renderBriefing } from './default/views/briefing.js';
+import { renderCommand } from './default/views/command.js';
 
 export const VIEWS = {
   dashboard: renderDashboard,
@@ -97,4 +98,5 @@ export const VIEWS = {
   notifications: renderNotifications,
   ask: renderAsk,
   briefing: renderBriefing,
+  command: renderCommand,
 };

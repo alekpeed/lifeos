@@ -390,9 +390,16 @@ data already lives local-first and only the AI calls reach out.)*
 
 ## 8. Moonshot tier — round 2: capture, privacy, self-awareness, platform
 
-- **Natural-language command bar** — type or speak "remind me to call mom
-  Friday" and it parses intent, picks the right module, and creates the
-  record. In-browser Whisper handles voice, fully offline.
+- ✅ **Natural-language command bar** — DONE (2026-07-13): the **Command**
+  module (Core group, on the mobile remote too). Type or speak a plain command
+  ("remind me to call mom Friday", "note: try the new ramen place", "add rent
+  bill $1200 due the 1st") and the active AI provider parses it into one
+  structured action — task / idea / contact / bill / habit check-in — resolving
+  relative dates from today. Same closed-output discipline as the vision scans;
+  the interpretation is shown for a one-tap Confirm before anything's written.
+  Voice reuses the browser's SpeechRecognition (a 🎤 button when supported) —
+  NOT in-browser Whisper, which is the same multi-GB size-class problem that
+  killed the local LLM. See `parseCommand` in `js/data/api.js`.
 - ✅ **Real financial ingestion & reconciliation** — DONE (2026-07-13),
   CSV only for this pass — OFX is a real second parser (SGML-like, not
   delimited text) not worth the added surface until CSV proves useful.

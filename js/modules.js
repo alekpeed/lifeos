@@ -13,6 +13,7 @@
 
 export const MODULES = [
   { id: 'dashboard', label: 'Today', group: 'core', remote: true },
+  { id: 'command', label: 'Command', group: 'core', remote: true },
   { id: 'orrery', label: 'Orrery', group: 'core' },
   { id: 'paper', label: 'Daily Paper', group: 'core', remote: true },
   { id: 'tasks', label: 'Tasks', group: 'core', remote: true },

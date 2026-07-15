@@ -14,6 +14,7 @@ function svg(body) {
 
 const ICONS = {
   dashboard: svg('<path d="M3 10 10 4l7 6"/><path d="M5 9v7h10V9"/>'),
+  command: svg('<rect x="3" y="4" width="14" height="12" rx="1.5"/><polyline points="6,8 8.5,10 6,12"/><line x1="10" y1="12.5" x2="14" y2="12.5"/>'),
   orrery: svg('<circle cx="10" cy="10" r="1.4" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r="4"/><circle cx="10" cy="10" r="7.5"/>'),
   paper: svg('<rect x="4" y="3" width="12" height="14" rx="1"/><line x1="6.5" y1="7" x2="13.5" y2="7"/><line x1="6.5" y1="10" x2="13.5" y2="10"/><line x1="6.5" y1="13" x2="11" y2="13"/>'),
   tasks: svg('<rect x="3.5" y="3.5" width="13" height="13" rx="1.5"/><polyline points="6.3,10 8.5,12.2 13.2,7.4"/>'),
