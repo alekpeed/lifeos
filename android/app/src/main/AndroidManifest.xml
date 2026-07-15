@@ -22,6 +22,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep links: lifeos://open/<route> -- used by home-screen app
+                 shortcuts (and reusable for future deep-link entry points).
+                 Handled in JS by the @capacitor/app appUrlOpen listener. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="lifeos" android:host="open" />
+            </intent-filter>
+
+            <!-- Static home-screen shortcuts (long-press the app icon). -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
         </activity>
 
         <provider

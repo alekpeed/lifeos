@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home-screen app shortcuts (long-press the LifeOS icon). Each fires a
+     lifeos://open/<route> deep link that MainActivity receives and the
+     @capacitor/app appUrlOpen listener (js/native/native-boot.js) routes to
+     the matching module. Labels are inline here rather than @string resources
+     to keep the shortcut set self-contained. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="command"
+        android:enabled="true"
+        android:shortcutShortLabel="Command"
+        android:shortcutLongLabel="Speak or type a command">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="lifeos://open/command"
+            android:targetPackage="com.alekpeed.lifeos"
+            android:targetClass="com.alekpeed.lifeos.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="tasks"
+        android:enabled="true"
+        android:shortcutShortLabel="New Task"
+        android:shortcutLongLabel="Go to Tasks">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="lifeos://open/tasks"
+            android:targetPackage="com.alekpeed.lifeos"
+            android:targetClass="com.alekpeed.lifeos.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="ideas"
+        android:enabled="true"
+        android:shortcutShortLabel="New Idea"
+        android:shortcutLongLabel="Go to Ideas">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="lifeos://open/ideas"
+            android:targetPackage="com.alekpeed.lifeos"
+            android:targetClass="com.alekpeed.lifeos.MainActivity" />
+    </shortcut>
+
+</shortcuts>
