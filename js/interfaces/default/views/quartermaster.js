@@ -7,6 +7,60 @@
 import { el, fmtDate, todayStr, parseTags } from '../dom.js';
 
 let catalogState = { scanning: false, error: null, draft: null };
+const expandedStock = new Set(); // item ids whose stock controls are open
+
+// Few-shot low-stock: label reference photos of an item, then judge a new photo
+// against them (see judgeStockFromImage / createStockReference in api.js).
+function stockControls(item, ctx, rerender) {
+  const wrap = el('div', { class: 'mer-person-form' });
+
+  const labelIn = el('input', { type: 'text', placeholder: 'label (e.g. low, full)' });
+  const refInput = el('input', {
+    type: 'file', accept: 'image/*', capture: 'environment',
+    onchange: async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      if (!labelIn.value.trim()) { alert('Type a label first (e.g. "low" or "full").'); return; }
+      await ctx.data.createStockReference(file, item.id, labelIn.value.trim());
+      labelIn.value = '';
+      rerender();
+    },
+  });
+
+  const checkInput = el('input', {
+    type: 'file', accept: 'image/*', capture: 'environment',
+    onchange: async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const refs = await ctx.data.getStockReferences(item.id);
+      if (!refs.length) { alert('Add at least one labeled reference photo first (e.g. a "low" and a "full" shot).'); return; }
+      try {
+        const res = await ctx.data.judgeStockFromImage(file, refs);
+        await ctx.data.InventoryItems.update(item.id, { stockStatus: res.placement, stockNote: res.note, stockCheckedAt: todayStr() });
+        rerender();
+      } catch (err) { alert(err.message); }
+    },
+  });
+
+  wrap.append(
+    el('p', { class: 'mer-muted', text: 'Label a few reference photos ("low", "full"…), then check a new photo against them.' }),
+    el('label', { class: 'mer-setting' }, [el('span', { text: '📷 Check stock from photo' }), checkInput]),
+    labelIn,
+    el('label', { class: 'mer-setting' }, [el('span', { text: '＋ Add labeled reference' }), refInput]),
+  );
+
+  const refsHolder = el('p', { class: 'mer-muted', text: 'Loading references…' });
+  wrap.append(refsHolder);
+  ctx.data.getStockReferences(item.id).then((refs) => {
+    if (!refs.length) { refsHolder.textContent = 'No reference photos yet.'; return; }
+    const counts = refs.reduce((m, r) => { m[r.stockLabel] = (m[r.stockLabel] || 0) + 1; return m; }, {});
+    refsHolder.textContent = 'References: ' + Object.entries(counts).map(([l, n]) => `${l} ×${n}`).join(', ');
+  });
+
+  return wrap;
+}
 
 function catalogPanel(ctx, rerender) {
   if (catalogState.scanning) return el('p', { class: 'mer-muted', text: 'Looking at the photo…' });
@@ -87,15 +141,24 @@ function itemCard(item, ctx, rerender) {
       })]);
     })();
 
+  const stockOpen = expandedStock.has(item.id);
+  const info = el('div', { class: 'mer-person-info' }, [
+    el('div', { class: 'mer-person-name', text: item.name || '(untitled)' }),
+    el('div', { class: 'mer-person-meta' }, [
+      item.location ? el('span', { class: 'mer-chip', text: `📍 ${item.location}` }) : null,
+      item.stockStatus ? el('span', { class: 'mer-chip', text: `📦 ${item.stockStatus}`, title: item.stockNote || '' }) : null,
+      ...(item.tags || []).map((t) => el('span', { class: 'mer-chip mer-chip-tag', text: `#${t}` })),
+      el('button', {
+        type: 'button', class: 'mer-reader-btn', text: stockOpen ? 'Hide stock' : '📦 Stock',
+        onclick: () => { stockOpen ? expandedStock.delete(item.id) : expandedStock.add(item.id); rerender(); },
+      }),
+    ].filter(Boolean)),
+    lendForm,
+  ]);
+  if (stockOpen) info.append(stockControls(item, ctx, rerender));
+
   return el('div', { class: 'mer-person-card' }, [
-    el('div', { class: 'mer-person-info' }, [
-      el('div', { class: 'mer-person-name', text: item.name || '(untitled)' }),
-      el('div', { class: 'mer-person-meta' }, [
-        item.location ? el('span', { class: 'mer-chip', text: `📍 ${item.location}` }) : null,
-        ...(item.tags || []).map((t) => el('span', { class: 'mer-chip mer-chip-tag', text: `#${t}` })),
-      ].filter(Boolean)),
-      lendForm,
-    ]),
+    info,
     el('button', {
       type: 'button', class: 'mer-icon-btn', text: '×', title: 'Remove',
       onclick: async () => { if (confirm('Remove this item?')) { await ctx.data.InventoryItems.remove(item.id); rerender(); } },

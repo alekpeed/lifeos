@@ -418,8 +418,16 @@ data already lives local-first and only the AI calls reach out.)*
   genuinely harder vision problem, and "low" is subjective anyway); that
   stays a manual flag on the item. See `catalogItemsFromImage` in
   `js/data/api.js`.
-  **Still open — not built in this pass: the few-shot/in-context-learning
-  low-stock detection below.** Not model retraining — a labeled-example
+  **✅ Few-shot low-stock detection DONE (2026-07-13).** On each Quartermaster
+  item, a "📦 Stock" panel: add labeled reference photos ("low", "full", your
+  own words), then "Check stock from photo" sends a new photo + your 5 most
+  recent labeled references to the vision model, which places the new photo
+  relative to them and sets the item's stock status. All images are
+  compressed client-side first (`compressImageForVision`, ~1200px long edge),
+  and that compression was also retrofitted onto the Documents scan and the
+  catalog scan. See `judgeStockFromImage`/`createStockReference` in
+  `js/data/api.js`. Original design notes below, now built:
+  Not model retraining — a labeled-example
   flow. When logging an item, you can tag a reference photo with your
   own label ("low," "full," whatever vocabulary makes sense to you).
   Judging a later photo of that item sends the new photo *plus* your 5

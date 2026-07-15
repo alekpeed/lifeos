@@ -1107,6 +1107,31 @@ function parseJsonLoosely(text) {
   }
 }
 
+// Downscale + re-encode an image before sending it to a vision API. Object
+// recognition and document OCR don't need a full-resolution native photo, and
+// vision-API cost/latency scale with image size -- so cap the long edge and
+// re-encode as JPEG. Falls back to the original file on any failure (a wrong
+// image is worse than a big one). No-op for non-images.
+export async function compressImageForVision(file, maxEdge = 1200, quality = 0.82) {
+  if (!file || !file.type?.startsWith('image/')) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) return file;
+    return new File([blob], (file.name || 'image').replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
+
 // Returns a Documents-shaped draft: { title, category, issuer, policyNumber,
 // expiryDate, notes }, each null if not clearly present in the image.
 // Throws if no AI key is configured or the provider/parse fails -- the
@@ -1115,7 +1140,7 @@ export async function extractDocumentFromImage(file) {
   const { send, apiKey, model } = await getActiveAiProvider();
   if (!apiKey) throw new Error('Add an API key in Settings > AI Assistant to scan documents.');
 
-  const dataBase64 = await fileToBase64(file);
+  const dataBase64 = await fileToBase64(await compressImageForVision(file));
   const prompt = `This is a photo of a personal document (a bill, ID, insurance card, lease, warranty, etc.). `
     + `Extract only what is clearly legible in the image. Never guess or invent a value -- use null for anything not clearly present. `
     + `Respond with JSON only, no markdown fences, no commentary, in exactly this shape:\n`
@@ -1147,12 +1172,12 @@ export async function extractDocumentFromImage(file) {
 // editable draft before creating anything. Deliberately doesn't attempt
 // quantity/fill-level estimation (a harder vision problem, and "low" is
 // subjective) -- see FUTURE_FEATURES.md for the separate few-shot low-stock
-// flow this could grow into later; not built in this pass.
+// flow this now pairs with (see judgeStockFromImage below).
 export async function catalogItemsFromImage(file) {
   const { send, apiKey, model } = await getActiveAiProvider();
   if (!apiKey) throw new Error('Add an API key in Settings > AI Assistant to catalog from a photo.');
 
-  const dataBase64 = await fileToBase64(file);
+  const dataBase64 = await fileToBase64(await compressImageForVision(file));
   const prompt = `This is a photo of a shelf, pantry, garage, or storage area. Identify each distinct physical item visible. `
     + `Don't estimate quantity or how full/empty anything is -- just list what's there. Skip anything you can't identify with reasonable confidence. `
     + `Respond with JSON only, no markdown fences, no commentary, in exactly this shape:\n`
@@ -1170,6 +1195,71 @@ export async function catalogItemsFromImage(file) {
   return parsed.items
     .filter((i) => i && i.name)
     .map((i) => ({ name: String(i.name).trim(), location: i.location ? String(i.location).trim() : '' }));
+}
+
+// --- Quartermaster few-shot low-stock detection ---
+// Not model retraining -- a labeled-example flow. You tag reference photos of
+// an item with your OWN words ("low", "full", whatever). Judging a new photo
+// sends it PLUS your most-recent labeled examples to the vision model as
+// calibration, asking it to place the new photo relative to them. Approximate
+// placement, not precise quantity. Accuracy grows with your label library
+// because each judgment has more of your own examples to anchor on. Reference
+// photos are stored as attachments on the item (kind:'stockRef', stockLabel);
+// all images are compressed before sending (compressImageForVision).
+
+const MAX_STOCK_REFS = 5;
+
+export async function createStockReference(file, itemId, label) {
+  const compressed = await compressImageForVision(file);
+  return Attachments.create({
+    relatedStore: 'inventoryItems',
+    relatedId: itemId,
+    kind: 'stockRef',
+    stockLabel: (label || '').trim(),
+    filename: compressed.name || 'ref.jpg',
+    mimeType: compressed.type,
+    blob: compressed,
+    driveFileId: null,
+  });
+}
+
+export async function getStockReferences(itemId) {
+  const all = await getAttachmentsFor('inventoryItems', itemId);
+  return all
+    .filter((a) => a.kind === 'stockRef' && a.stockLabel)
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+}
+
+// Sends the new photo + up to MAX_STOCK_REFS most-recent labeled references to
+// the active vision provider. Returns { placement, note }: placement is one of
+// the user's own labels (or "unsure"). Throws with no key or no references.
+export async function judgeStockFromImage(file, references) {
+  const { send, apiKey, model } = await getActiveAiProvider();
+  if (!apiKey) throw new Error('Add an API key in Settings > AI Assistant to judge stock from a photo.');
+  const refs = (references || []).slice(0, MAX_STOCK_REFS);
+  if (!refs.length) throw new Error('Add at least one labeled reference photo first.');
+
+  const newB64 = await fileToBase64(await compressImageForVision(file));
+  const labels = [...new Set(refs.map((r) => r.stockLabel))];
+  const content = [
+    { type: 'text', text:
+      `You judge how stocked an item is by comparing a NEW photo to the user's own LABELED reference photos. `
+      + `Place the new photo relative to the references and answer with one of these exact labels the user has used: `
+      + `${labels.map((l) => `"${l}"`).join(', ')}, or "unsure" if it doesn't clearly match any. `
+      + `Respond with JSON only: {"placement": string, "note": string}. "note" is one short sentence of reasoning.` },
+    { type: 'text', text: 'Labeled reference photos:' },
+  ];
+  for (const r of refs) {
+    content.push({ type: 'text', text: `Reference labeled "${r.stockLabel}":` });
+    content.push({ type: 'image', mimeType: r.mimeType || 'image/jpeg', dataBase64: await fileToBase64(r.blob) });
+  }
+  content.push({ type: 'text', text: 'The NEW photo to place:' });
+  content.push({ type: 'image', mimeType: 'image/jpeg', dataBase64: newB64 });
+
+  const { text } = await send(apiKey, [{ role: 'user', content }], { model, maxTokens: 200 });
+  const parsed = parseJsonLoosely(text);
+  if (!parsed || !parsed.placement) throw new Error(`${(await getActiveAiProvider()).label} returned something unexpected. Try again.`);
+  return { placement: String(parsed.placement).trim(), note: (parsed.note || '').trim() };
 }
 
 // --- Statement import & reconciliation: a one-time CSV import of bank/card
