@@ -22,7 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep links: lifeos://open/<route> -- used by home-screen app
+            <!-- Deep links: lifeos://open/<route>, used by home-screen app
                  shortcuts (and reusable for future deep-link entry points).
                  Handled in JS by the @capacitor/app appUrlOpen listener. -->
             <intent-filter>
