@@ -11,7 +11,7 @@ import {
   registerNotificationActions, onNotificationAction, actionTypeForModule,
   showNextUp, clearNextUp,
 } from './notify.js';
-import { getDueSoonFeed, getBriefing, Settings, Bills, Tasks, Assignments } from '../data/api.js';
+import { getDueSoonFeed, getBriefing, Settings, Bills, Tasks, Assignments, Links, Ideas } from '../data/api.js';
 
 function tomorrowStr() {
   const t = new Date();
@@ -134,6 +134,65 @@ export async function refreshDeviceReminders() {
   }
 }
 
+// --- Inbound system share sheet (FUTURE_FEATURES.md §13) -----------------
+// When another app shares text/a link to LifeOS, MainActivity.java captures the
+// ACTION_SEND intent and hands us the payload by setting window.__lifeosSharedIntent
+// and dispatching a 'lifeosshared' event. We file a URL into Links and plain
+// text into Ideas — the same stores the in-app quick-add uses.
+
+function firstUrl(s) {
+  const m = /(https?:\/\/[^\s]+)/i.exec(String(s || ''));
+  return m ? m[1].replace(/[)\]}.,;'"]+$/, '') : null;
+}
+
+async function routeSharedContent(payload) {
+  const text = String((payload && payload.text) || '').trim();
+  const subject = String((payload && payload.subject) || '').trim();
+  if (!text && !subject) return;
+  const url = firstUrl(text) || firstUrl(subject);
+  try {
+    if (url) {
+      const isYouTube = /(?:youtube\.com|youtu\.be)/i.test(url);
+      await Links.create({
+        type: isYouTube ? 'video' : 'article',
+        url,
+        title: subject || '',
+        tags: [],
+        status: 'unread',
+        shareWith: '',
+        thumbnailUrl: null,
+      });
+      window.location.hash = '#/links';
+    } else {
+      const body = subject && subject !== text ? `${subject}\n${text}`.trim() : text;
+      await Ideas.create({ text: body, archived: false });
+      window.location.hash = '#/ideas';
+    }
+  } catch {
+    /* best-effort capture: never throw out of a share */
+  }
+}
+
+// Attach the inbound-share handler. Uses the 'lifeosshared' event for the warm
+// path, plus a few delayed re-checks of the global for the cold-start path,
+// where native may set it around the time the web app is still booting.
+function initShareReceiver() {
+  const consume = () => {
+    const payload = window.__lifeosSharedIntent;
+    if (!payload) return;
+    window.__lifeosSharedIntent = null;
+    routeSharedContent(payload);
+  };
+  try {
+    window.addEventListener('lifeosshared', consume);
+    consume();
+    setTimeout(consume, 400);
+    setTimeout(consume, 1200);
+  } catch {
+    /* no-op */
+  }
+}
+
 /**
  * Sync the persistent "next up" ticker notification with the top Briefing item.
  * Opt-in via the `nextUpTickerEnabled` setting; when off (or nothing needs
@@ -166,6 +225,7 @@ export async function initNative() {
     onNotificationAction((event) => {
       applyNotificationAction(event && event.actionId, event && event.notification);
     });
+    initShareReceiver();
     await refreshDeviceReminders();
     await refreshNextUp();
   } catch {

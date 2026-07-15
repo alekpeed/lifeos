@@ -32,6 +32,16 @@
                 <data android:scheme="lifeos" android:host="open" />
             </intent-filter>
 
+            <!-- Inbound system share sheet: LifeOS appears in Android's Share
+                 menu for shared text/links. MainActivity captures ACTION_SEND
+                 and hands the payload to the web layer (see MainActivity.java),
+                 which files it into Links or Ideas. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
             <!-- Static home-screen shortcuts (long-press the app icon). -->
             <meta-data
                 android:name="android.app.shortcuts"
