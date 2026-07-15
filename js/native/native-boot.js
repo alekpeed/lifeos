@@ -9,8 +9,9 @@ import { isNativePlatform, isPluginAvailable } from './capabilities.js';
 import {
   canNotify, notifyPermissionState, syncReminders, scheduleReminder,
   registerNotificationActions, onNotificationAction, actionTypeForModule,
+  showNextUp, clearNextUp,
 } from './notify.js';
-import { getDueSoonFeed, Bills, Tasks, Assignments } from '../data/api.js';
+import { getDueSoonFeed, getBriefing, Settings, Bills, Tasks, Assignments } from '../data/api.js';
 
 function tomorrowStr() {
   const t = new Date();
@@ -133,6 +134,28 @@ export async function refreshDeviceReminders() {
   }
 }
 
+/**
+ * Sync the persistent "next up" ticker notification with the top Briefing item.
+ * Opt-in via the `nextUpTickerEnabled` setting; when off (or nothing needs
+ * attention) the ticker is cleared. No-op on web / without permission. Returns
+ * true if a ticker is currently shown.
+ */
+export async function refreshNextUp() {
+  if (!canNotify()) return false;
+  if ((await notifyPermissionState()) !== 'granted') return false;
+  try {
+    const enabled = await Settings.get('nextUpTickerEnabled');
+    if (!enabled) { await clearNextUp(); return false; }
+    const items = await getBriefing();
+    const top = items && items[0];
+    if (!top) { await clearNextUp(); return false; }
+    const detail = top.detail ? `${top.detail}` : '';
+    return await showNextUp({ title: `Next up: ${top.title}`, body: detail });
+  } catch {
+    return false;
+  }
+}
+
 /** One-shot native startup hook. Called by app.js boot; never throws. */
 export async function initNative() {
   if (!isNativePlatform()) return;
@@ -144,6 +167,7 @@ export async function initNative() {
       applyNotificationAction(event && event.actionId, event && event.notification);
     });
     await refreshDeviceReminders();
+    await refreshNextUp();
   } catch {
     /* boot must never fail because of a native extra */
   }

@@ -180,3 +180,42 @@ export async function syncReminders(reminders) {
   }
   return n;
 }
+
+// --- "Next up" ticker (FUTURE_FEATURES.md §13) --------------------------
+// An optional persistent (ongoing) notification that always shows the single
+// top Briefing item, so the most important thing is glanceable without opening
+// the app. It's shown immediately (no schedule.at) and marked ongoing so
+// Android keeps it pinned; because it's already delivered rather than pending,
+// syncReminders()'s cancel-all-pending pass leaves it untouched.
+const NEXT_UP_KEY = 'lifeos-nextup';
+
+/** Show (or replace) the persistent "next up" ticker notification. */
+export async function showNextUp({ title, body } = {}) {
+  const p = plugin();
+  if (!canNotify() || !p) return false;
+  try {
+    await p.schedule({
+      notifications: [{
+        id: idFor(NEXT_UP_KEY),
+        title: title || 'LifeOS',
+        body: body || '',
+        ongoing: true,      // Android: sticky — can't be swiped away
+        autoCancel: false,  // stays until we clear or replace it
+      }],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Remove the "next up" ticker notification. */
+export async function clearNextUp() {
+  const p = plugin();
+  if (!canNotify() || !p) return;
+  try {
+    await p.cancel({ notifications: [{ id: idFor(NEXT_UP_KEY) }] });
+  } catch {
+    /* no-op */
+  }
+}

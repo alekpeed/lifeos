@@ -1,7 +1,7 @@
 import { el, fmtDate } from '../dom.js';
 import { isNativePlatform } from '../../../native/capabilities.js';
 import { canNotify, notifyPermissionState, requestNotifyPermission } from '../../../native/notify.js';
-import { refreshDeviceReminders } from '../../../native/native-boot.js';
+import { refreshDeviceReminders, refreshNextUp } from '../../../native/native-boot.js';
 
 // --- Account (email/password + Google) ---
 // App-wide identity, shared with Sharebox v2 (same Supabase auth session --
@@ -467,6 +467,26 @@ async function renderLifeMusicSection(canvas, ctx, rerender) {
 // the browser's equivalent. These are scheduled on the phone itself, so they
 // fire offline with the app closed and need no server.
 
+// Opt-in "next up" ticker: a persistent notification always showing the top
+// Briefing item. Toggling it flips the setting and immediately shows/clears the
+// ticker via refreshNextUp (which reads the same setting).
+async function nextUpTickerToggle(ctx) {
+  const on = !!(await ctx.data.Settings.get('nextUpTickerEnabled'));
+  return el('label', { class: 'mer-setting' }, [
+    el('span', {}, [
+      el('input', {
+        type: 'checkbox', checked: on,
+        onchange: async (e) => {
+          await ctx.data.Settings.set('nextUpTickerEnabled', e.target.checked);
+          await refreshNextUp();
+        },
+      }),
+      document.createTextNode(' Pinned “next up” ticker'),
+    ]),
+    el('span', { class: 'mer-muted', text: 'Keep a persistent notification showing your single most important item (top of the Briefing). Updates each time the app opens.' }),
+  ]);
+}
+
 async function renderNativeRemindersSection(canvas, ctx, rerender) {
   if (!isNativePlatform() || !canNotify()) return;
 
@@ -481,6 +501,7 @@ async function renderNativeRemindersSection(canvas, ctx, rerender) {
     const n = await refreshDeviceReminders();
     setStatus(`On — ${n} upcoming reminder${n === 1 ? '' : 's'} scheduled on this device.`);
     canvas.append(status);
+    canvas.append(await nextUpTickerToggle(ctx));
     return;
   }
   if (perm === 'denied') {
