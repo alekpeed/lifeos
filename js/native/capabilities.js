@@ -84,6 +84,7 @@ export const CAPABILITIES = {
   tts:            { label: 'Read aloud (text-to-speech)', plugin: '@capacitor-community/text-to-speech', platforms: ['android', 'ios'], webFallback: 'speechsynthesis' },
   appUrlOpen:     { label: 'Deep links / app shortcuts',  plugin: '@capacitor/app',                  platforms: ['android', 'ios'], webFallback: null },
   battery:        { label: 'Battery / charging state',    plugin: '@capacitor/device',               platforms: ['android', 'ios'], webFallback: null },
+  geofence:       { label: 'Geofencing / arrival triggers', plugin: 'Geofence',                      platforms: ['android'],        webFallback: 'navigator.geolocation' },
 };
 
 /**

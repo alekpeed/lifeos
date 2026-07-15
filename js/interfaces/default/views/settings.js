@@ -1,8 +1,9 @@
 import { el, fmtDate } from '../dom.js';
 import { isNativePlatform, hasCapability } from '../../../native/capabilities.js';
 import { canNotify, notifyPermissionState, requestNotifyPermission } from '../../../native/notify.js';
-import { refreshDeviceReminders, refreshNextUp } from '../../../native/native-boot.js';
+import { refreshDeviceReminders, refreshNextUp, refreshGeofences } from '../../../native/native-boot.js';
 import { canImportContacts, requestContactsPermission, importPhoneContacts } from '../../../native/contacts.js';
+import { canGeofence, geofenceStatus, requestGeofencePermission } from '../../../native/geofence.js';
 
 // --- Account (email/password + Google) ---
 // App-wide identity, shared with Sharebox v2 (same Supabase auth session --
@@ -586,6 +587,58 @@ async function renderNativeChargingSection(canvas, ctx, rerender) {
   ));
 }
 
+// --- Arrival triggers (native geofencing) ---
+// Native-only. Registers low-power OS geofences for the Places you've flagged
+// (notes-to-self + want-to-go) so arriving nudges you even with the app closed.
+// Needs "Allow all the time" location. Opt-in; hidden on web/iOS.
+
+async function renderNativeGeofenceSection(canvas, ctx, rerender) {
+  if (!isNativePlatform() || !canGeofence()) return;
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Arrival triggers' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Get a nudge when you arrive at a place you’ve noted or want to visit — even with the app closed. Uses low-power location (no constant tracking). Needs the “Allow all the time” location permission.' }));
+
+  const status = el('p', { class: 'mer-muted' });
+  const setStatus = (text, isError) => { status.textContent = text; status.classList.toggle('mer-sync-error', !!isError); };
+
+  const on = !!(await ctx.data.Settings.get('geofenceEnabled'));
+  const perm = await geofenceStatus();
+
+  if (on && perm.foreground) {
+    const n = await refreshGeofences();
+    const bg = perm.background ? '' : ' — grant “Allow all the time” in Android location settings so it fires with the app closed.';
+    setStatus(`On — watching ${n} place${n === 1 ? '' : 's'}.${bg}`, !perm.background);
+    const offBtn = el('button', {
+      type: 'button', text: 'Turn off',
+      onclick: async () => { await ctx.data.Settings.set('geofenceEnabled', false); await refreshGeofences(); rerender(); },
+    });
+    canvas.append(el('div', { class: 'mer-toolbar' }, [offBtn]), status);
+    return;
+  }
+
+  setStatus(on ? 'Location permission needed.' : 'Off.');
+  const btn = el('button', {
+    type: 'button', text: 'Turn on arrival triggers',
+    onclick: async () => {
+      btn.disabled = true;
+      setStatus('Requesting location permission…');
+      try {
+        const res = await requestGeofencePermission();
+        if (!res.foreground) { setStatus('Location permission not granted.', true); btn.disabled = false; return; }
+        await ctx.data.Settings.set('geofenceEnabled', true);
+        const n = await refreshGeofences();
+        const bg = res.background ? '' : ' Tip: set location to “Allow all the time” so it works with the app closed.';
+        setStatus(`On — watching ${n} place${n === 1 ? '' : 's'}.${bg}`);
+        rerender();
+      } catch (err) {
+        setStatus(err.message || String(err), true);
+        btn.disabled = false;
+      }
+    },
+  });
+  canvas.append(el('div', { class: 'mer-toolbar' }, [btn]), status);
+}
+
 // --- Web Push (real background notifications) ---
 
 async function renderPushSection(canvas, ctx, rerender) {
@@ -821,6 +874,7 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderPushSection(canvas, ctx, rerender || (() => {}));
   await renderNativeRemindersSection(canvas, ctx, rerender || (() => {}));
   await renderNativeContactsSection(canvas, ctx, rerender || (() => {}));
+  await renderNativeGeofenceSection(canvas, ctx, rerender || (() => {}));
   await renderNativeChargingSection(canvas, ctx, rerender || (() => {}));
   await renderLifeMusicSection(canvas, ctx, rerender || (() => {}));
   await renderTelegramSection(canvas, ctx, rerender || (() => {}));

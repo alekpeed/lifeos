@@ -8,6 +8,7 @@
 import { isNativePlatform, isPluginAvailable, hasCapability } from './capabilities.js';
 import { speak, canSpeak } from './speak.js';
 import { initNfc } from './nfc.js';
+import { canGeofence, syncGeofences, clearGeofences } from './geofence.js';
 import {
   canNotify, notifyPermissionState, syncReminders, scheduleReminder,
   registerNotificationActions, onNotificationAction, actionTypeForModule,
@@ -359,6 +360,17 @@ function initChargingRitual() {
   }
 }
 
+/**
+ * Re-register arrival geofences from flagged Places, if the feature is enabled.
+ * Called on boot (which also re-establishes them after a reboot) and whenever
+ * the Settings toggle changes. No-op on web / without permission. Returns count.
+ */
+export async function refreshGeofences() {
+  if (!canGeofence()) return 0;
+  if (!(await Settings.get('geofenceEnabled'))) { await clearGeofences(); return 0; }
+  return await syncGeofences();
+}
+
 /** One-shot native startup hook. Called by app.js boot; never throws. */
 export async function initNative() {
   if (!isNativePlatform()) return;
@@ -376,6 +388,7 @@ export async function initNative() {
     await refreshDeviceReminders();
     await refreshNextUp();
     await maybeRunChargingRitual();
+    await refreshGeofences();
   } catch {
     /* boot must never fail because of a native extra */
   }

@@ -49,6 +49,12 @@
 
         </activity>
 
+        <!-- Geofencing (§13): the OS delivers arrival transitions here even when
+             the app is closed. Not exported — only the system triggers it. -->
+        <receiver
+            android:name=".GeofenceBroadcastReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -68,4 +74,11 @@
          install; the capability layer hides the feature where it's absent. -->
     <uses-permission android:name="android.permission.NFC" />
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
+
+    <!-- Geofencing (§13): fine + background location so arrival triggers fire
+         even with the app closed. Background is requested separately at runtime;
+         the feature is opt-in and hides where location isn't available. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 </manifest>

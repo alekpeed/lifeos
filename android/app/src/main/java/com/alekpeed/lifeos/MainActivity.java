@@ -12,6 +12,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Custom local plugin — must be registered before super.onCreate().
+        registerPlugin(GeofencePlugin.class);
         super.onCreate(savedInstanceState);
         // Cold start: the app may have been launched from Android's Share sheet.
         handleSendIntent(getIntent());
