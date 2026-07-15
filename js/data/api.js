@@ -856,6 +856,8 @@ export async function generateYearlyRecapNarrative(summary) {
 // --- Telegram (send-only) ---
 
 import { sendTelegramMessage } from './telegram-client.js';
+// Two-way Telegram linking (the bot itself is a Supabase Edge Function).
+export { getTelegramLinkState, createTelegramDeepLink, unlinkTelegram } from './telegram-link.js';
 
 export async function sendDigestToTelegram(text) {
   const [botToken, chatId] = await Promise.all([

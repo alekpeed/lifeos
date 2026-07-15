@@ -516,7 +516,7 @@ async function renderTelegramSection(canvas, ctx, rerender) {
   ]);
 
   canvas.append(el('div', { class: 'mer-subsection-label', text: 'Telegram' }));
-  canvas.append(el('p', { class: 'mer-muted', text: 'Send-only: the app can message you through a bot you create yourself (via @BotFather in Telegram). There\'s no listener for incoming messages -- a static PWA can\'t run one when it\'s not open.' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Message yourself through a bot you create (via @BotFather in Telegram). The send path (below) works from any device with the token + chat ID; two-way chat is further down.' }));
 
   const tokenInput = el('input', { type: 'password', value: botToken, placeholder: 'Bot token from @BotFather', onchange: (e) => ctx.data.Settings.set('telegramBotToken', e.target.value.trim()) });
   const chatIdInput = el('input', { type: 'text', value: chatId, placeholder: 'Your chat ID', onchange: (e) => ctx.data.Settings.set('telegramChatId', e.target.value.trim()) });
@@ -543,6 +543,46 @@ async function renderTelegramSection(canvas, ctx, rerender) {
       },
     }),
   ]), status);
+
+  // --- Two-way chat (linking) ---
+  const linkState = await ctx.data.getTelegramLinkState();
+  if (!linkState.configured) return;
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Two-way chat' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Text your bot to capture ideas and tasks, or ask what\'s due — from anywhere, even with the app closed. It replies and files things straight into Life OS. Requires being signed in.' }));
+
+  const tgStatus = el('p', { class: 'mer-muted' });
+  if (!linkState.signedIn) {
+    tgStatus.textContent = 'Sign in with your account above to connect.';
+    canvas.append(tgStatus);
+    return;
+  }
+  if (linkState.linked) {
+    tgStatus.textContent = 'Connected — text your bot /help to see what it can do.';
+    canvas.append(el('div', { class: 'mer-toolbar' }, [
+      el('button', { type: 'button', text: 'Disconnect', onclick: async () => { await ctx.data.unlinkTelegram(); await rerender(); } }),
+    ]), tgStatus);
+    return;
+  }
+
+  const connectBtn = el('button', {
+    type: 'button', text: 'Connect Telegram',
+    onclick: async () => {
+      connectBtn.disabled = true;
+      tgStatus.textContent = 'Generating link…';
+      tgStatus.classList.remove('mer-sync-error');
+      try {
+        const url = await ctx.data.createTelegramDeepLink(botToken);
+        tgStatus.textContent = '';
+        tgStatus.append(el('a', { href: url, target: '_blank', rel: 'noopener', text: 'Tap to open your bot and connect →' }));
+      } catch (err) {
+        tgStatus.textContent = err.message || String(err);
+        tgStatus.classList.add('mer-sync-error');
+        connectBtn.disabled = false;
+      }
+    },
+  });
+  canvas.append(el('div', { class: 'mer-toolbar' }, [connectBtn]), tgStatus);
 }
 
 export async function renderSettings(canvas, ctx, rerender) {

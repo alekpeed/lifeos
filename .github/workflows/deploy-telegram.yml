@@ -1,0 +1,48 @@
+# Deploys the two-way Telegram webhook to Supabase and registers it with
+# Telegram -- no local terminal. Kept separate from the push workflow so a
+# missing Telegram secret can't break push deploys.
+#
+# One-time setup (GitHub -> repo Settings -> Secrets and variables -> Actions):
+#   TELEGRAM_BOT_TOKEN       (your bot token from @BotFather -- the same one in
+#                             the app's Settings > Telegram)
+#   TELEGRAM_WEBHOOK_SECRET  (a random string; generated for you -- see runbook)
+#   SUPABASE_ACCESS_TOKEN    (already added for the push workflow)
+name: Deploy Telegram Webhook
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/telegram-webhook/**'
+      - '.github/workflows/deploy-telegram.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ukqdbxxhxxafbcnkmskg
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Push function secrets (Telegram)
+        run: |
+          supabase secrets set --project-ref "$PROJECT_REF" \
+            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+            TELEGRAM_WEBHOOK_SECRET="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}"
+
+      - name: Deploy telegram-webhook
+        run: supabase functions deploy telegram-webhook --no-verify-jwt --project-ref "$PROJECT_REF"
+
+      - name: Register the webhook with Telegram
+        run: |
+          curl -sS --fail "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook" \
+            -d "url=https://$PROJECT_REF.supabase.co/functions/v1/telegram-webhook" \
+            -d "secret_token=${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" \
+            -d "allowed_updates=[\"message\"]"

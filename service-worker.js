@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.33';
+const CACHE_VERSION = 'lifeos-v1.34';
 const APP_SHELL = [
   './',
   './index.html',
@@ -32,6 +32,7 @@ const APP_SHELL = [
   './js/data/claude-client.js',
   './js/data/gemini-client.js',
   './js/data/telegram-client.js',
+  './js/data/telegram-link.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
   './js/interfaces/view-library.js',

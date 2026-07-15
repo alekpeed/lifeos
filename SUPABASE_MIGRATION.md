@@ -225,3 +225,45 @@ adapt it — that's a code change I make in the repo, not something you run.
 **Known v1 limitation:** the digest runs on a schedule and doesn't de-dup
 across days, so the same item can be mentioned on consecutive mornings until
 it's handled. Per-item "already notified" tracking is a later refinement.
+
+---
+
+# Two-way Telegram
+
+**Status (2026-07-13): built, needs deploy.** Text your bot from anywhere to
+capture ideas/tasks or ask what's due; it replies and files things into Life
+OS. Possible now because the migration put your data in Postgres, where a
+webhook can reach it.
+
+## What's built
+
+- **Client:** `js/data/telegram-link.js` + a "Two-way chat" block in Settings
+  → Telegram. Mints a one-time link token, resolves your bot's @username, and
+  shows a `t.me/<bot>?start=<token>` deep link to tap.
+- **Server (your deploy):** `supabase/functions/telegram-webhook/index.ts` —
+  handles `/start <token>` linking, `/task`, `/due`, `/help`, and captures any
+  other text as an Idea, writing straight into `sync_records`.
+- **SQL:** `sql/supabase-telegram-schema.sql` (`telegram_links` +
+  `telegram_link_tokens`).
+- **Deploy:** `.github/workflows/deploy-telegram.yml` deploys the function,
+  sets its secrets, and registers the webhook with Telegram — all from CI.
+
+## Setup — web only, no terminal
+
+1. **Add GitHub secrets** (repo → Settings → Secrets and variables → Actions):
+   - `TELEGRAM_BOT_TOKEN` — your bot token from @BotFather (same one you use in
+     the app's Settings → Telegram).
+   - `TELEGRAM_WEBHOOK_SECRET` — a random string; the generated value was sent
+     to you. (`SUPABASE_ACCESS_TOKEN` is already there from push.)
+2. **Run the SQL:** `sql/supabase-telegram-schema.sql` in the SQL Editor.
+3. **Run the workflow:** GitHub → Actions → "Deploy Telegram Webhook" → Run
+   workflow. It deploys the function AND registers the webhook with Telegram.
+4. **Connect + test:** app → Settings → Telegram → make sure your **bot token**
+   is filled in (top field) → under **Two-way chat**, tap **Connect Telegram**
+   → tap the link → in Telegram your bot says "Connected." Then text it
+   `hello` (→ captured as an idea), `/task buy milk`, or `/due`.
+
+**v1 scope:** capture (ideas/tasks) + `/due` query. AI-powered replies (ask
+your bot a question, get a grounded answer) are a natural v2 — they'd need an
+AI provider key added as a Supabase secret, since the app's key is device-local
+and unsynced. Say the word and I'll add it.
