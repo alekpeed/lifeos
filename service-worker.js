@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lifeos-v1.46';
+const CACHE_VERSION = 'lifeos-v1.47';
 const APP_SHELL = [
   './',
   './index.html',
@@ -39,6 +39,7 @@ const APP_SHELL = [
   './js/native/share.js',
   './js/native/keepawake.js',
   './js/native/speak.js',
+  './js/native/contacts.js',
   './js/interfaces/registry.js',
   './js/interfaces/manifest.js',
   './js/interfaces/view-library.js',

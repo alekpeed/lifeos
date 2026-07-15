@@ -2,6 +2,7 @@ import { el, fmtDate } from '../dom.js';
 import { isNativePlatform } from '../../../native/capabilities.js';
 import { canNotify, notifyPermissionState, requestNotifyPermission } from '../../../native/notify.js';
 import { refreshDeviceReminders, refreshNextUp } from '../../../native/native-boot.js';
+import { canImportContacts, requestContactsPermission, importPhoneContacts } from '../../../native/contacts.js';
 
 // --- Account (email/password + Google) ---
 // App-wide identity, shared with Sharebox v2 (same Supabase auth session --
@@ -534,6 +535,41 @@ async function renderNativeRemindersSection(canvas, ctx, rerender) {
   canvas.append(el('div', { class: 'mer-toolbar' }, [btn]), status);
 }
 
+// --- Phone contacts import (native only) ---
+// Native-only. One-tap pull of the device address book into the Contacts
+// module, deduped by name so re-running is safe. Hidden entirely on web/iOS.
+
+async function renderNativeContactsSection(canvas, ctx, rerender) {
+  if (!isNativePlatform() || !canImportContacts()) return;
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Phone contacts' }));
+  canvas.append(el('p', { class: 'mer-muted', text: 'Import your phone’s contacts into the Contacts module in one tap. Anyone already in Contacts by the same name is skipped, so it’s safe to run again.' }));
+
+  const status = el('p', { class: 'mer-muted' });
+  const setStatus = (text, isError) => { status.textContent = text; status.classList.toggle('mer-sync-error', !!isError); };
+
+  const btn = el('button', {
+    type: 'button', text: 'Import phone contacts',
+    onclick: async () => {
+      btn.disabled = true;
+      setStatus('Requesting permission…');
+      try {
+        const ok = await requestContactsPermission();
+        if (!ok) { setStatus('Permission not granted.', true); btn.disabled = false; return; }
+        setStatus('Importing…');
+        const { imported, skipped } = await importPhoneContacts();
+        setStatus(`Imported ${imported} contact${imported === 1 ? '' : 's'}${skipped ? `, skipped ${skipped} (already present or unnamed)` : ''}.`);
+        btn.disabled = false;
+        rerender();
+      } catch (err) {
+        setStatus(err.message || String(err), true);
+        btn.disabled = false;
+      }
+    },
+  });
+  canvas.append(el('div', { class: 'mer-toolbar' }, [btn]), status);
+}
+
 // --- Web Push (real background notifications) ---
 
 async function renderPushSection(canvas, ctx, rerender) {
@@ -768,6 +804,7 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderAutomationsSection(canvas, ctx, rerender || (() => {}));
   await renderPushSection(canvas, ctx, rerender || (() => {}));
   await renderNativeRemindersSection(canvas, ctx, rerender || (() => {}));
+  await renderNativeContactsSection(canvas, ctx, rerender || (() => {}));
   await renderLifeMusicSection(canvas, ctx, rerender || (() => {}));
   await renderTelegramSection(canvas, ctx, rerender || (() => {}));
 }
