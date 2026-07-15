@@ -5,7 +5,8 @@
 // app.js calls initNative() after the shell is up; it never blocks boot and
 // never throws into it.
 
-import { isNativePlatform, isPluginAvailable } from './capabilities.js';
+import { isNativePlatform, isPluginAvailable, hasCapability } from './capabilities.js';
+import { speak, canSpeak } from './speak.js';
 import {
   canNotify, notifyPermissionState, syncReminders, scheduleReminder,
   registerNotificationActions, onNotificationAction, actionTypeForModule,
@@ -205,7 +206,7 @@ let lastClipboardSeen = '';
 
 // A small, self-contained confirm banner (no app toast helper exists). Native
 // capture UI only, so it's inline-styled rather than themed to an interface.
-function showCaptureBanner(message, onConfirm) {
+function showCaptureBanner(message, onConfirm, confirmLabel = 'File it') {
   try {
     const existing = document.getElementById('lifeos-capture-banner');
     if (existing) existing.remove();
@@ -226,7 +227,7 @@ function showCaptureBanner(message, onConfirm) {
     dismiss.style.cssText = 'background:transparent;color:#aab3c8;border:0;padding:6px 8px;font:inherit;cursor:pointer';
     dismiss.onclick = () => bar.remove();
     const file = document.createElement('button');
-    file.textContent = 'File it';
+    file.textContent = confirmLabel;
     file.style.cssText = 'background:#4f7cff;color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer';
     file.onclick = async () => { bar.remove(); try { await onConfirm(); } catch { /* ignore */ } };
     bar.append(label, dismiss, file);
@@ -295,6 +296,68 @@ export async function refreshNextUp() {
   }
 }
 
+// --- Charging-cable evening ritual (FUTURE_FEATURES.md §13) --------------
+// Plugging in at night is a natural end-of-day trigger. When the app is in the
+// foreground and charging in the evening, offer to read your evening Briefing
+// aloud. Opt-in (chargingRitualEnabled, off by default) and once per day.
+
+function localDateStr(d = new Date()) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0, 10);
+}
+
+async function isCharging() {
+  try {
+    const c = typeof window !== 'undefined' ? window.Capacitor : null;
+    const dev = c && c.Plugins && c.Plugins.Device;
+    if (!dev || typeof dev.getBatteryInfo !== 'function') return false;
+    const info = await dev.getBatteryInfo();
+    return !!(info && info.isCharging);
+  } catch {
+    return false;
+  }
+}
+
+async function maybeRunChargingRitual() {
+  try {
+    if (!hasCapability('battery')) return;
+    if (!(await Settings.get('chargingRitualEnabled'))) return;
+    const hour = new Date().getHours();
+    if (hour < 18 && hour > 3) return;                 // evening / late night only
+    const today = localDateStr();
+    if ((await Settings.get('chargingRitualLastFired')) === today) return; // once/day
+    if (!(await isCharging())) return;
+
+    const items = await getBriefing();
+    await Settings.set('chargingRitualLastFired', today);
+    if (!items || !items.length) return;               // nothing worth reading
+
+    const top = items.slice(0, 5);
+    const spoken = `Good evening. You have ${items.length} thing${items.length === 1 ? '' : 's'} that need${items.length === 1 ? 's' : ''} attention. `
+      + top.map((it, i) => `${i + 1}. ${it.title}. ${it.detail || ''}`).join(' ');
+    const canRead = canSpeak();
+    showCaptureBanner(
+      'Plugged in for the night — hear your evening briefing?',
+      () => (canRead ? speak(spoken) : (window.location.hash = '#/briefing')),
+      canRead ? 'Read it' : 'Open',
+    );
+  } catch {
+    /* never let the ritual break a resume */
+  }
+}
+
+// Fire the ritual check when the app returns to the foreground.
+function initChargingRitual() {
+  try {
+    const c = typeof window !== 'undefined' ? window.Capacitor : null;
+    const app = c && c.Plugins && c.Plugins.App;
+    if (!app || !isPluginAvailable('@capacitor/app') || !hasCapability('battery')) return;
+    app.addListener('resume', () => { setTimeout(maybeRunChargingRitual, 600); });
+    app.addListener('appStateChange', (state) => { if (state && state.isActive) setTimeout(maybeRunChargingRitual, 600); });
+  } catch {
+    /* no-op */
+  }
+}
+
 /** One-shot native startup hook. Called by app.js boot; never throws. */
 export async function initNative() {
   if (!isNativePlatform()) return;
@@ -307,8 +370,10 @@ export async function initNative() {
     });
     initShareReceiver();
     initClipboardCatcher();
+    initChargingRitual();
     await refreshDeviceReminders();
     await refreshNextUp();
+    await maybeRunChargingRitual();
   } catch {
     /* boot must never fail because of a native extra */
   }

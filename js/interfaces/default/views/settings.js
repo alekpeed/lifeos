@@ -1,5 +1,5 @@
 import { el, fmtDate } from '../dom.js';
-import { isNativePlatform } from '../../../native/capabilities.js';
+import { isNativePlatform, hasCapability } from '../../../native/capabilities.js';
 import { canNotify, notifyPermissionState, requestNotifyPermission } from '../../../native/notify.js';
 import { refreshDeviceReminders, refreshNextUp } from '../../../native/native-boot.js';
 import { canImportContacts, requestContactsPermission, importPhoneContacts } from '../../../native/contacts.js';
@@ -570,6 +570,22 @@ async function renderNativeContactsSection(canvas, ctx, rerender) {
   canvas.append(el('div', { class: 'mer-toolbar' }, [btn]), status);
 }
 
+// --- Charging-cable evening ritual (native only) ---
+// When you plug in at night with the app open, LifeOS offers to read your
+// evening Briefing aloud. Opt-in, once per day. Hidden on web/iOS.
+
+async function renderNativeChargingSection(canvas, ctx, rerender) {
+  if (!isNativePlatform() || !hasCapability('battery')) return;
+
+  canvas.append(el('div', { class: 'mer-subsection-label', text: 'Evening ritual' }));
+  const on = !!(await ctx.data.Settings.get('chargingRitualEnabled'));
+  canvas.append(automationToggle(
+    'Plug-in-at-night evening briefing',
+    'When you plug the phone in during the evening with LifeOS open, it offers to read your Briefing aloud as an end-of-day check-in. Once per day.',
+    'chargingRitualEnabled', on, ctx, rerender,
+  ));
+}
+
 // --- Web Push (real background notifications) ---
 
 async function renderPushSection(canvas, ctx, rerender) {
@@ -805,6 +821,7 @@ export async function renderSettings(canvas, ctx, rerender) {
   await renderPushSection(canvas, ctx, rerender || (() => {}));
   await renderNativeRemindersSection(canvas, ctx, rerender || (() => {}));
   await renderNativeContactsSection(canvas, ctx, rerender || (() => {}));
+  await renderNativeChargingSection(canvas, ctx, rerender || (() => {}));
   await renderLifeMusicSection(canvas, ctx, rerender || (() => {}));
   await renderTelegramSection(canvas, ctx, rerender || (() => {}));
 }
