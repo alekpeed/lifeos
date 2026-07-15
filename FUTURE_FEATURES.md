@@ -624,12 +624,26 @@ survived Alek's cut):
   Documents)
 - Barcode/ISBN scanner (books → Books with metadata; pantry →
   Quartermaster)
+- Text-selection menu — highlight text in ANY app → Android's selection
+  popup offers "Send to LifeOS" (finer-grained than the share sheet:
+  works on any selectable text, sentence-level capture)
+- **Auto-sorting file inbox** — watch the Downloads folder (and similar
+  landing zones); new files get classified and offered to the RIGHT
+  destination, not just dumped in Documents: airline confirmations /
+  travel docs → Documents' travel category, bills/statements → Finance +
+  Documents, receipts, IDs, tickets. Classification via the existing
+  vision/AI extraction pipeline where needed, plain heuristics
+  (filename/sender/type) where they suffice.
 
 **Location & presence**
 - Background geofencing (grocery store → Quartermaster low-stock list)
 - Passive on-device location journal feeding Ghost Days / Time Machine
 - Arrive/leave triggers (leave work → evening Briefing; arrive home →
   habit check-in)
+- Wi-Fi network triggers — "joined home/work Wi-Fi" as a presence signal:
+  cheaper and more private than GPS for the home/work cases
+- Offline map tiles for Places — your places on a real map with zero
+  connectivity
 
 **Notifications & background**
 - True local scheduled notifications — bills, time capsule unlocks, habit
@@ -638,6 +652,13 @@ survived Alek's cut):
 - Background sync on a real schedule, app closed
 - Notification harvesting (with permission, read other apps'
   notifications: bank alert → Finance draft, delivery → package note)
+- Actionable notifications — buttons on the notification itself ("Habit
+  reminder — ✓ Done / Snooze", "Rent due — Mark paid"): act on LifeOS
+  without opening it
+- Persistent "next up" ticker — an optional pinned notification always
+  showing the top Briefing item
+- Charging-cable ritual — plugging in at night is the end-of-day trigger:
+  run sync, fire the evening review prompt, write the nightly local backup
 
 **Passive intelligence**
 - Photo auto-ingest (new camera photos considered automatically: EXIF →
@@ -651,6 +672,8 @@ survived Alek's cut):
   widget, two-tap camera-to-Quartermaster)
 - NFC tags (tag on the pantry shelf → tap → that shelf's restock list;
   tag on the door → packing list)
+- Bluetooth item beacons — cheap BLE tags on physical things in
+  Collections/Museum, so "where is my X" answers with real proximity
 - Nearby/Wi-Fi Direct device-to-device sync — full-bandwidth local sync
   with no internet at all (QR Sync's concept, grown up)
 - Wall/kiosk mode — an old tablet as a permanently-mounted always-on
@@ -672,10 +695,13 @@ word covers in-car capture whenever it matters anyway.
 *(Ruled out 2026-07-15, dead, not parked, don't resurface: bank-SMS
 ingestion (parsing "you spent $X" texts into Finance), call-log awareness
 ("you haven't called Dad in 5 weeks" nudges), activity-recognition
-auto-logging (walking/cycling detection auto-checking habits), and Google
+auto-logging (walking/cycling detection auto-checking habits), Google
 Assistant App Actions ("Hey Google, add X to LifeOS" — superseded by
 going straight to our own full wake word instead of bridging through
-Google's).)*
+Google's), floating capture bubble (chat-head overlay), alarm-clock
+handoff (alarm dismissal → TTS briefing), `.lifeos` file association +
+auto local backups to SD/USB, Chromecast casting, a Wear OS companion,
+Tasker/intents automation hooks, and haptic feedback patterns.)*
 
 ---
 
