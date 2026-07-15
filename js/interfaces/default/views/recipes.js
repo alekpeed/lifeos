@@ -1,4 +1,23 @@
 import { el, fmtDate, todayStr, parseTags } from '../dom.js';
+import { enableKeepAwake, disableKeepAwake, canKeepAwake } from '../../../native/keepawake.js';
+
+// Cooking mode (keep the screen awake) persists across the detail's rerenders.
+let cookingMode = false;
+
+function cookingModeButton() {
+  if (!canKeepAwake()) return null;
+  const btn = el('button', {
+    type: 'button', class: 'mer-reader-btn',
+    text: cookingMode ? '🍳 Cooking mode: on' : '🍳 Cooking mode',
+    onclick: async () => {
+      cookingMode = !cookingMode;
+      if (cookingMode) await enableKeepAwake();
+      else await disableKeepAwake();
+      btn.textContent = cookingMode ? '🍳 Cooking mode: on' : '🍳 Cooking mode';
+    },
+  });
+  return btn;
+}
 
 let state = {
   tab: 'recipes', // recipes | grocery
@@ -185,6 +204,7 @@ function detailEditor(recipe, cover, logs, ctx, rerender) {
       el('h3', { text: recipe.title || '(untitled)' }),
       el('button', { type: 'button', class: 'mer-icon-btn', text: '✕ Close', onclick: () => { state.selectedId = null; state.detailScale = null; rerender(); } }),
     ]),
+    ...(cookingModeButton() ? [el('div', { class: 'mer-toolbar' }, [cookingModeButton()])] : []),
     el('div', { class: 'mer-field-grid' }, [
       field('Title', titleInput),
       field('Base servings', servingsInput),

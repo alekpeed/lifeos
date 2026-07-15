@@ -81,6 +81,8 @@ export const CAPABILITIES = {
   ble:            { label: 'Bluetooth (BLE)',             plugin: '@capacitor-community/bluetooth-le', platforms: ['android', 'ios'], webFallback: 'webbluetooth' },
   keepAwake:      { label: 'Keep screen awake',           plugin: '@capacitor-community/keep-awake', platforms: ['android', 'ios'], webFallback: 'wakelock' },
   contacts:       { label: 'Phone contacts',              plugin: '@capacitor-community/contacts',   platforms: ['android', 'ios'], webFallback: null },
+  tts:            { label: 'Read aloud (text-to-speech)', plugin: '@capacitor-community/text-to-speech', platforms: ['android', 'ios'], webFallback: 'speechsynthesis' },
+  appUrlOpen:     { label: 'Deep links / app shortcuts',  plugin: '@capacitor/app',                  platforms: ['android', 'ios'], webFallback: null },
 };
 
 /**
@@ -118,6 +120,7 @@ export function hasWebFallback(id) {
     case 'webnfc':                return 'NDEFReader' in g;
     case 'webbluetooth':          return !!(nav.bluetooth);
     case 'wakelock':              return !!(nav.wakeLock);
+    case 'speechsynthesis':       return 'speechSynthesis' in g;
     default:                      return false;
   }
 }

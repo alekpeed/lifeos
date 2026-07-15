@@ -1,4 +1,5 @@
 import { el, parseTags, hostnameOf } from '../dom.js';
+import { shareContent, canShare } from '../../../native/share.js';
 
 let state = {
   tab: 'video', // video | article
@@ -64,6 +65,10 @@ function detailEditor(link, ctx, rerender) {
       field('Share with', shareWithInput),
     ]),
     el('p', {}, [el('a', { href: link.url, target: '_blank', rel: 'noopener', text: link.url })]),
+    ...(canShare() ? [el('button', {
+      type: 'button', class: 'mer-reader-btn', text: '↗ Share',
+      onclick: () => shareContent({ title: link.title || hostnameOf(link.url), text: link.title || '', url: link.url }),
+    })] : []),
     el('label', { class: 'mer-checkbox-label' }, [
       el('input', {
         type: 'checkbox', checked: link.status === 'done',

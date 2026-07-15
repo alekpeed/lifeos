@@ -5,6 +5,7 @@
 // js/data/api.js) -- no AI, no invention.
 
 import { el, todayStr } from '../dom.js';
+import { speak, stopSpeaking, canSpeak } from '../../../native/speak.js';
 
 const KIND_ICON = {
   bill: '💵', task: '✅', assignment: '🎓', document: '📄', habit: '🔥', rabbithole: '🕳️',
@@ -61,6 +62,23 @@ export async function renderBriefing(canvas, ctx, rerender) {
   if (!items.length) {
     canvas.append(el('p', { class: 'mer-muted', text: "You're all clear — nothing needs your attention right now. 🎉" }));
     return;
+  }
+
+  // Read-aloud: native TTS where available, browser speechSynthesis otherwise
+  // (so it works in the PWA too). Hidden only where neither exists.
+  if (canSpeak()) {
+    let speaking = false;
+    const spoken = `You have ${items.length} thing${items.length === 1 ? '' : 's'} that need${items.length === 1 ? 's' : ''} attention. `
+      + items.map((it, i) => `${i + 1}. ${it.title}. ${it.detail || ''}`).join(' ');
+    const btn = el('button', {
+      type: 'button', class: 'mer-reader-btn', text: '🔊 Read aloud',
+      onclick: async () => {
+        if (speaking) { await stopSpeaking(); speaking = false; btn.textContent = '🔊 Read aloud'; return; }
+        speaking = true; btn.textContent = '⏹ Stop';
+        await speak(spoken);
+      },
+    });
+    canvas.append(el('div', { class: 'mer-toolbar' }, [btn]));
   }
 
   const list = el('div', { class: 'mer-people-list' });
