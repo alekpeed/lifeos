@@ -42,6 +42,9 @@ parked means "not now," not "forgotten" or "cut."
 - **A true 3D Memory Palace** — a fully rendered, walkable 3D space
   (Three.js/WebGL), game-engine-scale work. Shelved 2026-07-13, not cut —
   full detail in section 9.
+- **Android Auto voice capture** — in-car capture surface. Parked 2026-07-15
+  (Alek isn't driving yet + it needs Google's app review, which doesn't fit
+  the sideloaded-APK flow). Full detail in section 13.
 
 ## 1. The near-term core: accounts, AI, and notifications
 
@@ -575,6 +578,104 @@ real requirements instead of guessing.)*
   server-authoritative model, not LWW). *Trigger:* the app gains **real-time
   multi-user editing of the same records** (e.g. Sharebox grows into shared
   editable documents). Until then LWW is correct.
+
+## 13. Native platform tier — Capacitor (decided 2026-07-15)
+
+**The platform strategy, settled by Alek:** the same vanilla-JS codebase
+ships as (a) a **native Android app via Capacitor** — first and the
+priority; (b) a **full Windows `.exe`** and (c) a **macOS app** later
+(Capacitor's Electron platform or equivalent wrapper — same "web app in a
+native shell" trick, desktop edition); (d) **iOS stays the browser
+PWA** — no Apple Developer account, no native iOS build. iOS gets the
+graceful-degradation version: native-only features hide behind capability
+checks rather than breaking.
+
+**The headline feature, and part of why Capacitor was chosen at all: a
+true always-on wake word.** "Hey LifeOS" (or whatever you pick) from
+across the room, screen off, app closed — a foreground service holding
+the mic, on-device keyword spotting (Picovoice Porcupine or openWakeWord;
+both support **custom, user-chosen wake phrases**, so it's customizable
+per person and changeable later — a settings choice, not a hardcode),
+flowing into the Command module's existing parse-confirm-create pipeline.
+Explicitly chosen over the "borrow Google Assistant's ear" shortcut —
+that shortcut is dead (see ruled-out note below), we're building our own.
+
+The rest of the native wishlist, curated 2026-07-15 (everything here
+survived Alek's cut):
+
+**Voice & audio**
+- Continuous ambient transcription sessions (meeting/walk → transcript →
+  Ideas/Tasks; browsers kill a backgrounded mic, native doesn't)
+- Voice memos with screen off, auto-attached to records
+- Offline text-to-speech Briefing ("read me my morning" — native TTS is
+  free, offline, keyless)
+- Fully offline speech-to-text for Command (on-device model via plugin —
+  no cloud, no API key, airplane-mode voice)
+
+**Capture**
+- **System share sheet** — LifeOS in Android's Share menu from any app →
+  Links/Ideas/Places/Photos. The single biggest capture-friction killer.
+- Clipboard catcher — copy anything anywhere, LifeOS offers to file it
+- Screenshot reflex — screenshot detected → "file this?" → OCR into
+  Ideas/Links/Finance
+- Volume-button / hardware-button quick voice capture, phone in pocket
+- App shortcuts (long-press icon → New Task / New Idea / Scan / Speak)
+- Native document scanner (live edge-detection, auto-crop, multi-page →
+  Documents)
+- Barcode/ISBN scanner (books → Books with metadata; pantry →
+  Quartermaster)
+
+**Location & presence**
+- Background geofencing (grocery store → Quartermaster low-stock list)
+- Passive on-device location journal feeding Ghost Days / Time Machine
+- Arrive/leave triggers (leave work → evening Briefing; arrive home →
+  habit check-in)
+
+**Notifications & background**
+- True local scheduled notifications — bills, time capsule unlocks, habit
+  nudges fire on-device, offline, no Supabase round-trip
+- Full-screen alarm-class alerts for the big moments (time capsule opens)
+- Background sync on a real schedule, app closed
+- Notification harvesting (with permission, read other apps'
+  notifications: bank alert → Finance draft, delivery → package note)
+
+**Passive intelligence**
+- Photo auto-ingest (new camera photos considered automatically: EXIF →
+  Places, dates/faces → Milestones suggestions, best → Photos/Museum)
+- Screen-time mirror (phone usage stats → Entropy/Health — your attention
+  data in your own vault)
+- Step counter / raw sensor access feeding Health (no wearable needed)
+
+**Physical world & devices**
+- Home-screen widgets + quick-capture tile (Briefing widget, habit-streak
+  widget, two-tap camera-to-Quartermaster)
+- NFC tags (tag on the pantry shelf → tap → that shelf's restock list;
+  tag on the door → packing list)
+- Nearby/Wi-Fi Direct device-to-device sync — full-bandwidth local sync
+  with no internet at all (QR Sync's concept, grown up)
+- Wall/kiosk mode — an old tablet as a permanently-mounted always-on
+  LifeOS panel (Briefing, habits, low stock)
+- Cooking mode keep-awake in Recipes (screen stays on, voice "next")
+
+**Trust & reliability**
+- Native biometric gate (strengthens the existing WebAuthn app lock)
+- Real installed-app storage durability (no browser eviction anxiety)
+- Boot persistence — wake word + geofences restart when the phone reboots
+- Phone contacts / calendar read → one-tap import into Contacts /
+  Milestones / Briefing
+
+⏸️ PARKED — **Android Auto voice capture** (see §0): a real in-car
+dashboard presence. Needs Google's app review + Play distribution, which
+doesn't fit the sideloaded-APK flow, and Alek isn't driving yet. The wake
+word covers in-car capture whenever it matters anyway.
+
+*(Ruled out 2026-07-15, dead, not parked, don't resurface: bank-SMS
+ingestion (parsing "you spent $X" texts into Finance), call-log awareness
+("you haven't called Dad in 5 weeks" nudges), activity-recognition
+auto-logging (walking/cycling detection auto-checking habits), and Google
+Assistant App Actions ("Hey Google, add X to LifeOS" — superseded by
+going straight to our own full wake word instead of bridging through
+Google's).)*
 
 ---
 
