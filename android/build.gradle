@@ -22,6 +22,16 @@ allprojects {
         google()
         mavenCentral()
     }
+    // The NFC plugin (@exxili/capacitor-nfc) transitively pulls
+    // androidx.core 1.16, which demands compileSdk 35 + AGP 8.6. Pin androidx.core
+    // back to a compileSdk-34-compatible line so the app keeps building against
+    // our AGP 8.2.1 / SDK 34 toolchain without a full toolchain bump.
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.core:core-ktx:1.13.1'
+        }
+    }
 }
 
 task clean(type: Delete) {
