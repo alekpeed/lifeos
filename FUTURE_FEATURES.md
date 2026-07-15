@@ -581,6 +581,14 @@ real requirements instead of guessing.)*
 
 ## 13. Native platform tier — Capacitor (decided 2026-07-15)
 
+> **Build status (2026-07-15):** the Capacitor Android foundation is BUILT and
+> CI-verified — the app packages into an installable APK via GitHub Actions with
+> no local machine (see `CAPACITOR_BUILD.md` for the web-only build/install
+> runbook). Also built: the capability-detection layer (`js/native/`) every
+> feature gates through, and the first native feature — **device reminders**
+> (local notifications). The rest of the wishlist below is staged, wake word
+> included (needs Alek's Picovoice key + on-device tuning).
+
 **The platform strategy, settled by Alek:** the same vanilla-JS codebase
 ships as (a) a **native Android app via Capacitor** — first and the
 priority; (b) a **full Windows `.exe`** and (c) a **macOS app** later
