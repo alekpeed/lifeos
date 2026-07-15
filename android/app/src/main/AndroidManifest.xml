@@ -63,4 +63,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- NFC tag reading (§13). Not required, so phones without NFC can still
+         install; the capability layer hides the feature where it's absent. -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
 </manifest>

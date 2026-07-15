@@ -77,7 +77,7 @@ export const CAPABILITIES = {
   camera:         { label: 'Native camera',              plugin: '@capacitor/camera',               platforms: ['android', 'ios'], webFallback: 'input[capture]' },
   appShortcuts:   { label: 'Home-screen shortcuts',      plugin: null,                              platforms: ['android'],        webFallback: null },
   wakeWord:       { label: 'Always-on wake word',        plugin: 'WakeWord',                        platforms: ['android'],        webFallback: 'speechrecognition' },
-  nfc:            { label: 'NFC tags',                    plugin: 'Nfc',                             platforms: ['android'],        webFallback: 'webnfc' },
+  nfc:            { label: 'NFC tags',                    plugin: 'NFC',                             platforms: ['android'],        webFallback: 'webnfc' },
   ble:            { label: 'Bluetooth (BLE)',             plugin: '@capacitor-community/bluetooth-le', platforms: ['android', 'ios'], webFallback: 'webbluetooth' },
   keepAwake:      { label: 'Keep screen awake',           plugin: '@capacitor-community/keep-awake', platforms: ['android', 'ios'], webFallback: 'wakelock' },
   contacts:       { label: 'Phone contacts',              plugin: '@capacitor-community/contacts',   platforms: ['android', 'ios'], webFallback: null },

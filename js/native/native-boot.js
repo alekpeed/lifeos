@@ -7,6 +7,7 @@
 
 import { isNativePlatform, isPluginAvailable, hasCapability } from './capabilities.js';
 import { speak, canSpeak } from './speak.js';
+import { initNfc } from './nfc.js';
 import {
   canNotify, notifyPermissionState, syncReminders, scheduleReminder,
   registerNotificationActions, onNotificationAction, actionTypeForModule,
@@ -371,6 +372,7 @@ export async function initNative() {
     initShareReceiver();
     initClipboardCatcher();
     initChargingRitual();
+    initNfc();
     await refreshDeviceReminders();
     await refreshNextUp();
     await maybeRunChargingRitual();
