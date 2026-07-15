@@ -4,4 +4,13 @@
     <string name="title_activity_main">LifeOS</string>
     <string name="package_name">com.alekpeed.lifeos</string>
     <string name="custom_url_scheme">com.alekpeed.lifeos</string>
+
+    <!-- Home-screen app shortcut labels. shortcutShortLabel/shortcutLongLabel
+         must be @string resource references (AAPT rejects inline literals). -->
+    <string name="shortcut_command_short">Command</string>
+    <string name="shortcut_command_long">Speak or type a command</string>
+    <string name="shortcut_tasks_short">New Task</string>
+    <string name="shortcut_tasks_long">Go to Tasks</string>
+    <string name="shortcut_ideas_short">New Idea</string>
+    <string name="shortcut_ideas_long">Go to Ideas</string>
 </resources>

@@ -2,15 +2,16 @@
 <!-- Home-screen app shortcuts (long-press the LifeOS icon). Each fires a
      lifeos://open/<route> deep link that MainActivity receives and the
      @capacitor/app appUrlOpen listener (js/native/native-boot.js) routes to
-     the matching module. Labels are inline here rather than @string resources
-     to keep the shortcut set self-contained. -->
+     the matching module. shortcutShortLabel/shortcutLongLabel must reference
+     @string resources (defined in res/values/strings.xml); AAPT rejects
+     inline string literals for these attributes. -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
 
     <shortcut
         android:shortcutId="command"
         android:enabled="true"
-        android:shortcutShortLabel="Command"
-        android:shortcutLongLabel="Speak or type a command">
+        android:shortcutShortLabel="@string/shortcut_command_short"
+        android:shortcutLongLabel="@string/shortcut_command_long">
         <intent
             android:action="android.intent.action.VIEW"
             android:data="lifeos://open/command"
@@ -21,8 +22,8 @@
     <shortcut
         android:shortcutId="tasks"
         android:enabled="true"
-        android:shortcutShortLabel="New Task"
-        android:shortcutLongLabel="Go to Tasks">
+        android:shortcutShortLabel="@string/shortcut_tasks_short"
+        android:shortcutLongLabel="@string/shortcut_tasks_long">
         <intent
             android:action="android.intent.action.VIEW"
             android:data="lifeos://open/tasks"
@@ -33,8 +34,8 @@
     <shortcut
         android:shortcutId="ideas"
         android:enabled="true"
-        android:shortcutShortLabel="New Idea"
-        android:shortcutLongLabel="Go to Ideas">
+        android:shortcutShortLabel="@string/shortcut_ideas_short"
+        android:shortcutLongLabel="@string/shortcut_ideas_long">
         <intent
             android:action="android.intent.action.VIEW"
             android:data="lifeos://open/ideas"
