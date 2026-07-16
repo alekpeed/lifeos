@@ -59,9 +59,30 @@ Screen types in play:
   `insight/NotificationsScreen.kt` (scheduled), `insight/RecallScreen.kt` (spaced
   repetition), `finance/LedgerScreen.kt` (categories + recurring),
   `health/HealthScreen.kt` (metric trends), `core/CommandScreen.kt` (quick-capture
-  → Tasks/Ideas), `insight/AssistantScreen.kt` (persisted question queue, no
-  fabricated replies), `people/ContactsScreen.kt`, `system/QrSyncScreen.kt`,
-  `system/StationCatScreen.kt`, `settings/SettingsScreen.kt`.
+  → Tasks/Ideas), `insight/AskScreen.kt` + `insight/AssistantScreen.kt` (real
+  model-backed Q&A / chat — see AI layer below), `people/ContactsScreen.kt`,
+  `system/QrSyncScreen.kt`, `system/StationCatScreen.kt`, `settings/SettingsScreen.kt`.
+
+## AI layer (Ask + Assistant)
+
+Ask and the Assistant call the **Anthropic Messages API** directly. There's no
+official Anthropic SDK for Kotlin `commonMain`, so it's raw HTTP:
+- `ai/Http.kt` — `expect suspend fun httpPostJson(...)`; actuals in androidMain/
+  desktopMain use `java.net.HttpURLConnection` on `Dispatchers.IO` (both targets
+  are JVM, so no HTTP-client dependency).
+- `ai/AiClient.kt` — builds/parses `/v1/messages` via kotlinx-serialization,
+  reads the user's key + model from local Storage (`ApiKey`, `AiModel`), omits
+  `temperature`/`thinking` (Opus 4.8 rejects them), maps HTTP errors to friendly
+  messages. Default model `claude-opus-4-8`; switchable to Sonnet 5 / Haiku 4.5
+  in **Settings → AI**.
+- `data/aiContext(query)` grounds answers in the user's saved data (matching
+  items + module totals), kept small to bound cost.
+- No key set → Ask falls back to local search; Assistant says it needs a key.
+
+The key is stored **on-device only** (Settings). CI compiles this; the live API
+call needs a real key on a device to verify. Build deps added:
+kotlinx-serialization plugin + `kotlinx-serialization-json`; manifest gains
+`INTERNET`.
 
 ## Interchangeable interfaces (the interface layer)
 
