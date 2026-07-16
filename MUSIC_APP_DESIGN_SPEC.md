@@ -292,39 +292,73 @@ every voicing + real audio.
 
 ## 10. Feature idea: Riff Pads & musical typing
 
-Two related ways to make the computer keyboard an instrument. Both ride on the
-existing synth, which already plays any array of MIDI notes with timing.
+Make the computer keyboard an instrument — but a pad is **not** "this key = this
+note." A pad is a **programmable musical event**: a chord/voicing (any number of
+notes) with an articulation, and pads can chain into a riff. All of it rides on
+the existing synth, which already plays voicings, rolls, and timed sequences.
 
-**Musical typing — real-time play.** Map QWERTY to a piano layout (the
-GarageBand/Ableton convention: `A`–`K` = white keys, `W E T Y U` = black keys,
-`Z`/`X` shift the octave). Play chords and lines straight into the selected
-preset. This doubles as an input method the Dictionary, Calculator, and Practice
-surfaces can all borrow.
+**Musical typing — real-time play.** A QWERTY→piano layout (GarageBand/Ableton
+convention: `A`–`K` = white keys, `W E T Y U` = black keys, `Z`/`X` shift the
+octave), with a **chord mode** where a key fires a whole voicing rather than a
+single note. Doubles as an input method the Dictionary, Calculator, and Practice
+surfaces can borrow.
 
-**Riff pads — one key, a whole phrase.** Bind a single key (or a short combo) to a
-stored phrase — a sequence of notes with timing — so one press fires the entire
-riff. Press a key, hear the intro lick. A pad is just note-data + rhythm, which is
-exactly what the synth already consumes.
+**Riff pads — one key, a programmed event.** Bind a key (or short combo) to
+anything from a single note, to a full **voicing**, to a rolled/strummed chord, to
+a multi-chord riff with timing — one press fires it through the selected preset.
 
-**Packs — named, shareable collections of pads.** Record your own (play a riff
-once, save-to-key), or load a curated pack. This generalizes the app's existing
-**trails** (saved chord walks) from block chords to melodic phrases with rhythm —
-same idea, more expressive payload.
+**Per-event articulation.** Each note-event carries *how* it sounds:
+- **block** — all notes at once,
+- **roll up / roll down** — spread low→high or high→low, with a settable roll
+  speed (the synth already rolls chords; this exposes the control),
+- **strum** — a faster, guitar-like spread.
+Plus onset, sustain, and optional velocity per event.
+
+**Voicing-aware — build pads from the library.** Because the app already computes
+named voicings (drop 2, rootless A/B, Kenny Barron, "So What", guitar grips…), a
+pad event can *reference a voicing* (`{ symbol, voicingId }`) instead of raw notes
+— so it stays editable and transposable, and you can "send this voicing to a pad"
+straight from the Dictionary.
+
+**Store pitches, not keys.** Pads store absolute MIDI (with octave), so a figure
+repeated an octave up plays back faithfully — the octave *is* the data. (This is
+why key-position storage fails: same fingers, wrong octave.) If you ever want the
+app to *recognize* a riff regardless of octave or key — a guessing game, or
+matching your playing to a pack — match on **intervals / pitch-classes** instead,
+so octave and transposition fall away. Two different jobs: play it back exactly
+(store pitches) vs. recognize it anywhere (compare shapes).
+
+**Packs — named, shareable collections of pads.** Record your own (play it once,
+save-to-key), or load a curated pack. This generalizes the app's existing
+**trails** (saved chord walks) to full voiced, articulated, timed phrases.
 
 New store:
 ```
-RiffPacks { id, name, pads: [{ key, name, phrase:[{ midis:[…], durMs }] }] }
+RiffPacks { id, name, pads: [{
+  key,                       // trigger: a key or short combo
+  name,
+  preset?,                   // optional per-pad synth preset override
+  events: [{
+    midis: […],              // a voicing — one or many notes, absolute pitch
+    voicingRef?,             // optional { symbol, voicingId } from the library
+    articulation,            // 'block' | 'roll-up' | 'roll-down' | 'strum'
+    rollMs,                  // note-to-note spread when rolled/strummed
+    atMs, durMs, velocity?,  // onset from trigger, sustain, dynamics
+  }]
+}]}
 ```
 
-**Honest caveat:** a pad is *synthesized note data*, not a sample of a recording —
-categorically different from sampling a record. But melodies/compositions are
-still copyrighted, so **shipping a "famous songs" pack as a product** carries
-licensing implications; user-recorded packs and original/public-domain packs
-don't. For personal study, play whatever you like.
+**Copyright, for the record:** this app is personal, not for sale, so play
+whatever you like. (For completeness: a pad is synthesized note-data, not a
+sampled recording — but compositions are still copyrighted, so *distributing* a
+"famous songs" pack as a product would carry licensing implications. User-made and
+original/public-domain packs don't.)
 
-Fits with near-zero new engine work: it reuses `synth.playSequence`, and lives
-naturally either as a persistent bar across every surface or as its own "Pads"
-surface.
+Fits with near-zero new engine work: block + rolled chords and timed sequences are
+already in the synth (`playChord` rolls low→high; `playSequence` schedules
+events), and voicings come from the voicing engine — so this is mostly a pad
+editor + a key listener. Lives as a persistent bar across surfaces, or its own
+"Pads" surface.
 
 ## 11. Open decisions (yours)
 
