@@ -16,6 +16,7 @@ import com.alekpeed.lifeos.people.ContactsScreen
 import com.alekpeed.lifeos.settings.SettingsScreen
 import com.alekpeed.lifeos.system.QrSyncScreen
 import com.alekpeed.lifeos.system.StationCatScreen
+import com.alekpeed.lifeos.system.ToolsScreen
 import com.alekpeed.lifeos.tasks.TasksScreen
 import com.alekpeed.lifeos.ui.NoteListScreen
 import com.alekpeed.lifeos.ui.SearchScreen
@@ -89,7 +90,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("time-machine", "⏰", "Time Machine", "Insight", true) { NoteListScreen("Time Machine", "On this day…", "Date") },
     // System
     Module("search", "🔍", "Search", "System", true) { SearchScreen("Search", "Search everything…") },
-    Module("tools", "🧰", "Tools", "System", true) { SimpleListScreen("Tools", "Add a utility or note") },
+    Module("tools", "🧰", "Tools", "System", true) { ToolsScreen() },
     Module("qr-sync", "🔳", "QR Sync", "System", true) { QrSyncScreen() },
     Module("theme-from-photo", "🎨", "Theme from Photo", "System", true) { NoteListScreen("Theme from Photo", "Theme name", "Hex colors") },
     Module("station-cat", "🐱", "Station Cat", "System", true) { StationCatScreen() },
