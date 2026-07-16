@@ -1,5 +1,9 @@
 # Native rebuild — session handoff
 
+> **BRANCH: all active work is on `claude/lifeos-dev-setup-dpipr6`.** If you're
+> starting fresh, run `git fetch origin && git checkout claude/lifeos-dev-setup-dpipr6`
+> before anything else, then continue from here.
+
 **Read this first if you're continuing the native Life OS app.** As of
 2026-07-16 the project is being rebuilt as a **real native app** (Kotlin +
 Compose Multiplatform), replacing the Capacitor/WebView wrapper. Alek was
