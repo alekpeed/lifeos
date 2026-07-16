@@ -50,12 +50,17 @@ Screen types in play:
 - `ui/SimpleListScreen.kt` — add/list/delete.
 - `ui/NoteListScreen.kt` — title + secondary note.
 - `ui/StatusListScreen.kt` — item with a status chip that cycles.
-- `ui/SummaryScreen.kt` — live roll-up of several modules (Today, Briefing).
 - `ui/StatsScreen.kt` — per-module item tally with bars (The Almanac).
 - `ui/SearchScreen.kt` — live search across all stored data (Ask, Search).
-- Bespoke: `finance/LedgerScreen.kt` (balance), `core/CommandScreen.kt`
-  (quick-capture → Tasks/Ideas), `insight/AssistantScreen.kt` (persisted
-  question queue, no fabricated replies), `system/QrSyncScreen.kt`,
+- `ui/SummaryScreen.kt` — generic multi-module roll-up (still available; Today and
+  Briefing have since moved to bespoke screens, see the depth pass below).
+- Bespoke: `tasks/TasksScreen.kt` (due/priority/project), `habits/HabitsScreen.kt`
+  (real streaks), `core/TodayScreen.kt`, `insight/BriefingScreen.kt`,
+  `insight/NotificationsScreen.kt` (scheduled), `insight/RecallScreen.kt` (spaced
+  repetition), `finance/LedgerScreen.kt` (categories + recurring),
+  `health/HealthScreen.kt` (metric trends), `core/CommandScreen.kt` (quick-capture
+  → Tasks/Ideas), `insight/AssistantScreen.kt` (persisted question queue, no
+  fabricated replies), `people/ContactsScreen.kt`, `system/QrSyncScreen.kt`,
   `system/StationCatScreen.kt`, `settings/SettingsScreen.kt`.
 
 ## Interchangeable interfaces (the interface layer)
@@ -106,6 +111,36 @@ READ_CONTACTS, POST_NOTIFICATIONS, NFC, RECORD_AUDIO, location (fine/coarse/
 background), FOREGROUND_SERVICE(_MICROPHONE), plus the service + receivers.
 Full monitoring dashboard: https://claude.ai/code/artifact/8b63ae9b-45c9-43dc-9489-64799d5e33f5
 
+## Module depth pass (2026-07-16)
+
+Eight modules deepened past their first-pass screens, all on a shared date
+foundation (`data/Dates.kt`, backed by `kotlinx-datetime`). Model records live
+next to their screens (`tasks/Task.kt`, `habits/Habit.kt`, `insight/Recall.kt`)
+with centralized parse/serialize so cross-module screens (Today, Briefing) reuse
+them.
+
+- **Tasks** — due date (quick-pick Today/Tomorrow/Next week, color-flagged
+  today/overdue), cycling priority, project tag; tap a row to expand inline edit.
+- **Habits** — streak derived from real per-day check-in history (can't inflate
+  by double-tapping; a missed day resets it), 7-day dot strip.
+- **Today** (`core/TodayScreen.kt`) — overdue + due-today tasks (checkable inline)
+  and not-yet-checked-in habits (check-in inline). Live from Tasks/Habits storage.
+- **Briefing** (`insight/BriefingScreen.kt`) — prioritized worklist: overdue →
+  due-today → at-risk streaks → light rollup. Real computation, not a list dump.
+- **Notifications** — quick-pick scheduling backed by real `AlarmManager`
+  (`ReminderFireReceiver` posts even when app is closed; `setAndAllowWhileIdle`,
+  no exact-alarm permission). New `Native.scheduleReminder/cancelReminder`.
+- **Recall** (`insight/Recall.kt`) — real spaced repetition on an interval ladder
+  (1/3/7/14/30/90d); Know It advances, Forgot resets; due vs upcoming split.
+- **Finance** — per-entry category + recurring flag, live per-category breakdown;
+  recurring schedules a ~30-day reminder (real nudge, not fabricated data).
+- **Health** (`health/HealthScreen.kt`) — structured metric/value/unit readings
+  grouped by metric with latest value, Δ-arrow vs previous, and a bar trend.
+
+Note: Habits and Recall changed storage format for real per-day/scheduling data;
+old integer-streak / status saves don't migrate exactly (documented honest
+tradeoff). Some modules that reason about dates now depend on the device clock.
+
 ## How to port a module (the pattern)
 
 1. Write a `@Composable` screen in `commonMain` (see `tasks/TasksScreen.kt` for a
@@ -135,7 +170,8 @@ Full monitoring dashboard: https://claude.ai/code/artifact/8b63ae9b-45c9-43dc-94
 
 ## What's left
 
-All 42 modules are functional, so the remaining work is depth, not coverage:
+All 42 modules are functional and the core ones have real depth (see the depth
+pass above). Remaining work:
 
 - **Graphical interfaces** — Alek designs them; register per-module screens
   against the module ids via `Interfaces.register(...)` (see above). Modules with
@@ -144,10 +180,14 @@ All 42 modules are functional, so the remaining work is depth, not coverage:
   **Knowledge Graph** (node/links list → graph), **Skill Trees** (status list →
   tree), **Photos** (captions → gallery), **Theme from Photo** (hex entry →
   palette extractor), **Station Cat** (glyph → character).
-- **External integrations** — **Finance** (Plaid account sync on top of the manual
-  ledger), **AI Assistant** / **Ask** (wire a model to answer the queue / questions;
-  today Ask honestly searches stored data). **QR Sync** needs camera + a QR
-  encoder to turn its payload into a scannable code.
+- **External integrations** — **Finance** (Plaid account sync on top of the
+  category ledger), **AI Assistant** / **Ask** (wire a model to answer the queue /
+  questions; today Ask honestly searches stored data). **QR Sync** needs camera + a
+  QR encoder to turn its payload into a scannable code.
+- **Remaining module depth** — the lighter modules are still first-pass list/note
+  screens (Places, Links, Recipes, Documents, Quartermaster, Museum, Education,
+  etc.). Fine as-is, deepen as needed.
 - **Data layer** — the current `Storage` is a per-key text file. A shared local
   database + cross-device sync replaces it; screens already isolate persistence,
-  and `DATA_SOURCES` centralises the keys.
+  and `DATA_SOURCES` centralises the keys. (This also gives dated modules a real
+  migration path instead of the format-change resets used in the depth pass.)
