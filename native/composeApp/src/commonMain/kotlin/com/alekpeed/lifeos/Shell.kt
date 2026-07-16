@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.interfaces.Interfaces
 
 // Home launcher <-> module detail navigation.
 @Composable
@@ -41,7 +42,7 @@ fun Shell() {
                 )
             }
             Box(Modifier.fillMaxWidth().weight(1f)) {
-                c.content()
+                Interfaces.Render(c.id, c.content)
             }
         }
     }
