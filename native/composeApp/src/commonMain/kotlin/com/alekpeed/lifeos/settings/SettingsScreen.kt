@@ -53,6 +53,7 @@ fun SettingsScreen() {
     var keepAwake by remember { mutableStateOf(false) }
     var wakeWord by remember { mutableStateOf(false) }
     var deviceMsg by remember { mutableStateOf("") }
+    var wakePhrase by remember { mutableStateOf(Storage.read("WakePhrase")?.ifBlank { null } ?: "hey life") }
     var onlyMyVoice by remember { mutableStateOf(Native.onlyMyVoiceEnabled()) }
     var hasVoiceprint by remember { mutableStateOf(Native.hasVoiceprint()) }
     var enrolling by remember { mutableStateOf(false) }
@@ -145,6 +146,19 @@ fun SettingsScreen() {
                     }
                     Switch(checked = wakeWord, onCheckedChange = { wakeWord = it; Native.setWakeWordEnabled(it) })
                 }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = wakePhrase,
+                    onValueChange = { wakePhrase = it; Storage.write("WakePhrase", it.trim()) },
+                    label = { Text("Wake phrase") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "A two-word phrase you rarely say by accident works best (e.g. “hey life”, “ok life”).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             if (Native.supportsSpeakerId) {

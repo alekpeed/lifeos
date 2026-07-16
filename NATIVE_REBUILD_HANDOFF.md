@@ -120,11 +120,11 @@ real on Android (`platform/Native.android.kt`), no-op/JVM on desktop
   (ACTION_SEND → Ideas), deep links (`lifeos://module/<id>`), dynamic home-screen
   shortcuts, NFC NDEF read (foreground dispatch → Ideas), charging ritual (runtime
   `ACTION_POWER_CONNECTED` receiver).
-- **Services** (batch 3): always-on wake word (`WakeWordService`, foreground
-  SpeechRecognizer loop, "life …" trigger → Ideas; toggle in Settings) and arrival
+- **Services** (batch 3): always-on wake word (`WakeWordService`, now on the Vosk
+  offline engine — see the Voice section below; toggle in Settings) and arrival
   geofencing (`Geofences` + `GeofenceReceiver`, `play-services-location`; arm/clear
-  in Settings). Both are working scaffolds — flagged for on-device tuning
-  (ASR duty cycle; background-location grant + per-place coords).
+  in Settings). Geofencing is a working scaffold — flagged for on-device tuning
+  (background-location grant + per-place coords).
 
 `NativeHost` (androidMain) holds the current Activity/appContext + TTS engine;
 `MainActivity` wires it and requests permissions. Manifest declares
@@ -156,6 +156,40 @@ Manifest declares all three services (the `VoiceInteractionService` gated by
 also handles `ACTION_ASSIST` directly (→ `command`) for the plain assist path.
 **On-device step:** reinstall, then pick LifeOS under Digital assistant app — the
 picker only appears once a valid `VoiceInteractionService` is installed.
+
+## Voice: wake word + speaker ID (2026-07-16, Vosk)
+
+The wake word moved off Android's system `SpeechRecognizer` (spin-up/tear-down
+loop — battery-heavy, network-dependent, deaf gaps, and it substring-matched the
+single word "life") onto **Vosk** (`com.alphacephei:vosk-android`, offline,
+Apache-2.0). Dependency + `packaging { jniLibs { pickFirsts … } }` live in
+`composeApp/build.gradle.kts`; it's `androidMain`-only, desktop stays a no-op.
+
+- `WakeWordService` — one continuous on-device Vosk decoder (no restart gaps, no
+  network). Whole-word match against a **configurable** wake phrase (Storage key
+  `WakePhrase`, default "hey life"), so common words can't trip it. Captures the
+  words after the phrase into Ideas.
+- `VoskModels` — the ~40 MB recognizer model + ~13 MB speaker model are **too big
+  to ship in the repo/APK**, so they're downloaded once on first enable and
+  unpacked into `filesDir` (zip-slip-guarded). This is why CI compiles fine with
+  no model present — the model is a runtime asset, not a build input.
+- **Only my voice** (`VoiceId` + `VoiceEnroller`): enrollment records a few seconds
+  of the owner (Settings → Enroll), runs it through Vosk's **speaker model** to get
+  an x-vector voiceprint, averages the samples, stores it (Storage `VoicePrint`).
+  When the gate is on (`OnlyMyVoice`) and a print exists, the service attaches the
+  speaker model so each utterance carries its own voiceprint, and a capture is
+  accepted only if cosine similarity ≥ threshold (`VoiceThreshold`, default 0.55).
+  Exposed via the `Native` expect/actual surface (`enrollVoice`, `hasVoiceprint`,
+  `clearVoiceprint`, `setOnlyMyVoice`, `onlyMyVoiceEnabled`, `supportsSpeakerId`).
+
+**Honest ceilings (documented, not bugs):** this is CPU-side *software* hotword
+spotting, **not** the phone's dedicated low-power hotword chip — that chip is
+gated behind the system-assistant role + signature-privileged permissions, so a
+normal-install app can't load a custom wake word onto it (root/custom-ROM/OEM
+only). Speaker ID is a *filter, not a lock*: short-phrase verification has real
+error rates and a recording of the owner can spoof it. All runtime behavior
+(actual spotting, actual voice rejection) is **device-only** — CI only proves it
+compiles.
 
 ## Module depth pass (2026-07-16)
 
