@@ -8,101 +8,120 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
-import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import com.alekpeed.lifeos.Storage
+import org.json.JSONObject
+import org.vosk.Model
+import org.vosk.Recognizer
+import org.vosk.android.RecognitionListener
+import org.vosk.android.SpeechService
 
-// Always-on wake word. A foreground service that runs the on-device recognizer in a
-// restart loop; when it hears the trigger word it captures whatever follows into
-// Ideas. This is a working scaffold — continuous SpeechRecognizer use is battery-
-// and OEM-sensitive, so real-world tuning (trigger phrase, duty cycle, a lighter
-// hotword engine) is on-device follow-up work.
+// Always-on wake word, powered by Vosk (offline, on-device). Unlike the system
+// SpeechRecognizer, this runs one continuous lightweight decoder instead of a
+// spin-up/tear-down loop — no network, no restart gaps, much lighter on battery.
+// When it hears the wake phrase it captures whatever follows into Ideas. The model
+// is fetched once on first enable (VoskModels), so the very first start may show a
+// brief "preparing" state.
+//
+// This is still software hotword spotting on the CPU, not the phone's dedicated
+// low-power hotword chip (that's reserved for the system assistant) — see the
+// handoff doc's wake-word notes.
 class WakeWordService : Service() {
 
-    private var recognizer: SpeechRecognizer? = null
-    private val handler = Handler(Looper.getMainLooper())
-    private var running = false
+    private val main = Handler(Looper.getMainLooper())
+    private var model: Model? = null
+    private var speech: SpeechService? = null
+    @Volatile private var running = false
+
+    private val phrase: String
+        get() = Storage.read("WakePhrase")?.trim()?.ifBlank { null } ?: DEFAULT_PHRASE
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Storage.appContext = applicationContext
-        startInForeground()
         running = true
-        startListening()
+        startInForeground(statusText())
+        prepareAndStart()
         return START_STICKY
     }
 
     override fun onDestroy() {
         running = false
-        handler.removeCallbacksAndMessages(null)
-        try {
-            recognizer?.destroy()
-        } catch (e: Exception) {
-        }
-        recognizer = null
+        main.removeCallbacksAndMessages(null)
+        try { speech?.stop(); speech?.shutdown() } catch (e: Exception) {}
+        speech = null
+        try { model?.close() } catch (e: Exception) {}
+        model = null
         super.onDestroy()
     }
 
-    private fun startInForeground() {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "lifeos_wakeword"
-        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(channelId) == null) {
-            nm.createNotificationChannel(NotificationChannel(channelId, "Wake word", NotificationManager.IMPORTANCE_LOW))
-        }
-        @Suppress("DEPRECATION")
-        val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, channelId) else Notification.Builder(this)
-        val n = builder
-            .setContentTitle("Life OS is listening")
-            .setContentText("Say “life …” to capture a note")
-            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setOngoing(true)
-            .build()
-        if (Build.VERSION.SDK_INT >= 29) {
-            startForeground(7801, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
-        } else {
-            startForeground(7801, n)
-        }
-    }
-
-    private fun startListening() {
-        if (!running) return
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            stopSelf()
-            return
-        }
-        try {
-            recognizer?.destroy()
-            recognizer = SpeechRecognizer.createSpeechRecognizer(this).also { it.setRecognitionListener(listener) }
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+    // Fetch the model if needed (off the main thread), then start listening on the
+    // main thread. Vosk's SpeechService owns its own audio thread; we just create it.
+    private fun prepareAndStart() {
+        val ctx = applicationContext
+        Thread {
+            val ok = VoskModels.ensureModel(ctx) { pct ->
+                main.post { if (running) updateNotification("Preparing voice model… $pct%") }
             }
-            recognizer?.startListening(intent)
+            if (!ok) {
+                main.post {
+                    if (running) { updateNotification("Voice model unavailable — tap to retry later"); stopSelf() }
+                }
+                return@Thread
+            }
+            main.post { if (running) startRecognition(ctx) }
+        }.also { it.isDaemon = true }.start()
+    }
+
+    private fun startRecognition(ctx: Context) {
+        try {
+            val m = Model(VoskModels.modelDir(ctx).absolutePath)
+            model = m
+            val recognizer = Recognizer(m, SAMPLE_RATE)
+            val svc = SpeechService(recognizer, SAMPLE_RATE)
+            speech = svc
+            svc.startListening(listener)
+            updateNotification(statusText())
         } catch (e: Exception) {
-            restart()
+            // Mic permission missing, audio device busy, etc. — fail quietly.
+            updateNotification("Voice listening unavailable")
+            stopSelf()
         }
     }
 
-    private fun restart() {
-        if (!running) return
-        handler.postDelayed({ startListening() }, 500)
+    private val listener = object : RecognitionListener {
+        override fun onPartialResult(hypothesis: String?) {}
+        override fun onResult(hypothesis: String?) { handle(hypothesis) }
+        override fun onFinalResult(hypothesis: String?) { handle(hypothesis) }
+        override fun onError(e: Exception?) {}
+        override fun onTimeout() {}
     }
 
-    private fun handleText(bundle: Bundle?) {
-        val matches = bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: return
-        val heard = matches.firstOrNull()?.lowercase() ?: return
-        val trigger = "life"
-        val idx = heard.indexOf(trigger)
-        if (idx >= 0) {
-            val after = heard.substring(idx + trigger.length).trim().trimStart(' ', ',', '.')
-            if (after.length >= 2) capture(after)
+    private fun handle(hypothesis: String?) {
+        val text = hypothesis?.let {
+            try { JSONObject(it).optString("text") } catch (e: Exception) { null }
+        }?.trim().orEmpty()
+        if (text.isEmpty()) return
+        val after = extractAfterPhrase(text, phrase) ?: return
+        if (after.length >= 2) capture(after)
+    }
+
+    // Whole-word match: returns the words that follow the wake phrase (possibly
+    // empty if the phrase was said alone), or null if the phrase wasn't heard.
+    // Word-boundary matching means "belief" / "wildlife" can't trip a "life" phrase.
+    private fun extractAfterPhrase(text: String, phrase: String): String? {
+        val words = text.lowercase().split(WS).filter { it.isNotBlank() }
+        val p = phrase.lowercase().split(WS).filter { it.isNotBlank() }
+        if (p.isEmpty() || words.size < p.size) return null
+        for (i in 0..words.size - p.size) {
+            if (p.indices.all { words[i + it] == p[it] }) {
+                return words.subList(i + p.size, words.size).joinToString(" ").trim()
+            }
         }
+        return null
     }
 
     private fun capture(text: String) {
@@ -112,15 +131,42 @@ class WakeWordService : Service() {
         Storage.write("Ideas", if (existing.isBlank()) clean else "$existing\n$clean")
     }
 
-    private val listener = object : RecognitionListener {
-        override fun onReadyForSpeech(params: Bundle?) {}
-        override fun onBeginningOfSpeech() {}
-        override fun onRmsChanged(rmsdB: Float) {}
-        override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() {}
-        override fun onError(error: Int) { restart() }
-        override fun onResults(results: Bundle?) { handleText(results); restart() }
-        override fun onPartialResults(partialResults: Bundle?) {}
-        override fun onEvent(eventType: Int, params: Bundle?) {}
+    private fun statusText(): String = "Say “${phrase} …” to capture a note"
+
+    private fun startInForeground(text: String) {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
+            nm.createNotificationChannel(NotificationChannel(CHANNEL, "Wake word", NotificationManager.IMPORTANCE_LOW))
+        }
+        val n = buildNotification(text)
+        if (Build.VERSION.SDK_INT >= 29) {
+            startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        } else {
+            startForeground(NOTIF_ID, n)
+        }
+    }
+
+    private fun updateNotification(text: String) {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        try { nm.notify(NOTIF_ID, buildNotification(text)) } catch (e: Exception) {}
+    }
+
+    @Suppress("DEPRECATION")
+    private fun buildNotification(text: String): Notification {
+        val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CHANNEL) else Notification.Builder(this)
+        return builder
+            .setContentTitle("Life OS is listening")
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setOngoing(true)
+            .build()
+    }
+
+    companion object {
+        private const val CHANNEL = "lifeos_wakeword"
+        private const val NOTIF_ID = 7801
+        private const val SAMPLE_RATE = 16000.0f
+        private const val DEFAULT_PHRASE = "hey life"
+        private val WS = Regex("\\s+")
     }
 }

@@ -28,6 +28,10 @@ kotlin {
             dependencies {
                 implementation("androidx.activity:activity-compose:1.8.2")
                 implementation("com.google.android.gms:play-services-location:21.0.1")
+                // Offline speech engine: lightweight on-device keyword spotting +
+                // speaker identification, no cloud, far lighter than looping the
+                // system SpeechRecognizer. Bundles its own native libs (JNA + libvosk).
+                implementation("com.alphacephei:vosk-android:0.3.75")
             }
         }
         val desktopMain by getting {
@@ -52,6 +56,16 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    // Vosk ships prebuilt native libs (JNA + libvosk) for each ABI; pick-first
+    // avoids duplicate-file merge failures if another dep carries the same names.
+    packaging {
+        jniLibs {
+            pickFirsts += listOf("**/libvosk.so", "**/libjnidispatch.so")
+        }
+        resources {
+            pickFirsts += listOf("META-INF/AL2.0", "META-INF/LGPL2.1")
+        }
     }
 }
 

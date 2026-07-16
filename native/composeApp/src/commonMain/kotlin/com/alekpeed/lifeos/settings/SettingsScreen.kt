@@ -134,7 +134,7 @@ fun SettingsScreen() {
                     Column(Modifier.weight(1f)) {
                         Text("Wake word", style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            "Listen for “life …” and capture what follows (uses the mic)",
+                            "Listen for “hey life …” and capture what follows — offline, on-device (uses the mic; downloads a voice model on first use)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
