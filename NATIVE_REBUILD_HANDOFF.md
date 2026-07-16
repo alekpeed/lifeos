@@ -316,7 +316,32 @@ pass above). Remaining work:
 - **Remaining module depth** — the lighter modules are still first-pass list/note
   screens (Places, Links, Recipes, Documents, Quartermaster, Museum, Education,
   etc.). Fine as-is, deepen as needed.
-- **Data layer** — the current `Storage` is a per-key text file. A shared local
-  database + cross-device sync replaces it; screens already isolate persistence,
-  and `DATA_SOURCES` centralises the keys. (This also gives dated modules a real
-  migration path instead of the format-change resets used in the depth pass.)
+- **Data layer** — *in progress.* Step 1 shipped (see below): `Storage` is now
+  sync-ready (per-key records with timestamps + tombstones) while keeping its
+  string API. Still open: the backend adapter (push/pull against Supabase) and,
+  optionally, swapping the text backing store for a structured DB.
+
+## Data layer — step 1: sync-ready records (2026-07-16)
+
+The per-key text `Storage` is unchanged from every screen's point of view
+(`read`/`write` same strings), but each key is now a **syncable record**:
+
+- `sync/SyncMeta.kt` — a JSON sidecar (under reserved key `__syncmeta`) that stamps
+  each key's `updatedAt` on every `Storage.write` and a tombstone on the new
+  `Storage.remove`. Reserved `__`-keys are guarded so the sidecar can't recurse
+  through its own writes. `lastSyncAt` high-water mark under `__lastsync`.
+- `sync/SyncEngine.kt` — deterministic **last-write-wins** merge, network-free:
+  `changesToPush()` (records newer than `lastSyncAt`), `applyRemote(list)` (apply
+  remote records that are newer, taking the remote timestamp so they don't look
+  like fresh local changes), `markSynced(ts)`. `pendingCount()` feeds a read-only
+  Settings readout.
+- `sync/SyncModel.kt` — `SyncRecord(key, text?, updatedAt, deleted)` (the wire
+  unit) + `RecordMeta`.
+- `Storage` gained `remove()`; `write`/`remove` call into `SyncMeta` on both
+  Android + desktop actuals.
+
+**Next step (needs Alek's nod):** a backend adapter that pushes `changesToPush()`
+and pulls remote into `applyRemote()`. The legacy web app already has a Supabase
+project + schema (`SUPABASE_MIGRATION.md`); reusing it means confirming the
+project/table + wiring native auth. Merge rules are done and deterministic; only
+the transport + a device are needed to prove the round-trip.
