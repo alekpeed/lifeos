@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -24,7 +26,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.ai.DEFAULT_AI_MODEL
 import com.alekpeed.lifeos.data.DATA_SOURCES
 import com.alekpeed.lifeos.data.countOf
 import com.alekpeed.lifeos.interfaces.Interfaces
@@ -49,6 +54,13 @@ fun SettingsScreen() {
     var wakeWord by remember { mutableStateOf(false) }
     var deviceMsg by remember { mutableStateOf("") }
     val showDevice = Native.supportsKeepAwake || Native.supportsWakeWord || Native.supportsGeofence
+    var apiKey by remember { mutableStateOf(Storage.read("ApiKey") ?: "") }
+    var aiModel by remember { mutableStateOf(Storage.read("AiModel")?.ifBlank { null } ?: DEFAULT_AI_MODEL) }
+    val aiModels = listOf(
+        "claude-opus-4-8" to "Opus 4.8",
+        "claude-sonnet-5" to "Sonnet 5",
+        "claude-haiku-4-5" to "Haiku 4.5",
+    )
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
@@ -148,6 +160,39 @@ fun SettingsScreen() {
                     Spacer(Modifier.height(6.dp))
                     Text(deviceMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.height(24.dp))
+
+        Text("AI", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Your Anthropic API key, stored only on this device. Powers Ask and the Assistant.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = apiKey,
+            onValueChange = { apiKey = it; Storage.write("ApiKey", it.trim()) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            placeholder = { Text("sk-ant-…") },
+        )
+        Spacer(Modifier.height(12.dp))
+        Text("Model", style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            aiModels.forEach { (id, label) ->
+                FilterChip(
+                    selected = aiModel == id,
+                    onClick = { aiModel = id; Storage.write("AiModel", id) },
+                    label = { Text(label) },
+                )
             }
         }
 
