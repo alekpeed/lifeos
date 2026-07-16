@@ -284,11 +284,49 @@ every voicing + real audio.
   live personal-data counts into a slow generative chord loop on the Pad preset.
   It's a charming, self-contained extra that reuses the same synth; include it only
   if the app has a data source to sonify, otherwise leave it in Life OS.
+- **Riff Pads & musical typing** (§10) — keyboard-as-instrument + one-key phrase
+  triggers, with shareable "packs." Could equally be pulled forward into V1.
 - Optional account + cloud sync for trails/practice history across devices.
 
 ---
 
-## 10. Open decisions (yours)
+## 10. Feature idea: Riff Pads & musical typing
+
+Two related ways to make the computer keyboard an instrument. Both ride on the
+existing synth, which already plays any array of MIDI notes with timing.
+
+**Musical typing — real-time play.** Map QWERTY to a piano layout (the
+GarageBand/Ableton convention: `A`–`K` = white keys, `W E T Y U` = black keys,
+`Z`/`X` shift the octave). Play chords and lines straight into the selected
+preset. This doubles as an input method the Dictionary, Calculator, and Practice
+surfaces can all borrow.
+
+**Riff pads — one key, a whole phrase.** Bind a single key (or a short combo) to a
+stored phrase — a sequence of notes with timing — so one press fires the entire
+riff. Press a key, hear the intro lick. A pad is just note-data + rhythm, which is
+exactly what the synth already consumes.
+
+**Packs — named, shareable collections of pads.** Record your own (play a riff
+once, save-to-key), or load a curated pack. This generalizes the app's existing
+**trails** (saved chord walks) from block chords to melodic phrases with rhythm —
+same idea, more expressive payload.
+
+New store:
+```
+RiffPacks { id, name, pads: [{ key, name, phrase:[{ midis:[…], durMs }] }] }
+```
+
+**Honest caveat:** a pad is *synthesized note data*, not a sample of a recording —
+categorically different from sampling a record. But melodies/compositions are
+still copyrighted, so **shipping a "famous songs" pack as a product** carries
+licensing implications; user-recorded packs and original/public-domain packs
+don't. For personal study, play whatever you like.
+
+Fits with near-zero new engine work: it reuses `synth.playSequence`, and lives
+naturally either as a persistent bar across every surface or as its own "Pads"
+surface.
+
+## 11. Open decisions (yours)
 
 1. **Name** — deliberately unset here.
 2. **Platform** — web/PWA (fast, universal) vs native Kotlin (matches Life OS,
@@ -296,7 +334,8 @@ every voicing + real audio.
 3. **Instrument focus** — piano-first, guitar-first, or truly both co-equal? Both
    are supported by the engine; the UI emphasis is a choice.
 4. **Include "Life as Music"?** — only if this app has data to sonify.
-5. **Free / paid / distribution** — out of scope for this spec, but the offline,
+5. **Riff Pads (§10)** — ship it as a core input method, or a later add-on?
+6. **Free / paid / distribution** — out of scope for this spec, but the offline,
    no-licensing, no-server design keeps every option open.
 
 ---
