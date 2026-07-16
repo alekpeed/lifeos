@@ -39,20 +39,44 @@ JDK 17, Gradle 8.7 (via `gradle/actions/setup-gradle`, no wrapper jar committed)
 - `desktopMain/…/Storage.kt` — writes to `~/.lifeos`; `Main.kt` is the desktop
   entry (`application { Window { App() } }`).
 
-## Status (14 / 42 modules functional, all reachable)
+## Status (42 / 42 modules functional)
 
-Functional + persisting: **Tasks, Ideas, Places, Links, Contacts, Recipes,
-Documents, Packing, Books, Milestones, Time Capsules, Collections, Rabbit Holes,
-Habits**. Habits has streaks + check-in; Books cycles a status chip
-(Want → Reading → Read); Recipes/Documents/Milestones/Time Capsules use the
-title + note pattern. Tasks and Ideas now genuinely persist too (they were
-in-memory before — closed 2026-07-16). Everything else is a reachable
-`Placeholder` (`ready=false` in `Modules.kt`).
-Live tracker: https://claude.ai/code/artifact/a5a2e22f-a086-489d-899a-2988e2ca0cea
+**All 42 modules are live and persisting** — no placeholders left. Every one has
+a genuine functional native screen; the rich/graphical ones ship an honest
+functional default (see below) and are wired to accept a graphical interface
+later. Progress report: https://claude.ai/code/artifact/ccc38e78-08e6-412b-b892-ec689dd3658f
 
-New reusable screens this pass: `ui/StatusListScreen.kt` (cycling status chip)
-and `ui/NoteListScreen.kt` (title + secondary note). Reach for these before
-writing a bespoke screen when a module is essentially a typed list.
+Screen types in play:
+- `ui/SimpleListScreen.kt` — add/list/delete.
+- `ui/NoteListScreen.kt` — title + secondary note.
+- `ui/StatusListScreen.kt` — item with a status chip that cycles.
+- `ui/SummaryScreen.kt` — live roll-up of several modules (Today, Briefing).
+- `ui/StatsScreen.kt` — per-module item tally with bars (The Almanac).
+- `ui/SearchScreen.kt` — live search across all stored data (Ask, Search).
+- Bespoke: `finance/LedgerScreen.kt` (balance), `core/CommandScreen.kt`
+  (quick-capture → Tasks/Ideas), `insight/AssistantScreen.kt` (persisted
+  question queue, no fabricated replies), `system/QrSyncScreen.kt`,
+  `system/StationCatScreen.kt`, `settings/SettingsScreen.kt`.
+
+## Interchangeable interfaces (the interface layer)
+
+`interfaces/Interfaces.kt` is what keeps interfaces swappable. Every module now
+has a stable `id` (`tasks`, `habits`, `orrery`, …) and every page renders through
+`Interfaces.Render(id, default)`. To plug in a graphical interface Alek designs:
+
+```kotlin
+Interfaces.register("spatial-1", "tasks") { MySpatialTasks() }
+Interfaces.register("spatial-1", "orrery") { MyOrrery() }
+```
+
+It then appears in **Settings → Interface** and switches the whole app live.
+Interfaces can be partial — any module without a custom screen for the active
+interface falls back to its functional default. Graphical screens read/write the
+same Storage keys, so no data migration. This is the seam for the
+"every page can accept a graphical interface" requirement (2026-07-16).
+
+`data/Data.kt` holds `DATA_SOURCES` (label ↔ storage key) plus `linesOf` /
+`countOf` / `searchAll` helpers that the aggregate + search screens share.
 
 ## How to port a module (the pattern)
 
@@ -81,10 +105,21 @@ writing a bespoke screen when a module is essentially a typed list.
   fresh window; this native work has been running on claude-opus-4-8 by Alek's
   choice.
 
-## What's left (the heavy modules)
+## What's left
 
-The ~33 remaining `ready=false` entries in `Modules.kt` — the rich ones (Finance,
-Education, Daily Paper, Orrery, the dashboards, Almanac, Knowledge Graph, Ask,
-Briefing, Time Machine, AI features, Photos, etc.). Each is real work, not a list
-port. A shared local database + cross-device sync also still to come (the current
-`Storage` is a simple per-key text file).
+All 42 modules are functional, so the remaining work is depth, not coverage:
+
+- **Graphical interfaces** — Alek designs them; register per-module screens
+  against the module ids via `Interfaces.register(...)` (see above). Modules with
+  an inherently visual nature currently ship a functional default standing in for
+  a future graphical interface: **Orrery** (celestial notes → orrery view),
+  **Knowledge Graph** (node/links list → graph), **Skill Trees** (status list →
+  tree), **Photos** (captions → gallery), **Theme from Photo** (hex entry →
+  palette extractor), **Station Cat** (glyph → character).
+- **External integrations** — **Finance** (Plaid account sync on top of the manual
+  ledger), **AI Assistant** / **Ask** (wire a model to answer the queue / questions;
+  today Ask honestly searches stored data). **QR Sync** needs camera + a QR
+  encoder to turn its payload into a scannable code.
+- **Data layer** — the current `Storage` is a per-key text file. A shared local
+  database + cross-device sync replaces it; screens already isolate persistence,
+  and `DATA_SOURCES` centralises the keys.
