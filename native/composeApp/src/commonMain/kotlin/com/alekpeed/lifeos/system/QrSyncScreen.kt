@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +18,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.DATA_SOURCES
 import com.alekpeed.lifeos.data.countOf
+import com.alekpeed.lifeos.platform.Native
 
 // Device sync. Builds the payload that pairs two devices — a compact snapshot
 // fingerprint of what this device holds. Shown as text today; a QR interface
@@ -55,6 +57,8 @@ fun QrSyncScreen() {
             Text(token, style = MaterialTheme.typography.bodyLarge, fontFamily = FontFamily.Monospace)
         }
         Spacer(Modifier.height(16.dp))
+        Button(onClick = { Native.shareText(token) }) { Text("Share payload") }
+        Spacer(Modifier.height(12.dp))
         Text(
             "$total items across ${active.size} modules on this device.",
             style = MaterialTheme.typography.bodyMedium,

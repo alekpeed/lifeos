@@ -1,0 +1,155 @@
+package com.alekpeed.lifeos.platform
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.ContactsContract
+import android.speech.tts.TextToSpeech
+import android.view.WindowManager
+
+private const val CHANNEL_REMINDERS = "lifeos_reminders"
+private const val CHANNEL_PINNED = "lifeos_pinned"
+private const val PINNED_ID = 4201
+
+private fun ensureChannel(nm: NotificationManager, id: String, name: String, importance: Int) {
+    if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(id) == null) {
+        nm.createNotificationChannel(NotificationChannel(id, name, importance))
+    }
+}
+
+@Suppress("DEPRECATION")
+private fun notifBuilder(ctx: Context, channelId: String): Notification.Builder =
+    if (Build.VERSION.SDK_INT >= 26) Notification.Builder(ctx, channelId) else Notification.Builder(ctx)
+
+private fun actionPending(ctx: Context, action: String, notifId: Int): PendingIntent {
+    val intent = Intent(ctx, NotificationActionReceiver::class.java).apply {
+        this.action = action
+        putExtra(NotificationActionReceiver.EXTRA_ID, notifId)
+    }
+    val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    return PendingIntent.getBroadcast(ctx, (action + notifId).hashCode(), intent, flags)
+}
+
+// Real Android capabilities. Each degrades quietly if a permission is missing or
+// the system service is unavailable — nothing here throws into the UI.
+actual object Native {
+    actual val supportsTts = true
+    actual val supportsNotifications = true
+    actual val supportsContacts = true
+    actual val supportsKeepAwake = true
+
+    actual fun speak(text: String) {
+        val ctx = NativeHost.ctx() ?: return
+        NativeHost.ensureTts(ctx)
+        if (NativeHost.ttsReady) NativeHost.tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "lifeos")
+    }
+
+    actual fun stopSpeaking() {
+        NativeHost.tts?.stop()
+    }
+
+    actual fun shareText(text: String) {
+        val ctx = NativeHost.ctx() ?: return
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        val chooser = Intent.createChooser(send, "Share").apply {
+            if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        (NativeHost.activity ?: ctx).startActivity(chooser)
+    }
+
+    actual fun readClipboard(): String? {
+        val ctx = NativeHost.ctx() ?: return null
+        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return null
+        val clip = cm.primaryClip ?: return null
+        if (clip.itemCount == 0) return null
+        return clip.getItemAt(0).coerceToText(ctx)?.toString()?.ifBlank { null }
+    }
+
+    actual fun keepScreenAwake(on: Boolean) {
+        val act = NativeHost.activity ?: return
+        act.runOnUiThread {
+            if (on) act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    actual fun importContacts(): List<PhoneContact> {
+        val ctx = NativeHost.ctx() ?: return emptyList()
+        return try {
+            val out = mutableListOf<PhoneContact>()
+            val cursor = ctx.contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ),
+                null,
+                null,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC",
+            )
+            cursor?.use { c ->
+                val nameIdx = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                val numIdx = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                val seen = HashSet<String>()
+                while (c.moveToNext()) {
+                    val name = if (nameIdx >= 0) c.getString(nameIdx) else null
+                    val num = if (numIdx >= 0) c.getString(numIdx) else null
+                    if (!name.isNullOrBlank() && seen.add(name)) out.add(PhoneContact(name, num ?: ""))
+                }
+            }
+            out
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    actual fun postReminder(title: String, body: String) {
+        val ctx = NativeHost.ctx() ?: return
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        ensureChannel(nm, CHANNEL_REMINDERS, "Reminders", NotificationManager.IMPORTANCE_DEFAULT)
+        val id = (title + body).hashCode()
+        val n = notifBuilder(ctx, CHANNEL_REMINDERS)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setAutoCancel(true)
+            .addAction(0, "Done", actionPending(ctx, NotificationActionReceiver.ACTION_DONE, id))
+            .addAction(0, "Snooze", actionPending(ctx, NotificationActionReceiver.ACTION_SNOOZE, id))
+            .build()
+        try {
+            nm.notify(id, n)
+        } catch (e: SecurityException) {
+            // POST_NOTIFICATIONS not granted; ignore.
+        }
+    }
+
+    actual fun setPinnedNextUp(text: String?) {
+        val ctx = NativeHost.ctx() ?: return
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        if (text == null) {
+            nm.cancel(PINNED_ID)
+            return
+        }
+        ensureChannel(nm, CHANNEL_PINNED, "Next up", NotificationManager.IMPORTANCE_LOW)
+        val n = notifBuilder(ctx, CHANNEL_PINNED)
+            .setContentTitle("Next up")
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setOngoing(true)
+            .build()
+        try {
+            nm.notify(PINNED_ID, n)
+        } catch (e: SecurityException) {
+            // POST_NOTIFICATIONS not granted; ignore.
+        }
+    }
+}

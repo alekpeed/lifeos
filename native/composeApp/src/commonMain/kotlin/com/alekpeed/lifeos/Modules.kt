@@ -7,6 +7,8 @@ import com.alekpeed.lifeos.finance.LedgerScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.insight.AssistantScreen
+import com.alekpeed.lifeos.insight.NotificationsScreen
+import com.alekpeed.lifeos.people.ContactsScreen
 import com.alekpeed.lifeos.settings.SettingsScreen
 import com.alekpeed.lifeos.system.QrSyncScreen
 import com.alekpeed.lifeos.system.StationCatScreen
@@ -51,7 +53,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("daily-paper", "📰", "Daily Paper", "Core", true) { NoteListScreen("Daily Paper", "Headline", "Source / link") },
     Module("orrery", "🪐", "Orrery", "Core", true) { NoteListScreen("Orrery", "Celestial note or event", "When") },
     // People
-    Module("contacts", "👤", "Contacts", "People", true) { SimpleListScreen("Contacts", "New contact") },
+    Module("contacts", "👤", "Contacts", "People", true) { ContactsScreen() },
     Module("recipes", "🍳", "Recipes", "People", true) { NoteListScreen("Recipes", "Recipe name", "Key ingredients / notes") },
     Module("documents", "📄", "Documents", "People", true) { NoteListScreen("Documents", "Document name", "Where it lives / reference #") },
     Module("quartermaster", "📦", "Quartermaster", "People", true) { NoteListScreen("Quartermaster", "Item", "Location / quantity") },
@@ -85,7 +87,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("recall", "♻", "Recall", "Insight", true) {
         StatusListScreen("Recall", "Add a fact to recall", listOf("New", "Learning", "Known"))
     },
-    Module("notifications", "🔔", "Notifications", "Insight", true) { SimpleListScreen("Notifications", "Log a reminder") },
+    Module("notifications", "🔔", "Notifications", "Insight", true) { NotificationsScreen() },
     Module("entropy", "🌀", "Entropy", "Insight", true) { SimpleListScreen("Entropy", "A loose end to tidy") },
     Module("time-machine", "⏰", "Time Machine", "Insight", true) { NoteListScreen("Time Machine", "On this day…", "Date") },
     // System

@@ -12,12 +12,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.DataSource
 import com.alekpeed.lifeos.data.displayOf
 import com.alekpeed.lifeos.data.linesOf
+import com.alekpeed.lifeos.platform.Native
 
 // A live at-a-glance roll-up of a few modules: for each source, its item count and
 // the first few entries. Reads straight from what those modules persist, so it's
@@ -25,7 +28,23 @@ import com.alekpeed.lifeos.data.linesOf
 @Composable
 fun SummaryScreen(title: String, intro: String, sources: List<DataSource>) {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineMedium)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            if (Native.supportsTts) {
+                TextButton(onClick = {
+                    val speech = buildString {
+                        append(title); append(". ")
+                        sources.forEach { src ->
+                            val lines = linesOf(src.key)
+                            append(src.label); append(", ")
+                            append(if (lines.isEmpty()) "nothing. " else "${lines.size}. ")
+                            lines.take(4).forEach { append(displayOf(it)); append(". ") }
+                        }
+                    }
+                    Native.speak(speech)
+                }) { Text("🔊 Read aloud") }
+            }
+        }
         Spacer(Modifier.height(6.dp))
         Text(intro, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))

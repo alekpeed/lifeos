@@ -1,0 +1,38 @@
+package com.alekpeed.lifeos.platform
+
+// A phone contact pulled from the device address book.
+data class PhoneContact(val name: String, val detail: String)
+
+// The cross-platform native-capability surface. Android provides real
+// implementations (TTS, notifications, share, clipboard, contacts, keep-awake);
+// desktop provides sensible no-ops or JVM equivalents so the Windows build stays
+// green. Screens gate optional UI on the `supports*` flags so a capability that
+// isn't real on a platform simply isn't offered there.
+expect object Native {
+    val supportsTts: Boolean
+    val supportsNotifications: Boolean
+    val supportsContacts: Boolean
+    val supportsKeepAwake: Boolean
+
+    // Text-to-speech: read a briefing aloud, stop it.
+    fun speak(text: String)
+    fun stopSpeaking()
+
+    // Outbound share via the system share sheet (Android) / clipboard (desktop).
+    fun shareText(text: String)
+
+    // Read the current clipboard text, if any (the "clipboard catcher").
+    fun readClipboard(): String?
+
+    // Cooking mode: keep the screen on while true.
+    fun keepScreenAwake(on: Boolean)
+
+    // One-tap import of phone contacts (empty if unsupported / not permitted).
+    fun importContacts(): List<PhoneContact>
+
+    // An actionable reminder notification (Done / Snooze on Android).
+    fun postReminder(title: String, body: String)
+
+    // A pinned, ongoing "next up" notification; pass null to clear it.
+    fun setPinnedNextUp(text: String?)
+}

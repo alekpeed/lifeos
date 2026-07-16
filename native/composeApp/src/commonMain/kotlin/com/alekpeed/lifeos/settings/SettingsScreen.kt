@@ -13,14 +13,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.DATA_SOURCES
 import com.alekpeed.lifeos.data.countOf
 import com.alekpeed.lifeos.interfaces.Interfaces
+import com.alekpeed.lifeos.platform.Native
 
 private fun pretty(id: String): String =
     id.split('-', '_').joinToString(" ") { part ->
@@ -37,6 +43,7 @@ fun SettingsScreen() {
     val interfaces = Interfaces.available
     val active = Interfaces.active
     val totalItems = DATA_SOURCES.sumOf { countOf(it.key) }
+    var keepAwake by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
@@ -80,6 +87,26 @@ fun SettingsScreen() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        if (Native.supportsKeepAwake) {
+            Spacer(Modifier.height(24.dp))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            Spacer(Modifier.height(24.dp))
+
+            Text("DEVICE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Cooking mode", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Keep the screen on while you're following a recipe",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = keepAwake, onCheckedChange = { keepAwake = it; Native.keepScreenAwake(it) })
+            }
         }
 
         Spacer(Modifier.height(24.dp))
