@@ -311,8 +311,10 @@ pass above). Remaining work:
 - **External integrations** — the keyless data ones (weather/currency/markets),
   Telegram send, and multi-provider AI are built (see the section above). Still
   open: the account/OAuth ones (Google suite, Supabase sync, native push) and
-  parked Plaid. **QR Sync** needs camera + a QR encoder to turn its payload into a
-  scannable code.
+  parked Plaid. **QR Sync** is now done — it renders the payload as a scannable QR
+  (zxing `encodeQr` + a Compose Canvas) and scans a code with the camera
+  (`Native.scanQr` via zxing-android-embedded's `ScanContract`; camera scan is
+  device-only to confirm).
 - **Remaining module depth** — the lighter modules are still first-pass list/note
   screens (Places, Links, Recipes, Documents, Quartermaster, Museum, Education,
   etc.). Fine as-is, deepen as needed.
