@@ -31,7 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.integrations.CoinPrice
 import com.alekpeed.lifeos.integrations.CurrencyClient
+import com.alekpeed.lifeos.integrations.MarketsClient
 import com.alekpeed.lifeos.integrations.WeatherClient
 import kotlinx.coroutines.launch
 
@@ -45,12 +47,13 @@ fun ToolsScreen() {
     ) {
         Text("Tools", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Live utilities — weather and currency. All keyless; each fetches only when you tap.",
+            "Live utilities — weather, currency, and markets. All keyless; each fetches only when you tap.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         WeatherCard()
         CurrencyCard()
+        MarketsCard()
     }
 }
 
@@ -161,6 +164,76 @@ private fun CurrencyCard() {
 }
 
 @Composable
+private fun MarketsCard() {
+    var watch by remember { mutableStateOf(Storage.read("CryptoWatch")?.ifBlank { null } ?: "bitcoin,ethereum,solana") }
+    var loading by remember { mutableStateOf(false) }
+    var coins by remember { mutableStateOf<List<CoinPrice>>(emptyList()) }
+    var djia by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun refresh() {
+        if (loading) return
+        Storage.write("CryptoWatch", watch.trim())
+        loading = true; error = null
+        scope.launch {
+            val ids = MarketsClient.watchlist { Storage.read(it) }
+            MarketsClient.crypto(ids)
+                .onSuccess { coins = it }
+                .onFailure { error = it.message }
+            MarketsClient.djia()
+                .onSuccess { djia = "DJIA  ${money(it)}" }
+                .onFailure { if (djia == null) djia = "DJIA  —" }
+            loading = false
+        }
+    }
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Markets", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = watch,
+                onValueChange = { watch = it; error = null },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Crypto watchlist (CoinGecko ids)") },
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = { refresh() }, enabled = !loading) { Text("Refresh") }
+                Spacer(Modifier.width(12.dp))
+                if (loading) LoadingRow("Fetching quotes…")
+            }
+            if (error != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+            if (coins.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                coins.forEach { c ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(c.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        Text("$${money(c.usd)}", style = MaterialTheme.typography.bodyLarge)
+                        Spacer(Modifier.width(10.dp))
+                        val up = c.change24h >= 0
+                        Text(
+                            (if (up) "+" else "") + trim2(c.change24h) + "%",
+                            color = if (up) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+            if (djia != null) {
+                Spacer(Modifier.height(10.dp))
+                Text(djia!!, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+}
+
+@Composable
 private fun CurrencyPicker(value: String, onPick: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
@@ -186,4 +259,16 @@ private fun trim2(v: Double): String {
     val r = kotlin.math.round(v * 100) / 100.0
     val s = r.toString()
     return if (s.endsWith(".0")) s.dropLast(2) else s
+}
+
+// Group the integer part with commas; keep 2 decimals for small values, none for
+// large index/price figures. Pure Kotlin — no platform number formatter needed.
+private fun money(v: Double): String {
+    val decimals = if (v >= 1000) 0 else 2
+    val rounded = if (decimals == 0) kotlin.math.round(v) else kotlin.math.round(v * 100) / 100.0
+    val whole = rounded.toLong()
+    val grouped = whole.toString().reversed().chunked(3).joinToString(",").reversed()
+    if (decimals == 0) return grouped
+    val frac = kotlin.math.round((rounded - whole) * 100).toLong().toString().padStart(2, '0')
+    return "$grouped.$frac"
 }
