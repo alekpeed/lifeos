@@ -78,6 +78,34 @@ same Storage keys, so no data migration. This is the seam for the
 `data/Data.kt` holds `DATA_SOURCES` (label ↔ storage key) plus `linesOf` /
 `countOf` / `searchAll` helpers that the aggregate + search screens share.
 
+## Native OS capabilities (2026-07-16)
+
+Ported from the old Capacitor build to real Kotlin. All compile + wire on CI;
+runtime paths that touch mic/notifications/NFC/location/contacts need a device to
+confirm. The cross-platform surface is `platform/Native.kt` (`expect object`),
+real on Android (`platform/Native.android.kt`), no-op/JVM on desktop
+(`platform/Native.desktop.kt`) — screens gate optional UI on the `supports*` flags.
+
+- **UI-triggered** (`Native.*`): TTS read-aloud (Today/Briefing), actionable +
+  pinned notifications (NotificationsScreen; `NotificationActionReceiver`),
+  outbound share (QR Sync), clipboard paste (Command), contacts import
+  (ContactsScreen), keep-awake/cooking mode (Settings).
+- **Passive** (`MainActivity` + manifest, routed via `Nav`): inbound share sheet
+  (ACTION_SEND → Ideas), deep links (`lifeos://module/<id>`), dynamic home-screen
+  shortcuts, NFC NDEF read (foreground dispatch → Ideas), charging ritual (runtime
+  `ACTION_POWER_CONNECTED` receiver).
+- **Services** (batch 3): always-on wake word (`WakeWordService`, foreground
+  SpeechRecognizer loop, "life …" trigger → Ideas; toggle in Settings) and arrival
+  geofencing (`Geofences` + `GeofenceReceiver`, `play-services-location`; arm/clear
+  in Settings). Both are working scaffolds — flagged for on-device tuning
+  (ASR duty cycle; background-location grant + per-place coords).
+
+`NativeHost` (androidMain) holds the current Activity/appContext + TTS engine;
+`MainActivity` wires it and requests permissions. Manifest declares
+READ_CONTACTS, POST_NOTIFICATIONS, NFC, RECORD_AUDIO, location (fine/coarse/
+background), FOREGROUND_SERVICE(_MICROPHONE), plus the service + receivers.
+Full monitoring dashboard: https://claude.ai/code/artifact/8b63ae9b-45c9-43dc-9489-64799d5e33f5
+
 ## How to port a module (the pattern)
 
 1. Write a `@Composable` screen in `commonMain` (see `tasks/TasksScreen.kt` for a
