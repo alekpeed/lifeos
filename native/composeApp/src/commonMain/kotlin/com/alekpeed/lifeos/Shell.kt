@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +25,12 @@ import com.alekpeed.lifeos.interfaces.Interfaces
 fun Shell() {
     val modules = remember { lifeOsModules() }
     var current by remember { mutableStateOf<Module?>(null) }
+
+    // A deep link / app shortcut / NFC tag / shared item can request a module by id.
+    LaunchedEffect(Nav.pendingModuleId) {
+        val id = Nav.consume() ?: return@LaunchedEffect
+        modules.firstOrNull { it.id == id }?.let { current = it }
+    }
 
     val c = current
     if (c == null) {
