@@ -5,6 +5,7 @@ import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
 import com.alekpeed.lifeos.finance.LedgerScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
+import com.alekpeed.lifeos.health.HealthScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.insight.AssistantScreen
 import com.alekpeed.lifeos.insight.BriefingScreen
@@ -71,7 +72,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("rabbit-holes", "🕳", "Rabbit Holes", "Memory", true) { SimpleListScreen("Rabbit Holes", "New rabbit hole") },
     // Health
     Module("habits", "🔥", "Habits", "Health", true) { HabitsScreen() },
-    Module("health", "❤", "Health", "Health", true) { NoteListScreen("Health", "Metric", "Reading") },
+    Module("health", "❤", "Health", "Health", true) { HealthScreen() },
     Module("skill-trees", "🌳", "Skill Trees", "Health", true) {
         StatusListScreen("Skill Trees", "Add a skill", listOf("Locked", "Learning", "Mastered"))
     },
