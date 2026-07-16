@@ -69,3 +69,23 @@ fun searchAll(query: String): List<SearchHit> {
     }
     return hits
 }
+
+// A compact snapshot of the user's data for grounding an AI answer: lines that
+// match the query first, then a per-module count summary — bounded so the prompt
+// stays small and cheap.
+fun aiContext(query: String, maxMatches: Int = 40): String {
+    val matches = searchAll(query).take(maxMatches)
+    val counts = DATA_SOURCES.map { it.label to countOf(it.key) }.filter { it.second > 0 }
+    return buildString {
+        if (matches.isNotEmpty()) {
+            append("Relevant saved items:\n")
+            matches.forEach { append("- [${it.source}] ${it.text}\n") }
+            append("\n")
+        }
+        if (counts.isNotEmpty()) {
+            append("Module totals: ")
+            append(counts.joinToString(", ") { "${it.first} ${it.second}" })
+        }
+        if (matches.isEmpty() && counts.isEmpty()) append("(No data saved yet.)")
+    }.trim()
+}
