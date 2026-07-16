@@ -98,6 +98,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            Intent.ACTION_ASSIST -> Nav.open("command")
             NfcAdapter.ACTION_NDEF_DISCOVERED,
             NfcAdapter.ACTION_TAG_DISCOVERED,
             NfcAdapter.ACTION_TECH_DISCOVERED -> {
