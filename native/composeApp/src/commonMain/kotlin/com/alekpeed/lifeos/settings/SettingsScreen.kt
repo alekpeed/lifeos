@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,10 +31,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.DEFAULT_AI_MODEL
+import com.alekpeed.lifeos.ai.DEFAULT_GEMINI_MODEL
+import com.alekpeed.lifeos.ai.DEFAULT_OPENAI_MODEL
 import com.alekpeed.lifeos.data.DATA_SOURCES
 import com.alekpeed.lifeos.data.countOf
+import com.alekpeed.lifeos.integrations.TelegramClient
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.platform.Native
+import kotlinx.coroutines.launch
 
 private fun pretty(id: String): String =
     id.split('-', '_').joinToString(" ") { part ->
@@ -59,8 +64,17 @@ fun SettingsScreen() {
     var enrolling by remember { mutableStateOf(false) }
     var enrollStatus by remember { mutableStateOf("") }
     val showDevice = Native.supportsKeepAwake || Native.supportsWakeWord || Native.supportsGeofence
+    var aiProvider by remember { mutableStateOf(Storage.read("AiProvider")?.ifBlank { null } ?: "claude") }
     var apiKey by remember { mutableStateOf(Storage.read("ApiKey") ?: "") }
     var aiModel by remember { mutableStateOf(Storage.read("AiModel")?.ifBlank { null } ?: DEFAULT_AI_MODEL) }
+    var openaiKey by remember { mutableStateOf(Storage.read("OpenAiKey") ?: "") }
+    var openaiModel by remember { mutableStateOf(Storage.read("OpenAiModel")?.ifBlank { null } ?: DEFAULT_OPENAI_MODEL) }
+    var geminiKey by remember { mutableStateOf(Storage.read("GeminiKey") ?: "") }
+    var geminiModel by remember { mutableStateOf(Storage.read("GeminiModel")?.ifBlank { null } ?: DEFAULT_GEMINI_MODEL) }
+    var tgToken by remember { mutableStateOf(Storage.read("TgToken") ?: "") }
+    var tgChat by remember { mutableStateOf(Storage.read("TgChatId") ?: "") }
+    var tgMsg by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
     val aiModels = listOf(
         "claude-opus-4-8" to "Opus 4.8",
         "claude-sonnet-5" to "Sonnet 5",
@@ -239,30 +253,137 @@ fun SettingsScreen() {
         Text("AI", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Your Anthropic API key, stored only on this device. Powers Ask and the Assistant.",
+            "Pick a provider and paste that provider's API key — stored only on this device. Powers Ask and the Assistant.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text("Provider", style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("claude" to "Claude", "openai" to "OpenAI", "gemini" to "Gemini").forEach { (id, label) ->
+                FilterChip(
+                    selected = aiProvider == id,
+                    onClick = { aiProvider = id; Storage.write("AiProvider", id) },
+                    label = { Text(label) },
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        when (aiProvider) {
+            "openai" -> {
+                OutlinedTextField(
+                    value = openaiKey,
+                    onValueChange = { openaiKey = it; Storage.write("OpenAiKey", it.trim()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    label = { Text("OpenAI API key") },
+                    placeholder = { Text("sk-…") },
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = openaiModel,
+                    onValueChange = { openaiModel = it; Storage.write("OpenAiModel", it.trim()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Model") },
+                    placeholder = { Text(DEFAULT_OPENAI_MODEL) },
+                )
+                Spacer(Modifier.height(4.dp))
+                Text("e.g. gpt-4o-mini, gpt-4o, gpt-4.1", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            "gemini" -> {
+                OutlinedTextField(
+                    value = geminiKey,
+                    onValueChange = { geminiKey = it; Storage.write("GeminiKey", it.trim()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    label = { Text("Google Gemini API key") },
+                    placeholder = { Text("AIza…") },
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = geminiModel,
+                    onValueChange = { geminiModel = it; Storage.write("GeminiModel", it.trim()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Model") },
+                    placeholder = { Text(DEFAULT_GEMINI_MODEL) },
+                )
+                Spacer(Modifier.height(4.dp))
+                Text("e.g. gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            else -> {
+                OutlinedTextField(
+                    value = apiKey,
+                    onValueChange = { apiKey = it; Storage.write("ApiKey", it.trim()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    label = { Text("Anthropic API key") },
+                    placeholder = { Text("sk-ant-…") },
+                )
+                Spacer(Modifier.height(12.dp))
+                Text("Model", style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    aiModels.forEach { (id, label) ->
+                        FilterChip(
+                            selected = aiModel == id,
+                            onClick = { aiModel = id; Storage.write("AiModel", id) },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.height(24.dp))
+
+        Text("TELEGRAM", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Send yourself messages through a bot you create with @BotFather. Send-only — paste the bot token and your chat id.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
-            value = apiKey,
-            onValueChange = { apiKey = it; Storage.write("ApiKey", it.trim()) },
+            value = tgToken,
+            onValueChange = { tgToken = it; Storage.write("TgToken", it.trim()); tgMsg = "" },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
-            placeholder = { Text("sk-ant-…") },
+            label = { Text("Bot token") },
+            placeholder = { Text("123456:ABC-…") },
         )
-        Spacer(Modifier.height(12.dp))
-        Text("Model", style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            aiModels.forEach { (id, label) ->
-                FilterChip(
-                    selected = aiModel == id,
-                    onClick = { aiModel = id; Storage.write("AiModel", id) },
-                    label = { Text(label) },
-                )
-            }
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = tgChat,
+            onValueChange = { tgChat = it; Storage.write("TgChatId", it.trim()); tgMsg = "" },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("Chat id") },
+        )
+        Spacer(Modifier.height(10.dp))
+        OutlinedButton(
+            enabled = tgToken.isNotBlank() && tgChat.isNotBlank(),
+            onClick = {
+                tgMsg = "Sending…"
+                scope.launch {
+                    val r = TelegramClient.send("Life OS test ✓")
+                    tgMsg = if (r.isSuccess) "Sent ✓ — check Telegram" else (r.exceptionOrNull()?.message ?: "Send failed")
+                }
+            },
+        ) { Text("Send test message") }
+        if (tgMsg.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(tgMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
 
         Spacer(Modifier.height(24.dp))

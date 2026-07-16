@@ -37,18 +37,35 @@ private data class ErrEnvelope(val error: ErrBody? = null)
 
 data class AiReply(val text: String, val isError: Boolean)
 
-// The one place that talks to the Anthropic Messages API. The user's key + model
-// live in local Settings storage. `thinking` is omitted (cheaper for quick Q&A)
-// with a concise-answer system prompt so reasoning doesn't leak into the reply.
-// Opus 4.8 rejects temperature/top_p/top_k and thinking budgets, so none are sent.
+// The AI entry point. Routes Ask + the Assistant to whichever provider is selected
+// in Settings (Claude / OpenAI / Gemini); each provider's key + model live in local
+// Storage. Claude is the built-in default and lives here; OpenAI/Gemini are in their
+// own client objects. For Claude, `thinking` is omitted (cheaper for quick Q&A) with
+// a concise-answer system prompt; Opus 4.8 rejects temperature/top_p/top_k so none
+// are sent.
 object AiClient {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    fun hasKey(): Boolean = !Storage.read("ApiKey")?.trim().isNullOrEmpty()
+    // "claude" | "openai" | "gemini"
+    fun provider(): String = Storage.read("AiProvider")?.trim()?.ifBlank { null } ?: "claude"
+
+    // True when the *active* provider has a key set.
+    fun hasKey(): Boolean = when (provider()) {
+        "openai" -> OpenAiClient.key().isNotEmpty()
+        "gemini" -> GeminiClient.key().isNotEmpty()
+        else -> !Storage.read("ApiKey")?.trim().isNullOrEmpty()
+    }
 
     fun model(): String = Storage.read("AiModel")?.trim()?.ifBlank { null } ?: DEFAULT_AI_MODEL
 
-    suspend fun ask(system: String, userText: String, maxTokens: Int = 1024): AiReply {
+    suspend fun ask(system: String, userText: String, maxTokens: Int = 1024): AiReply =
+        when (provider()) {
+            "openai" -> OpenAiClient.ask(system, userText, maxTokens)
+            "gemini" -> GeminiClient.ask(system, userText, maxTokens)
+            else -> askClaude(system, userText, maxTokens)
+        }
+
+    private suspend fun askClaude(system: String, userText: String, maxTokens: Int): AiReply {
         val key = Storage.read("ApiKey")?.trim().orEmpty()
         if (key.isEmpty()) return AiReply("Add your Anthropic API key in Settings to use this.", isError = true)
 
