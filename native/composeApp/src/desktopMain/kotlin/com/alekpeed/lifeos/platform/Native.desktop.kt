@@ -16,6 +16,7 @@ actual object Native {
     actual val supportsWakeWord = false
     actual val supportsGeofence = false
     actual val supportsSpeakerId = false
+    actual val supportsQrScan = false
 
     actual fun speak(text: String) {}
     actual fun stopSpeaking() {}
@@ -50,4 +51,5 @@ actual object Native {
     actual fun clearVoiceprint() {}
     actual fun setOnlyMyVoice(on: Boolean) {}
     actual fun onlyMyVoiceEnabled(): Boolean = false
+    actual fun scanQr(onResult: (String?) -> Unit) { onResult(null) }
 }

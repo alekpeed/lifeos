@@ -14,7 +14,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +46,7 @@ fun QrSyncScreen() {
     }
 
     val qr = remember(token) { encodeQr(token) }
+    var scanned by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("QR Sync", style = MaterialTheme.typography.headlineMedium)
@@ -76,6 +80,14 @@ fun QrSyncScreen() {
         }
         Spacer(Modifier.height(16.dp))
         Button(onClick = { Native.shareText(token) }) { Text("Share payload") }
+        if (Native.supportsQrScan) {
+            Spacer(Modifier.height(10.dp))
+            Button(onClick = { Native.scanQr { scanned = it ?: "Scan cancelled" } }) { Text("Scan a code") }
+            scanned?.let {
+                Spacer(Modifier.height(8.dp))
+                Text("Scanned: $it", style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Text(
             "$total items across ${active.size} modules on this device.",

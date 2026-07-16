@@ -16,6 +16,7 @@ expect object Native {
     val supportsWakeWord: Boolean
     val supportsGeofence: Boolean
     val supportsSpeakerId: Boolean
+    val supportsQrScan: Boolean
 
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
@@ -62,4 +63,8 @@ expect object Native {
     fun clearVoiceprint()
     fun setOnlyMyVoice(on: Boolean)
     fun onlyMyVoiceEnabled(): Boolean
+
+    // Scan a QR code with the camera; `onResult` gets the decoded text, or null if
+    // cancelled/unsupported. Android launches a scanner; desktop is a no-op.
+    fun scanQr(onResult: (String?) -> Unit)
 }

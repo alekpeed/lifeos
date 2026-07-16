@@ -19,10 +19,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.NativeHost
+import com.journeyapps.barcodescanner.ScanContract
 
 class MainActivity : ComponentActivity() {
 
     private var nfcAdapter: NfcAdapter? = null
+
+    // QR scanner result → the pending Native.scanQr callback. Registered before the
+    // activity starts (field initializer), as ActivityResult requires.
+    private val qrScanLauncher = registerForActivityResult(ScanContract()) { result ->
+        val cb = NativeHost.qrCallback
+        NativeHost.qrCallback = null
+        cb?.invoke(result.contents)
+    }
 
     // Fires the evening ritual when the phone is plugged in while the app is alive.
     private val chargingReceiver = object : BroadcastReceiver() {
@@ -38,6 +47,7 @@ class MainActivity : ComponentActivity() {
         Storage.appContext = applicationContext
         NativeHost.activity = this
         NativeHost.appContext = applicationContext
+        NativeHost.qrLauncher = qrScanLauncher
         NativeHost.ensureTts(applicationContext)
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         requestNeededPermissions()

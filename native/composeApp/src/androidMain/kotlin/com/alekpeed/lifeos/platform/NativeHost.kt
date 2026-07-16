@@ -3,6 +3,8 @@ package com.alekpeed.lifeos.platform
 import android.app.Activity
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import androidx.activity.result.ActivityResultLauncher
+import com.journeyapps.barcodescanner.ScanOptions
 
 // Holds the Android bits the capability layer needs: the current Activity (for
 // window flags, share chooser, permission-gated calls) and a shared TextToSpeech
@@ -13,6 +15,11 @@ object NativeHost {
 
     @Volatile var tts: TextToSpeech? = null
     @Volatile var ttsReady = false
+
+    // QR scanner (zxing-android-embedded): MainActivity registers the launcher;
+    // Native.scanQr sets the pending callback and launches it.
+    var qrLauncher: ActivityResultLauncher<ScanOptions>? = null
+    @Volatile var qrCallback: ((String?) -> Unit)? = null
 
     fun ctx(): Context? = activity ?: appContext
 

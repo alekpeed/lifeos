@@ -34,6 +34,7 @@ kotlin {
                 implementation("com.alphacephei:vosk-android:0.3.75")
                 // QR: pure-Java encoder (both platforms) + camera scanner (Android).
                 implementation("com.google.zxing:core:3.5.3")
+                implementation("com.journeyapps:zxing-android-embedded:4.3.0")
             }
         }
         val desktopMain by getting {
