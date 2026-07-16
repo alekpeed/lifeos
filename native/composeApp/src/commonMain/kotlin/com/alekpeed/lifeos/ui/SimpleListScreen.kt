@@ -25,12 +25,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.Storage
 
-// A reusable add / list / delete screen, native on Android + Windows. Several
-// modules start life as one of these and get richer fields as they're built out.
+// A reusable add / list / delete screen, native on Android + Windows, with real
+// persistence: items are loaded from local storage on open and saved on every
+// change, so they survive closing the app. Several modules start as one of these
+// and get richer fields as they're built out.
 @Composable
 fun SimpleListScreen(title: String, placeholder: String, seed: List<String> = emptyList()) {
-    val items = remember { mutableStateListOf<String>().apply { addAll(seed) } }
+    val items = remember {
+        val saved = Storage.read(title)?.lines()?.filter { it.isNotBlank() }
+        mutableStateListOf<String>().apply { addAll(saved ?: seed) }
+    }
+    fun persist() = Storage.write(title, items.joinToString("\n"))
     var input by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
@@ -50,6 +57,7 @@ fun SimpleListScreen(title: String, placeholder: String, seed: List<String> = em
                 val t = input.trim()
                 if (t.isNotEmpty()) {
                     items.add(t)
+                    persist()
                     input = ""
                 }
             }) { Text("Add") }
@@ -64,7 +72,7 @@ fun SimpleListScreen(title: String, placeholder: String, seed: List<String> = em
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(item, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    TextButton(onClick = { if (index < items.size) items.removeAt(index) }) { Text("✕") }
+                    TextButton(onClick = { if (index < items.size) { items.removeAt(index); persist() } }) { Text("✕") }
                 }
             }
         }
