@@ -1,6 +1,7 @@
 package com.alekpeed.lifeos
 
 import androidx.compose.runtime.Composable
+import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.tasks.TasksScreen
 import com.alekpeed.lifeos.ui.Placeholder
@@ -47,7 +48,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("👻", "Ghost Days", "Memory", false) { Placeholder("Ghost Days") },
     Module("🕳", "Rabbit Holes", "Memory", true) { SimpleListScreen("Rabbit Holes", "New rabbit hole") },
     // Health
-    Module("🔥", "Habits", "Health", false) { Placeholder("Habits") },
+    Module("🔥", "Habits", "Health", true) { HabitsScreen() },
     Module("❤", "Health", "Health", false) { Placeholder("Health") },
     Module("🌳", "Skill Trees", "Health", false) { Placeholder("Skill Trees") },
     Module("📊", "The Almanac", "Health", false) { Placeholder("The Almanac") },
