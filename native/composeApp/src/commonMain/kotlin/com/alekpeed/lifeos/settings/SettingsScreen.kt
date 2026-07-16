@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -38,6 +39,8 @@ import com.alekpeed.lifeos.data.countOf
 import com.alekpeed.lifeos.integrations.TelegramClient
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.sync.SupabaseAuth
+import com.alekpeed.lifeos.sync.SupabaseSync
 import com.alekpeed.lifeos.sync.SyncEngine
 import com.alekpeed.lifeos.sync.SyncMeta
 import kotlinx.coroutines.launch
@@ -76,6 +79,11 @@ fun SettingsScreen() {
     var tgToken by remember { mutableStateOf(Storage.read("TgToken") ?: "") }
     var tgChat by remember { mutableStateOf(Storage.read("TgChatId") ?: "") }
     var tgMsg by remember { mutableStateOf("") }
+    var sbEmail by remember { mutableStateOf(SupabaseAuth.email() ?: "") }
+    var sbPassword by remember { mutableStateOf("") }
+    var sbSignedIn by remember { mutableStateOf(SupabaseAuth.isSignedIn()) }
+    var sbBusy by remember { mutableStateOf(false) }
+    var sbMsg by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val aiModels = listOf(
         "claude-opus-4-8" to "Opus 4.8",
@@ -386,6 +394,93 @@ fun SettingsScreen() {
         if (tgMsg.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
             Text(tgMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.height(24.dp))
+
+        Text("SYNC", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Cross-device sync via your Supabase account. Sign in with the same email on each device to share your data.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(10.dp))
+        if (!sbSignedIn) {
+            OutlinedTextField(
+                value = sbEmail,
+                onValueChange = { sbEmail = it; sbMsg = "" },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Email") },
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sbPassword,
+                onValueChange = { sbPassword = it; sbMsg = "" },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                label = { Text("Password") },
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    enabled = !sbBusy && sbEmail.isNotBlank() && sbPassword.length >= 6,
+                    onClick = {
+                        sbBusy = true; sbMsg = "Signing in…"
+                        scope.launch {
+                            SupabaseAuth.signIn(sbEmail.trim(), sbPassword)
+                                .onSuccess { sbSignedIn = true; sbPassword = ""; sbMsg = "Signed in" }
+                                .onFailure { sbMsg = it.message ?: "Sign-in failed" }
+                            sbBusy = false
+                        }
+                    },
+                ) { Text("Sign in") }
+                OutlinedButton(
+                    enabled = !sbBusy && sbEmail.isNotBlank() && sbPassword.length >= 6,
+                    onClick = {
+                        sbBusy = true; sbMsg = "Creating account…"
+                        scope.launch {
+                            SupabaseAuth.signUp(sbEmail.trim(), sbPassword)
+                                .onSuccess { session ->
+                                    sbSignedIn = session
+                                    sbMsg = if (session) "Account created — signed in" else "Account created — confirm your email, then sign in"
+                                    if (session) sbPassword = ""
+                                }
+                                .onFailure { sbMsg = it.message ?: "Sign-up failed" }
+                            sbBusy = false
+                        }
+                    },
+                ) { Text("Create account") }
+            }
+        } else {
+            Text("Signed in as ${SupabaseAuth.email() ?: "?"}", style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    enabled = !sbBusy,
+                    onClick = {
+                        sbBusy = true; sbMsg = "Syncing…"
+                        scope.launch {
+                            SupabaseSync.syncNow()
+                                .onSuccess { sbMsg = "Synced — pushed ${it.pushed}, pulled ${it.applied}" }
+                                .onFailure { sbMsg = it.message ?: "Sync failed" }
+                            sbBusy = false
+                        }
+                    },
+                ) { Text("Sync now") }
+                OutlinedButton(
+                    enabled = !sbBusy,
+                    onClick = { SupabaseAuth.signOut(); sbSignedIn = false; sbMsg = "Signed out" },
+                ) { Text("Sign out") }
+            }
+        }
+        if (sbMsg.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(sbMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
 
         Spacer(Modifier.height(24.dp))
