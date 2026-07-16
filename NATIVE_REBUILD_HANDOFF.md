@@ -132,6 +132,31 @@ READ_CONTACTS, POST_NOTIFICATIONS, NFC, RECORD_AUDIO, location (fine/coarse/
 background), FOREGROUND_SERVICE(_MICROPHONE), plus the service + receivers.
 Full monitoring dashboard: https://claude.ai/code/artifact/8b63ae9b-45c9-43dc-9489-64799d5e33f5
 
+## Digital-assistant role (2026-07-16)
+
+The wake-word foreground service is *not* what makes Android offer an app as the
+system assistant — that requires a real `VoiceInteractionService`. Life OS now
+registers one so it shows up under **Settings → Apps → Default apps → Digital
+assistant app** and catches the assist gesture (long-press home / power, or the
+assistant swipe). Files under `androidMain/.../assist/`:
+
+- `LifeAssistService` (`VoiceInteractionService`) — the role anchor.
+- `LifeAssistSessionService` (`VoiceInteractionSessionService`) → returns a
+  `LifeAssistSession` per assist invocation.
+- `LifeAssistSession` (`VoiceInteractionSession`) — `onShow()` opens
+  `lifeos://module/command` (quick-capture) via `startAssistantActivity`, then
+  `hide()`s. This is the seam where a graphical assistant surface can live later.
+- `LifeAssistRecognitionService` — minimal valid `RecognitionService` stub (the
+  role descriptor requires one; declines cleanly with `ERROR_CLIENT`).
+- `res/xml/interaction_service.xml` — the `<voice-interaction-service>` descriptor
+  (`supportsAssist=true`), pointed at the session + recognition services.
+
+Manifest declares all three services (the `VoiceInteractionService` gated by
+`BIND_VOICE_INTERACTION` + `android.voice_interaction` meta-data). `MainActivity`
+also handles `ACTION_ASSIST` directly (→ `command`) for the plain assist path.
+**On-device step:** reinstall, then pick LifeOS under Digital assistant app — the
+picker only appears once a valid `VoiceInteractionService` is installed.
+
 ## Module depth pass (2026-07-16)
 
 Eight modules deepened past their first-pass screens, all on a shared date
