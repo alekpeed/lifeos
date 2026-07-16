@@ -32,11 +32,14 @@ kotlin {
                 // speaker identification, no cloud, far lighter than looping the
                 // system SpeechRecognizer. Bundles its own native libs (JNA + libvosk).
                 implementation("com.alphacephei:vosk-android:0.3.75")
+                // QR: pure-Java encoder (both platforms) + camera scanner (Android).
+                implementation("com.google.zxing:core:3.5.3")
             }
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("com.google.zxing:core:3.5.3")
             }
         }
     }
