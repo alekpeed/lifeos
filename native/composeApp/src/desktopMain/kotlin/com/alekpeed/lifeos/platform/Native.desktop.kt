@@ -15,6 +15,7 @@ actual object Native {
     actual val supportsKeepAwake = false
     actual val supportsWakeWord = false
     actual val supportsGeofence = false
+    actual val supportsSpeakerId = false
 
     actual fun speak(text: String) {}
     actual fun stopSpeaking() {}
@@ -43,4 +44,10 @@ actual object Native {
     actual fun clearArrivals() {}
     actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) {}
     actual fun cancelReminder(id: Int) {}
+
+    actual fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit) { onResult(false) }
+    actual fun hasVoiceprint(): Boolean = false
+    actual fun clearVoiceprint() {}
+    actual fun setOnlyMyVoice(on: Boolean) {}
+    actual fun onlyMyVoiceEnabled(): Boolean = false
 }

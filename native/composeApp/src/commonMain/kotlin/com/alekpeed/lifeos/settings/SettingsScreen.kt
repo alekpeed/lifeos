@@ -53,6 +53,10 @@ fun SettingsScreen() {
     var keepAwake by remember { mutableStateOf(false) }
     var wakeWord by remember { mutableStateOf(false) }
     var deviceMsg by remember { mutableStateOf("") }
+    var onlyMyVoice by remember { mutableStateOf(Native.onlyMyVoiceEnabled()) }
+    var hasVoiceprint by remember { mutableStateOf(Native.hasVoiceprint()) }
+    var enrolling by remember { mutableStateOf(false) }
+    var enrollStatus by remember { mutableStateOf("") }
     val showDevice = Native.supportsKeepAwake || Native.supportsWakeWord || Native.supportsGeofence
     var apiKey by remember { mutableStateOf(Storage.read("ApiKey") ?: "") }
     var aiModel by remember { mutableStateOf(Storage.read("AiModel")?.ifBlank { null } ?: DEFAULT_AI_MODEL) }
@@ -141,6 +145,57 @@ fun SettingsScreen() {
                     }
                     Switch(checked = wakeWord, onCheckedChange = { wakeWord = it; Native.setWakeWordEnabled(it) })
                 }
+            }
+
+            if (Native.supportsSpeakerId) {
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Only my voice", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "The wake word fires only for your enrolled voice. A filter, not a lock — a recording of you could still pass.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = onlyMyVoice,
+                        onCheckedChange = { onlyMyVoice = it; Native.setOnlyMyVoice(it) },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        enabled = !enrolling,
+                        onClick = {
+                            enrolling = true
+                            enrollStatus = "Starting…"
+                            Native.enrollVoice(
+                                onStatus = { enrollStatus = it },
+                                onResult = { enrolling = false; hasVoiceprint = Native.hasVoiceprint() },
+                            )
+                        },
+                    ) {
+                        Text(if (hasVoiceprint) "Re-enroll my voice" else "Enroll my voice")
+                    }
+                    if (hasVoiceprint && !enrolling) {
+                        Spacer(Modifier.width(8.dp))
+                        OutlinedButton(onClick = {
+                            Native.clearVoiceprint(); hasVoiceprint = false; enrollStatus = "Voiceprint cleared"
+                        }) { Text("Clear") }
+                    }
+                }
+                val statusLine = when {
+                    enrollStatus.isNotBlank() -> enrollStatus
+                    hasVoiceprint -> "Voice enrolled ✓"
+                    else -> "Not enrolled yet"
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    statusLine,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             if (Native.supportsGeofence) {

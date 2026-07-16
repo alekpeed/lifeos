@@ -15,6 +15,7 @@ import com.alekpeed.lifeos.Storage
 import org.json.JSONObject
 import org.vosk.Model
 import org.vosk.Recognizer
+import org.vosk.SpeakerModel
 import org.vosk.android.RecognitionListener
 import org.vosk.android.SpeechService
 
@@ -32,11 +33,16 @@ class WakeWordService : Service() {
 
     private val main = Handler(Looper.getMainLooper())
     private var model: Model? = null
+    private var speakerModel: SpeakerModel? = null
     private var speech: SpeechService? = null
     @Volatile private var running = false
 
     private val phrase: String
         get() = Storage.read("WakePhrase")?.trim()?.ifBlank { null } ?: DEFAULT_PHRASE
+
+    // Gate captures on the owner's voice only when the toggle is on AND a voiceprint
+    // has actually been enrolled — otherwise there's nothing to verify against.
+    private fun voiceGateActive(): Boolean = VoiceId.isOnlyMyVoiceEnabled() && VoiceId.hasVoiceprint()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -55,6 +61,8 @@ class WakeWordService : Service() {
         speech = null
         try { model?.close() } catch (e: Exception) {}
         model = null
+        try { speakerModel?.close() } catch (e: Exception) {}
+        speakerModel = null
         super.onDestroy()
     }
 
@@ -62,6 +70,7 @@ class WakeWordService : Service() {
     // main thread. Vosk's SpeechService owns its own audio thread; we just create it.
     private fun prepareAndStart() {
         val ctx = applicationContext
+        val needSpeaker = voiceGateActive()
         Thread {
             val ok = VoskModels.ensureModel(ctx) { pct ->
                 main.post { if (running) updateNotification("Preparing voice model… $pct%") }
@@ -72,6 +81,12 @@ class WakeWordService : Service() {
                 }
                 return@Thread
             }
+            // If "only my voice" is active, make sure the speaker model is present too.
+            if (needSpeaker) {
+                VoskModels.ensureSpeakerModel(ctx) { pct ->
+                    main.post { if (running) updateNotification("Preparing voiceprint model… $pct%") }
+                }
+            }
             main.post { if (running) startRecognition(ctx) }
         }.also { it.isDaemon = true }.start()
     }
@@ -81,6 +96,18 @@ class WakeWordService : Service() {
             val m = Model(VoskModels.modelDir(ctx).absolutePath)
             model = m
             val recognizer = Recognizer(m, SAMPLE_RATE)
+            // Attach the speaker model so results carry an "spk" voiceprint we can
+            // check against the enrolled owner. Only when the gate is active and the
+            // speaker model actually unpacked.
+            if (voiceGateActive() && VoskModels.isSpeakerReady(ctx)) {
+                try {
+                    val sm = SpeakerModel(VoskModels.speakerDir(ctx).absolutePath)
+                    speakerModel = sm
+                    recognizer.setSpeakerModel(sm)
+                } catch (e: Exception) {
+                    // Fall back to plain recognition if the speaker model won't load.
+                }
+            }
             val svc = SpeechService(recognizer, SAMPLE_RATE)
             speech = svc
             svc.startListening(listener)
@@ -106,7 +133,14 @@ class WakeWordService : Service() {
         }?.trim().orEmpty()
         if (text.isEmpty()) return
         val after = extractAfterPhrase(text, phrase) ?: return
-        if (after.length >= 2) capture(after)
+        if (after.length < 2) return
+        // "Only my voice": reject the capture unless this utterance's voiceprint
+        // matches the enrolled owner. If the gate is off, this is a no-op.
+        if (voiceGateActive()) {
+            val spk = VoiceId.extractSpk(hypothesis)
+            if (!VoiceId.matchesOwner(spk)) return
+        }
+        capture(after)
     }
 
     // Whole-word match: returns the words that follow the wake phrase (possibly

@@ -15,6 +15,7 @@ expect object Native {
     val supportsKeepAwake: Boolean
     val supportsWakeWord: Boolean
     val supportsGeofence: Boolean
+    val supportsSpeakerId: Boolean
 
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
@@ -51,4 +52,14 @@ expect object Native {
     // app is closed (Android: AlarmManager). `id` identifies it for cancellation.
     fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long)
     fun cancelReminder(id: Int)
+
+    // "Only my voice" — speaker verification for the wake word. Enrollment records a
+    // few seconds of the owner's speech and stores a voiceprint; when the gate is on,
+    // the wake word only fires for a matching voice. A filter, not a lock (recordings
+    // can spoof it). onStatus reports progress; onResult(true) on a successful enroll.
+    fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit)
+    fun hasVoiceprint(): Boolean
+    fun clearVoiceprint()
+    fun setOnlyMyVoice(on: Boolean)
+    fun onlyMyVoiceEnabled(): Boolean
 }

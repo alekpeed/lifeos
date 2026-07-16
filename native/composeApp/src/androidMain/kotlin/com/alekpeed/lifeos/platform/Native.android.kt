@@ -47,6 +47,7 @@ actual object Native {
     actual val supportsKeepAwake = true
     actual val supportsWakeWord = true
     actual val supportsGeofence = true
+    actual val supportsSpeakerId = true
 
     actual fun speak(text: String) {
         val ctx = NativeHost.ctx() ?: return
@@ -209,4 +210,24 @@ actual object Native {
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
         am.cancel(reminderPendingIntent(ctx, id, "", ""))
     }
+
+    actual fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit) {
+        val ctx = NativeHost.ctx()
+        if (ctx == null) { onResult(false); return }
+        // Enrollment needs the mic; request it if the activity is around.
+        NativeHost.activity?.let { act ->
+            if (act.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                act.requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 9003)
+            }
+        }
+        VoiceEnroller.enroll(ctx, onStatus, onResult)
+    }
+
+    actual fun hasVoiceprint(): Boolean = VoiceId.hasVoiceprint()
+
+    actual fun clearVoiceprint() = VoiceId.clearVoiceprint()
+
+    actual fun setOnlyMyVoice(on: Boolean) = VoiceId.setOnlyMyVoice(on)
+
+    actual fun onlyMyVoiceEnabled(): Boolean = VoiceId.isOnlyMyVoiceEnabled()
 }
