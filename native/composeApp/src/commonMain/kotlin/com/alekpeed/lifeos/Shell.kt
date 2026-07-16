@@ -15,37 +15,41 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.tasks.TasksScreen
+import com.alekpeed.lifeos.ui.SimpleListScreen
 
-// The app shell: a bottom nav switching between the ported modules. Grows a tab
-// (or a proper nav rail on desktop) as more modules land. Emoji stand in for
-// icons until the real icon set is wired, to avoid an extra dependency now.
+private data class Tab(val icon: String, val label: String, val content: @Composable () -> Unit)
+
+// The app shell: bottom nav across the ported modules. Emoji stand in for icons
+// until the real set is wired. Grows to a nav rail/drawer as modules pass ~5.
 @Composable
 fun Shell() {
-    var screen by remember { mutableStateOf(0) }
+    val tabs = remember {
+        listOf(
+            Tab("✅", "Tasks") { TasksScreen() },
+            Tab("💡", "Ideas") { IdeasScreen() },
+            Tab("📍", "Places") { SimpleListScreen("Places", "New place", listOf("The ramen place", "That trail")) },
+            Tab("🔗", "Links") { SimpleListScreen("Links", "Paste a link", listOf("Article to read")) },
+            Tab("👤", "Contacts") { SimpleListScreen("Contacts", "New contact") },
+        )
+    }
+    var selected by remember { mutableStateOf(0) }
 
     Scaffold(
         bottomBar = {
             NavigationBar {
-                NavigationBarItem(
-                    selected = screen == 0,
-                    onClick = { screen = 0 },
-                    icon = { Text("✅") },
-                    label = { Text("Tasks") },
-                )
-                NavigationBarItem(
-                    selected = screen == 1,
-                    onClick = { screen = 1 },
-                    icon = { Text("💡") },
-                    label = { Text("Ideas") },
-                )
+                tabs.forEachIndexed { i, tab ->
+                    NavigationBarItem(
+                        selected = selected == i,
+                        onClick = { selected = i },
+                        icon = { Text(tab.icon) },
+                        label = { Text(tab.label) },
+                    )
+                }
             }
         },
     ) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding)) {
-            when (screen) {
-                0 -> TasksScreen()
-                1 -> IdeasScreen()
-            }
+            tabs[selected].content()
         }
     }
 }
