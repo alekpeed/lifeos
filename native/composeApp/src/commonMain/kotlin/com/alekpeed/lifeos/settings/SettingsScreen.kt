@@ -2,6 +2,7 @@ package com.alekpeed.lifeos.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -44,6 +46,9 @@ fun SettingsScreen() {
     val active = Interfaces.active
     val totalItems = DATA_SOURCES.sumOf { countOf(it.key) }
     var keepAwake by remember { mutableStateOf(false) }
+    var wakeWord by remember { mutableStateOf(false) }
+    var deviceMsg by remember { mutableStateOf("") }
+    val showDevice = Native.supportsKeepAwake || Native.supportsWakeWord || Native.supportsGeofence
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
@@ -89,23 +94,60 @@ fun SettingsScreen() {
             )
         }
 
-        if (Native.supportsKeepAwake) {
+        if (showDevice) {
             Spacer(Modifier.height(24.dp))
             Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
             Spacer(Modifier.height(24.dp))
 
             Text("DEVICE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Cooking mode", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        "Keep the screen on while you're following a recipe",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+
+            if (Native.supportsKeepAwake) {
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Cooking mode", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Keep the screen on while you're following a recipe",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = keepAwake, onCheckedChange = { keepAwake = it; Native.keepScreenAwake(it) })
                 }
-                Switch(checked = keepAwake, onCheckedChange = { keepAwake = it; Native.keepScreenAwake(it) })
+            }
+
+            if (Native.supportsWakeWord) {
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Wake word", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Listen for “life …” and capture what follows (uses the mic)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = wakeWord, onCheckedChange = { wakeWord = it; Native.setWakeWordEnabled(it) })
+                }
+            }
+
+            if (Native.supportsGeofence) {
+                Spacer(Modifier.height(14.dp))
+                Text("Arrival alert", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Get a nudge when you next return to where you are now",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(onClick = { Native.armArrivalHere("here"); deviceMsg = "Arrival alert armed for this location" }) { Text("Arm here") }
+                    OutlinedButton(onClick = { Native.clearArrivals(); deviceMsg = "Arrival alerts cleared" }) { Text("Clear") }
+                }
+                if (deviceMsg.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(deviceMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
             }
         }
 

@@ -13,6 +13,8 @@ actual object Native {
     actual val supportsNotifications = false
     actual val supportsContacts = false
     actual val supportsKeepAwake = false
+    actual val supportsWakeWord = false
+    actual val supportsGeofence = false
 
     actual fun speak(text: String) {}
     actual fun stopSpeaking() {}
@@ -36,4 +38,7 @@ actual object Native {
     actual fun importContacts(): List<PhoneContact> = emptyList()
     actual fun postReminder(title: String, body: String) {}
     actual fun setPinnedNextUp(text: String?) {}
+    actual fun setWakeWordEnabled(on: Boolean) {}
+    actual fun armArrivalHere(label: String) {}
+    actual fun clearArrivals() {}
 }

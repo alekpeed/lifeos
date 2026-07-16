@@ -3,10 +3,12 @@ package com.alekpeed.lifeos.platform
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.Manifest
 import android.app.PendingIntent
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.ContactsContract
 import android.speech.tts.TextToSpeech
@@ -42,6 +44,8 @@ actual object Native {
     actual val supportsNotifications = true
     actual val supportsContacts = true
     actual val supportsKeepAwake = true
+    actual val supportsWakeWord = true
+    actual val supportsGeofence = true
 
     actual fun speak(text: String) {
         val ctx = NativeHost.ctx() ?: return
@@ -151,5 +155,28 @@ actual object Native {
         } catch (e: SecurityException) {
             // POST_NOTIFICATIONS not granted; ignore.
         }
+    }
+
+    actual fun setWakeWordEnabled(on: Boolean) {
+        val ctx = NativeHost.ctx() ?: return
+        val svc = Intent(ctx, WakeWordService::class.java)
+        if (on) {
+            NativeHost.activity?.let { act ->
+                if (act.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    act.requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 9002)
+                }
+            }
+            if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(svc) else ctx.startService(svc)
+        } else {
+            ctx.stopService(svc)
+        }
+    }
+
+    actual fun armArrivalHere(label: String) {
+        Geofences.armHere(NativeHost.ctx(), label)
+    }
+
+    actual fun clearArrivals() {
+        Geofences.clear(NativeHost.ctx())
     }
 }

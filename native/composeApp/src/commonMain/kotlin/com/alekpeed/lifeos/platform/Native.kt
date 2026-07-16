@@ -13,6 +13,8 @@ expect object Native {
     val supportsNotifications: Boolean
     val supportsContacts: Boolean
     val supportsKeepAwake: Boolean
+    val supportsWakeWord: Boolean
+    val supportsGeofence: Boolean
 
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
@@ -35,4 +37,13 @@ expect object Native {
 
     // A pinned, ongoing "next up" notification; pass null to clear it.
     fun setPinnedNextUp(text: String?)
+
+    // Always-on wake word: start/stop a foreground listening service that captures
+    // what you say after the trigger word. Requires the microphone permission.
+    fun setWakeWordEnabled(on: Boolean)
+
+    // Low-power arrival geofence: arm an alert at the device's current location,
+    // labelled; fires a notification when you next arrive there. Clear removes all.
+    fun armArrivalHere(label: String)
+    fun clearArrivals()
 }

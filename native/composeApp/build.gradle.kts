@@ -24,6 +24,7 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation("androidx.activity:activity-compose:1.8.2")
+                implementation("com.google.android.gms:play-services-location:21.0.1")
             }
         }
         val desktopMain by getting {
