@@ -2,11 +2,12 @@ package com.alekpeed.lifeos
 
 import androidx.compose.runtime.Composable
 import com.alekpeed.lifeos.core.CommandScreen
-import com.alekpeed.lifeos.data.DataSource
+import com.alekpeed.lifeos.core.TodayScreen
 import com.alekpeed.lifeos.finance.LedgerScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.insight.AssistantScreen
+import com.alekpeed.lifeos.insight.BriefingScreen
 import com.alekpeed.lifeos.insight.NotificationsScreen
 import com.alekpeed.lifeos.people.ContactsScreen
 import com.alekpeed.lifeos.settings.SettingsScreen
@@ -18,7 +19,6 @@ import com.alekpeed.lifeos.ui.SearchScreen
 import com.alekpeed.lifeos.ui.SimpleListScreen
 import com.alekpeed.lifeos.ui.StatsScreen
 import com.alekpeed.lifeos.ui.StatusListScreen
-import com.alekpeed.lifeos.ui.SummaryScreen
 
 // One entry per module. `id` is a stable slug used to route through the interface
 // layer (a graphical interface registers screens against these ids). `content` is
@@ -42,9 +42,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("ideas", "💡", "Ideas", "Core", true) { IdeasScreen() },
     Module("places", "📍", "Places", "Core", true) { SimpleListScreen("Places", "New place", listOf("The ramen place", "That trail")) },
     Module("links", "🔗", "Links", "Core", true) { SimpleListScreen("Links", "Paste a link", listOf("Article to read")) },
-    Module("today", "🗓", "Today", "Core", true) {
-        SummaryScreen("Today", "Your day at a glance.", listOf(DataSource("Tasks", "Tasks"), DataSource("Habits", "Habits")))
-    },
+    Module("today", "🗓", "Today", "Core", true) { TodayScreen() },
     Module("command", "⌘", "Command", "Core", true) { CommandScreen() },
     Module("finance", "💵", "Finance", "Core", true) { LedgerScreen() },
     Module("education", "🎓", "Education", "Core", true) {
@@ -78,9 +76,7 @@ fun lifeOsModules(): List<Module> = listOf(
     },
     Module("almanac", "📊", "The Almanac", "Health", true) { StatsScreen("The Almanac") },
     // Insight
-    Module("briefing", "📋", "Briefing", "Insight", true) {
-        SummaryScreen("Briefing", "What matters right now.", listOf(DataSource("Tasks", "Tasks"), DataSource("Habits", "Habits"), DataSource("Ideas", "Ideas")))
-    },
+    Module("briefing", "📋", "Briefing", "Insight", true) { BriefingScreen() },
     Module("ask", "🔎", "Ask", "Insight", true) { SearchScreen("Ask", "Ask about anything you've saved…") },
     Module("ai-assistant", "🤖", "AI Assistant", "Insight", true) { AssistantScreen() },
     Module("knowledge-graph", "🕸", "Knowledge Graph", "Insight", true) { NoteListScreen("Knowledge Graph", "Node", "Links to…") },
