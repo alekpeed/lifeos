@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.tasks.TasksScreen
+import com.alekpeed.lifeos.ui.NoteListScreen
 import com.alekpeed.lifeos.ui.Placeholder
 import com.alekpeed.lifeos.ui.SimpleListScreen
+import com.alekpeed.lifeos.ui.StatusListScreen
 
 // One entry per module. `ready` = genuinely functional (persists); otherwise a
 // reachable placeholder until it's ported. Icons are emoji stand-ins for now.
@@ -33,17 +35,22 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("🪐", "Orrery", "Core", false) { Placeholder("Orrery") },
     // People
     Module("👤", "Contacts", "People", true) { SimpleListScreen("Contacts", "New contact") },
-    Module("🍳", "Recipes", "People", false) { Placeholder("Recipes") },
-    Module("📄", "Documents", "People", false) { Placeholder("Documents") },
+    Module("🍳", "Recipes", "People", true) { NoteListScreen("Recipes", "Recipe name", "Key ingredients / notes") },
+    Module("📄", "Documents", "People", true) { NoteListScreen("Documents", "Document name", "Where it lives / reference #") },
     Module("📦", "Quartermaster", "People", false) { Placeholder("Quartermaster") },
     Module("🧳", "Packing Lists", "People", true) { SimpleListScreen("Packing", "Add an item") },
     Module("🤝", "Sharebox", "People", false) { Placeholder("Sharebox") },
     // Memory
-    Module("📚", "Books", "Memory", false) { Placeholder("Books") },
+    Module("📚", "Books", "Memory", true) {
+        StatusListScreen(
+            "Books", "Add a book", listOf("Want", "Reading", "Read"),
+            seed = listOf("Life OS design notes" to 1),
+        )
+    },
     Module("🖼", "Photos", "Memory", false) { Placeholder("Photos") },
-    Module("🏆", "Milestones", "Memory", false) { Placeholder("Milestones") },
+    Module("🏆", "Milestones", "Memory", true) { NoteListScreen("Milestones", "What you achieved", "When") },
     Module("🏛", "Museum", "Memory", false) { Placeholder("Museum") },
-    Module("⏳", "Time Capsules", "Memory", false) { Placeholder("Time Capsules") },
+    Module("⏳", "Time Capsules", "Memory", true) { NoteListScreen("Time Capsules", "Message to future you", "Open on") },
     Module("🗂", "Collections", "Memory", true) { SimpleListScreen("Collections", "Add an item") },
     Module("👻", "Ghost Days", "Memory", false) { Placeholder("Ghost Days") },
     Module("🕳", "Rabbit Holes", "Memory", true) { SimpleListScreen("Rabbit Holes", "New rabbit hole") },

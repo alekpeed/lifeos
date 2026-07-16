@@ -39,12 +39,20 @@ JDK 17, Gradle 8.7 (via `gradle/actions/setup-gradle`, no wrapper jar committed)
 - `desktopMain/…/Storage.kt` — writes to `~/.lifeos`; `Main.kt` is the desktop
   entry (`application { Window { App() } }`).
 
-## Status (9 / 42 modules functional, all reachable)
+## Status (14 / 42 modules functional, all reachable)
 
-Functional + persisting: **Tasks, Ideas, Places, Links, Contacts, Packing,
-Collections, Rabbit Holes, Habits** (Habits has streaks + check-in). Everything
-else is a reachable `Placeholder` (`ready=false` in `Modules.kt`).
+Functional + persisting: **Tasks, Ideas, Places, Links, Contacts, Recipes,
+Documents, Packing, Books, Milestones, Time Capsules, Collections, Rabbit Holes,
+Habits**. Habits has streaks + check-in; Books cycles a status chip
+(Want → Reading → Read); Recipes/Documents/Milestones/Time Capsules use the
+title + note pattern. Tasks and Ideas now genuinely persist too (they were
+in-memory before — closed 2026-07-16). Everything else is a reachable
+`Placeholder` (`ready=false` in `Modules.kt`).
 Live tracker: https://claude.ai/code/artifact/a5a2e22f-a086-489d-899a-2988e2ca0cea
+
+New reusable screens this pass: `ui/StatusListScreen.kt` (cycling status chip)
+and `ui/NoteListScreen.kt` (title + secondary note). Reach for these before
+writing a bespoke screen when a module is essentially a typed list.
 
 ## How to port a module (the pattern)
 

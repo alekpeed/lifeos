@@ -25,18 +25,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.Storage
 
-// Free-form capture, native on both platforms. In-memory for now.
+// One idea per line. Ids are reassigned on load — unique-within-session is enough.
+private fun loadIdeas(): List<Idea> =
+    Storage.read("Ideas")?.lines()?.filter { it.isNotBlank() }?.mapIndexed { i, line -> Idea(i + 1L, line) }
+        ?: listOf(Idea(1, "Ideas land here"), Idea(2, "Jot anything, tidy it later"))
+
+// Free-form capture, native on both platforms. Persists locally on every change.
 @Composable
 fun IdeasScreen() {
-    val ideas = remember {
-        mutableStateListOf(
-            Idea(1, "Ideas land here"),
-            Idea(2, "Jot anything, tidy it later"),
-        )
-    }
+    val ideas = remember { mutableStateListOf<Idea>().apply { addAll(loadIdeas()) } }
+    fun persist() = Storage.write("Ideas", ideas.joinToString("\n") { it.text })
     var input by remember { mutableStateOf("") }
-    var nextId by remember { mutableStateOf(3L) }
+    var nextId by remember { mutableStateOf((ideas.maxOfOrNull { it.id } ?: 0L) + 1) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Ideas", style = MaterialTheme.typography.headlineMedium)
@@ -52,10 +54,11 @@ fun IdeasScreen() {
             )
             Spacer(Modifier.width(10.dp))
             Button(onClick = {
-                val t = input.trim()
+                val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) {
                     ideas.add(Idea(nextId, t))
                     nextId += 1
+                    persist()
                     input = ""
                 }
             }) { Text("Add") }
@@ -72,7 +75,7 @@ fun IdeasScreen() {
                     Text(idea.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     TextButton(onClick = {
                         val i = ideas.indexOfFirst { it.id == idea.id }
-                        if (i >= 0) ideas.removeAt(i)
+                        if (i >= 0) { ideas.removeAt(i); persist() }
                     }) { Text("✕") }
                 }
             }
