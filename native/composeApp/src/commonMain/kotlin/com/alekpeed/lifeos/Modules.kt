@@ -9,6 +9,7 @@ import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.insight.AssistantScreen
 import com.alekpeed.lifeos.insight.BriefingScreen
 import com.alekpeed.lifeos.insight.NotificationsScreen
+import com.alekpeed.lifeos.insight.RecallScreen
 import com.alekpeed.lifeos.people.ContactsScreen
 import com.alekpeed.lifeos.settings.SettingsScreen
 import com.alekpeed.lifeos.system.QrSyncScreen
@@ -80,9 +81,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("ask", "🔎", "Ask", "Insight", true) { SearchScreen("Ask", "Ask about anything you've saved…") },
     Module("ai-assistant", "🤖", "AI Assistant", "Insight", true) { AssistantScreen() },
     Module("knowledge-graph", "🕸", "Knowledge Graph", "Insight", true) { NoteListScreen("Knowledge Graph", "Node", "Links to…") },
-    Module("recall", "♻", "Recall", "Insight", true) {
-        StatusListScreen("Recall", "Add a fact to recall", listOf("New", "Learning", "Known"))
-    },
+    Module("recall", "♻", "Recall", "Insight", true) { RecallScreen() },
     Module("notifications", "🔔", "Notifications", "Insight", true) { NotificationsScreen() },
     Module("entropy", "🌀", "Entropy", "Insight", true) { SimpleListScreen("Entropy", "A loose end to tidy") },
     Module("time-machine", "⏰", "Time Machine", "Insight", true) { NoteListScreen("Time Machine", "On this day…", "Date") },

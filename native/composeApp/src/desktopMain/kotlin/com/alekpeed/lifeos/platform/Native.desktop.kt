@@ -41,4 +41,6 @@ actual object Native {
     actual fun setWakeWordEnabled(on: Boolean) {}
     actual fun armArrivalHere(label: String) {}
     actual fun clearArrivals() {}
+    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) {}
+    actual fun cancelReminder(id: Int) {}
 }

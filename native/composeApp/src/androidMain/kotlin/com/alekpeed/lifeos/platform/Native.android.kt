@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.platform
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -178,5 +179,34 @@ actual object Native {
 
     actual fun clearArrivals() {
         Geofences.clear(NativeHost.ctx())
+    }
+
+    private fun reminderPendingIntent(ctx: Context, id: Int, title: String, body: String): PendingIntent {
+        val intent = Intent(ctx, ReminderFireReceiver::class.java).apply {
+            putExtra(ReminderFireReceiver.EXTRA_TITLE, title)
+            putExtra(ReminderFireReceiver.EXTRA_BODY, body)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(ctx, id, intent, flags)
+    }
+
+    // Uses setAndAllowWhileIdle rather than an exact alarm: no SCHEDULE_EXACT_ALARM
+    // permission needed, and Android may still shift it by a few minutes under
+    // Doze — an honest tradeoff for a personal reminder, not a deadline-critical one.
+    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) {
+        val ctx = NativeHost.ctx() ?: return
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        val pi = reminderPendingIntent(ctx, id, title, body)
+        try {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atEpochMillis, pi)
+        } catch (e: SecurityException) {
+            // no exact-alarm-adjacent permission on this OEM/version; ignore
+        }
+    }
+
+    actual fun cancelReminder(id: Int) {
+        val ctx = NativeHost.ctx() ?: return
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        am.cancel(reminderPendingIntent(ctx, id, "", ""))
     }
 }

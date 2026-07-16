@@ -46,4 +46,9 @@ expect object Native {
     // labelled; fires a notification when you next arrive there. Clear removes all.
     fun armArrivalHere(label: String)
     fun clearArrivals()
+
+    // A reminder that fires as a real notification at a future time, even if the
+    // app is closed (Android: AlarmManager). `id` identifies it for cancellation.
+    fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long)
+    fun cancelReminder(id: Int)
 }

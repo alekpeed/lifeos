@@ -50,6 +50,10 @@
         <receiver
             android:name=".platform.GeofenceReceiver"
             android:exported="false" />
+
+        <receiver
+            android:name=".platform.ReminderFireReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>
