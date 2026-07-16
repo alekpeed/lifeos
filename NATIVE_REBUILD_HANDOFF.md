@@ -248,6 +248,54 @@ tradeoff). Some modules that reason about dates now depend on the device clock.
   fresh window; this native work has been running on claude-opus-4-8 by Alek's
   choice.
 
+## External integrations (2026-07-16)
+
+Shared HTTP: `net/Http.kt` — a dependency-free `httpGet` / `httpPostJson` over a
+generic `httpRequest` (HttpURLConnection off the main thread, never throws;
+`NetResponse(status, body)`). Integration clients live in `integrations/` and parse
+with kotlinx-serialization-json (`parseToJsonElement` + `jsonObject`/`jsonArray`
+navigation, so no per-response data classes). All fetch on demand — no background
+polling.
+
+**Built & CI-green (no account/decision needed):**
+- **Weather** — `WeatherClient` (Open-Meteo, keyless): geocode a typed city →
+  current temp + today's H/L. City-based, so no location permission; works on
+  desktop too. In the Tools screen.
+- **Currency** — `CurrencyClient` (open.er-api.com, keyless): USD-based live rates,
+  converted locally across ~160 currencies. Tools screen.
+- **Markets** — `MarketsClient` (keyless): CoinGecko crypto watchlist (editable
+  ids, price + 24h change) + Stooq DJIA index (CSV). Tools screen.
+- **Telegram (send-only)** — `TelegramClient`: posts to a bot made with @BotFather;
+  token + chat id + a test button in Settings. No listener/webhook.
+- **Multi-provider AI** — Ask + Assistant route through a provider picked in
+  Settings: **Claude** (`AiClient` Messages API), **OpenAI** (`OpenAiClient`,
+  chat/completions, Bearer key), **Gemini** (`GeminiClient`, generateContent, key
+  param). `AiClient.ask` dispatches by the `AiProvider` pref; `hasKey()` reflects
+  the active provider. Per-provider key + model fields in Settings. Note: OpenAI
+  works direct from native — the web build's CORS block is browser-only.
+
+The Tools module (`system/ToolsScreen.kt`) hosts the keyless data cards; it
+replaced the old placeholder, so the 42-module count is unchanged.
+
+**Not built — needs a decision, an account secret, or the data layer first:**
+- **Google suite** (Drive sync, Calendar push, Photos picker) — all need native
+  OAuth (consent screen + redirect scheme + a client id). Decision + setup.
+- **Supabase** (auth + personal sync + Sharebox + profiles) — the planned sync
+  backend; large, and wants the structured data layer first (Storage is still
+  per-key text). MCP is connected on the tooling side.
+- **Native push** — web build uses VAPID + a service worker; native equivalent is
+  FCM + a Firebase project (a setup decision), so it's not a code-only port. Local
+  scheduled notifications already exist (`AlarmManager`).
+- **Apple Health import** — a local file parse of an exported `export.xml`, not a
+  network integration; portable later with a file picker.
+- **OSM map tiles** (Places map) — keyless, but needs a real slippy-map component
+  in Compose, not just a client. Deferred as UI work.
+
+**Parked / dead (left as-is per `FUTURE_FEATURES.md`):** Plaid (bank linking —
+paid + backend token exchange), two-way Telegram (needs a webhook backend). Note
+OpenAI itself was previously parked *because of the web CORS/proxy problem*; that
+constraint doesn't exist natively, so it's now built as a provider.
+
 ## What's left
 
 All 42 modules are functional and the core ones have real depth (see the depth
@@ -260,10 +308,11 @@ pass above). Remaining work:
   **Knowledge Graph** (node/links list → graph), **Skill Trees** (status list →
   tree), **Photos** (captions → gallery), **Theme from Photo** (hex entry →
   palette extractor), **Station Cat** (glyph → character).
-- **External integrations** — **Finance** (Plaid account sync on top of the
-  category ledger), **AI Assistant** / **Ask** (wire a model to answer the queue /
-  questions; today Ask honestly searches stored data). **QR Sync** needs camera + a
-  QR encoder to turn its payload into a scannable code.
+- **External integrations** — the keyless data ones (weather/currency/markets),
+  Telegram send, and multi-provider AI are built (see the section above). Still
+  open: the account/OAuth ones (Google suite, Supabase sync, native push) and
+  parked Plaid. **QR Sync** needs camera + a QR encoder to turn its payload into a
+  scannable code.
 - **Remaining module depth** — the lighter modules are still first-pass list/note
   screens (Places, Links, Recipes, Documents, Quartermaster, Museum, Education,
   etc.). Fine as-is, deepen as needed.
