@@ -38,6 +38,8 @@ import com.alekpeed.lifeos.data.countOf
 import com.alekpeed.lifeos.integrations.TelegramClient
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.sync.SyncEngine
+import com.alekpeed.lifeos.sync.SyncMeta
 import kotlinx.coroutines.launch
 
 private fun pretty(id: String): String =
@@ -394,8 +396,16 @@ fun SettingsScreen() {
         Spacer(Modifier.height(8.dp))
         Text("$totalItems items saved locally", style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.height(4.dp))
+        val trackedRecords = remember { SyncMeta.all().size }
+        val pendingChanges = remember { SyncEngine.pendingCount() }
         Text(
-            "Local device storage. A shared database and cross-device sync land with the data layer.",
+            "$trackedRecords records tracked for sync · $pendingChanges changed since last sync",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Every change is now stamped for last-write-wins sync. Cross-device sync turns on once a backend is connected.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

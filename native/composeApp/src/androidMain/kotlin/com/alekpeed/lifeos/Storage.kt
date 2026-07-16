@@ -18,7 +18,21 @@ actual object Storage {
 
     actual fun write(name: String, text: String) {
         try {
-            if (::appContext.isInitialized) file(name).writeText(text)
+            if (::appContext.isInitialized) {
+                file(name).writeText(text)
+                com.alekpeed.lifeos.sync.SyncMeta.record(name)
+            }
+        } catch (e: Exception) {
+            // best-effort
+        }
+    }
+
+    actual fun remove(name: String) {
+        try {
+            if (::appContext.isInitialized) {
+                file(name).takeIf { it.exists() }?.delete()
+                com.alekpeed.lifeos.sync.SyncMeta.tombstone(name)
+            }
         } catch (e: Exception) {
             // best-effort
         }
