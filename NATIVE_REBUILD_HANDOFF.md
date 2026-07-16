@@ -316,10 +316,11 @@ pass above). Remaining work:
 - **Remaining module depth** — the lighter modules are still first-pass list/note
   screens (Places, Links, Recipes, Documents, Quartermaster, Museum, Education,
   etc.). Fine as-is, deepen as needed.
-- **Data layer** — *in progress.* Step 1 shipped (see below): `Storage` is now
-  sync-ready (per-key records with timestamps + tombstones) while keeping its
-  string API. Still open: the backend adapter (push/pull against Supabase) and,
-  optionally, swapping the text backing store for a structured DB.
+- **Data layer** — *done through cross-device sync* (see the two data-layer
+  sections below): `Storage` is sync-ready (records + tombstones) and Supabase
+  push/pull is wired with email auth + a Settings UI. Optional remaining polish:
+  swap the per-key text backing store for a structured DB (SQLDelight) — internal
+  only, since the record/sync API already sits above `Storage`.
 
 ## Data layer — step 1: sync-ready records (2026-07-16)
 
@@ -340,8 +341,35 @@ The per-key text `Storage` is unchanged from every screen's point of view
 - `Storage` gained `remove()`; `write`/`remove` call into `SyncMeta` on both
   Android + desktop actuals.
 
-**Next step (needs Alek's nod):** a backend adapter that pushes `changesToPush()`
-and pulls remote into `applyRemote()`. The legacy web app already has a Supabase
-project + schema (`SUPABASE_MIGRATION.md`); reusing it means confirming the
-project/table + wiring native auth. Merge rules are done and deterministic; only
-the transport + a device are needed to prove the round-trip.
+## Data layer — step 2: Supabase cross-device sync (2026-07-16)
+
+The transport, wired onto the **existing** `sync_records` table (reused, not
+created) under a dedicated `store = "kv"` namespace so native records coexist with
+the web app's own stores. RLS scopes every row to `auth.uid()`.
+
+- `sync/SupabaseConfig.kt` — project URL + public anon key (public by design; RLS
+  is the access control) + the `kv` store namespace.
+- `sync/SupabaseAuth.kt` — **email/password** via GoTrue REST (`/auth/v1/signup`,
+  `/auth/v1/token`). No OAuth redirect, so it works natively. Tokens stored under
+  reserved `__sb_*` keys; refresh + sign-out.
+- `sync/SupabaseSync.kt` — `syncNow()`: push `SyncEngine.changesToPush()` (upsert on
+  `user_id,store,record_id`, `Prefer: resolution=merge-duplicates`) then pull the
+  `kv` rows into `SyncEngine.applyRemote()`. Converts the table's `timestamptz`
+  ↔ the app's epoch-millis; auto-refreshes the token on a 401.
+- Settings **SYNC** section: create account / sign in / sync now / sign out + status.
+
+**Device / account caveats (CI can't check these):**
+- The native flow uses **email/password**; the web app uses **Google OAuth**. So a
+  native email account is a *different* `auth.uid()` than the web Google account —
+  native syncs across native installs (phone ↔ desktop, same email), not with the
+  web app's data. Fine for now; unifying would mean adding Google OAuth natively.
+- Supabase must have the **Email** auth provider enabled, and for frictionless
+  login you may want **"Confirm email" off** (otherwise sign-up needs a one-time
+  email confirmation before the first sign-in). Both are dashboard toggles.
+- The actual round-trip (rows landing in `sync_records`, RLS scoping) needs a
+  signed-in account on a device to confirm; the merge rules + wire format are
+  deterministic and compile-verified.
+
+**Still open (optional):** swapping the per-key text backing store for a structured
+DB (SQLDelight) — the record model + sync already sit above `Storage`, so this is a
+backing-store change, not an API change.
