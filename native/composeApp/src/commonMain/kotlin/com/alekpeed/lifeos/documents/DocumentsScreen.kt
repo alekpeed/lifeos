@@ -37,9 +37,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.layout.ContentScale
 import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
@@ -129,7 +135,8 @@ fun DocumentsScreen() {
                     val draft = parseScan(reply.text)
                     if (draft == null) { scanError = "Couldn't read fields from that photo — add it manually."; return@launch }
                     val id = freshId()
-                    save(data.copy(documents = data.documents + draft.copy(id = id)))
+                    val blobId = saveBlob(b64) // keep the scanned photo with the record
+                    save(data.copy(documents = data.documents + draft.copy(id = id, photoBlob = blobId ?: "")))
                     selected = id
                 }
             }
@@ -257,6 +264,16 @@ private fun DocMeta(doc: Document) {
 @Composable
 private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, doc: Document, onClose: () -> Unit) {
     fun patch(f: (Document) -> Document) = save(data.copy(documents = data.documents.map { if (it.id == doc.id) f(it) else it }))
+    var showSource by remember { mutableStateOf(false) }
+
+    // Attach/replace the photo: save the new blob, drop the old one, point the
+    // record at the new id.
+    fun onAttach(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        deleteBlob(doc.photoBlob)
+        patch { it.copy(photoBlob = id) }
+    }
 
     Column(
         Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 8.dp)
@@ -284,11 +301,52 @@ private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, d
         Label("Notes")
         Field(doc.notes, "Your own notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
 
+        Label("Photo")
+        if (doc.photoBlob.isNotBlank()) {
+            val img = remember(doc.photoBlob) { loadBlobImage(doc.photoBlob) }
+            if (img != null) {
+                Image(
+                    bitmap = img,
+                    contentDescription = "Attached photo",
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit,
+                )
+            } else {
+                Text("Photo attached (no preview available).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
+                TextButton(onClick = { deleteBlob(doc.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
+            }
+        } else if (Native.supportsCamera) {
+            OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
+        } else {
+            Text("Photo attachments need a camera.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (showSource) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showSource = false },
+                title = { Text("Attach a photo") },
+                text = { Text("Take a new photo, or choose one from your library.") },
+                confirmButton = {
+                    TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") }
+                },
+            )
+        }
+
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { save(data.copy(documents = data.documents.filterNot { it.id == doc.id })); onClose() }) {
+            TextButton(onClick = {
+                deleteBlob(doc.photoBlob)
+                save(data.copy(documents = data.documents.filterNot { it.id == doc.id }))
+                onClose()
+            }) {
                 Text("Delete document", color = DANGER)
             }
         }

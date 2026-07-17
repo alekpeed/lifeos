@@ -11,9 +11,9 @@ import kotlinx.serialization.json.Json
 // Documents — ported from the web app's Documents view: a registry of important
 // papers (lease, insurance, warranty…) with category, issuer, policy/account
 // number, an expiry date that flags when it's expiring soon or expired, notes,
-// and a linked contact. Persists as one JSON blob under "Documents"; old note
-// stubs migrate. (Photo attachments + AI camera-scan wait on the attachment /
-// vision layers.)
+// a linked contact, and an optional attached photo (blob-store id). Persists as
+// one JSON blob under "Documents"; old note stubs migrate. The AI camera-scan
+// fills the fields and attaches the photo.
 
 @Serializable
 data class Document(
@@ -27,6 +27,7 @@ data class Document(
     val summary: String = "",        // short plain-language summary (from a scan)
     val notes: String = "",          // your own free notes
     val linkedContact: String = "",
+    val photoBlob: String = "",      // blob-store id of an attached photo, if any
 )
 
 @Serializable
