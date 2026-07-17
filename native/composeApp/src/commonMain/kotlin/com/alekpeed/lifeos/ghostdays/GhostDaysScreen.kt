@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.books.loadBooks
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.milestones.loadMilestones
+import com.alekpeed.lifeos.people.loadContacts
 import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.recipes.loadRecipes
 
@@ -48,7 +49,13 @@ fun GhostDaysScreen() {
             if (on(b.startedDate)) out.add(Ghost(b.startedDate.take(4), "Started reading", b.title.ifBlank { "(untitled)" }))
         }
         loadRecipes().recipes.forEach { r -> r.cookLogs.forEach { l -> if (on(l.date)) out.add(Ghost(l.date.take(4), "Cooked", r.title.ifBlank { "(untitled)" })) } }
-        out.sortedByDescending { it.year }
+        // Contact birthdays today (annual, any year) — blank year, floated to the top.
+        loadContacts().contacts.forEach { c ->
+            val b = c.birthday
+            val bmd = when { b.length >= 10 -> b.substring(5, 10); b.length == 5 -> b; else -> "" }
+            if (bmd == md) out.add(Ghost("", "Birthday", c.name.ifBlank { "(unnamed)" }))
+        }
+        out.sortedWith(compareBy<Ghost> { it.year.isNotBlank() }.thenByDescending { it.year })
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
@@ -65,8 +72,11 @@ fun GhostDaysScreen() {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(g.kind, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(120.dp))
                     Text(g.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    val n = (today().toString().take(4).toInt()) - g.year.toInt()
-                    Text(if (n <= 0) "this year" else "$n year${if (n == 1) "" else "s"} ago", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val label = if (g.year.isBlank()) "today" else {
+                        val n = today().toString().take(4).toInt() - (g.year.toIntOrNull() ?: today().toString().take(4).toInt())
+                        if (n <= 0) "this year" else "$n year${if (n == 1) "" else "s"} ago"
+                    }
+                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

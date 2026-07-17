@@ -30,6 +30,9 @@ import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.habits.saveHabits
+import com.alekpeed.lifeos.people.Contact
+import com.alekpeed.lifeos.people.loadContacts
+import com.alekpeed.lifeos.people.saveContacts
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.tasks.Task
 import com.alekpeed.lifeos.tasks.loadTasks
@@ -55,7 +58,12 @@ private fun createRecord(type: String, title: String): String {
             "Added task: “$t”"
         }
         "idea" -> { appendLine("Ideas", t); "Added idea: “$t”" }
-        "contact" -> { appendLine("Contacts", t); "Added contact: “$t”" }
+        "contact" -> {
+            val cd = loadContacts()
+            val id = (cd.contacts.maxOfOrNull { it.id } ?: 0L) + 1
+            saveContacts(cd.copy(contacts = cd.contacts + Contact(id, t)))
+            "Added contact: “$t”"
+        }
         "habit" -> {
             val habits = loadHabits()
             val match = habits.firstOrNull { t.contains(it.name, ignoreCase = true) || it.name.contains(t, ignoreCase = true) }
