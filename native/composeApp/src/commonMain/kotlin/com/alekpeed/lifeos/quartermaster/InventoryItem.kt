@@ -8,8 +8,9 @@ import kotlinx.serialization.json.Json
 // Quartermaster — ported from the web app's Quartermaster view: a physical
 // inventory with a lending ledger. Each item has a name, location, and tags,
 // and can be lent out (who has it + since when). Persists as one JSON blob under
-// "Quartermaster"; old note stubs migrate. (AI photo-cataloging and
-// stock-from-photo wait on the vision layer.)
+// "Quartermaster"; old note stubs migrate. AI photo-cataloging (draft an item
+// list from a shelf/pantry photo) is built on the vision layer; few-shot
+// stock-from-photo is the next step.
 
 @Serializable
 data class InventoryItem(
