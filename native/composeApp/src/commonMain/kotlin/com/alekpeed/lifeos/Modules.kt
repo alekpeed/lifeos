@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
 import com.alekpeed.lifeos.education.EducationScreen
+import com.alekpeed.lifeos.places.PlacesScreen
 import com.alekpeed.lifeos.finance.LedgerScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.health.HealthScreen
@@ -46,7 +47,7 @@ fun lifeOsModules(): List<Module> = listOf(
     // Core
     Module("tasks", "✅", "Tasks", "Core", true) { TasksScreen() },
     Module("ideas", "💡", "Ideas", "Core", true) { IdeasScreen() },
-    Module("places", "📍", "Places", "Core", true) { SimpleListScreen("Places", "New place", listOf("The ramen place", "That trail")) },
+    Module("places", "📍", "Places", "Core", true) { PlacesScreen() },
     Module("links", "🔗", "Links", "Core", true) { SimpleListScreen("Links", "Paste a link", listOf("Article to read")) },
     Module("today", "🗓", "Today", "Core", true) { TodayScreen() },
     Module("command", "⌘", "Command", "Core", true) { CommandScreen() },
