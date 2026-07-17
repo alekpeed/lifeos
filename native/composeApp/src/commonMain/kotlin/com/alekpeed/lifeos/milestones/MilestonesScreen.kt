@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -27,16 +28,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.books.loadBooks
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.recipes.loadRecipes
+import kotlinx.coroutines.launch
 
 private val DANGER = Color(0xFFD64545)
 
@@ -126,6 +131,25 @@ private fun MilestoneDetail(data: MilestonesData, save: (MilestonesData) -> Unit
     }
 }
 
+private const val RECAP_SYSTEM =
+    "You write a short, warm year-in-review narrative for one person, inside their life-management app. " +
+        "Use ONLY the STATS and MILESTONES provided — never invent a number, event, or feeling the data " +
+        "doesn't support. 3-5 sentences, reflective but grounded. Output only the prose."
+
+private fun buildRecapContext(y: String, stats: List<Pair<String, String>>, ms: List<Milestone>): String = buildString {
+    append("Year: $y\n")
+    stats.forEach { append("${it.first}: ${it.second}\n") }
+    append(if (ms.isNotEmpty()) "Milestones this year: ${ms.joinToString("; ") { "${it.title.ifBlank { "(untitled)" }} (${it.date})" }}\n" else "Milestones this year: none logged\n")
+}
+
+private fun loadRecapNarrative(y: String): String {
+    val raw = Storage.read("RecapNarrative") ?: return ""
+    val p = raw.split("|", limit = 2)
+    return if (p.getOrNull(0) == y) p.getOrElse(1) { "" } else ""
+}
+
+private fun saveRecapNarrative(y: String, text: String) = Storage.write("RecapNarrative", "$y|$text")
+
 @Composable
 private fun Recap(data: MilestonesData) {
     var year by remember { mutableStateOf(today().toString().take(4)) }
@@ -140,6 +164,26 @@ private fun Recap(data: MilestonesData) {
     val cookSessions = recipes.recipes.flatMap { it.cookLogs }.count { it.date.startsWith(y) }
     val visits = places.places.flatMap { it.visitDates }.count { it.startsWith(y) }
     val ms = data.milestones.filter { it.date.startsWith(y) }.sortedBy { it.date }
+    val stats = listOf(
+        "Milestones" to ms.size.toString(), "Books finished" to booksFinished.toString(),
+        "Pages read" to pagesRead.toString(), "Recipe cook sessions" to cookSessions.toString(),
+        "Place visits" to visits.toString(),
+    )
+
+    val scope = rememberCoroutineScope()
+    val hasKey = remember { AiClient.hasKey() }
+    var narrative by remember(y) { mutableStateOf(loadRecapNarrative(y)) }
+    var writing by remember { mutableStateOf(false) }
+    fun writeNarrative() {
+        if (writing) return
+        writing = true
+        scope.launch {
+            val reply = AiClient.ask(RECAP_SYSTEM, buildRecapContext(y, stats, ms), maxTokens = 400)
+            narrative = reply.text
+            if (!reply.isError) saveRecapNarrative(y, reply.text)
+            writing = false
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -150,15 +194,23 @@ private fun Recap(data: MilestonesData) {
         Spacer(Modifier.height(10.dp))
         Text("$y in review", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
-        StatRow("Milestones", ms.size.toString())
-        StatRow("Books finished", booksFinished.toString())
-        StatRow("Pages read", pagesRead.toString())
-        StatRow("Recipe cook sessions", cookSessions.toString())
-        StatRow("Place visits", visits.toString())
-        Text(
-            "More stats join the recap as other modules gain dated history; the AI narrative wires to the AI layer next.",
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp),
-        )
+        stats.forEach { StatRow(it.first, it.second) }
+
+        Spacer(Modifier.height(12.dp))
+        Text("Narrative", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        when {
+            !hasKey -> Muted("Add an AI key in Settings to have the year written up, grounded only in these numbers.")
+            writing -> Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.height(16.dp).width(16.dp))
+                Spacer(Modifier.width(10.dp)); Text("Writing…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            narrative.isNotBlank() -> Column {
+                Text(narrative, style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = { writeNarrative() }) { Text("↻ Regenerate") }
+            }
+            else -> Button(onClick = { writeNarrative() }) { Text("Write the $y narrative") }
+        }
+
         Spacer(Modifier.height(12.dp))
         Text("Milestones this year", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (ms.isEmpty()) Muted("No milestones logged this year.")

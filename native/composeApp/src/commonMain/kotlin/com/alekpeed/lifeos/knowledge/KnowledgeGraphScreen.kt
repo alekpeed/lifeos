@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -22,14 +24,39 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.data.DATA_SOURCES
+import com.alekpeed.lifeos.data.linesOf
 import com.alekpeed.lifeos.data.searchAll
+import kotlinx.coroutines.launch
 
 private data class Node(val source: String, val label: String)
+
+private const val KG_SYSTEM =
+    "You suggest non-obvious but real connections in a personal knowledge graph. You are given a FOCUS " +
+        "record and a numbered CANDIDATES list. Pick up to 5 candidates that genuinely relate to the focus. " +
+        "Respond with ONLY lines of the form 'N | short reason', where N is a number from the CANDIDATES list. " +
+        "Use only numbers shown — never invent a record. If none fit, respond exactly 'none'."
+
+// Parse the model's reply into (candidate, reason) pairs, keeping only indices
+// that exist in the closed candidate list — so a hallucinated number is dropped,
+// never turned into a link.
+private fun parseSuggestions(text: String, candidates: List<Node>): List<Pair<Node, String>> {
+    val out = mutableListOf<Pair<Node, String>>()
+    text.lines().forEach { line ->
+        val m = Regex("""^\s*(\d+)\s*[|:.\-)]\s*(.+)$""").find(line) ?: return@forEach
+        val idx = (m.groupValues[1].toIntOrNull() ?: return@forEach) - 1
+        val cand = candidates.getOrNull(idx) ?: return@forEach
+        if (out.none { it.first == cand }) out.add(cand to m.groupValues[2].trim())
+    }
+    return out.take(5)
+}
 
 @Composable
 fun KnowledgeGraphScreen() {
@@ -76,6 +103,26 @@ private fun GraphView(
         .map { it.other(focus.source, focus.label) }
     val linked = neighbors.toSet()
 
+    val scope = rememberCoroutineScope()
+    val hasKey = remember { AiClient.hasKey() }
+    var suggestions by remember(focus) { mutableStateOf<List<Pair<Node, String>>?>(null) }
+    var suggesting by remember(focus) { mutableStateOf(false) }
+    val candidates = remember(focus, data) {
+        DATA_SOURCES.flatMap { ds -> linesOf(ds.key).map { Node(ds.label, it) } }
+            .filter { !(it.source == focus.source && it.label == focus.label) && (it.source to it.label) !in linked }
+            .distinct().take(40)
+    }
+    fun suggest() {
+        if (suggesting || candidates.isEmpty()) return
+        suggesting = true
+        scope.launch {
+            val listStr = candidates.mapIndexed { i, n -> "${i + 1}. [${n.source}] ${n.label}" }.joinToString("\n")
+            val reply = AiClient.ask(KG_SYSTEM, "FOCUS: [${focus.source}] ${focus.label}\nCANDIDATES:\n$listStr", maxTokens = 500)
+            suggestions = if (reply.isError) emptyList() else parseSuggestions(reply.text, candidates)
+            suggesting = false
+        }
+    }
+
     Spacer(Modifier.height(10.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
         TextButton(onClick = onChangeFocus) { Text("← Change focus") }
@@ -104,6 +151,39 @@ private fun GraphView(
                 TextButton(onClick = {
                     save(data.copy(edges = data.edges.filterNot { it.touches(focus.source, focus.label) && it.other(focus.source, focus.label) == (src to lbl) }))
                 }) { Text("×") }
+            }
+        }
+
+        if (hasKey && candidates.isNotEmpty()) {
+            item {
+                SectionLabel("AI-suggested connections")
+                when {
+                    suggesting -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.height(16.dp).width(16.dp))
+                        Spacer(Modifier.width(10.dp)); Text("Thinking…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    suggestions == null -> Button(onClick = { suggest() }) { Text("✨ Suggest connections") }
+                    suggestions!!.isEmpty() -> Column {
+                        Muted("Nothing stood out this pass.")
+                        TextButton(onClick = { suggest() }) { Text("Try again") }
+                    }
+                    else -> Spacer(Modifier.height(0.dp))
+                }
+            }
+            suggestions?.takeIf { it.isNotEmpty() }?.let { sugg ->
+                items(sugg) { (node, reason) ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(node.label, style = MaterialTheme.typography.bodyLarge)
+                            Text(node.source, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TextButton(onClick = {
+                            save(data.copy(edges = data.edges + Edge(focus.source, focus.label, node.source, node.label)))
+                            suggestions = suggestions?.filterNot { it.first == node }
+                        }) { Text("+ Link") }
+                    }
+                }
             }
         }
 

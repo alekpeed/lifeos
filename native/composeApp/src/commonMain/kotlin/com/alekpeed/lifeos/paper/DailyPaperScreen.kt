@@ -12,13 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,9 +46,80 @@ import com.alekpeed.lifeos.habits.saveHabits
 import com.alekpeed.lifeos.milestones.loadMilestones
 import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.recipes.loadRecipes
+import com.alekpeed.lifeos.ai.AiClient
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
 private val OVERDUE = Color(0xFFD64545)
+
+private const val EDITORIAL_SYSTEM =
+    "You are the editor of The Daily Ledger, a one-person newspaper inside Life OS, a personal " +
+        "life-management app. Write a concise 3-5 sentence editorial grounded ONLY in the FACTS provided — " +
+        "never invent tasks, numbers, events, or a mood the facts don't support. If a RECENT ISSUE is " +
+        "provided and a genuine callback adds something, reference it naturally; otherwise don't force it. " +
+        "Warm, dry, a touch literary. Output only the prose — no headline, no preamble."
+
+// A bounded packet of today's real facts for the editorial — the same discipline
+// the web app uses: numbers and named items only, nothing to embellish beyond
+// what's here. Recent finalized issues are appended so the AI can make a genuine
+// callback (the web's "AI with continuity").
+private fun buildEditorialContext(
+    docket: List<Docket>,
+    habits: List<Habit>,
+    onThisDay: List<OnThisDay>,
+    editorsPick: String,
+): String = buildString {
+    append("DATE: ${today()}\n")
+    val overdue = docket.count { it.overdue }
+    append("Docket: ${docket.size} item(s) due in the next 7 days")
+    if (overdue > 0) append(", $overdue overdue")
+    append(".\n")
+    docket.take(8).forEach { append("- ${it.kind}: ${it.title.ifBlank { "(untitled)" }} (${it.date}${if (it.overdue) ", OVERDUE" else ""})\n") }
+    val done = habits.count { today() in it.checkins }
+    append("Habits: $done/${habits.size} checked in today.\n")
+    if (onThisDay.isNotEmpty()) {
+        append("On this day in past years: ")
+        append(onThisDay.take(5).joinToString("; ") { "${it.kind} ${it.title} (${it.year})" })
+        append(".\n")
+    }
+    if (editorsPick.isNotBlank()) append("Editor's pick to nudge: $editorsPick.\n")
+    val recent = editorialHistory()
+    if (recent.isNotEmpty()) {
+        append("\nRECENT ISSUES (most recent first, for a possible callback — do not quote verbatim):\n")
+        recent.forEach { (d, t) -> append("[$d] $t\n") }
+    }
+}
+
+// One want-to-go place / unread book / untried recipe, chosen stably for the day.
+private fun computeEditorsPick(): String {
+    val cands = buildList {
+        loadPlaces().places.filter { it.listType == "wantToGo" }.forEach { add("visit ${it.name}") }
+        loadBooks().books.filter { it.status == "to_read" }.forEach { add("start reading ${it.title}") }
+        loadRecipes().recipes.filter { it.cookLogs.isEmpty() }.forEach { add("cook ${it.title}") }
+    }.filter { it.isNotBlank() }
+    if (cands.isEmpty()) return ""
+    val idx = (today().toEpochDays().mod(cands.size))
+    return cands[idx]
+}
+
+private fun loadTodaysEditorial(): String {
+    val raw = Storage.read("PaperEditorial") ?: return ""
+    val parts = raw.split("|", limit = 2)
+    return if (parts.getOrNull(0) == today().toString()) parts.getOrElse(1) { "" } else ""
+}
+
+private fun editorialHistory(): List<Pair<String, String>> =
+    (Storage.read("PaperEditorialHistory") ?: "").lines().filter { it.isNotBlank() }.mapNotNull {
+        val p = it.split("\t", limit = 2); if (p.size == 2) p[0] to p[1] else null
+    }
+
+private fun saveTodaysEditorial(text: String) {
+    Storage.write("PaperEditorial", "${today()}|$text")
+    // Prepend to history (most recent first), keep the last 3, one line each.
+    val prior = editorialHistory().filterNot { it.first == today().toString() }
+    val next = (listOf(today().toString() to text.replace("\n", " ").replace("\t", " ")) + prior).take(3)
+    Storage.write("PaperEditorialHistory", next.joinToString("\n") { "${it.first}\t${it.second}" })
+}
 
 private data class Docket(val kind: String, val title: String, val date: String, val overdue: Boolean, val key: String)
 private data class OnThisDay(val kind: String, val title: String, val year: String)
@@ -104,7 +179,24 @@ fun DailyPaperScreen() {
     var checked by remember { mutableStateOf(loadChecklist()) }
     val docket = remember { computeDocket() }
     val onThisDay = remember { computeOnThisDay() }
+    val editorsPick = remember { computeEditorsPick() }
     val almanac = remember { DATA_SOURCES.map { it.label to countOf(it.key) }.filter { it.second > 0 }.sortedByDescending { it.second }.take(8) }
+
+    val scope = rememberCoroutineScope()
+    val hasKey = remember { AiClient.hasKey() }
+    var editorial by remember { mutableStateOf(loadTodaysEditorial()) }
+    var writing by remember { mutableStateOf(false) }
+
+    fun writeEditorial() {
+        if (writing) return
+        writing = true
+        scope.launch {
+            val reply = AiClient.ask(EDITORIAL_SYSTEM, buildEditorialContext(docket, habits, onThisDay, editorsPick), maxTokens = 400)
+            if (!reply.isError) { editorial = reply.text; saveTodaysEditorial(reply.text) }
+            else editorial = reply.text
+            writing = false
+        }
+    }
 
     fun toggleCheck(key: String, on: Boolean) {
         checked = if (on) checked + key else checked - key
@@ -123,6 +215,26 @@ fun DailyPaperScreen() {
         Spacer(Modifier.height(14.dp))
 
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            item { Head("Editorial") }
+            item {
+                when {
+                    !hasKey -> Muted("Add an AI key in Settings and the editor will write a short daily column, grounded only in the facts below.")
+                    writing -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.height(16.dp).width(16.dp))
+                        Spacer(Modifier.width(10.dp)); Text("Writing…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    editorial.isNotBlank() -> Column {
+                        Text(editorial, style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = { writeEditorial() }) { Text("↻ Regenerate") }
+                    }
+                    else -> Button(onClick = { writeEditorial() }) { Text("Write today's editorial") }
+                }
+            }
+            if (editorsPick.isNotBlank()) {
+                item { Head("Editor's Pick") }
+                item { Text("Maybe today: $editorsPick.", style = MaterialTheme.typography.bodyMedium) }
+            }
+
             item { Head("On the Docket") }
             if (docket.isEmpty()) item { Muted("The docket is clear for the next seven days — a rare and beautiful thing.") }
             else docket.forEach { d ->
@@ -170,12 +282,6 @@ fun DailyPaperScreen() {
                 Text(
                     almanac.joinToString("   ") { "${it.first} ${it.second}" },
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            item {
-                Text(
-                    "The AI editorial column joins the paper when the recap/editorial prompt is wired to the AI layer.",
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp),
                 )
             }
         }
