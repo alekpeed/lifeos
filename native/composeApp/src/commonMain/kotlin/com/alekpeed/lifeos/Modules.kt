@@ -2,8 +2,10 @@ package com.alekpeed.lifeos
 
 import androidx.compose.runtime.Composable
 import com.alekpeed.lifeos.books.BooksScreen
+import com.alekpeed.lifeos.collections.CollectionsScreen
 import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
+import com.alekpeed.lifeos.ghostdays.GhostDaysScreen
 import com.alekpeed.lifeos.documents.DocumentsScreen
 import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
@@ -12,6 +14,7 @@ import com.alekpeed.lifeos.museum.MuseumScreen
 import com.alekpeed.lifeos.packing.PackingScreen
 import com.alekpeed.lifeos.places.PlacesScreen
 import com.alekpeed.lifeos.quartermaster.QuartermasterScreen
+import com.alekpeed.lifeos.rabbitholes.RabbitHolesScreen
 import com.alekpeed.lifeos.recipes.RecipesScreen
 import com.alekpeed.lifeos.sharebox.ShareboxScreen
 import com.alekpeed.lifeos.timecapsules.TimeCapsulesScreen
@@ -79,9 +82,9 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("milestones", "🏆", "Milestones", "Memory", true) { MilestonesScreen() },
     Module("museum", "🏛", "Museum", "Memory", true) { MuseumScreen() },
     Module("time-capsules", "⏳", "Time Capsules", "Memory", true) { TimeCapsulesScreen() },
-    Module("collections", "🗂", "Collections", "Memory", true) { SimpleListScreen("Collections", "Add an item") },
-    Module("ghost-days", "👻", "Ghost Days", "Memory", true) { NoteListScreen("Ghost Days", "A quiet or lost day", "Date") },
-    Module("rabbit-holes", "🕳", "Rabbit Holes", "Memory", true) { SimpleListScreen("Rabbit Holes", "New rabbit hole") },
+    Module("collections", "🗂", "Collections", "Memory", true) { CollectionsScreen() },
+    Module("ghost-days", "👻", "Ghost Days", "Memory", true) { GhostDaysScreen() },
+    Module("rabbit-holes", "🕳", "Rabbit Holes", "Memory", true) { RabbitHolesScreen() },
     // Health
     Module("habits", "🔥", "Habits", "Health", true) { HabitsScreen() },
     Module("health", "❤", "Health", "Health", true) { HealthScreen() },
