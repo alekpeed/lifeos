@@ -1,5 +1,18 @@
 # Life OS — standing instructions
 
+## Native is the product — never pitch the web app (2026-07-16)
+
+**Hard rule, no exceptions:** the native rebuild (Kotlin + Compose Multiplatform)
+is the app. Never suggest, imply, or "offer the honest trade" of going back to /
+sticking with / keeping the legacy web PWA. Do not frame native as a lift "versus"
+the web app. Alek has decided; relitigating it — even framed as transparency — is
+off the table. The web `js/` source is a **reference to port FROM**, nothing else.
+
+The job is to bring native to full feature depth by **porting each module's real
+behavior from the web source into Compose** — real features, not text-box stubs.
+Don't report a module "done" until its actual functionality is there and Alek has
+seen it work on device.
+
 ## Model / reasoning-effort protocol
 
 Baseline for this project: **claude-sonnet-5 + medium reasoning effort**

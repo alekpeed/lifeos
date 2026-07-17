@@ -99,6 +99,12 @@ the same scratchpad file path to keep the URL.
 
 ## 6. Standing rules (from CLAUDE.md — don't relearn the hard way)
 
+- **NEVER suggest the web app.** Native is the product. Do not pitch, offer, or
+  "honestly note the trade" of going back to the legacy web PWA — ever. `js/` is a
+  reference to port FROM. The real work is porting each module's real features into
+  native; don't call a module done until its actual behavior is there and Alek has
+  seen it on device. (Also in CLAUDE.md, top.)
+
 - **Graphics:** Alek brings visual assets; wire them as-is (don't reinterpret). The
   cat/tree/cathedral were explicit "show me what you can do" exceptions he asked
   for — fine when he directly requests a mockup.
