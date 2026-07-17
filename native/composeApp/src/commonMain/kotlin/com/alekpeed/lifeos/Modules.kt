@@ -40,7 +40,6 @@ import com.alekpeed.lifeos.settings.SettingsScreen
 import com.alekpeed.lifeos.system.QrSyncScreen
 import com.alekpeed.lifeos.system.StationCatScreen
 import com.alekpeed.lifeos.system.ToolsScreen
-import com.alekpeed.lifeos.theme.ThemeFromPhotoScreen
 import com.alekpeed.lifeos.tasks.TasksScreen
 import com.alekpeed.lifeos.ui.SearchScreen
 import com.alekpeed.lifeos.ui.StatsScreen
@@ -107,7 +106,6 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("search", "🔍", "Search", "System", true) { SearchScreen("Search", "Search everything…") },
     Module("tools", "🧰", "Tools", "System", true) { ToolsScreen() },
     Module("qr-sync", "🔳", "QR Sync", "System", true) { QrSyncScreen() },
-    Module("theme-from-photo", "🎨", "Theme from Photo", "System", true) { ThemeFromPhotoScreen() },
     Module("station-cat", "🐱", "Station Cat", "System", true) { StationCatScreen() },
     Module("settings", "⚙", "Settings", "System", true) { SettingsScreen() },
 )
