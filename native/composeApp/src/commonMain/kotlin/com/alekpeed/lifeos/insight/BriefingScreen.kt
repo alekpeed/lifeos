@@ -32,9 +32,9 @@ fun BriefingScreen() {
     val tasks = loadTasks()
     val habits = loadHabits()
 
-    val overdue = tasks.filter { !it.done && it.due != null && it.due < today() }.sortedBy { it.due }
-        .map { BriefLine(it.title, relativeLabel(it.due!!), urgent = true) }
-    val dueToday = tasks.filter { !it.done && it.due == today() }
+    val overdue = tasks.filter { val d = it.dueDate(); !it.done && d != null && d < today() }.sortedBy { it.dueDate() }
+        .map { BriefLine(it.title, relativeLabel(it.dueDate()!!), urgent = true) }
+    val dueToday = tasks.filter { !it.done && it.dueDate() == today() }
         .map { BriefLine(it.title, "Today", urgent = true) }
     val atRisk = habits.filter { it.streak > 0 && !it.checkedInToday }
         .map { BriefLine(it.name, "${it.streak}-day streak — check in today", urgent = true) }

@@ -42,8 +42,8 @@ fun TodayScreen() {
     fun persistTasks() = saveTasks(tasks)
     fun persistHabits() = saveHabits(habits)
 
-    val overdue = tasks.filter { !it.done && it.due != null && it.due < today() }.sortedBy { it.due }
-    val dueToday = tasks.filter { !it.done && it.due == today() }
+    val overdue = tasks.filter { val d = it.dueDate(); !it.done && d != null && d < today() }.sortedBy { it.dueDate() }
+    val dueToday = tasks.filter { !it.done && it.dueDate() == today() }
     val pendingHabits = habits.filter { !it.checkedInToday }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
@@ -79,7 +79,7 @@ fun TodayScreen() {
                         overdue.forEach { task ->
                             TaskRow(task, showDue = true) { checked ->
                                 val i = tasks.indexOfFirst { it.id == task.id }
-                                if (i >= 0) { tasks[i] = task.copy(done = checked); persistTasks() }
+                                if (i >= 0) { tasks[i] = task.copy(status = if (checked) "done" else "not_started"); persistTasks() }
                             }
                         }
                     }
@@ -91,7 +91,7 @@ fun TodayScreen() {
                         dueToday.forEach { task ->
                             TaskRow(task, showDue = false) { checked ->
                                 val i = tasks.indexOfFirst { it.id == task.id }
-                                if (i >= 0) { tasks[i] = task.copy(done = checked); persistTasks() }
+                                if (i >= 0) { tasks[i] = task.copy(status = if (checked) "done" else "not_started"); persistTasks() }
                             }
                         }
                     }
@@ -131,12 +131,14 @@ private fun TaskRow(task: Task, showDue: Boolean, onToggle: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = task.done, onCheckedChange = onToggle)
         Text(task.title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        if (showDue && task.due != null) {
-            Text(
-                relativeLabel(task.due),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
+        task.dueDate()?.let { d ->
+            if (showDue) {
+                Text(
+                    relativeLabel(d),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }
