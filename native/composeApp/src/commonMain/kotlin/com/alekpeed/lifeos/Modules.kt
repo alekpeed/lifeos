@@ -13,6 +13,7 @@ import com.alekpeed.lifeos.milestones.MilestonesScreen
 import com.alekpeed.lifeos.museum.MuseumScreen
 import com.alekpeed.lifeos.orrery.OrreryScreen
 import com.alekpeed.lifeos.packing.PackingScreen
+import com.alekpeed.lifeos.paper.DailyPaperScreen
 import com.alekpeed.lifeos.places.PlacesScreen
 import com.alekpeed.lifeos.quartermaster.QuartermasterScreen
 import com.alekpeed.lifeos.rabbitholes.RabbitHolesScreen
@@ -38,12 +39,10 @@ import com.alekpeed.lifeos.settings.SettingsScreen
 import com.alekpeed.lifeos.system.QrSyncScreen
 import com.alekpeed.lifeos.system.StationCatScreen
 import com.alekpeed.lifeos.system.ToolsScreen
+import com.alekpeed.lifeos.theme.ThemeFromPhotoScreen
 import com.alekpeed.lifeos.tasks.TasksScreen
-import com.alekpeed.lifeos.ui.NoteListScreen
 import com.alekpeed.lifeos.ui.SearchScreen
-import com.alekpeed.lifeos.ui.SimpleListScreen
 import com.alekpeed.lifeos.ui.StatsScreen
-import com.alekpeed.lifeos.ui.StatusListScreen
 
 // One entry per module. `id` is a stable slug used to route through the interface
 // layer (a graphical interface registers screens against these ids). `content` is
@@ -71,7 +70,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("command", "⌘", "Command", "Core", true) { CommandScreen() },
     Module("finance", "💵", "Finance", "Core", true) { LedgerScreen() },
     Module("education", "🎓", "Education", "Core", true) { EducationScreen() },
-    Module("daily-paper", "📰", "Daily Paper", "Core", true) { NoteListScreen("Daily Paper", "Headline", "Source / link") },
+    Module("daily-paper", "📰", "Daily Paper", "Core", true) { DailyPaperScreen() },
     Module("orrery", "🪐", "Orrery", "Core", true) { OrreryScreen() },
     // People
     Module("contacts", "👤", "Contacts", "People", true) { ContactsScreen() },
@@ -107,7 +106,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("search", "🔍", "Search", "System", true) { SearchScreen("Search", "Search everything…") },
     Module("tools", "🧰", "Tools", "System", true) { ToolsScreen() },
     Module("qr-sync", "🔳", "QR Sync", "System", true) { QrSyncScreen() },
-    Module("theme-from-photo", "🎨", "Theme from Photo", "System", true) { NoteListScreen("Theme from Photo", "Theme name", "Hex colors") },
+    Module("theme-from-photo", "🎨", "Theme from Photo", "System", true) { ThemeFromPhotoScreen() },
     Module("station-cat", "🐱", "Station Cat", "System", true) { StationCatScreen() },
     Module("settings", "⚙", "Settings", "System", true) { SettingsScreen() },
 )
