@@ -1,21 +1,28 @@
 package com.alekpeed.lifeos.photos
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,7 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
@@ -56,10 +69,6 @@ private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: ()
     var input by remember { mutableStateOf("") }
 
     Text("Photos", style = MaterialTheme.typography.headlineMedium)
-    Text(
-        "Album index. Image capture, storage, and import land with the media layer; for now organize albums and caption what belongs in them.",
-        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
     Spacer(Modifier.height(12.dp))
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -75,17 +84,25 @@ private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: ()
     if (data.albums.isEmpty()) { Muted("No albums yet."); return }
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(data.albums, key = { it.id }) { album ->
+            val cover = album.captions.firstOrNull { it.blob.isNotBlank() }
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onOpen(album.id) }.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("🖼", modifier = Modifier.padding(end = 10.dp))
+                val coverBlob = cover?.blob ?: ""
+                val coverImg = remember(coverBlob) { if (coverBlob.isBlank()) null else loadBlobImage(coverBlob) }
+                if (coverImg != null) {
+                    Image(coverImg, contentDescription = null, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
+                    Spacer(Modifier.width(10.dp))
+                } else {
+                    Text("🖼", modifier = Modifier.padding(end = 10.dp))
+                }
                 Column(Modifier.weight(1f)) {
                     Text(album.name.ifBlank { "(untitled album)" }, style = MaterialTheme.typography.bodyLarge)
                     Text("${album.captions.size} item${if (album.captions.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
-                TextButton(onClick = { save(data.copy(albums = data.albums.filterNot { it.id == album.id })) }) { Text("×") }
+                TextButton(onClick = { album.captions.forEach { deleteBlob(it.blob) }; save(data.copy(albums = data.albums.filterNot { it.id == album.id })) }) { Text("×") }
             }
         }
     }
@@ -94,48 +111,101 @@ private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: ()
 @Composable
 private fun AlbumDetail(data: PhotosData, save: (PhotosData) -> Unit, freshId: () -> Long, album: Album, onBack: () -> Unit) {
     fun patch(f: (Album) -> Album) = save(data.copy(albums = data.albums.map { if (it.id == album.id) f(it) else it }))
-    var capText by remember { mutableStateOf("") }
-    var capNote by remember { mutableStateOf("") }
+    var showSource by remember { mutableStateOf(false) }
+    var lightbox by remember { mutableStateOf<Long?>(null) }
+
+    fun onPhoto(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        patch { it.copy(captions = it.captions + Caption(freshId(), "", "", id)) }
+    }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         TextButton(onClick = onBack) { Text("← Albums") }
         Spacer(Modifier.width(4.dp))
         Text(album.name.ifBlank { "(untitled album)" }, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-        TextButton(onClick = { save(data.copy(albums = data.albums.filterNot { it.id == album.id })); onBack() }) { Text("Delete", color = DANGER) }
+        TextButton(onClick = {
+            album.captions.forEach { deleteBlob(it.blob) }
+            save(data.copy(albums = data.albums.filterNot { it.id == album.id })); onBack()
+        }) { Text("Delete", color = DANGER) }
     }
     Spacer(Modifier.height(8.dp))
-    Text("Album name", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    OutlinedTextField(album.name, { v -> patch { it.copy(name = v.replace("\n", " ")) } }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Name") })
+    OutlinedTextField(album.name, { v -> patch { it.copy(name = v.replace("\n", " ")) } }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Album name") })
     Spacer(Modifier.height(6.dp))
-    Text("Description", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    OutlinedTextField(album.description, { v -> patch { it.copy(description = v) } }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("What's this album about?") })
-    Spacer(Modifier.height(12.dp))
+    OutlinedTextField(album.description, { v -> patch { it.copy(description = v) } }, modifier = Modifier.fillMaxWidth(), label = { Text("Description") })
+    Spacer(Modifier.height(10.dp))
 
-    Text("Photos (captions)", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Spacer(Modifier.height(6.dp))
-    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        items(album.captions, key = { it.id }) { cap ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("🖼", modifier = Modifier.padding(end = 8.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(cap.text, style = MaterialTheme.typography.bodyLarge)
-                    if (cap.note.isNotBlank()) Text(cap.note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (Native.supportsCamera) {
+        OutlinedButton(onClick = { showSource = true }) { Text("📷 Add photo") }
+        Spacer(Modifier.height(10.dp))
+    }
+
+    if (album.captions.isEmpty()) {
+        Muted("No photos yet.")
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 108.dp),
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            androidx.compose.foundation.lazy.grid.items(album.captions, key = { it.id }) { cap ->
+                Column {
+                    Box(
+                        Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant).clickable { lightbox = cap.id },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        val tileImg = remember(cap.blob) { if (cap.blob.isBlank()) null else loadBlobImage(cap.blob) }
+                        if (tileImg != null) Image(tileImg, contentDescription = cap.text.ifBlank { null }, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        else Text("🖼", style = MaterialTheme.typography.headlineMedium)
+                    }
+                    if (cap.text.isNotBlank()) Text(cap.text, style = MaterialTheme.typography.labelSmall, maxLines = 2)
                 }
-                TextButton(onClick = { patch { it.copy(captions = it.captions.filterNot { c -> c.id == cap.id }) } }) { Text("×") }
             }
         }
-        item {
-            Column(Modifier.padding(top = 8.dp)) {
-                OutlinedTextField(capText, { capText = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Caption") })
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(capNote, { capNote = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Where it's stored (optional)") })
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = {
-                        val t = capText.trim().replace("\n", " ")
-                        if (t.isNotEmpty()) { patch { it.copy(captions = it.captions + Caption(freshId(), t, capNote.trim())) }; capText = ""; capNote = "" }
-                    }) { Text("Add") }
-                }
+    }
+
+    if (showSource) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showSource = false },
+            title = { Text("Add a photo") },
+            text = { Text("Take a new photo, or choose one from your library.") },
+            confirmButton = { TextButton(onClick = { showSource = false; Native.takePhoto { onPhoto(it) } }) { Text("Take a photo") } },
+            dismissButton = { TextButton(onClick = { showSource = false; Native.capturePhoto { onPhoto(it) } }) { Text("Choose from library") } },
+        )
+    }
+
+    val shown = album.captions.firstOrNull { it.id == lightbox }
+    if (shown != null) {
+        Lightbox(
+            cap = shown,
+            onCaption = { v -> patch { it.copy(captions = it.captions.map { c -> if (c.id == shown.id) c.copy(text = v.replace("\n", " ")) else c }) } },
+            onDelete = { deleteBlob(shown.blob); patch { it.copy(captions = it.captions.filterNot { c -> c.id == shown.id }) }; lightbox = null },
+            onClose = { lightbox = null },
+        )
+    }
+}
+
+@Composable
+private fun Lightbox(cap: Caption, onCaption: (String) -> Unit, onDelete: () -> Unit, onClose: () -> Unit) {
+    Dialog(onDismissRequest = onClose) {
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).padding(12.dp),
+        ) {
+            val img = remember(cap.blob) { if (cap.blob.isBlank()) null else loadBlobImage(cap.blob) }
+            if (img != null) {
+                Image(img, contentDescription = cap.text.ifBlank { null }, modifier = Modifier.fillMaxWidth().height(360.dp), contentScale = ContentScale.Fit)
+            } else {
+                Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { Text("🖼 (no image)", style = MaterialTheme.typography.bodyMedium) }
+            }
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(cap.text, onCaption, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Caption") })
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onClose) { Text("Close") }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onDelete) { Text("Delete", color = DANGER) }
             }
         }
     }

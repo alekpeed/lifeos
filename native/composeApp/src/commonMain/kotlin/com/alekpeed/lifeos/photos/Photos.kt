@@ -5,16 +5,14 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-// Photos — ported from the web app's Photos view as an album index. The web
-// version's core is image storage (albums of photo attachments, a lightbox,
-// Google Photos import) which native can't hold until the media/attachment
-// layer exists. Until then this is a real, persisted album organizer: named
-// albums, each with a description and captioned entries (text stand-ins for the
-// photos that will attach later). One JSON blob under "Photos"; old note stubs
-// migrate into an Imported album.
+// Photos — named albums of real images. Each entry (Caption) can carry a blob-
+// store id (`blob`) pointing at the actual image on disk, plus an optional
+// caption. Entries without a blob are legacy text stand-ins (from before the
+// media layer) and still render as captions. One JSON blob under "Photos"; old
+// note stubs migrate into an Imported album.
 
 @Serializable
-data class Caption(val id: Long, val text: String, val note: String = "")
+data class Caption(val id: Long, val text: String, val note: String = "", val blob: String = "")
 
 @Serializable
 data class Album(
