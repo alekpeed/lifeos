@@ -72,20 +72,49 @@ object AiClient {
     fun model(): String = Storage.read("AiModel")?.trim()?.ifBlank { null } ?: DEFAULT_AI_MODEL
 
     suspend fun ask(system: String, userText: String, maxTokens: Int = 1024): AiReply =
-        when (provider()) {
-            "openai" -> OpenAiClient.ask(system, userText, maxTokens)
-            "gemini" -> GeminiClient.ask(system, userText, maxTokens)
-            else -> askClaude(system, userText, maxTokens)
+        withAiRetry {
+            when (provider()) {
+                "openai" -> OpenAiClient.ask(system, userText, maxTokens)
+                "gemini" -> GeminiClient.ask(system, userText, maxTokens)
+                else -> askClaude(system, userText, maxTokens)
+            }
         }
+
+    // Retry transient failures — spurious 401s (providers occasionally reject a
+    // valid key on the first hit or under load), rate limits, 5xx, and network
+    // blips — with a short backoff, so a call that would "work if you tap again"
+    // just works. A genuinely bad key still fails after the retries.
+    private suspend fun withAiRetry(block: suspend () -> AiReply): AiReply {
+        var result = block()
+        var attempt = 1
+        while (result.isError && attempt < 3 && isTransient(result.text)) {
+            kotlinx.coroutines.delay(500L * attempt)
+            result = block()
+            attempt++
+        }
+        return result
+    }
+
+    private fun isTransient(msg: String): Boolean {
+        val m = msg.lowercase()
+        return ("invalid" in m && "key" in m) ||
+            "rate limited" in m ||
+            "server error" in m ||
+            "no network" in m ||
+            "couldn't reach" in m ||
+            "unexpected response" in m
+    }
 
     // Vision: send a base64 JPEG (no data: prefix) plus a text instruction to the
     // active provider. All three default models are vision-capable. Backs the
     // camera-to-data document scan (and future photo-cataloging).
     suspend fun askWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int = 1024): AiReply =
-        when (provider()) {
-            "openai" -> OpenAiClient.askWithImage(system, userText, imageBase64, maxTokens)
-            "gemini" -> GeminiClient.askWithImage(system, userText, imageBase64, maxTokens)
-            else -> askClaudeWithImage(system, userText, imageBase64, maxTokens)
+        withAiRetry {
+            when (provider()) {
+                "openai" -> OpenAiClient.askWithImage(system, userText, imageBase64, maxTokens)
+                "gemini" -> GeminiClient.askWithImage(system, userText, imageBase64, maxTokens)
+                else -> askClaudeWithImage(system, userText, imageBase64, maxTokens)
+            }
         }
 
     private suspend fun askClaudeWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int): AiReply {

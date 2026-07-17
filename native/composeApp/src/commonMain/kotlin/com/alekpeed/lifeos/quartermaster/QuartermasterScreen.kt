@@ -176,7 +176,7 @@ fun QuartermasterScreen() {
             CatalogReview(
                 items = items,
                 onEdit = { i, v -> draft = items.toMutableList().also { it[i] = v } },
-                onRemove = { i -> draft = items.filterIndexed { idx, _ -> idx != i } },
+                onRemove = { i -> draft = items.filterIndexed { idx, _ -> idx != i }.ifEmpty { null } },
                 onCancel = { draft = null },
                 onAddAll = {
                     val toAdd = items.map { it.trim() }.filter { it.isNotEmpty() }

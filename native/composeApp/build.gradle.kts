@@ -60,7 +60,7 @@ android {
         // environment (a GitHub Actions secret in CI) — never committed to source.
         // Empty for local/desktop/PR builds, where the app falls back to a
         // user-entered key. Escape any double-quote defensively.
-        val bakedKey = (System.getenv("OPENAI_API_KEY") ?: "").replace("\"", "\\\"")
+        val bakedKey = (System.getenv("OPENAI_API_KEY") ?: "").trim().replace("\"", "\\\"")
         buildConfigField("String", "OPENAI_API_KEY", "\"$bakedKey\"")
     }
     buildFeatures {
