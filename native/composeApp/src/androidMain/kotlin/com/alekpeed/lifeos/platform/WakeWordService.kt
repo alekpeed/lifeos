@@ -159,10 +159,9 @@ class WakeWordService : Service() {
     }
 
     private fun capture(text: String) {
-        val clean = text.trim().replace("\n", " ")
-        if (clean.isEmpty()) return
-        val existing = Storage.read("Ideas").orEmpty()
-        Storage.write("Ideas", if (existing.isBlank()) clean else "$existing\n$clean")
+        // Route through the Ideas model so the note appends as a real record and
+        // doesn't clobber the JSON blob.
+        com.alekpeed.lifeos.ideas.appendIdea(text)
     }
 
     private fun statusText(): String = "Say “${phrase} …” to capture a note"

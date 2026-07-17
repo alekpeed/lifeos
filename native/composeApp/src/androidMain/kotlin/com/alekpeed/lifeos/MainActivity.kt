@@ -197,10 +197,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun captureToInbox(text: String) {
-        val clean = text.trim().replace("\n", " ")
-        if (clean.isEmpty()) return
-        val existing = Storage.read("Ideas").orEmpty()
-        Storage.write("Ideas", if (existing.isBlank()) clean else "$existing\n$clean")
+        // Route through the Ideas model so a shared/NFC/clipboard capture appends a
+        // real record instead of clobbering the JSON blob.
+        com.alekpeed.lifeos.ideas.appendIdea(text)
         Nav.open("ideas")
     }
 

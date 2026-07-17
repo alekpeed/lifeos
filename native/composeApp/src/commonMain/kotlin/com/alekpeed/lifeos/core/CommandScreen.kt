@@ -30,6 +30,7 @@ import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.habits.saveHabits
+import com.alekpeed.lifeos.ideas.appendIdea
 import com.alekpeed.lifeos.people.Contact
 import com.alekpeed.lifeos.people.loadContacts
 import com.alekpeed.lifeos.people.saveContacts
@@ -39,10 +40,6 @@ import com.alekpeed.lifeos.tasks.loadTasks
 import com.alekpeed.lifeos.tasks.saveTasks
 import kotlinx.coroutines.launch
 
-private fun appendLine(key: String, line: String) {
-    val existing = Storage.read(key).orEmpty()
-    Storage.write(key, if (existing.isBlank()) line else "$existing\n$line")
-}
 
 // Create a record of the given type. Tasks go through the real JSON model (not
 // the old tab format — that would corrupt the now-JSON Tasks blob); ideas and
@@ -57,7 +54,7 @@ private fun createRecord(type: String, title: String): String {
             saveTasks(tasks + Task(id, t))
             "Added task: “$t”"
         }
-        "idea" -> { appendLine("Ideas", t); "Added idea: “$t”" }
+        "idea" -> { appendIdea(t); "Added idea: “$t”" }
         "contact" -> {
             val cd = loadContacts()
             val id = (cd.contacts.maxOfOrNull { it.id } ?: 0L) + 1
@@ -75,7 +72,7 @@ private fun createRecord(type: String, title: String): String {
                 "New habit + checked in: “$t”"
             }
         }
-        else -> { appendLine("Ideas", t); "Added idea: “$t”" }
+        else -> { appendIdea(t); "Added idea: “$t”" }
     }
 }
 
