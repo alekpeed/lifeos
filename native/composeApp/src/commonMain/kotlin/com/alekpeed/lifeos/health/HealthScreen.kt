@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -73,6 +74,7 @@ private fun load(): List<Reading> {
 
 private fun save(readings: List<Reading>) {
     Storage.write("Health", json.encodeToString(HealthData(readings)))
+    SaveToast.show()
 }
 
 // Structured, dated health readings — metric, value, unit, date — grouped by

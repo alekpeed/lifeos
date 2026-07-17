@@ -40,6 +40,9 @@ import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import kotlinx.serialization.Serializable
@@ -122,6 +125,7 @@ private fun loadData(): FinanceData {
 
 private fun saveData(data: FinanceData) {
     Storage.write("Finance", json.encodeToString(data))
+    SaveToast.show()
 }
 
 // Public read-only accessor for the stats layer (The Almanac): each ledger entry
@@ -292,7 +296,7 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                     Column(Modifier.weight(1f)) {
                         Text(e.desc, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            listOfNotNull(e.category, if (e.recurring) "↻" else null, e.date.ifBlank { null }).joinToString(" · "),
+                            listOfNotNull(e.category, if (e.recurring) "↻" else null, e.date.ifBlank { null }?.let { usDate(it) }).joinToString(" · "),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -331,14 +335,12 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
 
         OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Bill name") })
         Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                amount, { amount = it }, modifier = Modifier.weight(1f), singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), placeholder = { Text("Amount") },
-            )
-            Spacer(Modifier.width(10.dp))
-            OutlinedTextField(dueDate, { dueDate = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("YYYY-MM-DD") })
-        }
+        OutlinedTextField(
+            amount, { amount = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), placeholder = { Text("Amount") },
+        )
+        Spacer(Modifier.height(8.dp))
+        DateField(dueDate) { v -> dueDate = v }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CADENCES.forEach { c -> FilterChip(selected = cadence == c, onClick = { cadence = c }, label = { Text(c) }) }
@@ -376,11 +378,11 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                         val due = parseDateOrNull(b.dueDate)
                         val meta = buildList {
                             add(b.cadence)
-                            if (due != null) add("due ${relativeLabel(due)}") else if (b.dueDate.isNotBlank()) add("due ${b.dueDate}")
+                            if (due != null) add("due ${relativeLabel(due)}") else if (b.dueDate.isNotBlank()) add("due ${usDate(b.dueDate)}")
                             if (b.autopay) add("autopay")
                             if (b.paymentHistory.isNotEmpty()) {
                                 val last = b.paymentHistory.maxByOrNull { it.date }?.date
-                                add("paid ${b.paymentHistory.size}×" + if (last != null) ", last $last" else "")
+                                add("paid ${b.paymentHistory.size}×" + if (last != null) ", last ${usDate(last)}" else "")
                             }
                         }.joinToString(" · ")
                         Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

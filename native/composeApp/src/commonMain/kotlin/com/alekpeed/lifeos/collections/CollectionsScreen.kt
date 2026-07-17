@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -32,7 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
 
@@ -43,7 +44,7 @@ fun CollectionsScreen() {
         mutableStateOf(maxOf(data.collections.maxOfOrNull { it.id } ?: 0L, data.collections.flatMap { it.items }.maxOfOrNull { it.id } ?: 0L))
     }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: CollectionsData) { data = d; saveCollections(d) }
+    fun save(d: CollectionsData) { data = d; saveCollections(d); SaveToast.show() }
     var openId by remember { mutableStateOf<Long?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
@@ -114,11 +115,7 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
 
     OutlinedTextField(iName, { iName = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Item name") })
     Spacer(Modifier.height(6.dp))
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(iDate, { iDate = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Acquired (YYYY-MM-DD)") })
-        Spacer(Modifier.width(6.dp))
-        AssistChip(onClick = { iDate = today().toString() }, label = { Text("Today") })
-    }
+    DateField(iDate) { v -> iDate = v }
     Spacer(Modifier.height(6.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(iTags, { iTags = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Tags") })
@@ -129,7 +126,7 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
             val n = iName.trim().replace("\n", " ")
             if (n.isNotEmpty()) {
                 val t = iTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                patch { it.copy(items = it.items + CollItem(freshId(), n, iDate.trim(), t, iNotes.trim())) }
+                patch { it.copy(items = it.items + CollItem(freshId(), n, iDate, t, iNotes.trim())) }
                 iName = ""; iDate = ""; iTags = ""; iNotes = ""
             }
         }) { Text("Add") }
@@ -146,7 +143,7 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
                 Column(Modifier.weight(1f)) {
                     Text(item.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                     val chips = buildList {
-                        if (item.acquiredDate.isNotBlank()) add(item.acquiredDate)
+                        if (item.acquiredDate.isNotBlank()) add(usDate(item.acquiredDate))
                         item.tags.forEach { add("#$it") }
                     }
                     if (chips.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

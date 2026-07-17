@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.minusDays
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.SaveToast
 
 // Habits with a real daily-reset streak (derived from actual check-in days, not a
 // counter you can inflate by tapping twice) and a 7-day history strip. "Check in"
@@ -40,7 +41,7 @@ import com.alekpeed.lifeos.data.today
 @Composable
 fun HabitsScreen() {
     val habits = remember { mutableStateListOf<Habit>().apply { addAll(loadHabits()) } }
-    fun persist() = saveHabits(habits)
+    fun persist() { saveHabits(habits); SaveToast.show() }
     var input by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {

@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.usDate
 
 private val DANGER = Color(0xFFD64545)
 
@@ -55,7 +57,7 @@ fun RecipesScreen() {
         )
     }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: RecipesData) { data = d; saveRecipes(d) }
+    fun save(d: RecipesData) { data = d; saveRecipes(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("recipes") }
     var selected by remember { mutableStateOf<Long?>(null) }
@@ -210,7 +212,7 @@ private fun RecipeDetail(
         recipe.cookLogs.sortedByDescending { it.date }.forEach { log ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(log.date, style = MaterialTheme.typography.bodyMedium)
+                    Text(usDate(log.date).ifBlank { log.date }, style = MaterialTheme.typography.bodyMedium)
                     if (log.notes.isNotBlank()) Text(log.notes, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 TextButton(onClick = { patch { it.copy(cookLogs = it.cookLogs.filterNot { x -> x.id == log.id }) } }) { Text("×") }
@@ -227,7 +229,7 @@ private fun RecipeDetail(
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose) { Text("Close") }
+            TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { save(data.copy(recipes = data.recipes.filterNot { it.id == recipe.id })); onClose() }) {
                 Text("Delete recipe", color = DANGER)

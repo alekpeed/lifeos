@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 
@@ -64,7 +65,7 @@ private fun priorityColor(p: String): Color? = when (p) {
 @Composable
 fun TasksScreen() {
     val tasks = remember { mutableStateListOf<Task>().apply { addAll(loadTasks()) } }
-    fun persist() = saveTasks(tasks)
+    fun persist() { saveTasks(tasks); SaveToast.show() }
     var input by remember { mutableStateOf("") }
     var nextId by remember { mutableStateOf((tasks.maxOfOrNull { it.id } ?: 0L) + 1) }
     var expandedId by remember { mutableStateOf<Long?>(null) }

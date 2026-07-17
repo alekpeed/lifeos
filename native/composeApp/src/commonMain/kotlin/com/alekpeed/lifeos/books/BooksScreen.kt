@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.usDate
 
 private val DANGER = Color(0xFFD64545)
 private val STAR_ON = Color(0xFFE0A63C)
@@ -62,7 +64,7 @@ fun BooksScreen() {
         )
     }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: BooksData) { data = d; saveBooks(d) }
+    fun save(d: BooksData) { data = d; saveBooks(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("reading") }
     var selected by remember { mutableStateOf<Long?>(null) }
@@ -180,7 +182,7 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
         Label("Reading log")
         book.logs.sortedByDescending { it.date }.forEach { log ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("${log.pagesRead} pages · ${log.date}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text("${log.pagesRead} pages · ${usDate(log.date).ifBlank { log.date }}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { patch { it.copy(logs = it.logs.filterNot { l -> l.id == log.id }) } }) { Text("×") }
             }
         }
@@ -202,7 +204,7 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose) { Text("Close") }
+            TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { save(data.copy(books = data.books.filterNot { it.id == book.id })); onClose() }) { Text("Delete book", color = DANGER) }
         }

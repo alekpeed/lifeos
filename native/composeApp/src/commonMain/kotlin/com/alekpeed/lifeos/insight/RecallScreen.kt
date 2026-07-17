@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.SaveToast
 
 // Real spaced repetition: facts due today (or overdue) surface first with
 // Know It / Forgot buttons that reschedule them along an interval ladder
@@ -35,7 +36,7 @@ import com.alekpeed.lifeos.data.today
 @Composable
 fun RecallScreen() {
     val facts = remember { mutableStateListOf<Fact>().apply { addAll(loadFacts()) } }
-    fun persist() = saveFacts(facts)
+    fun persist() { saveFacts(facts); SaveToast.show() }
     var input by remember { mutableStateOf("") }
 
     val due = facts.filter { it.isDue() }.sortedBy { it.nextReview }

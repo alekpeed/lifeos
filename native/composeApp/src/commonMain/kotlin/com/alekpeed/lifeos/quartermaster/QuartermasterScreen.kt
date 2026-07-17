@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
 
@@ -41,7 +42,7 @@ fun QuartermasterScreen() {
     var data by remember { mutableStateOf(loadInventory()) }
     var counter by remember { mutableStateOf(data.items.maxOfOrNull { it.id } ?: 0L) }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: QuartermasterData) { data = d; saveInventory(d) }
+    fun save(d: QuartermasterData) { data = d; saveInventory(d); SaveToast.show() }
 
     var name by remember { mutableStateOf("") }
     var loc by remember { mutableStateOf("") }

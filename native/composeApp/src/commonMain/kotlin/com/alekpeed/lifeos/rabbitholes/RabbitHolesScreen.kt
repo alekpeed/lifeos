@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
 
@@ -42,7 +43,7 @@ fun RabbitHolesScreen() {
         mutableStateOf(maxOf(data.holes.maxOfOrNull { it.id } ?: 0L, data.holes.flatMap { it.links }.maxOfOrNull { it.id } ?: 0L))
     }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: RabbitHolesData) { data = d; saveHoles(d) }
+    fun save(d: RabbitHolesData) { data = d; saveHoles(d); SaveToast.show() }
     var openId by remember { mutableStateOf<Long?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {

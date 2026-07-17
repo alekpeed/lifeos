@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import com.alekpeed.lifeos.milestones.loadMilestones
 import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.recipes.loadRecipes
 import com.alekpeed.lifeos.timecapsules.loadCapsules
+import com.alekpeed.lifeos.ui.DateField
 
 private data class Event(val icon: String, val text: String, val source: String)
 
@@ -62,10 +62,10 @@ fun TimeMachineScreen() {
         Text("Scrub back and see what you recorded on any given day.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
 
+        DateField(date) { v -> date = v }
+        Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             AssistChip(onClick = { parseDateOrNull(date)?.let { date = it.plusDays(-1).toString() } }, label = { Text("◀ Prev") })
-            Spacer(Modifier.width(8.dp))
-            OutlinedTextField(date, { date = it }, modifier = Modifier.width(150.dp), singleLine = true, placeholder = { Text("YYYY-MM-DD") })
             Spacer(Modifier.width(8.dp))
             AssistChip(onClick = { parseDateOrNull(date)?.let { if (it < today()) date = it.plusDays(1).toString() } }, label = { Text("Next ▶") })
         }

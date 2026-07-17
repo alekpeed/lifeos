@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -39,6 +38,9 @@ import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.data.parseDateOrNull
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.SaveToast
 
 private val OVERDUE = Color(0xFFE05C5C)
 
@@ -56,7 +58,7 @@ fun EducationScreen() {
         )
     }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: EducationData) { data = d; saveEducation(d) }
+    fun save(d: EducationData) { data = d; saveEducation(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("coursework") }
     var semesterId by remember { mutableStateOf<Long?>(null) }
@@ -121,7 +123,7 @@ private fun SemestersView(
                     Column(Modifier.weight(1f)) {
                         Text(s.name.ifBlank { "(untitled semester)" }, style = MaterialTheme.typography.bodyLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            val range = listOf(s.startDate, s.endDate).filter { it.isNotBlank() }
+                            val range = listOf(s.startDate, s.endDate).filter { it.isNotBlank() }.map { usDate(it) }
                             if (range.isNotEmpty()) Chip(range.joinToString(" – "))
                             val n = countBySem[s.id] ?: 0
                             Chip("$n course${if (n == 1) "" else "s"}")
@@ -224,7 +226,7 @@ private fun CourseDetail(
         Label("Key dates")
         course.keyDates.sortedBy { it.date }.forEach { kd ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("${kd.label}: ${kd.date}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text("${kd.label}: ${usDate(kd.date)}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { patch { it.copy(keyDates = it.keyDates.filterNot { k -> k == kd }) } }) { Text("×") }
             }
         }
@@ -244,14 +246,16 @@ private fun CourseDetail(
 private fun KeyDateAdder(onAdd: (String, String) -> Unit) {
     var label by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("") }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(label, { label = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Label") })
-        Spacer(Modifier.width(6.dp))
-        OutlinedTextField(date, { date = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("YYYY-MM-DD") })
-        Spacer(Modifier.width(6.dp))
-        Button(onClick = {
-            if (label.isNotBlank() && parseDateOrNull(date) != null) { onAdd(label.trim(), date.trim()); label = ""; date = "" }
-        }) { Text("+") }
+    Column {
+        DateField(date) { v -> date = v }
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(label, { label = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Label") })
+            Spacer(Modifier.width(6.dp))
+            Button(onClick = {
+                if (label.isNotBlank() && parseDateOrNull(date) != null) { onAdd(label.trim(), date); label = ""; date = "" }
+            }) { Text("+") }
+        }
     }
 }
 
@@ -302,7 +306,7 @@ private fun AssignmentsView(
                     )
                 }
                 val chips = buildList {
-                    a.dueDate.takeIf { it.isNotBlank() }?.let { add(it to (parseDateOrNull(it)?.let { d -> d < today() } == true && !a.done)) }
+                    a.dueDate.takeIf { it.isNotBlank() }?.let { add(usDate(it) to (parseDateOrNull(it)?.let { d -> d < today() } == true && !a.done)) }
                     if (a.status == "in_progress") add("${a.percentComplete}%" to false)
                     if (a.timeSpentMinutes > 0) add("${trimNum(a.timeSpentMinutes / 60.0)}h" to false)
                     a.grade?.let { add("$it%" to false) }
@@ -389,9 +393,9 @@ private fun PacingSection(a: Assignment, patch: ((Assignment) -> Assignment) -> 
     val status = pacingStatusFor(a)
     if (status != null) {
         val msg = if (status.gap > 0)
-            "You wanted ${status.checkpoint.targetByThen} $unit done by ${status.checkpoint.date} — you've logged ${status.loggedTotal}. ${status.gap} $unit short. Still on track, or just forgot to log?"
+            "You wanted ${status.checkpoint.targetByThen} $unit done by ${usDate(status.checkpoint.date)} — you've logged ${status.loggedTotal}. ${status.gap} $unit short. Still on track, or just forgot to log?"
         else
-            "On track — ${status.loggedTotal} $unit logged, ${status.checkpoint.targetByThen} was the target by ${status.checkpoint.date}."
+            "On track — ${status.loggedTotal} $unit logged, ${status.checkpoint.targetByThen} was the target by ${usDate(status.checkpoint.date)}."
         Spacer(Modifier.height(4.dp))
         Text(msg, style = MaterialTheme.typography.bodySmall, color = if (status.gap > 0) OVERDUE else MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -399,7 +403,7 @@ private fun PacingSection(a: Assignment, patch: ((Assignment) -> Assignment) -> 
     Label("Checkpoints (your own intention)")
     a.paceCheckpoints.sortedBy { it.date }.forEach { cp ->
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("By ${cp.date}: ${cp.targetByThen} $unit", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text("By ${usDate(cp.date)}: ${cp.targetByThen} $unit", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             TextButton(onClick = { patch { it.copy(paceCheckpoints = it.paceCheckpoints.filterNot { c -> c == cp }) } }) { Text("×") }
         }
     }
@@ -408,7 +412,7 @@ private fun PacingSection(a: Assignment, patch: ((Assignment) -> Assignment) -> 
     Label("Progress log — ${a.progressLogs.sumOf { it.unitsAdded }} $unit logged so far")
     a.progressLogs.sortedByDescending { it.date }.forEach { log ->
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("+${log.unitsAdded} $unit · ${log.date}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text("+${log.unitsAdded} $unit · ${usDate(log.date)}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             TextButton(onClick = { patch { it.copy(progressLogs = it.progressLogs.filterNot { l -> l.id == log.id } ) } }) { Text("×") }
         }
     }
@@ -424,15 +428,17 @@ private fun PacingSection(a: Assignment, patch: ((Assignment) -> Assignment) -> 
 private fun CheckpointAdder(unit: String, onAdd: (String, Int) -> Unit) {
     var date by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("") }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(date, { date = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("YYYY-MM-DD") })
-        Spacer(Modifier.width(6.dp))
-        OutlinedTextField(target, { target = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("$unit by then") })
-        Spacer(Modifier.width(6.dp))
-        Button(onClick = {
-            val t = target.toIntOrNull()
-            if (parseDateOrNull(date) != null && t != null) { onAdd(date.trim(), t); date = ""; target = "" }
-        }) { Text("+") }
+    Column {
+        DateField(date) { v -> date = v }
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(target, { target = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("$unit by then") })
+            Spacer(Modifier.width(6.dp))
+            Button(onClick = {
+                val t = target.toIntOrNull()
+                if (parseDateOrNull(date) != null && t != null) { onAdd(date, t); date = ""; target = "" }
+            }) { Text("+") }
+        }
     }
 }
 
@@ -553,21 +559,6 @@ private fun EditField(value: String, placeholder: String, singleLine: Boolean = 
         value = value, onValueChange = onChange, modifier = Modifier.fillMaxWidth(),
         singleLine = singleLine, placeholder = { Text(placeholder) },
     )
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DateField(value: String, onChange: (String) -> Unit) {
-    Column {
-        OutlinedTextField(
-            value = value, onValueChange = onChange, modifier = Modifier.fillMaxWidth(),
-            singleLine = true, placeholder = { Text("YYYY-MM-DD") },
-        )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            AssistChip(onClick = { onChange(today().toString()) }, label = { Text("Today") })
-            if (value.isNotBlank()) TextButton(onClick = { onChange("") }) { Text("Clear") }
-        }
-    }
 }
 
 @Composable

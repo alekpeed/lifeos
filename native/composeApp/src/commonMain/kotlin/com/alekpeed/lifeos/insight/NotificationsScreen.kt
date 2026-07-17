@@ -34,6 +34,7 @@ import com.alekpeed.lifeos.data.nowPlusHours
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.SaveToast
 
 private data class Reminder(val text: String, val atEpochMillis: Long?)
 
@@ -56,7 +57,7 @@ private fun save(items: List<Reminder>) {
 @Composable
 fun NotificationsScreen() {
     val items = remember { mutableStateListOf<Reminder>().apply { addAll(loadReminders()) } }
-    fun persist() = save(items)
+    fun persist() { save(items); SaveToast.show() }
     var input by remember { mutableStateOf("") }
     var pinned by remember { mutableStateOf<String?>(null) }
 

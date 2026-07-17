@@ -34,6 +34,7 @@ import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.DATA_SOURCES
 import com.alekpeed.lifeos.data.linesOf
 import com.alekpeed.lifeos.data.searchAll
+import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.launch
 
 private data class Node(val source: String, val label: String)
@@ -61,7 +62,7 @@ private fun parseSuggestions(text: String, candidates: List<Node>): List<Pair<No
 @Composable
 fun KnowledgeGraphScreen() {
     var data by remember { mutableStateOf(loadKGraph()) }
-    fun save(d: KGraphData) { data = d; saveKGraph(d) }
+    fun save(d: KGraphData) { data = d; saveKGraph(d); SaveToast.show() }
     var focus by remember { mutableStateOf<Node?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {

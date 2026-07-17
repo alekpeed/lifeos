@@ -34,6 +34,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.SaveToast
 
 @Composable
 fun PackingScreen() {
@@ -47,7 +50,7 @@ fun PackingScreen() {
         )
     }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: PackingData) { data = d; savePacking(d) }
+    fun save(d: PackingData) { data = d; savePacking(d); SaveToast.show() }
 
     var openId by remember { mutableStateOf<Long?>(null) }
 
@@ -72,18 +75,16 @@ private fun ListsOverview(data: PackingData, save: (PackingData) -> Unit, freshI
 
     OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Trip name (e.g. Tokyo)") })
     Spacer(Modifier.height(6.dp))
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(date, { date = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Trip date (YYYY-MM-DD)") })
-        Spacer(Modifier.width(8.dp))
-        Button(onClick = {
-            val n = name.trim().replace("\n", " ")
-            if (n.isNotEmpty()) {
-                val id = freshId()
-                save(data.copy(lists = data.lists + PackingList(id, n, date.trim())))
-                name = ""; date = ""; onOpen(id)
-            }
-        }) { Text("Create") }
-    }
+    DateField(date) { v -> date = v }
+    Spacer(Modifier.height(8.dp))
+    Button(onClick = {
+        val n = name.trim().replace("\n", " ")
+        if (n.isNotEmpty()) {
+            val id = freshId()
+            save(data.copy(lists = data.lists + PackingList(id, n, date)))
+            name = ""; date = ""; onOpen(id)
+        }
+    }, modifier = Modifier.fillMaxWidth()) { Text("Create") }
     Spacer(Modifier.height(14.dp))
 
     Text("Your trips (${data.lists.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -100,7 +101,7 @@ private fun ListsOverview(data: PackingData, save: (PackingData) -> Unit, freshI
                     Text(list.name.ifBlank { "(untitled trip)" }, style = MaterialTheme.typography.bodyLarge)
                     val packed = list.items.count { it.packed }
                     Text(
-                        listOf(list.tripDate.ifBlank { null }, "$packed/${list.items.size} packed").filterNotNull().joinToString(" · "),
+                        listOf(list.tripDate.ifBlank { null }?.let { usDate(it) }, "$packed/${list.items.size} packed").filterNotNull().joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -122,7 +123,7 @@ private fun ListDetail(data: PackingData, save: (PackingData) -> Unit, freshId: 
         Spacer(Modifier.width(4.dp))
         Column(Modifier.weight(1f)) {
             Text(list.name.ifBlank { "(untitled trip)" }, style = MaterialTheme.typography.titleLarge)
-            if (list.tripDate.isNotBlank()) Text(list.tripDate, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (list.tripDate.isNotBlank()) Text(usDate(list.tripDate), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
     Spacer(Modifier.height(10.dp))

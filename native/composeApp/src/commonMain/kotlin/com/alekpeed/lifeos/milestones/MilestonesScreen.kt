@@ -41,6 +41,9 @@ import com.alekpeed.lifeos.books.loadBooks
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.recipes.loadRecipes
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
 
 private val DANGER = Color(0xFFD64545)
@@ -50,7 +53,7 @@ fun MilestonesScreen() {
     var data by remember { mutableStateOf(loadMilestones()) }
     var counter by remember { mutableStateOf(data.milestones.maxOfOrNull { it.id } ?: 0L) }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: MilestonesData) { data = d; saveMilestones(d) }
+    fun save(d: MilestonesData) { data = d; saveMilestones(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("timeline") }
     var selected by remember { mutableStateOf<Long?>(null) }
@@ -95,7 +98,7 @@ fun MilestonesScreen() {
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(m.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
-                                val meta = listOf(m.category, m.date).filter { it.isNotBlank() }.joinToString(" · ")
+                                val meta = listOf(m.category, usDate(m.date).ifBlank { m.date }).filter { it.isNotBlank() }.joinToString(" · ")
                                 if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -115,7 +118,7 @@ private fun MilestoneDetail(data: MilestonesData, save: (MilestonesData) -> Unit
             .background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp),
     ) {
         Label("Title"); Field(m.title, "Title") { v -> patch { it.copy(title = v.replace("\n", " ")) } }
-        Label("Date"); Field(m.date, "YYYY-MM-DD") { v -> patch { it.copy(date = v.trim()) } }
+        Label("Date"); DateField(m.date) { v -> patch { it.copy(date = v) } }
         Row(verticalAlignment = Alignment.CenterVertically) {
             AssistChip(onClick = { patch { it.copy(date = today().toString()) } }, label = { Text("Today") })
             if (m.date.isNotBlank()) TextButton(onClick = { patch { it.copy(date = "") } }) { Text("Clear") }
@@ -124,7 +127,7 @@ private fun MilestoneDetail(data: MilestonesData, save: (MilestonesData) -> Unit
         Label("Notes"); Field(m.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose) { Text("Close") }
+            TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { save(data.copy(milestones = data.milestones.filterNot { it.id == m.id })); onClose() }) { Text("Delete", color = DANGER) }
         }
@@ -214,7 +217,7 @@ private fun Recap(data: MilestonesData) {
         Spacer(Modifier.height(12.dp))
         Text("Milestones this year", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (ms.isEmpty()) Muted("No milestones logged this year.")
-        else ms.forEach { StatRow(it.title.ifBlank { "(untitled)" }, it.date) }
+        else ms.forEach { StatRow(it.title.ifBlank { "(untitled)" }, usDate(it.date).ifBlank { it.date }) }
     }
 }
 

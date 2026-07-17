@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +28,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.datetime.daysUntil
 
 @Composable
@@ -36,7 +38,7 @@ fun TimeCapsulesScreen() {
     var data by remember { mutableStateOf(loadCapsules()) }
     var counter by remember { mutableStateOf(data.capsules.maxOfOrNull { it.id } ?: 0L) }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: TimeCapsulesData) { data = d; saveCapsules(d) }
+    fun save(d: TimeCapsulesData) { data = d; saveCapsules(d); SaveToast.show() }
 
     var title by remember { mutableStateOf("") }
     var body by remember { mutableStateOf("") }
@@ -54,17 +56,15 @@ fun TimeCapsulesScreen() {
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(body, { body = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Write to your future self…") })
         Spacer(Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(date, { date = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Open on (YYYY-MM-DD)") })
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = {
-                val d = parseDateOrNull(date)
-                if (body.trim().isNotEmpty() && d != null) {
-                    save(data.copy(capsules = data.capsules + TimeCapsule(freshId(), title.trim(), body.trim(), date.trim(), today().toString())))
-                    title = ""; body = ""; date = ""
-                }
-            }) { Text("Seal it") }
-        }
+        DateField(date) { v -> date = v }
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = {
+            val d = parseDateOrNull(date)
+            if (body.trim().isNotEmpty() && d != null) {
+                save(data.copy(capsules = data.capsules + TimeCapsule(freshId(), title.trim(), body.trim(), date, today().toString())))
+                title = ""; body = ""; date = ""
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text("Seal it") }
         Spacer(Modifier.height(14.dp))
 
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -91,9 +91,9 @@ private fun Capsule(data: TimeCapsulesData, save: (TimeCapsulesData) -> Unit, c:
         }
         if (isSealed(c)) {
             val days = today().daysUntil(parseDateOrNull(c.sealedUntil) ?: today()).coerceAtLeast(1)
-            Text("🔒 Sealed — opens in $days day${if (days == 1) "" else "s"} (${c.sealedUntil})", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("🔒 Sealed — opens in $days day${if (days == 1) "" else "s"} (${usDate(c.sealedUntil)})", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
-            Text(if (c.sealedUntil.isNotBlank()) "Opened ${c.sealedUntil}" else "Written", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if (c.sealedUntil.isNotBlank()) "Opened ${usDate(c.sealedUntil)}" else "Written", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(4.dp))
             Text(c.body, style = MaterialTheme.typography.bodyMedium)
         }

@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
 
@@ -39,7 +40,7 @@ fun PhotosScreen() {
         mutableStateOf(maxOf(data.albums.maxOfOrNull { it.id } ?: 0L, data.albums.flatMap { it.captions }.maxOfOrNull { it.id } ?: 0L))
     }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: PhotosData) { data = d; savePhotos(d) }
+    fun save(d: PhotosData) { data = d; savePhotos(d); SaveToast.show() }
 
     var openId by remember { mutableStateOf<Long?>(null) }
 

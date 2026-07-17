@@ -33,6 +33,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.usDate
 
 private val DANGER = Color(0xFFD64545)
 
@@ -44,7 +47,7 @@ fun ContactsScreen() {
     var data by remember { mutableStateOf(loadContacts()) }
     var counter by remember { mutableStateOf(data.contacts.maxOfOrNull { it.id } ?: 0L) }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: ContactsData) { data = d; saveContacts(d) }
+    fun save(d: ContactsData) { data = d; saveContacts(d); SaveToast.show() }
 
     var input by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
@@ -99,7 +102,7 @@ fun ContactsScreen() {
                             val chips = buildList {
                                 if (c.relationship.isNotBlank()) add(c.relationship)
                                 if (c.company.isNotBlank()) add(c.company)
-                                if (c.birthday.isNotBlank()) add("🎂 ${c.birthday}")
+                                if (c.birthday.isNotBlank()) add("🎂 ${usDate(c.birthday).ifBlank { c.birthday }}")
                                 c.phones.firstOrNull()?.let { add(it) }
                                 c.tags.forEach { add("#$it") }
                             }
@@ -133,13 +136,13 @@ private fun ContactDetail(data: ContactsData, save: (ContactsData) -> Unit, c: C
         Row {
             Column(Modifier.weight(1f)) { Label("Relationship"); Field(c.relationship, "friend, family…") { v -> patch { it.copy(relationship = v.replace("\n", " ")) } } }
             Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) { Label("Birthday"); Field(c.birthday, "YYYY-MM-DD") { v -> patch { it.copy(birthday = v.trim()) } } }
+            Column(Modifier.weight(1f)) { Label("Birthday"); DateField(c.birthday) { v -> patch { it.copy(birthday = v) } } }
         }
         Label("Tags (comma separated)"); Field(c.tags.joinToString(", "), "work, gym") { v -> patch { it.copy(tags = commaList(v)) } }
         Label("Notes"); Field(c.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose) { Text("Close") }
+            TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { save(data.copy(contacts = data.contacts.filterNot { it.id == c.id })); onClose() }) { Text("Delete", color = DANGER) }
         }

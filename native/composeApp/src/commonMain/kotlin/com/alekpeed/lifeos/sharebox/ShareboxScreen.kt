@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.SaveToast
 
 private val URGENT = Color(0xFFD64545)
 private val SOON = Color(0xFFE0A25C)
@@ -41,7 +42,7 @@ fun ShareboxScreen() {
     var data by remember { mutableStateOf(loadSharebox()) }
     var counter by remember { mutableStateOf(data.items.maxOfOrNull { it.id } ?: 0L) }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: ShareboxData) { data = d; saveSharebox(d) }
+    fun save(d: ShareboxData) { data = d; saveSharebox(d); SaveToast.show() }
 
     var kind by remember { mutableStateOf("link") }
     var urgency by remember { mutableStateOf("normal") }

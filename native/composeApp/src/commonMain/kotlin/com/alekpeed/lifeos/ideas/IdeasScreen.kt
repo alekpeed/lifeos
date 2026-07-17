@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.ui.SaveToast
 
 // One idea per line. Ids are reassigned on load — unique-within-session is enough.
 private fun loadIdeas(): List<Idea> =
@@ -36,7 +37,7 @@ private fun loadIdeas(): List<Idea> =
 @Composable
 fun IdeasScreen() {
     val ideas = remember { mutableStateListOf<Idea>().apply { addAll(loadIdeas()) } }
-    fun persist() = Storage.write("Ideas", ideas.joinToString("\n") { it.text })
+    fun persist() { Storage.write("Ideas", ideas.joinToString("\n") { it.text }); SaveToast.show() }
     var input by remember { mutableStateOf("") }
     var nextId by remember { mutableStateOf((ideas.maxOfOrNull { it.id } ?: 0L) + 1) }
 

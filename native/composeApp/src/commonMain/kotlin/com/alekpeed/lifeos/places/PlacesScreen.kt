@@ -39,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.usDate
 
 private val DANGER = Color(0xFFD64545)
 private val STAR_ON = Color(0xFFE0A63C)
@@ -52,7 +55,7 @@ fun PlacesScreen() {
         )
     }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: PlacesData) { data = d; savePlaces(d) }
+    fun save(d: PlacesData) { data = d; savePlaces(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("visited") }
     var selected by remember { mutableStateOf<Long?>(null) }
@@ -233,7 +236,7 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
             Label("Visit dates")
             place.visitDates.sorted().forEach { d ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(d, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(usDate(d).ifBlank { d }, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     TextButton(onClick = { patch { it.copy(visitDates = it.visitDates.filterNot { x -> x == d }) } }) { Text("×") }
                 }
             }
@@ -272,7 +275,7 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose) { Text("Close") }
+            TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = {
                 save(data.copy(places = data.places.filterNot { it.id == place.id })); onClose()
@@ -309,7 +312,7 @@ private fun BucketList(data: PlacesData, save: (PlacesData) -> Unit, freshId: ()
                         textDecoration = if (item.done) TextDecoration.LineThrough else null,
                     )
                     if (item.targetDate.isNotBlank()) {
-                        Text(item.targetDate, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(usDate(item.targetDate).ifBlank { item.targetDate }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     TextButton(onClick = { save(data.copy(bucket = data.bucket.filterNot { it.id == item.id })) }) { Text("×") }
                 }
@@ -327,12 +330,14 @@ private fun BucketList(data: PlacesData, save: (PlacesData) -> Unit, freshId: ()
 @Composable
 private fun DateAdder(onAdd: (String) -> Unit) {
     var date by remember { mutableStateOf("") }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(date, { date = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("YYYY-MM-DD") })
-        Spacer(Modifier.width(8.dp))
-        AssistChip(onClick = { onAdd(today().toString()) }, label = { Text("Today") })
-        Spacer(Modifier.width(6.dp))
-        Button(onClick = { if (parseDateOrNull(date) != null) { onAdd(date.trim()); date = "" } }) { Text("+") }
+    Column {
+        DateField(date) { v -> date = v }
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AssistChip(onClick = { onAdd(today().toString()) }, label = { Text("Today") })
+            Spacer(Modifier.width(6.dp))
+            Button(onClick = { if (parseDateOrNull(date) != null) { onAdd(date); date = "" } }) { Text("+") }
+        }
     }
 }
 

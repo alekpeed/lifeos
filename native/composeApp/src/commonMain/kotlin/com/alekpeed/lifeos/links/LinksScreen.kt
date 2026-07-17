@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
 
@@ -43,7 +44,7 @@ fun LinksScreen() {
     var data by remember { mutableStateOf(loadLinks()) }
     var counter by remember { mutableStateOf(data.links.maxOfOrNull { it.id } ?: 0L) }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: LinksData) { data = d; saveLinks(d) }
+    fun save(d: LinksData) { data = d; saveLinks(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("video") }
     var showDone by remember { mutableStateOf(false) }
@@ -161,7 +162,7 @@ private fun LinkDetail(
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose) { Text("Close") }
+            TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { save(data.copy(links = data.links.filterNot { it.id == link.id })); onClose() }) {
                 Text("Delete link", color = DANGER)
