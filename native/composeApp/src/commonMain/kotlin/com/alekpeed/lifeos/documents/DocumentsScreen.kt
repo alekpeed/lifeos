@@ -49,10 +49,13 @@ private val DANGER = Color(0xFFD64545)
 private val OVERDUE = Color(0xFFE05C5C)
 
 private const val SCAN_SYSTEM =
-    "You extract structured fields from a photo of a document (a lease, insurance card, " +
-        "warranty, ID, bill, medical letter, etc.). Respond with ONLY a JSON object and no " +
-        "other text — no prose, no markdown, no code fence. Use exactly these keys: " +
-        "title, category, issuer, policyNumber, expiryDate, notes. " +
+    "You read a photo of a document (a lease, insurance card, warranty, ID, bill, medical " +
+        "letter, etc.). Respond with ONLY a JSON object and no other text — no prose, no " +
+        "markdown, no code fence. Use exactly these keys: " +
+        "title, category, issuer, policyNumber, expiryDate, transcription, summary. " +
+        "\"transcription\" is a faithful, verbatim transcription of ALL readable text in the " +
+        "document, preserving line breaks between lines (use \\n). Do not paraphrase or omit text. " +
+        "\"summary\" is a 1-2 sentence plain-language summary of what the document is and its key facts. " +
         "\"category\" is a short lowercase type such as lease, insurance, warranty, id, medical, bill. " +
         "\"expiryDate\" must be an ISO date (YYYY-MM-DD) or an empty string if none is visible. " +
         "Use an empty string for any field you cannot read confidently. Never invent values."
@@ -82,7 +85,8 @@ private fun parseScan(raw: String): Document? {
         issuer = field("issuer").replace("\n", " "),
         policyNumber = field("policyNumber").replace("\n", " "),
         expiryDate = field("expiryDate"),
-        notes = field("notes"),
+        transcription = field("transcription"), // keep line breaks
+        summary = field("summary"),
     )
     return doc
 }
@@ -113,7 +117,7 @@ fun DocumentsScreen() {
                 scanError = null
                 scanning = true
                 scope.launch {
-                    val reply = AiClient.askWithImage(SCAN_SYSTEM, "Extract the document fields from this image.", b64, 512)
+                    val reply = AiClient.askWithImage(SCAN_SYSTEM, "Read this document and return the JSON.", b64, 2048)
                     scanning = false
                     if (reply.isError) { scanError = reply.text; return@launch }
                     val draft = parseScan(reply.text)
@@ -267,8 +271,12 @@ private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, d
         }
         Label("Linked contact")
         Field(doc.linkedContact, "Name") { v -> patch { it.copy(linkedContact = v.replace("\n", " ")) } }
+        Label("Summary")
+        Field(doc.summary, "Short summary of the document", singleLine = false) { v -> patch { it.copy(summary = v) } }
+        Label("Transcription")
+        Field(doc.transcription, "Full text of the document", singleLine = false) { v -> patch { it.copy(transcription = v) } }
         Label("Notes")
-        Field(doc.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
+        Field(doc.notes, "Your own notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -23,7 +23,9 @@ data class Document(
     val issuer: String = "",
     val policyNumber: String = "",
     val expiryDate: String = "",     // ISO date or ""
-    val notes: String = "",
+    val transcription: String = "",  // verbatim text (from a scan), user-editable
+    val summary: String = "",        // short plain-language summary (from a scan)
+    val notes: String = "",          // your own free notes
     val linkedContact: String = "",
 )
 
