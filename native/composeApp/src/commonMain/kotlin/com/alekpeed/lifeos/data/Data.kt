@@ -1,6 +1,11 @@
 package com.alekpeed.lifeos.data
 
 import com.alekpeed.lifeos.Storage
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 // A record of every module that persists a list under a Storage key, so the
 // aggregate screens (Today, Briefing, The Almanac) and the search screens (Ask,
@@ -43,14 +48,60 @@ val DATA_SOURCES: List<DataSource> = listOf(
     DataSource("Tools", "Tools"),
 )
 
-// Lines stored under a key, dropping blanks. All module formats are newline-per-item.
-fun linesOf(key: String): List<String> =
-    Storage.read(key)?.lines()?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
+private val jsonReader = Json { ignoreUnknownKeys = true }
+
+// The object fields most worth showing for a record, in priority order — the
+// first non-blank one becomes an item's display label in cross-module views.
+private val PREFERRED_FIELDS = listOf(
+    "title", "name", "topic", "text", "body", "label", "caption",
+    "url", "phrase", "word", "question", "front", "notes",
+)
+
+private fun itemLabel(e: JsonElement): String? = when (e) {
+    is JsonObject -> {
+        val byPref = PREFERRED_FIELDS.firstNotNullOfOrNull { k ->
+            (e[k] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.ifBlank { null }
+        }
+        byPref ?: e.values.filterIsInstance<JsonPrimitive>()
+            .firstOrNull { it.isString && it.content.isNotBlank() }?.content?.trim()
+    }
+    is JsonPrimitive -> if (e.isString) e.content.trim().ifBlank { null } else null
+    else -> null
+}
+
+// Display labels for every record a JSON-stored module holds. Handles both a
+// top-level array and an object whose array fields hold the records (combining
+// all of them, e.g. Education's semesters + courses + assignments).
+private fun jsonItems(raw: String): List<String> {
+    val root = jsonReader.parseToJsonElement(raw)
+    val arrays = when (root) {
+        is JsonArray -> listOf(root)
+        is JsonObject -> root.values.filterIsInstance<JsonArray>()
+        else -> emptyList()
+    }
+    return arrays.flatMap { arr -> arr.mapNotNull { itemLabel(it) } }
+}
+
+// The display items stored under a key, dropping blanks. Handles both the old
+// newline-per-item format (tab/pipe-delimited fields, stripped to their label)
+// and the newer JSON-blob modules (records extracted to a display label each),
+// so all the cross-module readers — Search, Ask/Assistant grounding, the
+// Almanac/Briefing counts, Entropy's has-data filter — stay correct after a
+// module moves from a text list to a structured JSON store.
+fun linesOf(key: String): List<String> {
+    val raw = Storage.read(key) ?: return emptyList()
+    val trimmed = raw.trimStart()
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        return runCatching { jsonItems(raw) }.getOrElse { emptyList() }
+    }
+    return raw.lines().map { displayOf(it) }.filter { it.isNotBlank() }
+}
 
 fun countOf(key: String): Int = linesOf(key).size
 
 // The user-facing text of a stored line, stripping the delimiter-encoded fields
 // (tab for note/status screens, pipe for habits) down to the leading label.
+// Idempotent on the already-clean labels linesOf now returns.
 fun displayOf(line: String): String =
     line.substringBefore("\t").substringBefore("|").trim()
 

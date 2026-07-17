@@ -11,11 +11,13 @@ import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
 import com.alekpeed.lifeos.milestones.MilestonesScreen
 import com.alekpeed.lifeos.museum.MuseumScreen
+import com.alekpeed.lifeos.orrery.OrreryScreen
 import com.alekpeed.lifeos.packing.PackingScreen
 import com.alekpeed.lifeos.places.PlacesScreen
 import com.alekpeed.lifeos.quartermaster.QuartermasterScreen
 import com.alekpeed.lifeos.rabbitholes.RabbitHolesScreen
 import com.alekpeed.lifeos.recipes.RecipesScreen
+import com.alekpeed.lifeos.skilltrees.SkillTreesScreen
 import com.alekpeed.lifeos.sharebox.ShareboxScreen
 import com.alekpeed.lifeos.timecapsules.TimeCapsulesScreen
 import com.alekpeed.lifeos.finance.LedgerScreen
@@ -68,7 +70,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("finance", "💵", "Finance", "Core", true) { LedgerScreen() },
     Module("education", "🎓", "Education", "Core", true) { EducationScreen() },
     Module("daily-paper", "📰", "Daily Paper", "Core", true) { NoteListScreen("Daily Paper", "Headline", "Source / link") },
-    Module("orrery", "🪐", "Orrery", "Core", true) { NoteListScreen("Orrery", "Celestial note or event", "When") },
+    Module("orrery", "🪐", "Orrery", "Core", true) { OrreryScreen() },
     // People
     Module("contacts", "👤", "Contacts", "People", true) { ContactsScreen() },
     Module("recipes", "🍳", "Recipes", "People", true) { RecipesScreen() },
@@ -88,9 +90,7 @@ fun lifeOsModules(): List<Module> = listOf(
     // Health
     Module("habits", "🔥", "Habits", "Health", true) { HabitsScreen() },
     Module("health", "❤", "Health", "Health", true) { HealthScreen() },
-    Module("skill-trees", "🌳", "Skill Trees", "Health", true) {
-        StatusListScreen("Skill Trees", "Add a skill", listOf("Locked", "Learning", "Mastered"))
-    },
+    Module("skill-trees", "🌳", "Skill Trees", "Health", true) { SkillTreesScreen() },
     Module("almanac", "📊", "The Almanac", "Health", true) { StatsScreen("The Almanac") },
     // Insight
     Module("briefing", "📋", "Briefing", "Insight", true) { BriefingScreen() },
