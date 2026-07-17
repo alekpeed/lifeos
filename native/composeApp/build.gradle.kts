@@ -57,6 +57,18 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
+    // A checked-in debug keystore (standard well-known debug credentials, not a
+    // secret) so every CI build is signed with the same key. Without this, each
+    // GitHub Actions run generates a throwaway debug key and Android refuses to
+    // upgrade the app in place ("app not installed") — forcing an uninstall first.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
