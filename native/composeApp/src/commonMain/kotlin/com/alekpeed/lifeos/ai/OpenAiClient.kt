@@ -29,7 +29,7 @@ object OpenAiClient {
 
         val body = buildJsonObject {
             put("model", model())
-            put("max_tokens", maxTokens)
+            put("max_completion_tokens", maxTokens)
             putJsonArrayCompat("messages") {
                 add(buildJsonObject { put("role", "system"); put("content", system) })
                 add(buildJsonObject { put("role", "user"); put("content", userText) })
@@ -70,7 +70,7 @@ object OpenAiClient {
 
         val body = buildJsonObject {
             put("model", model())
-            put("max_tokens", maxTokens)
+            put("max_completion_tokens", maxTokens)
             putJsonArrayCompat("messages") {
                 add(buildJsonObject { put("role", "system"); put("content", system) })
                 add(buildJsonObject {
