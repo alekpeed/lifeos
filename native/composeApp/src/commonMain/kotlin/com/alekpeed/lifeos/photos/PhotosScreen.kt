@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -149,7 +150,7 @@ private fun AlbumDetail(data: PhotosData, save: (PhotosData) -> Unit, freshId: (
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            androidx.compose.foundation.lazy.grid.items(album.captions, key = { it.id }) { cap ->
+            gridItems(album.captions, key = { it.id }) { cap ->
                 Column {
                     Box(
                         Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp))
