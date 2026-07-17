@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.finance
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,23 +11,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
@@ -34,11 +35,27 @@ import com.alekpeed.lifeos.data.epochMillisAt
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.math.abs
 
 private val CATEGORIES = listOf("General", "Bills", "Food", "Transport", "Fun", "Income")
 
-private data class Entry(val desc: String, val amount: Double, val category: String, val recurring: Boolean)
+@Serializable
+private data class Entry(
+    val id: Long,
+    val desc: String,
+    val amount: Double,
+    val category: String = "General",
+    val recurring: Boolean = false,
+    val date: String = "",
+)
+
+@Serializable
+private data class FinanceData(val entries: List<Entry> = emptyList())
+
+private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
 private fun fmt(amount: Double): String {
     val sign = if (amount < 0) "-" else ""
@@ -46,35 +63,48 @@ private fun fmt(amount: Double): String {
     return "$sign$${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
 }
 
-private fun load(): List<Entry> =
-    Storage.read("Finance")?.lines()?.filter { it.isNotBlank() }?.map { line ->
+private fun load(): List<Entry> {
+    val raw = Storage.read("Finance")
+    if (raw.isNullOrBlank()) return emptyList()
+    if (raw.trimStart().startsWith("{")) {
+        return runCatching { json.decodeFromString<FinanceData>(raw).entries }.getOrElse { emptyList() }
+    }
+    // Migrate old "desc\tamount\tcategory\trecurring" lines (undated).
+    return raw.lines().filter { it.isNotBlank() }.mapIndexed { i, line ->
         val p = line.split("\t")
         Entry(
+            id = i + 1L,
             desc = p.getOrElse(0) { line },
             amount = p.getOrElse(1) { "0" }.toDoubleOrNull() ?: 0.0,
             category = p.getOrElse(2) { "General" }.ifBlank { "General" },
             recurring = p.getOrElse(3) { "0" } == "1",
         )
-    } ?: emptyList()
-
-private fun save(entries: List<Entry>) {
-    Storage.write("Finance", entries.joinToString("\n") { "${it.desc}\t${it.amount}\t${it.category}\t${if (it.recurring) 1 else 0}" })
+    }
 }
 
-// A money ledger with categories and a recurring flag. Balance up top, then a
-// per-category breakdown computed live. Marking an entry recurring schedules a
-// real reminder ~30 days out (Android) — a genuine nudge, not fabricated future
-// data. Negative amounts are spending.
+private fun save(entries: List<Entry>) {
+    Storage.write("Finance", json.encodeToString(FinanceData(entries)))
+}
+
+// A money ledger with categories, dates, and a recurring flag. All-time balance
+// and a live this-month income / spending / net summary up top, then a
+// per-category breakdown. Marking an entry recurring schedules a real reminder
+// ~30 days out (Android). Negative amounts are spending.
 @Composable
 fun LedgerScreen() {
-    val entries = remember { mutableStateListOf<Entry>().apply { addAll(load()) } }
-    fun persist() = save(entries)
+    var entries by remember { mutableStateOf(load()) }
+    fun persist(next: List<Entry>) { entries = next; save(next) }
+    var nextId by remember { mutableStateOf((entries.maxOfOrNull { it.id } ?: 0L) + 1) }
     var desc by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("General") }
     var recurring by remember { mutableStateOf(false) }
 
     val balance = entries.sumOf { it.amount }
+    val month = today().toString().take(7)
+    val monthEntries = entries.filter { it.date.startsWith(month) }
+    val monthIncome = monthEntries.filter { it.amount > 0 }.sumOf { it.amount }
+    val monthSpend = monthEntries.filter { it.amount < 0 }.sumOf { it.amount }
     val byCategory = entries.groupBy { it.category }
         .map { (cat, es) -> cat to es.sumOf { it.amount } }
         .sortedByDescending { abs(it.second) }
@@ -87,33 +117,31 @@ fun LedgerScreen() {
             style = MaterialTheme.typography.titleLarge,
             color = if (balance < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
         )
+        Spacer(Modifier.height(8.dp))
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp),
+        ) {
+            MonthStat("This month in", fmt(monthIncome), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+            MonthStat("Out", fmt(monthSpend), MaterialTheme.colorScheme.error, Modifier.weight(1f))
+            MonthStat("Net", fmt(monthIncome + monthSpend), if (monthIncome + monthSpend < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+        }
         Spacer(Modifier.height(14.dp))
 
-        OutlinedTextField(
-            value = desc,
-            onValueChange = { desc = it },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            placeholder = { Text("What was it?") },
-        )
+        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("What was it?") })
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
-                value = amount,
-                onValueChange = { amount = it },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                placeholder = { Text("Amount (– to spend)") },
+                amount, { amount = it }, modifier = Modifier.weight(1f), singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), placeholder = { Text("Amount (– to spend)") },
             )
             Spacer(Modifier.width(10.dp))
             Button(onClick = {
-                val d = desc.trim().replace("\t", " ").replace("\n", " ")
+                val d = desc.trim().replace("\n", " ")
                 val a = amount.trim().toDoubleOrNull()
                 if (d.isNotEmpty() && a != null) {
-                    val e = Entry(d, a, category, recurring)
-                    entries.add(0, e)
-                    persist()
+                    val e = Entry(nextId, d, a, category, recurring, today().toString())
+                    nextId += 1
+                    persist(listOf(e) + entries)
                     if (recurring && Native.supportsNotifications) {
                         Native.scheduleReminder(
                             id = (d + "recur").hashCode(),
@@ -122,22 +150,16 @@ fun LedgerScreen() {
                             atEpochMillis = epochMillisAt(today().plusDays(30), 9, 0),
                         )
                     }
-                    desc = ""
-                    amount = ""
-                    recurring = false
+                    desc = ""; amount = ""; recurring = false
                 }
             }) { Text("Add") }
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            CATEGORIES.take(3).forEach { c ->
-                FilterChip(selected = category == c, onClick = { category = c }, label = { Text(c) })
-            }
+            CATEGORIES.take(3).forEach { c -> FilterChip(selected = category == c, onClick = { category = c }, label = { Text(c) }) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            CATEGORIES.drop(3).forEach { c ->
-                FilterChip(selected = category == c, onClick = { category = c }, label = { Text(c) })
-            }
+            CATEGORIES.drop(3).forEach { c -> FilterChip(selected = category == c, onClick = { category = c }, label = { Text(c) }) }
             FilterChip(selected = recurring, onClick = { recurring = !recurring }, label = { Text("↻ Recurring") })
         }
 
@@ -148,45 +170,37 @@ fun LedgerScreen() {
             byCategory.forEach { (cat, total) ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
                     Text(cat, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        fmt(total),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (total < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    )
+                    Text(fmt(total), style = MaterialTheme.typography.bodyMedium, color = if (total < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                 }
             }
         }
-
         Spacer(Modifier.height(14.dp))
 
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            itemsIndexed(entries) { index, e ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            items(entries, key = { it.id }) { e ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(e.desc, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            if (e.recurring) "${e.category} · ↻" else e.category,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            listOfNotNull(e.category, if (e.recurring) "↻" else null, e.date.ifBlank { null }).joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Text(
-                        fmt(e.amount),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (e.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    )
+                    Text(fmt(e.amount), style = MaterialTheme.typography.bodyLarge, color = if (e.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                     TextButton(onClick = {
-                        if (index < entries.size) {
-                            if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
-                            entries.removeAt(index)
-                            persist()
-                        }
+                        if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
+                        persist(entries.filterNot { it.id == e.id })
                     }) { Text("✕") }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MonthStat(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
+    Column(modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleSmall, color = color)
     }
 }
