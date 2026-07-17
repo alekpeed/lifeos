@@ -267,4 +267,16 @@ actual object Native {
             onResult(null)
         }
     }
+
+    actual fun takePhoto(onResult: (String?) -> Unit) {
+        val request = NativeHost.cameraRequest
+        if (request == null) { onResult(null); return }
+        NativeHost.cameraCallback = onResult
+        try {
+            request.invoke()
+        } catch (e: Exception) {
+            NativeHost.cameraCallback = null
+            onResult(null)
+        }
+    }
 }

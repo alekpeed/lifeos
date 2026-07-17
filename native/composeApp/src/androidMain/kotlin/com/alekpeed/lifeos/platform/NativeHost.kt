@@ -27,6 +27,12 @@ object NativeHost {
     var photoLauncher: ActivityResultLauncher<String>? = null
     @Volatile var photoCallback: ((String?) -> Unit)? = null
 
+    // Camera capture: MainActivity owns the TakePicture + permission launchers and
+    // the temp-file wiring, exposed here as a request hook. Native.takePhoto sets
+    // the callback then invokes cameraRequest.
+    var cameraRequest: (() -> Unit)? = null
+    @Volatile var cameraCallback: ((String?) -> Unit)? = null
+
     fun ctx(): Context? = activity ?: appContext
 
     fun ensureTts(context: Context) {

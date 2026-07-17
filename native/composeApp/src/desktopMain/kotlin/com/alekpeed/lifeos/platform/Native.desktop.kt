@@ -55,5 +55,6 @@ actual object Native {
     actual fun onlyMyVoiceEnabled(): Boolean = false
     actual fun scanQr(onResult: (String?) -> Unit) { onResult(null) }
     actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) { onResult(null, null) }
+    actual fun takePhoto(onResult: (String?) -> Unit) { onResult(null) }
     actual fun capturePhoto(onResult: (String?) -> Unit) { onResult(null) }
 }

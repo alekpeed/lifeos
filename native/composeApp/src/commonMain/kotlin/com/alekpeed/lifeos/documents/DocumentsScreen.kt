@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -99,25 +100,36 @@ fun DocumentsScreen() {
     var selected by remember { mutableStateOf<Long?>(null) }
     var scanning by remember { mutableStateOf(false) }
     var scanError by remember { mutableStateOf<String?>(null) }
+    var showSource by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    fun runScan() {
-        if (!AiClient.hasKey()) { scanError = "Add an AI key in Settings to scan documents."; return }
-        scanError = null
-        Native.capturePhoto { b64 ->
-            if (b64 == null) return@capturePhoto // cancelled, or nothing picked
-            scanning = true
-            scope.launch {
-                val reply = AiClient.askWithImage(SCAN_SYSTEM, "Extract the document fields from this image.", b64, 512)
-                scanning = false
-                if (reply.isError) { scanError = reply.text; return@launch }
-                val draft = parseScan(reply.text)
-                if (draft == null) { scanError = "Couldn't read fields from that photo — add it manually."; return@launch }
-                val id = freshId()
-                save(data.copy(documents = data.documents + draft.copy(id = id)))
-                selected = id
+    // Handle a captured/picked photo: null = cancelled (silent), "" = couldn't
+    // decode the image, otherwise a base64 JPEG to send for extraction.
+    fun onPhoto(b64: String?) {
+        when {
+            b64 == null -> {}
+            b64.isEmpty() -> scanError = "Couldn't read that image — try another photo."
+            else -> {
+                scanError = null
+                scanning = true
+                scope.launch {
+                    val reply = AiClient.askWithImage(SCAN_SYSTEM, "Extract the document fields from this image.", b64, 512)
+                    scanning = false
+                    if (reply.isError) { scanError = reply.text; return@launch }
+                    val draft = parseScan(reply.text)
+                    if (draft == null) { scanError = "Couldn't read fields from that photo — add it manually."; return@launch }
+                    val id = freshId()
+                    save(data.copy(documents = data.documents + draft.copy(id = id)))
+                    selected = id
+                }
             }
         }
+    }
+
+    fun startScan() {
+        if (!AiClient.hasKey()) { scanError = "Add an AI key in Settings to scan documents."; return }
+        scanError = null
+        showSource = true
     }
 
     val categories = data.documents.mapNotNull { it.category.ifBlank { null } }.distinct()
@@ -138,7 +150,7 @@ fun DocumentsScreen() {
         if (Native.supportsCamera) {
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { runScan() }, enabled = !scanning) {
+                OutlinedButton(onClick = { startScan() }, enabled = !scanning) {
                     if (scanning) {
                         CircularProgressIndicator(Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
@@ -152,6 +164,20 @@ fun DocumentsScreen() {
                 Spacer(Modifier.height(6.dp))
                 Text(it, style = MaterialTheme.typography.labelMedium, color = OVERDUE)
             }
+        }
+
+        if (showSource) {
+            AlertDialog(
+                onDismissRequest = { showSource = false },
+                title = { Text("Scan a document") },
+                text = { Text("Take a new photo, or choose one from your library.") },
+                confirmButton = {
+                    TextButton(onClick = { showSource = false; Native.takePhoto { onPhoto(it) } }) { Text("Take a photo") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSource = false; Native.capturePhoto { onPhoto(it) } }) { Text("Choose from library") }
+                },
+            )
         }
 
         if (categories.isNotEmpty()) {

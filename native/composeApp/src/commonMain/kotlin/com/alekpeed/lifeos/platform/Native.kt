@@ -75,9 +75,15 @@ expect object Native {
     // Desktop has no location source and always returns null,null.
     fun getCurrentLocation(onResult: (lat: Double?, lng: Double?) -> Unit)
 
-    // Capture (or pick) a photo for AI vision. `onResult` gets a base64-encoded
-    // JPEG (no data: prefix), already downscaled for a vision API, or null if the
-    // user cancelled / the platform has no camera. Android opens the system image
-    // picker (which offers the camera); desktop has no source and returns null.
+    // A photo for AI vision, as a base64 JPEG (no data: prefix), already downscaled
+    // for a vision API. `onResult` receives:
+    //   • the base64 string on success,
+    //   • null if the user cancelled (or the platform has no source),
+    //   • "" (empty) if a photo was taken/picked but couldn't be decoded — the
+    //     caller shows a "couldn't read that image" message rather than failing
+    //     silently.
+    // takePhoto opens the camera (Android; requests the camera permission first);
+    // capturePhoto opens the system image picker (gallery). Desktop no-ops both.
+    fun takePhoto(onResult: (String?) -> Unit)
     fun capturePhoto(onResult: (String?) -> Unit)
 }

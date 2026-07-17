@@ -18,10 +18,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
 import com.alekpeed.lifeos.platform.ImageEncode
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.NativeHost
 import com.journeyapps.barcodescanner.ScanContract
+import java.io.File
 
 class MainActivity : ComponentActivity() {
 
@@ -37,7 +39,9 @@ class MainActivity : ComponentActivity() {
 
     // Photo picker result → the pending Native.capturePhoto callback. The decode
     // and base64 happen here (off the picked Uri) so the capability layer stays
-    // platform-agnostic. A null Uri means the user cancelled.
+    // platform-agnostic. A null Uri means the user cancelled; a non-null Uri that
+    // won't decode returns "" so the caller can show a "couldn't read that" message
+    // instead of failing silently.
     private val photoPickLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         val cb = NativeHost.photoCallback
         NativeHost.photoCallback = null
@@ -49,7 +53,60 @@ class MainActivity : ComponentActivity() {
             } catch (e: Exception) {
                 null
             }
-            cb?.invoke(b64)
+            cb?.invoke(b64 ?: "")
+        }
+    }
+
+    // Camera capture. The temp file the camera writes into, held between launch and
+    // result.
+    private var pendingCameraUri: android.net.Uri? = null
+
+    // TakePicture returns true when a photo was saved to pendingCameraUri. Decode it
+    // the same way as a picked image; "" on decode failure, null on cancel.
+    private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val cb = NativeHost.cameraCallback
+        NativeHost.cameraCallback = null
+        val uri = pendingCameraUri
+        pendingCameraUri = null
+        if (ok && uri != null) {
+            val b64 = try { ImageEncode.uriToDownscaledJpegBase64(this, uri) } catch (e: Exception) { null }
+            cb?.invoke(b64 ?: "")
+        } else {
+            cb?.invoke(null)
+        }
+    }
+
+    // Camera runtime permission (declared in the manifest, so it's enforced). On
+    // grant, launch the camera; on deny, report cancel.
+    private val cameraPermLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            launchCamera()
+        } else {
+            val cb = NativeHost.cameraCallback
+            NativeHost.cameraCallback = null
+            cb?.invoke(null)
+        }
+    }
+
+    private fun requestCameraCapture() {
+        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            launchCamera()
+        } else {
+            cameraPermLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun launchCamera() {
+        try {
+            val file = File(cacheDir, "scan_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+            pendingCameraUri = uri
+            takePictureLauncher.launch(uri)
+        } catch (e: Exception) {
+            pendingCameraUri = null
+            val cb = NativeHost.cameraCallback
+            NativeHost.cameraCallback = null
+            cb?.invoke(null)
         }
     }
 
@@ -69,6 +126,7 @@ class MainActivity : ComponentActivity() {
         NativeHost.appContext = applicationContext
         NativeHost.qrLauncher = qrScanLauncher
         NativeHost.photoLauncher = photoPickLauncher
+        NativeHost.cameraRequest = { requestCameraCapture() }
         NativeHost.ensureTts(applicationContext)
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         requestNeededPermissions()

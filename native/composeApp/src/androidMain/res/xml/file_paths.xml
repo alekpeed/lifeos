@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- The camera writes scan_*.jpg into the app cache root. -->
+    <cache-path name="scans" path="." />
+</paths>
