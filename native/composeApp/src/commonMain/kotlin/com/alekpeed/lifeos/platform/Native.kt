@@ -17,6 +17,7 @@ expect object Native {
     val supportsGeofence: Boolean
     val supportsSpeakerId: Boolean
     val supportsQrScan: Boolean
+    val supportsLocation: Boolean
 
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
@@ -67,4 +68,9 @@ expect object Native {
     // Scan a QR code with the camera; `onResult` gets the decoded text, or null if
     // cancelled/unsupported. Android launches a scanner; desktop is a no-op.
     fun scanQr(onResult: (String?) -> Unit)
+
+    // One-shot current location (fused provider). Requests the permission if it's
+    // missing and returns null,null for that call — the caller re-taps once granted.
+    // Desktop has no location source and always returns null,null.
+    fun getCurrentLocation(onResult: (lat: Double?, lng: Double?) -> Unit)
 }

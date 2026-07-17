@@ -49,6 +49,7 @@ actual object Native {
     actual val supportsGeofence = true
     actual val supportsSpeakerId = true
     actual val supportsQrScan = true
+    actual val supportsLocation = true
 
     actual fun speak(text: String) {
         val ctx = NativeHost.ctx() ?: return
@@ -248,5 +249,9 @@ actual object Native {
             NativeHost.qrCallback = null
             onResult(null)
         }
+    }
+
+    actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) {
+        Geofences.currentLocation(NativeHost.ctx(), onResult)
     }
 }

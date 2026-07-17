@@ -56,6 +56,8 @@ fun PlacesScreen() {
 
     var tab by remember { mutableStateOf("visited") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    // null = not checked yet; empty = checked, nothing nearby; non-empty = results.
+    var nearby by remember { mutableStateOf<List<NearbyNudge>?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Places", style = MaterialTheme.typography.headlineMedium)
@@ -65,6 +67,16 @@ fun PlacesScreen() {
                 FilterChip(selected = tab == v, onClick = { tab = v; selected = null }, label = { Text(lbl) })
             }
         }
+
+        if (tab != "bucket" && Native.supportsLocation) {
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(onClick = {
+                Native.getCurrentLocation { lat, lng ->
+                    if (lat != null && lng != null) nearby = findNearbyNudges(data.places, lat, lng)
+                }
+            }) { Text("📍 Check nearby places") }
+            nearby?.let { NearbyBanner(it) { nearby = null } }
+        }
         Spacer(Modifier.height(12.dp))
 
         if (tab == "bucket") {
@@ -72,6 +84,32 @@ fun PlacesScreen() {
         } else {
             PlaceList(data, ::save, ::freshId, tab, selected) { selected = if (selected == it) null else it }
         }
+    }
+}
+
+@Composable
+private fun NearbyBanner(nudges: List<NearbyNudge>, onDismiss: () -> Unit) {
+    Spacer(Modifier.height(8.dp))
+    if (nudges.isEmpty()) {
+        Muted("Nothing nearby right now.")
+        return
+    }
+    Column {
+        nudges.forEach { n ->
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(n.place.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "${n.reason} · ${n.distanceMeters.toInt()}m away",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        TextButton(onClick = onDismiss) { Text("Dismiss") }
     }
 }
 
@@ -162,6 +200,14 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
                 Label("Longitude")
                 Field(place.lng?.toString() ?: "", "lng") { v -> patch { it.copy(lng = v.toDoubleOrNull()) } }
             }
+        }
+        if (Native.supportsLocation) {
+            Spacer(Modifier.height(6.dp))
+            TextButton(onClick = {
+                Native.getCurrentLocation { lat, lng ->
+                    if (lat != null && lng != null) patch { it.copy(lat = lat, lng = lng) }
+                }
+            }) { Text("Use my location") }
         }
 
         if ((place.listType.ifBlank { "visited" }) == "visited") {

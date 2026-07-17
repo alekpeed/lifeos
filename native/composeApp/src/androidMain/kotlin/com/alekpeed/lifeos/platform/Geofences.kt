@@ -70,4 +70,27 @@ object Geofences {
         } catch (e: Exception) {
         }
     }
+
+    // One-shot current position — same fused-location call armHere uses internally,
+    // exposed directly for "use my location" / "what's nearby" features. Requests
+    // the permission and reports null,null if it isn't granted yet.
+    fun currentLocation(ctx: Context?, onResult: (Double?, Double?) -> Unit) {
+        if (ctx == null) { onResult(null, null); return }
+        if (ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            NativeHost.activity?.requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 9004)
+            onResult(null, null)
+            return
+        }
+        val fused = LocationServices.getFusedLocationProviderClient(ctx)
+        val request = CurrentLocationRequest.Builder()
+            .setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
+            .build()
+        try {
+            fused.getCurrentLocation(request, CancellationTokenSource().token)
+                .addOnSuccessListener { loc -> onResult(loc?.latitude, loc?.longitude) }
+                .addOnFailureListener { onResult(null, null) }
+        } catch (e: SecurityException) {
+            onResult(null, null)
+        }
+    }
 }
