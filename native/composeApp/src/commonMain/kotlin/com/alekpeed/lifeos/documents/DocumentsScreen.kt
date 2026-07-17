@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -55,7 +57,10 @@ private const val SCAN_SYSTEM =
         "title, category, issuer, policyNumber, expiryDate, transcription, summary. " +
         "\"transcription\" is a faithful, verbatim transcription of ALL readable text in the " +
         "document, preserving line breaks between lines (use \\n). Do not paraphrase or omit text. " +
-        "\"summary\" is a 1-2 sentence plain-language summary of what the document is and its key facts. " +
+        "\"summary\" is a plain-language summary of what the document is and its key facts — as long " +
+        "as it needs to be to capture what matters and no longer: a sentence for something trivial, a " +
+        "short paragraph for something involved. It should let you understand the document without " +
+        "reading it, but it is NOT a restatement of the full text (that is the transcription). " +
         "\"category\" is a short lowercase type such as lease, insurance, warranty, id, medical, bill. " +
         "\"expiryDate\" must be an ISO date (YYYY-MM-DD) or an empty string if none is visible. " +
         "Use an empty string for any field you cannot read confidently. Never invent values."
@@ -231,10 +236,11 @@ private fun DocMeta(doc: Document) {
         if (doc.issuer.isNotBlank()) add(doc.issuer to false)
         if (doc.linkedContact.isNotBlank()) add("👤 ${doc.linkedContact}" to false)
         if (doc.expiryDate.isNotBlank()) {
+            val shown = usDate(doc.expiryDate).ifBlank { doc.expiryDate }
             val label = when (expiryState(doc)) {
-                ExpiryState.EXPIRED -> "Expired ${doc.expiryDate}"
-                ExpiryState.SOON -> "Expiring ${doc.expiryDate}"
-                else -> doc.expiryDate
+                ExpiryState.EXPIRED -> "Expired $shown"
+                ExpiryState.SOON -> "Expiring $shown"
+                else -> shown
             }
             add(label to (expiryState(doc) == ExpiryState.EXPIRED || expiryState(doc) == ExpiryState.SOON))
         }
@@ -264,10 +270,9 @@ private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, d
         Label("Policy / account #")
         Field(doc.policyNumber, "Policy / account number") { v -> patch { it.copy(policyNumber = v.replace("\n", " ")) } }
         Label("Expiry date")
-        Field(doc.expiryDate, "YYYY-MM-DD") { v -> patch { it.copy(expiryDate = v.trim()) } }
+        DateField(doc.expiryDate) { v -> patch { it.copy(expiryDate = v) } }
         Row(verticalAlignment = Alignment.CenterVertically) {
             AssistChip(onClick = { patch { it.copy(expiryDate = today().toString()) } }, label = { Text("Today") })
-            if (doc.expiryDate.isNotBlank()) TextButton(onClick = { patch { it.copy(expiryDate = "") } }) { Text("Clear") }
         }
         Label("Linked contact")
         Field(doc.linkedContact, "Name") { v -> patch { it.copy(linkedContact = v.replace("\n", " ")) } }
