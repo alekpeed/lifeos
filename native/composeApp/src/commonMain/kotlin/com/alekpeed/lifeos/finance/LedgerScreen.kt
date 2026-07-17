@@ -18,6 +18,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,9 +34,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.epochMillisAt
+import com.alekpeed.lifeos.data.minusDays
+import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.plusDays
+import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -53,7 +60,37 @@ private data class Entry(
 )
 
 @Serializable
-private data class FinanceData(val entries: List<Entry> = emptyList())
+private data class Payment(val date: String, val amount: Double)
+
+@Serializable
+private data class Bill(
+    val id: Long,
+    val name: String,
+    val amount: Double,
+    val dueDate: String = "",
+    val cadence: String = "monthly", // weekly | monthly | yearly | one-time
+    val autopay: Boolean = false,
+    val remindDays: Int = 3,
+    val category: String = "Bills",
+    val paymentHistory: List<Payment> = emptyList(),
+)
+
+@Serializable
+private data class Subscription(
+    val id: Long,
+    val name: String,
+    val amount: Double,
+    val cycle: String = "monthly", // weekly | monthly | yearly
+    val active: Boolean = true,
+    val category: String = "Subscriptions",
+)
+
+@Serializable
+private data class FinanceData(
+    val entries: List<Entry> = emptyList(),
+    val bills: List<Bill> = emptyList(),
+    val subscriptions: List<Subscription> = emptyList(),
+)
 
 private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
@@ -63,14 +100,14 @@ private fun fmt(amount: Double): String {
     return "$sign$${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
 }
 
-private fun load(): List<Entry> {
+private fun loadData(): FinanceData {
     val raw = Storage.read("Finance")
-    if (raw.isNullOrBlank()) return emptyList()
+    if (raw.isNullOrBlank()) return FinanceData()
     if (raw.trimStart().startsWith("{")) {
-        return runCatching { json.decodeFromString<FinanceData>(raw).entries }.getOrElse { emptyList() }
+        return runCatching { json.decodeFromString<FinanceData>(raw) }.getOrElse { FinanceData() }
     }
-    // Migrate old "desc\tamount\tcategory\trecurring" lines (undated).
-    return raw.lines().filter { it.isNotBlank() }.mapIndexed { i, line ->
+    // Migrate old "desc\tamount\tcategory\trecurring" lines (undated) into entries.
+    val entries = raw.lines().filter { it.isNotBlank() }.mapIndexed { i, line ->
         val p = line.split("\t")
         Entry(
             id = i + 1L,
@@ -80,25 +117,95 @@ private fun load(): List<Entry> {
             recurring = p.getOrElse(3) { "0" } == "1",
         )
     }
+    return FinanceData(entries = entries)
 }
 
-private fun save(entries: List<Entry>) {
-    Storage.write("Finance", json.encodeToString(FinanceData(entries)))
+private fun saveData(data: FinanceData) {
+    Storage.write("Finance", json.encodeToString(data))
 }
 
-// Public read-only accessor for the stats layer (The Almanac): each entry as
-// (amount, category, recurring, date) without leaking the private model.
+// Public read-only accessor for the stats layer (The Almanac): each ledger entry
+// as (amount, category, recurring, date) without leaking the private model.
 data class FinancePoint(val desc: String, val amount: Double, val category: String, val recurring: Boolean, val date: String)
-fun financeSeries(): List<FinancePoint> = load().map { FinancePoint(it.desc, it.amount, it.category, it.recurring, it.date) }
+fun financeSeries(): List<FinancePoint> = loadData().entries.map { FinancePoint(it.desc, it.amount, it.category, it.recurring, it.date) }
+
+private val CADENCES = listOf("weekly", "monthly", "yearly", "one-time")
+private val CYCLES = listOf("weekly", "monthly", "yearly")
+private val REMIND_OPTIONS = listOf(0, 1, 3, 7)
+
+private fun advanceDue(dateStr: String, cadence: String): String {
+    val d = parseDateOrNull(dateStr) ?: today()
+    val next = when (cadence) {
+        "weekly" -> d.plusDays(7)
+        "yearly" -> d.plus(1, DateTimeUnit.YEAR)
+        "one-time" -> return dateStr
+        else -> d.plus(1, DateTimeUnit.MONTH)
+    }
+    return next.toString()
+}
+
+private fun monthlyEquiv(amount: Double, cycle: String): Double = when (cycle) {
+    "weekly" -> amount * 52.0 / 12.0
+    "yearly" -> amount / 12.0
+    else -> amount
+}
+
+private fun yearlyEquiv(amount: Double, cycle: String): Double = when (cycle) {
+    "weekly" -> amount * 52.0
+    "monthly" -> amount * 12.0
+    else -> amount
+}
+
+private fun billReminderId(name: String): Int = (name + "bill").hashCode()
+
+private fun scheduleBill(bill: Bill) {
+    if (!Native.supportsNotifications) return
+    val due = parseDateOrNull(bill.dueDate) ?: return
+    if (bill.cadence == "one-time" && bill.paymentHistory.isNotEmpty()) return
+    Native.scheduleReminder(
+        id = billReminderId(bill.name),
+        title = "Bill due: ${bill.name}",
+        body = "${fmt(bill.amount)} due ${bill.dueDate}" + if (bill.autopay) " (autopay)" else "",
+        atEpochMillis = epochMillisAt(due.minusDays(bill.remindDays), 9, 0),
+    )
+}
+
+// Finance — a four-tab money hub. Ledger is the running balance and log;
+// Bills tracks recurring/one-time obligations with due dates, autopay, and a
+// paid-history that advances the next due date and reschedules the reminder;
+// Subscriptions normalizes weekly/monthly/yearly costs to a combined monthly
+// spend; Yearly Spend annualizes logged bill payments plus active subscriptions
+// by category.
+@Composable
+fun FinanceScreen() {
+    var data by remember { mutableStateOf(loadData()) }
+    fun persist(next: FinanceData) { data = next; saveData(next) }
+    var tab by remember { mutableStateOf(0) }
+    val tabs = listOf("Ledger", "Bills", "Subs", "Yearly")
+
+    Column(Modifier.fillMaxSize()) {
+        TabRow(selectedTabIndex = tab) {
+            tabs.forEachIndexed { i, title ->
+                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(title) })
+            }
+        }
+        when (tab) {
+            0 -> LedgerTab(data) { persist(it) }
+            1 -> BillsTab(data) { persist(it) }
+            2 -> SubscriptionsTab(data) { persist(it) }
+            else -> YearlyTab(data)
+        }
+    }
+}
 
 // A money ledger with categories, dates, and a recurring flag. All-time balance
 // and a live this-month income / spending / net summary up top, then a
 // per-category breakdown. Marking an entry recurring schedules a real reminder
 // ~30 days out (Android). Negative amounts are spending.
 @Composable
-fun LedgerScreen() {
-    var entries by remember { mutableStateOf(load()) }
-    fun persist(next: List<Entry>) { entries = next; save(next) }
+private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
+    val entries = data.entries
+    fun persist(next: List<Entry>) { onChange(data.copy(entries = next)) }
     var nextId by remember { mutableStateOf((entries.maxOfOrNull { it.id } ?: 0L) + 1) }
     var desc by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
@@ -115,8 +222,6 @@ fun LedgerScreen() {
         .sortedByDescending { abs(it.second) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Finance", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(4.dp))
         Text(
             "Balance ${fmt(balance)}",
             style = MaterialTheme.typography.titleLarge,
@@ -196,6 +301,229 @@ fun LedgerScreen() {
                         if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
                         persist(entries.filterNot { it.id == e.id })
                     }) { Text("✕") }
+                }
+            }
+        }
+    }
+}
+
+// Bills — recurring or one-time obligations with a due date, cadence, optional
+// autopay, and a reminder N days ahead. "Paid" logs a payment, advances the next
+// due date by the cadence, and reschedules the reminder.
+@Composable
+private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
+    val bills = data.bills
+    fun persist(next: List<Bill>) { onChange(data.copy(bills = next)) }
+    var nextId by remember { mutableStateOf((bills.maxOfOrNull { it.id } ?: 0L) + 1) }
+    var name by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
+    var dueDate by remember { mutableStateOf(today().toString()) }
+    var cadence by remember { mutableStateOf("monthly") }
+    var autopay by remember { mutableStateOf(false) }
+    var remindDays by remember { mutableStateOf(3) }
+
+    val sorted = bills.sortedBy { parseDateOrNull(it.dueDate) ?: today().plusDays(3650) }
+    val monthlyTotal = bills.filter { it.cadence != "one-time" }.sumOf { monthlyEquiv(it.amount, it.cadence) }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("Bills — ${fmt(monthlyTotal)}/mo recurring", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Bill name") })
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                amount, { amount = it }, modifier = Modifier.weight(1f), singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), placeholder = { Text("Amount") },
+            )
+            Spacer(Modifier.width(10.dp))
+            OutlinedTextField(dueDate, { dueDate = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("YYYY-MM-DD") })
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            CADENCES.forEach { c -> FilterChip(selected = cadence == c, onClick = { cadence = c }, label = { Text(c) }) }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            FilterChip(selected = autopay, onClick = { autopay = !autopay }, label = { Text("Autopay") })
+            Text("Remind", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            REMIND_OPTIONS.forEach { r ->
+                FilterChip(selected = remindDays == r, onClick = { remindDays = r }, label = { Text(if (r == 0) "day of" else "${r}d") })
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = {
+            val n = name.trim().replace("\n", " ")
+            val a = amount.trim().toDoubleOrNull()
+            if (n.isNotEmpty() && a != null) {
+                val bill = Bill(nextId, n, a, dueDate.trim(), cadence, autopay, remindDays)
+                nextId += 1
+                persist(listOf(bill) + bills)
+                scheduleBill(bill)
+                name = ""; amount = ""; dueDate = today().toString(); cadence = "monthly"; autopay = false; remindDays = 3
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text("Add bill") }
+        Spacer(Modifier.height(14.dp))
+
+        if (bills.isEmpty()) {
+            Text("No bills yet. Add one above.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return
+        }
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(sorted, key = { it.id }) { b ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(b.name, style = MaterialTheme.typography.bodyLarge)
+                        val due = parseDateOrNull(b.dueDate)
+                        val meta = buildList {
+                            add(b.cadence)
+                            if (due != null) add("due ${relativeLabel(due)}") else if (b.dueDate.isNotBlank()) add("due ${b.dueDate}")
+                            if (b.autopay) add("autopay")
+                            if (b.paymentHistory.isNotEmpty()) {
+                                val last = b.paymentHistory.maxByOrNull { it.date }?.date
+                                add("paid ${b.paymentHistory.size}×" + if (last != null) ", last $last" else "")
+                            }
+                        }.joinToString(" · ")
+                        Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(fmt(b.amount), style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.width(4.dp))
+                    TextButton(onClick = {
+                        val paid = b.copy(
+                            paymentHistory = b.paymentHistory + Payment(today().toString(), b.amount),
+                            dueDate = advanceDue(b.dueDate, b.cadence),
+                        )
+                        persist(bills.map { if (it.id == b.id) paid else it })
+                        scheduleBill(paid)
+                    }) { Text("Paid") }
+                    TextButton(onClick = {
+                        if (Native.supportsNotifications) Native.cancelReminder(billReminderId(b.name))
+                        persist(bills.filterNot { it.id == b.id })
+                    }) { Text("✕") }
+                }
+            }
+        }
+    }
+}
+
+// Subscriptions — weekly/monthly/yearly recurring costs, each normalized to a
+// combined monthly spend. Cancelled subs stay on the list (struck through in the
+// meta line) but drop out of the monthly total and the Yearly Spend annualization.
+@Composable
+private fun SubscriptionsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
+    val subs = data.subscriptions
+    fun persist(next: List<Subscription>) { onChange(data.copy(subscriptions = next)) }
+    var nextId by remember { mutableStateOf((subs.maxOfOrNull { it.id } ?: 0L) + 1) }
+    var name by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
+    var cycle by remember { mutableStateOf("monthly") }
+
+    val active = subs.filter { it.active }
+    val monthlyTotal = active.sumOf { monthlyEquiv(it.amount, it.cycle) }
+    val yearlyTotal = active.sumOf { yearlyEquiv(it.amount, it.cycle) }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("${fmt(monthlyTotal)}/mo", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+        Text("${fmt(yearlyTotal)}/yr · ${active.size} active", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Subscription name") })
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                amount, { amount = it }, modifier = Modifier.weight(1f), singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), placeholder = { Text("Amount") },
+            )
+            Spacer(Modifier.width(10.dp))
+            Button(onClick = {
+                val n = name.trim().replace("\n", " ")
+                val a = amount.trim().toDoubleOrNull()
+                if (n.isNotEmpty() && a != null) {
+                    persist(listOf(Subscription(nextId, n, a, cycle, true)) + subs)
+                    nextId += 1
+                    name = ""; amount = ""; cycle = "monthly"
+                }
+            }) { Text("Add") }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            CYCLES.forEach { c -> FilterChip(selected = cycle == c, onClick = { cycle = c }, label = { Text(c) }) }
+        }
+        Spacer(Modifier.height(14.dp))
+
+        if (subs.isEmpty()) {
+            Text("No subscriptions yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return
+        }
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(subs.sortedByDescending { monthlyEquiv(it.amount, it.cycle) }, key = { it.id }) { s ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(s.name, style = MaterialTheme.typography.bodyLarge, color = if (s.active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "${s.cycle} · ${fmt(monthlyEquiv(s.amount, s.cycle))}/mo" + if (!s.active) " · cancelled" else "",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(fmt(s.amount), style = MaterialTheme.typography.bodyLarge)
+                    TextButton(onClick = {
+                        persist(subs.map { if (it.id == s.id) it.copy(active = !it.active) else it })
+                    }) { Text(if (s.active) "Cancel" else "Resume") }
+                    TextButton(onClick = { persist(subs.filterNot { it.id == s.id }) }) { Text("✕") }
+                }
+            }
+        }
+    }
+}
+
+// Yearly Spend — a projected annual outlay by category: every bill payment logged
+// this calendar year, plus each active subscription annualized (weekly ×52,
+// monthly ×12, yearly ×1). Read-only; it reflects what the other two tabs hold.
+@Composable
+private fun YearlyTab(data: FinanceData) {
+    val year = today().toString().take(4)
+    val billsByCat = data.bills
+        .flatMap { b -> b.paymentHistory.filter { it.date.startsWith(year) }.map { b.category to it.amount } }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { it.value.sum() }
+    val subsByCat = data.subscriptions.filter { it.active }
+        .groupBy { it.category }
+        .mapValues { e -> e.value.sumOf { yearlyEquiv(it.amount, it.cycle) } }
+
+    val combined = (billsByCat.keys + subsByCat.keys).associateWith {
+        (billsByCat[it] ?: 0.0) + (subsByCat[it] ?: 0.0)
+    }.entries.sortedByDescending { it.value }
+    val total = combined.sumOf { it.value }
+    val billsPaid = billsByCat.values.sum()
+    val subsAnnual = subsByCat.values.sum()
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("Yearly Spend — $year", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(6.dp))
+        Text(fmt(total), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+        Text(
+            "${fmt(billsPaid)} bills paid · ${fmt(subsAnnual)} subscriptions annualized",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(16.dp))
+
+        if (combined.isEmpty()) {
+            Text("Nothing yet — log a bill payment or add an active subscription.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return
+        }
+        Text("BY CATEGORY", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(combined) { (cat, amt) ->
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(cat, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        Text(fmt(amt), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                    val frac = if (total > 0) (amt / total).toFloat().coerceIn(0f, 1f) else 0f
+                    Spacer(Modifier.height(4.dp))
+                    Row(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                        if (frac > 0f) Row(Modifier.fillMaxWidth(frac).height(6.dp).background(MaterialTheme.colorScheme.primary)) {}
+                    }
                 }
             }
         }

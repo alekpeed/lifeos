@@ -21,7 +21,7 @@ import com.alekpeed.lifeos.recipes.RecipesScreen
 import com.alekpeed.lifeos.skilltrees.SkillTreesScreen
 import com.alekpeed.lifeos.sharebox.ShareboxScreen
 import com.alekpeed.lifeos.timecapsules.TimeCapsulesScreen
-import com.alekpeed.lifeos.finance.LedgerScreen
+import com.alekpeed.lifeos.finance.FinanceScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.health.HealthScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
@@ -69,7 +69,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("links", "🔗", "Links", "Core", true) { LinksScreen() },
     Module("today", "🗓", "Today", "Core", true) { TodayScreen() },
     Module("command", "⌘", "Command", "Core", true) { CommandScreen() },
-    Module("finance", "💵", "Finance", "Core", true) { LedgerScreen() },
+    Module("finance", "💵", "Finance", "Core", true) { FinanceScreen() },
     Module("education", "🎓", "Education", "Core", true) { EducationScreen() },
     Module("daily-paper", "📰", "Daily Paper", "Core", true) { DailyPaperScreen() },
     Module("orrery", "🪐", "Orrery", "Core", true) { OrreryScreen() },
