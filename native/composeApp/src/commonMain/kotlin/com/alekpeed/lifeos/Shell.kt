@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +32,8 @@ import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.core.runAutomations
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.platform.SystemBackHandler
+import com.alekpeed.lifeos.ui.SaveToast
+import kotlinx.coroutines.delay
 
 // Home launcher <-> module detail navigation.
 @Composable
@@ -45,28 +50,42 @@ fun Shell() {
         modules.firstOrNull { it.id == id }?.let { current = it }
     }
 
-    val c = current
-    if (c == null) {
-        HomeScreen(modules) { current = it }
-    } else {
-        // Android edge-swipe / back button pops to Home instead of leaving the app.
-        SystemBackHandler(enabled = true) { current = null }
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                BackArrow { current = null }
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    "${c.icon}  ${c.label}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-            Box(Modifier.fillMaxWidth().weight(1f)) {
-                Interfaces.Render(c.id, c.content)
+    // The "Saved" pill, shown app-wide and debounced so per-keystroke saves don't
+    // flash it. LaunchedEffect(tick) restarts on each save, so it only fires once
+    // typing settles.
+    val snackHost = remember { SnackbarHostState() }
+    LaunchedEffect(SaveToast.tick) {
+        if (SaveToast.tick == 0) return@LaunchedEffect
+        delay(700)
+        snackHost.currentSnackbarData?.dismiss()
+        snackHost.showSnackbar(SaveToast.message, duration = SnackbarDuration.Short)
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        val c = current
+        if (c == null) {
+            HomeScreen(modules) { current = it }
+        } else {
+            // Android edge-swipe / back button pops to Home instead of leaving the app.
+            SystemBackHandler(enabled = true) { current = null }
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BackArrow { current = null }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "${c.icon}  ${c.label}",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+                Box(Modifier.fillMaxWidth().weight(1f)) {
+                    Interfaces.Render(c.id, c.content)
+                }
             }
         }
+        SnackbarHost(snackHost, Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp))
     }
 }
 

@@ -41,6 +41,7 @@ import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -102,7 +103,7 @@ fun DocumentsScreen() {
     var data by remember { mutableStateOf(loadDocuments()) }
     var counter by remember { mutableStateOf(data.documents.maxOfOrNull { it.id } ?: 0L) }
     fun freshId(): Long { counter += 1; return counter }
-    fun save(d: DocumentsData) { data = d; saveDocuments(d) }
+    fun save(d: DocumentsData) { data = d; saveDocuments(d); SaveToast.show() }
 
     var input by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("all") }
@@ -285,7 +286,7 @@ private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, d
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose) { Text("Close") }
+            TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { save(data.copy(documents = data.documents.filterNot { it.id == doc.id })); onClose() }) {
                 Text("Delete document", color = DANGER)
