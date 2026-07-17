@@ -27,9 +27,9 @@ object AppTheme {
     var compact by mutableStateOf(Storage.read("Density") == "compact")
         private set
 
-    fun setAccent(hex: String) { accentHex = hex; Storage.write("Theme from Photo", hex) }
-    fun setMode(m: String) { mode = m; Storage.write("ThemeMode", m) }
-    fun setCompact(c: Boolean) { compact = c; Storage.write("Density", if (c) "compact" else "comfortable") }
+    fun updateAccent(hex: String) { accentHex = hex; Storage.write("Theme from Photo", hex) }
+    fun updateMode(m: String) { mode = m; Storage.write("ThemeMode", m) }
+    fun updateCompact(c: Boolean) { compact = c; Storage.write("Density", if (c) "compact" else "comfortable") }
 }
 
 private fun parseAccent(hex: String): Color? {

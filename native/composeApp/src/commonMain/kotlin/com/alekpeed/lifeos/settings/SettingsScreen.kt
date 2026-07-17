@@ -520,12 +520,12 @@ fun SettingsScreen() {
         Spacer(Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (v, l) ->
-                FilterChip(selected = AppTheme.mode == v, onClick = { AppTheme.setMode(v) }, label = { Text(l) })
+                FilterChip(selected = AppTheme.mode == v, onClick = { AppTheme.updateMode(v) }, label = { Text(l) })
             }
         }
         Spacer(Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = AppTheme.compact, onCheckedChange = { AppTheme.setCompact(it) })
+            Switch(checked = AppTheme.compact, onCheckedChange = { AppTheme.updateCompact(it) })
             Spacer(Modifier.width(10.dp))
             Text("Compact density", style = MaterialTheme.typography.bodyLarge)
         }

@@ -54,7 +54,7 @@ private fun parseHex(hex: String): Color? {
 fun ThemeFromPhotoScreen() {
     var chosen by remember { mutableStateOf(com.alekpeed.lifeos.AppTheme.accentHex) }
     var custom by remember { mutableStateOf("") }
-    fun choose(hex: String) { chosen = hex; com.alekpeed.lifeos.AppTheme.setAccent(hex) }
+    fun choose(hex: String) { chosen = hex; com.alekpeed.lifeos.AppTheme.updateAccent(hex) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Theme from Photo", style = MaterialTheme.typography.headlineMedium)
