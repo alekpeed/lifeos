@@ -48,7 +48,12 @@ private data class HealthData(val readings: List<Reading> = emptyList())
 private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
 // Common metrics to prefill the field with one tap.
-private val QUICK = listOf("Weight" to "lb", "Sleep" to "h", "Resting HR" to "bpm", "Water" to "oz", "Steps" to "", "Mood" to "/10")
+private val QUICK = listOf("Weight" to "lb", "Sleep" to "h", "Workout" to "min", "Resting HR" to "bpm", "Water" to "oz", "Steps" to "", "Mood" to "/10")
+
+// Public read-only accessor for the stats layer (The Almanac). Exposes each
+// dated reading as (metric, value, date) without leaking the private model.
+data class HealthPoint(val metric: String, val value: Double, val date: String)
+fun healthSeries(): List<HealthPoint> = load().map { HealthPoint(it.metric, it.value, it.date) }
 
 private fun num(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else ((v * 100).toLong() / 100.0).toString()

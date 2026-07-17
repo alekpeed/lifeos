@@ -86,6 +86,11 @@ private fun save(entries: List<Entry>) {
     Storage.write("Finance", json.encodeToString(FinanceData(entries)))
 }
 
+// Public read-only accessor for the stats layer (The Almanac): each entry as
+// (amount, category, recurring, date) without leaking the private model.
+data class FinancePoint(val desc: String, val amount: Double, val category: String, val recurring: Boolean, val date: String)
+fun financeSeries(): List<FinancePoint> = load().map { FinancePoint(it.desc, it.amount, it.category, it.recurring, it.date) }
+
 // A money ledger with categories, dates, and a recurring flag. All-time balance
 // and a live this-month income / spending / net summary up top, then a
 // per-category breakdown. Marking an entry recurring schedules a real reminder

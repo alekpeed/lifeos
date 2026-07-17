@@ -30,6 +30,7 @@ import com.alekpeed.lifeos.insight.AssistantScreen
 import com.alekpeed.lifeos.insight.BriefingScreen
 import com.alekpeed.lifeos.insight.EntropyScreen
 import com.alekpeed.lifeos.insight.NotificationsScreen
+import com.alekpeed.lifeos.insight.AlmanacScreen
 import com.alekpeed.lifeos.insight.RecallScreen
 import com.alekpeed.lifeos.knowledge.KnowledgeGraphScreen
 import com.alekpeed.lifeos.timemachine.TimeMachineScreen
@@ -92,7 +93,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("habits", "🔥", "Habits", "Health", true) { HabitsScreen() },
     Module("health", "❤", "Health", "Health", true) { HealthScreen() },
     Module("skill-trees", "🌳", "Skill Trees", "Health", true) { SkillTreesScreen() },
-    Module("almanac", "📊", "The Almanac", "Health", true) { StatsScreen("The Almanac") },
+    Module("almanac", "📊", "The Almanac", "Health", true) { AlmanacScreen() },
     // Insight
     Module("briefing", "📋", "Briefing", "Insight", true) { BriefingScreen() },
     Module("ask", "🔎", "Ask", "Insight", true) { AskScreen() },
