@@ -61,6 +61,56 @@ object OpenAiClient {
         } catch (e: Exception) { null }
         return AiReply(friendlyAiError(resp.status, detail, "OpenAI"), isError = true)
     }
+
+    // Vision: a chat message whose content is a text part plus an image_url part
+    // carrying the JPEG as a data URI.
+    suspend fun askWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int): AiReply {
+        val key = key()
+        if (key.isEmpty()) return AiReply("Add your OpenAI API key in Settings to use this.", isError = true)
+
+        val body = buildJsonObject {
+            put("model", model())
+            put("max_tokens", maxTokens)
+            putJsonArrayCompat("messages") {
+                add(buildJsonObject { put("role", "system"); put("content", system) })
+                add(buildJsonObject {
+                    put("role", "user")
+                    putJsonArrayCompat("content") {
+                        add(buildJsonObject { put("type", "text"); put("text", userText) })
+                        add(buildJsonObject {
+                            put("type", "image_url")
+                            put("image_url", buildJsonObject { put("url", "data:image/jpeg;base64,$imageBase64") })
+                        })
+                    }
+                })
+            }
+        }.toString()
+
+        val resp = httpPostJson(
+            "https://api.openai.com/v1/chat/completions",
+            mapOf("Authorization" to "Bearer $key", "content-type" to "application/json"),
+            body,
+        )
+
+        if (resp.ok) {
+            return try {
+                val text = json.parseToJsonElement(resp.body).jsonObject["choices"]
+                    ?.jsonArray?.firstOrNull()?.jsonObject
+                    ?.get("message")?.jsonObject
+                    ?.get("content")?.jsonPrimitive?.content
+                if (!text.isNullOrBlank()) AiReply(text.trim(), isError = false)
+                else AiReply("The model returned no answer.", isError = true)
+            } catch (e: Exception) {
+                AiReply("Got an unexpected response from OpenAI.", isError = true)
+            }
+        }
+
+        val detail = try {
+            json.parseToJsonElement(resp.body).jsonObject["error"]?.jsonObject
+                ?.get("message")?.jsonPrimitive?.content
+        } catch (e: Exception) { null }
+        return AiReply(friendlyAiError(resp.status, detail, "OpenAI"), isError = true)
+    }
 }
 
 // kotlinx.serialization's buildJsonObject has no putJsonArray in this version's DSL

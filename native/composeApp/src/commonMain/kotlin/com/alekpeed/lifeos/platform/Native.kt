@@ -18,6 +18,7 @@ expect object Native {
     val supportsSpeakerId: Boolean
     val supportsQrScan: Boolean
     val supportsLocation: Boolean
+    val supportsCamera: Boolean
 
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
@@ -73,4 +74,10 @@ expect object Native {
     // missing and returns null,null for that call — the caller re-taps once granted.
     // Desktop has no location source and always returns null,null.
     fun getCurrentLocation(onResult: (lat: Double?, lng: Double?) -> Unit)
+
+    // Capture (or pick) a photo for AI vision. `onResult` gets a base64-encoded
+    // JPEG (no data: prefix), already downscaled for a vision API, or null if the
+    // user cancelled / the platform has no camera. Android opens the system image
+    // picker (which offers the camera); desktop has no source and returns null.
+    fun capturePhoto(onResult: (String?) -> Unit)
 }

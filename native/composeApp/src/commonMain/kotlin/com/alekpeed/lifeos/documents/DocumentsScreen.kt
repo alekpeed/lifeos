@@ -18,8 +18,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,16 +29,62 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.platform.Native
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 private val DANGER = Color(0xFFD64545)
 private val OVERDUE = Color(0xFFE05C5C)
+
+private const val SCAN_SYSTEM =
+    "You extract structured fields from a photo of a document (a lease, insurance card, " +
+        "warranty, ID, bill, medical letter, etc.). Respond with ONLY a JSON object and no " +
+        "other text — no prose, no markdown, no code fence. Use exactly these keys: " +
+        "title, category, issuer, policyNumber, expiryDate, notes. " +
+        "\"category\" is a short lowercase type such as lease, insurance, warranty, id, medical, bill. " +
+        "\"expiryDate\" must be an ISO date (YYYY-MM-DD) or an empty string if none is visible. " +
+        "Use an empty string for any field you cannot read confidently. Never invent values."
+
+private val scanJson = Json { ignoreUnknownKeys = true }
+
+// Pull the model's JSON out of whatever it returned (it may wrap it in prose or a
+// code fence despite instructions) and build a draft Document. Returns null if no
+// object is parseable. id is filled in by the caller.
+private fun parseScan(raw: String): Document? {
+    val start = raw.indexOf('{')
+    val end = raw.lastIndexOf('}')
+    if (start < 0 || end <= start) return null
+    val obj = try {
+        scanJson.parseToJsonElement(raw.substring(start, end + 1)).jsonObject
+    } catch (e: Exception) {
+        return null
+    }
+    fun field(key: String): String =
+        try { obj[key]?.jsonPrimitive?.content?.takeIf { it != "null" }?.trim().orEmpty() } catch (e: Exception) { "" }
+
+    val title = field("title").ifBlank { "Scanned document" }
+    val doc = Document(
+        id = 0L,
+        title = title.replace("\n", " "),
+        category = field("category").replace("\n", " "),
+        issuer = field("issuer").replace("\n", " "),
+        policyNumber = field("policyNumber").replace("\n", " "),
+        expiryDate = field("expiryDate"),
+        notes = field("notes"),
+    )
+    return doc
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -49,6 +97,28 @@ fun DocumentsScreen() {
     var input by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("all") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    var scanning by remember { mutableStateOf(false) }
+    var scanError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun runScan() {
+        if (!AiClient.hasKey()) { scanError = "Add an AI key in Settings to scan documents."; return }
+        scanError = null
+        Native.capturePhoto { b64 ->
+            if (b64 == null) return@capturePhoto // cancelled, or nothing picked
+            scanning = true
+            scope.launch {
+                val reply = AiClient.askWithImage(SCAN_SYSTEM, "Extract the document fields from this image.", b64, 512)
+                scanning = false
+                if (reply.isError) { scanError = reply.text; return@launch }
+                val draft = parseScan(reply.text)
+                if (draft == null) { scanError = "Couldn't read fields from that photo — add it manually."; return@launch }
+                val id = freshId()
+                save(data.copy(documents = data.documents + draft.copy(id = id)))
+                selected = id
+            }
+        }
+    }
 
     val categories = data.documents.mapNotNull { it.category.ifBlank { null } }.distinct()
 
@@ -63,6 +133,25 @@ fun DocumentsScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(documents = data.documents + Document(freshId(), t))); input = "" }
             }) { Text("Add") }
+        }
+
+        if (Native.supportsCamera) {
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = { runScan() }, enabled = !scanning) {
+                    if (scanning) {
+                        CircularProgressIndicator(Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Reading…")
+                    } else {
+                        Text("📷 Scan a document")
+                    }
+                }
+            }
+            scanError?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, style = MaterialTheme.typography.labelMedium, color = OVERDUE)
+            }
         }
 
         if (categories.isNotEmpty()) {

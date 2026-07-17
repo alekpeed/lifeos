@@ -6,6 +6,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 const val DEFAULT_AI_MODEL = "claude-opus-4-8"
 
@@ -64,6 +71,70 @@ object AiClient {
             "gemini" -> GeminiClient.ask(system, userText, maxTokens)
             else -> askClaude(system, userText, maxTokens)
         }
+
+    // Vision: send a base64 JPEG (no data: prefix) plus a text instruction to the
+    // active provider. All three default models are vision-capable. Backs the
+    // camera-to-data document scan (and future photo-cataloging).
+    suspend fun askWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int = 1024): AiReply =
+        when (provider()) {
+            "openai" -> OpenAiClient.askWithImage(system, userText, imageBase64, maxTokens)
+            "gemini" -> GeminiClient.askWithImage(system, userText, imageBase64, maxTokens)
+            else -> askClaudeWithImage(system, userText, imageBase64, maxTokens)
+        }
+
+    private suspend fun askClaudeWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int): AiReply {
+        val key = Storage.read("ApiKey")?.trim().orEmpty()
+        if (key.isEmpty()) return AiReply("Add your Anthropic API key in Settings to use this.", isError = true)
+
+        val body = buildJsonObject {
+            put("model", model())
+            put("max_tokens", maxTokens)
+            put("system", system)
+            put("messages", buildJsonArray {
+                add(buildJsonObject {
+                    put("role", "user")
+                    put("content", buildJsonArray {
+                        add(buildJsonObject {
+                            put("type", "image")
+                            put("source", buildJsonObject {
+                                put("type", "base64")
+                                put("media_type", "image/jpeg")
+                                put("data", imageBase64)
+                            })
+                        })
+                        add(buildJsonObject {
+                            put("type", "text")
+                            put("text", userText)
+                        })
+                    })
+                })
+            })
+        }.toString()
+
+        val headers = mapOf(
+            "x-api-key" to key,
+            "anthropic-version" to "2023-06-01",
+            "content-type" to "application/json",
+        )
+
+        val resp = com.alekpeed.lifeos.net.httpPostJson("https://api.anthropic.com/v1/messages", headers, body)
+        if (resp.ok) {
+            return try {
+                val text = json.parseToJsonElement(resp.body).jsonObject["content"]
+                    ?.jsonArray?.firstOrNull { it.jsonObject["type"]?.jsonPrimitive?.content == "text" }
+                    ?.jsonObject?.get("text")?.jsonPrimitive?.content
+                if (!text.isNullOrBlank()) AiReply(text.trim(), isError = false)
+                else AiReply("The model returned no answer.", isError = true)
+            } catch (e: Exception) {
+                AiReply("Got an unexpected response from the model.", isError = true)
+            }
+        }
+        val detail = try {
+            json.parseToJsonElement(resp.body).jsonObject["error"]?.jsonObject
+                ?.get("message")?.jsonPrimitive?.content
+        } catch (e: Exception) { null }
+        return AiReply(friendlyAiError(resp.status, detail, "Claude"), isError = true)
+    }
 
     private suspend fun askClaude(system: String, userText: String, maxTokens: Int): AiReply {
         val key = Storage.read("ApiKey")?.trim().orEmpty()

@@ -50,6 +50,7 @@ actual object Native {
     actual val supportsSpeakerId = true
     actual val supportsQrScan = true
     actual val supportsLocation = true
+    actual val supportsCamera = true
 
     actual fun speak(text: String) {
         val ctx = NativeHost.ctx() ?: return
@@ -253,5 +254,17 @@ actual object Native {
 
     actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) {
         Geofences.currentLocation(NativeHost.ctx(), onResult)
+    }
+
+    actual fun capturePhoto(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.photoLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.photoCallback = onResult
+        try {
+            launcher.launch("image/*")
+        } catch (e: Exception) {
+            NativeHost.photoCallback = null
+            onResult(null)
+        }
     }
 }

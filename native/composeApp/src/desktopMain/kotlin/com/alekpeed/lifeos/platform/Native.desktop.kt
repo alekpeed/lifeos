@@ -18,6 +18,7 @@ actual object Native {
     actual val supportsSpeakerId = false
     actual val supportsQrScan = false
     actual val supportsLocation = false
+    actual val supportsCamera = false
 
     actual fun speak(text: String) {}
     actual fun stopSpeaking() {}
@@ -54,4 +55,5 @@ actual object Native {
     actual fun onlyMyVoiceEnabled(): Boolean = false
     actual fun scanQr(onResult: (String?) -> Unit) { onResult(null) }
     actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) { onResult(null, null) }
+    actual fun capturePhoto(onResult: (String?) -> Unit) { onResult(null) }
 }

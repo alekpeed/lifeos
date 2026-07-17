@@ -17,6 +17,8 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import com.alekpeed.lifeos.platform.ImageEncode
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.NativeHost
 import com.journeyapps.barcodescanner.ScanContract
@@ -31,6 +33,24 @@ class MainActivity : ComponentActivity() {
         val cb = NativeHost.qrCallback
         NativeHost.qrCallback = null
         cb?.invoke(result.contents)
+    }
+
+    // Photo picker result → the pending Native.capturePhoto callback. The decode
+    // and base64 happen here (off the picked Uri) so the capability layer stays
+    // platform-agnostic. A null Uri means the user cancelled.
+    private val photoPickLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        val cb = NativeHost.photoCallback
+        NativeHost.photoCallback = null
+        if (uri == null) {
+            cb?.invoke(null)
+        } else {
+            val b64 = try {
+                ImageEncode.uriToDownscaledJpegBase64(this, uri)
+            } catch (e: Exception) {
+                null
+            }
+            cb?.invoke(b64)
+        }
     }
 
     // Fires the evening ritual when the phone is plugged in while the app is alive.
@@ -48,6 +68,7 @@ class MainActivity : ComponentActivity() {
         NativeHost.activity = this
         NativeHost.appContext = applicationContext
         NativeHost.qrLauncher = qrScanLauncher
+        NativeHost.photoLauncher = photoPickLauncher
         NativeHost.ensureTts(applicationContext)
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         requestNeededPermissions()
