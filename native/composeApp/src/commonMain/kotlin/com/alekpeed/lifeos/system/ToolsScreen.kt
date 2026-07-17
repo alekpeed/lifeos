@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +19,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -36,6 +39,10 @@ import com.alekpeed.lifeos.integrations.CurrencyClient
 import com.alekpeed.lifeos.integrations.MarketsClient
 import com.alekpeed.lifeos.integrations.WeatherClient
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 // Tools — a home for the keyless live-data utilities. Each card fetches on demand
 // (no background polling), so nothing hits the network until you ask it to.
@@ -47,13 +54,118 @@ fun ToolsScreen() {
     ) {
         Text("Tools", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Live utilities — weather, currency, and markets. All keyless; each fetches only when you tap.",
+            "Weather, currency, and markets fetch live (keyless, on tap); the unit converter and timezones are offline.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         WeatherCard()
         CurrencyCard()
         MarketsCard()
+        UnitConverterCard()
+        TimezoneCard()
+    }
+}
+
+private data class UnitDef(val name: String, val toBase: Double)
+
+private val UNIT_CATS = linkedMapOf(
+    "Length" to listOf(UnitDef("m", 1.0), UnitDef("km", 1000.0), UnitDef("cm", 0.01), UnitDef("mi", 1609.344), UnitDef("ft", 0.3048), UnitDef("in", 0.0254), UnitDef("yd", 0.9144)),
+    "Weight" to listOf(UnitDef("g", 1.0), UnitDef("kg", 1000.0), UnitDef("lb", 453.592), UnitDef("oz", 28.3495)),
+    "Volume" to listOf(UnitDef("L", 1.0), UnitDef("mL", 0.001), UnitDef("gal", 3.78541), UnitDef("cup", 0.236588), UnitDef("fl oz", 0.0295735)),
+)
+private val TEMP_UNITS = listOf("C", "F", "K")
+
+private fun convertUnit(cat: String, amt: Double?, from: String, to: String): String {
+    if (amt == null) return ""
+    if (cat == "Temperature") {
+        val c = when (from) { "F" -> (amt - 32) * 5 / 9; "K" -> amt - 273.15; else -> amt }
+        val out = when (to) { "F" -> c * 9 / 5 + 32; "K" -> c + 273.15; else -> c }
+        return "${trim2(amt)}°$from  =  ${trim2(out)}°$to"
+    }
+    val defs = UNIT_CATS[cat] ?: return ""
+    val f = defs.firstOrNull { it.name == from }?.toBase ?: return ""
+    val t = defs.firstOrNull { it.name == to }?.toBase ?: return ""
+    return "${trim2(amt)} $from  =  ${trim2(amt * f / t)} $to"
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun UnitConverterCard() {
+    var cat by remember { mutableStateOf("Length") }
+    var amount by remember { mutableStateOf("1") }
+    val units = if (cat == "Temperature") TEMP_UNITS else (UNIT_CATS[cat] ?: emptyList()).map { it.name }
+    var from by remember(cat) { mutableStateOf(units.first()) }
+    var to by remember(cat) { mutableStateOf(units.getOrElse(1) { units.first() }) }
+    val result = convertUnit(cat, amount.trim().toDoubleOrNull(), from, to)
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Unit converter", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(10.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                (UNIT_CATS.keys + "Temperature").forEach { c ->
+                    FilterChip(selected = cat == c, onClick = { cat = c }, label = { Text(c) })
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(value = amount, onValueChange = { amount = it }, modifier = Modifier.weight(1f), singleLine = true, label = { Text("Amount") })
+                Spacer(Modifier.width(8.dp))
+                UnitPicker(from, units) { from = it }
+                Spacer(Modifier.width(6.dp))
+                Text("→", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.width(6.dp))
+                UnitPicker(to, units) { to = it }
+            }
+            if (result.isNotBlank()) {
+                Spacer(Modifier.height(10.dp))
+                Text(result, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+}
+
+private val ZONES = listOf(
+    "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York",
+    "Europe/London", "Europe/Paris", "Asia/Dubai", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney",
+)
+
+private fun fmtClock(dt: LocalDateTime): String {
+    val h = if (dt.hour % 12 == 0) 12 else dt.hour % 12
+    return "$h:${dt.minute.toString().padStart(2, '0')} ${if (dt.hour < 12) "AM" else "PM"}"
+}
+
+@Composable
+private fun TimezoneCard() {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Timezones", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(6.dp))
+            val now = Clock.System.now()
+            val local = TimeZone.currentSystemDefault()
+            Text("Local (${local.id.substringAfterLast('/').replace('_', ' ')}): ${fmtClock(now.toLocalDateTime(local))}", style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(6.dp))
+            ZONES.forEach { z ->
+                val tz = runCatching { TimeZone.of(z) }.getOrNull()
+                if (tz != null && tz != local) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(z.substringAfterLast('/').replace('_', ' '), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        Text(fmtClock(now.toLocalDateTime(tz)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnitPicker(value: String, options: List<String>, onPick: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        OutlinedButton(onClick = { open = true }) { Text(value) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            options.forEach { o -> DropdownMenuItem(text = { Text(o) }, onClick = { onPick(o); open = false }) }
+        }
     }
 }
 
