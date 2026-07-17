@@ -3,6 +3,7 @@ package com.alekpeed.lifeos
 import androidx.compose.runtime.Composable
 import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
+import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.finance.LedgerScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.health.HealthScreen
@@ -50,9 +51,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("today", "🗓", "Today", "Core", true) { TodayScreen() },
     Module("command", "⌘", "Command", "Core", true) { CommandScreen() },
     Module("finance", "💵", "Finance", "Core", true) { LedgerScreen() },
-    Module("education", "🎓", "Education", "Core", true) {
-        StatusListScreen("Education", "Add a course", listOf("Not started", "Learning", "Done"))
-    },
+    Module("education", "🎓", "Education", "Core", true) { EducationScreen() },
     Module("daily-paper", "📰", "Daily Paper", "Core", true) { NoteListScreen("Daily Paper", "Headline", "Source / link") },
     Module("orrery", "🪐", "Orrery", "Core", true) { NoteListScreen("Orrery", "Celestial note or event", "When") },
     // People
