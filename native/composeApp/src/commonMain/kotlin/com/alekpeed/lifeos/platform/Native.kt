@@ -19,6 +19,7 @@ expect object Native {
     val supportsQrScan: Boolean
     val supportsLocation: Boolean
     val supportsCamera: Boolean
+    val supportsFilePick: Boolean
 
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
@@ -86,4 +87,9 @@ expect object Native {
     // capturePhoto opens the system image picker (gallery). Desktop no-ops both.
     fun takePhoto(onResult: (String?) -> Unit)
     fun capturePhoto(onResult: (String?) -> Unit)
+
+    // Pick a text/CSV file and hand back its UTF-8 contents (size-capped), or null
+    // if the user cancelled / the platform has no file picker. Android opens the
+    // system document picker; desktop has none and returns null.
+    fun pickTextFile(onResult: (String?) -> Unit)
 }

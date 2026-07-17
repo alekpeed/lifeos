@@ -76,6 +76,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Document picker → the pending Native.pickTextFile callback. Read the file's
+    // bytes as UTF-8 text (capped) in the result callback. Null uri = cancelled.
+    private val openDocumentLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val cb = NativeHost.fileCallback
+        NativeHost.fileCallback = null
+        if (uri == null) {
+            cb?.invoke(null)
+        } else {
+            val text = try {
+                contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?.let { if (it.size > 4_000_000) null else it.decodeToString() }
+            } catch (e: Exception) {
+                null
+            }
+            cb?.invoke(text)
+        }
+    }
+
     // Camera runtime permission (declared in the manifest, so it's enforced). On
     // grant, launch the camera; on deny, report cancel.
     private val cameraPermLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -127,6 +145,7 @@ class MainActivity : ComponentActivity() {
         NativeHost.qrLauncher = qrScanLauncher
         NativeHost.photoLauncher = photoPickLauncher
         NativeHost.cameraRequest = { requestCameraCapture() }
+        NativeHost.filePickLauncher = openDocumentLauncher
         NativeHost.ensureTts(applicationContext)
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         requestNeededPermissions()

@@ -33,6 +33,12 @@ object NativeHost {
     var cameraRequest: (() -> Unit)? = null
     @Volatile var cameraCallback: ((String?) -> Unit)? = null
 
+    // Document picker (OpenDocument): MainActivity registers the launcher and reads
+    // the chosen file's text on the result; Native.pickTextFile sets the callback
+    // and launches it. The callback receives the file text or null.
+    var filePickLauncher: ActivityResultLauncher<Array<String>>? = null
+    @Volatile var fileCallback: ((String?) -> Unit)? = null
+
     fun ctx(): Context? = activity ?: appContext
 
     fun ensureTts(context: Context) {

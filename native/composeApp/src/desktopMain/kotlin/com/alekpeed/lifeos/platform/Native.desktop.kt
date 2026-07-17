@@ -19,6 +19,7 @@ actual object Native {
     actual val supportsQrScan = false
     actual val supportsLocation = false
     actual val supportsCamera = false
+    actual val supportsFilePick = false
 
     actual fun speak(text: String) {}
     actual fun stopSpeaking() {}
@@ -57,4 +58,5 @@ actual object Native {
     actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) { onResult(null, null) }
     actual fun takePhoto(onResult: (String?) -> Unit) { onResult(null) }
     actual fun capturePhoto(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun pickTextFile(onResult: (String?) -> Unit) { onResult(null) }
 }

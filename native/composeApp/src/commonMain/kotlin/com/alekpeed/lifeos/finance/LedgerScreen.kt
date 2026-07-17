@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -26,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +47,9 @@ import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
 import com.alekpeed.lifeos.ui.SaveToast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import kotlinx.serialization.Serializable
@@ -185,10 +192,10 @@ fun FinanceScreen() {
     var data by remember { mutableStateOf(loadData()) }
     fun persist(next: FinanceData) { data = next; saveData(next) }
     var tab by remember { mutableStateOf(0) }
-    val tabs = listOf("Ledger", "Bills", "Subs", "Yearly")
+    val tabs = listOf("Ledger", "Bills", "Subs", "Yearly", "Import")
 
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
+        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 0.dp) {
             tabs.forEachIndexed { i, title ->
                 Tab(selected = tab == i, onClick = { tab = i }, text = { Text(title) })
             }
@@ -197,7 +204,8 @@ fun FinanceScreen() {
             0 -> LedgerTab(data) { persist(it) }
             1 -> BillsTab(data) { persist(it) }
             2 -> SubscriptionsTab(data) { persist(it) }
-            else -> YearlyTab(data)
+            3 -> YearlyTab(data)
+            else -> ImportTab(data) { persist(it) }
         }
     }
 }
@@ -527,6 +535,182 @@ private fun YearlyTab(data: FinanceData) {
                         if (frac > 0f) Row(Modifier.fillMaxWidth(frac).height(6.dp).background(MaterialTheme.colorScheme.primary)) {}
                     }
                 }
+            }
+        }
+    }
+}
+
+// ---- CSV import ----------------------------------------------------------
+
+private data class Txn(val date: String, val desc: String, val amount: Double)
+
+// Quote-aware CSV tokenizer → rows of fields. Handles "" escapes and CRLF.
+private fun parseCsvRows(text: String): List<List<String>> {
+    val rows = ArrayList<List<String>>()
+    var field = StringBuilder()
+    var row = ArrayList<String>()
+    var inQuotes = false
+    var i = 0
+    while (i < text.length) {
+        val c = text[i]
+        when {
+            inQuotes -> when {
+                c == '"' && i + 1 < text.length && text[i + 1] == '"' -> { field.append('"'); i++ }
+                c == '"' -> inQuotes = false
+                else -> field.append(c)
+            }
+            c == '"' -> inQuotes = true
+            c == ',' -> { row.add(field.toString()); field = StringBuilder() }
+            c == '\n' || c == '\r' -> {
+                if (c == '\r' && i + 1 < text.length && text[i + 1] == '\n') i++
+                row.add(field.toString()); field = StringBuilder()
+                if (row.any { it.isNotBlank() }) rows.add(row)
+                row = ArrayList()
+            }
+            else -> field.append(c)
+        }
+        i++
+    }
+    row.add(field.toString())
+    if (row.any { it.isNotBlank() }) rows.add(row)
+    return rows
+}
+
+// "$1,234.56" / "(45.00)" / "-45" → signed Double, or null if not a number.
+private fun parseAmount(raw: String): Double? {
+    var s = raw.trim()
+    if (s.isEmpty()) return null
+    var neg = false
+    if (s.startsWith("(") && s.endsWith(")")) { neg = true; s = s.substring(1, s.length - 1) }
+    s = s.replace("$", "").replace(",", "").replace("+", "").trim()
+    if (s.startsWith("-")) { neg = true; s = s.substring(1) }
+    val v = s.toDoubleOrNull() ?: return null
+    return if (neg) -v else v
+}
+
+// Bank dates are US-ordered (MM/DD/YYYY); normalize to ISO, falling back to today.
+private fun normalizeDate(raw: String): String {
+    val s = raw.trim()
+    Regex("""\d{4}-\d{2}-\d{2}""").find(s)?.let { return it.value }
+    val m = Regex("""(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})""").find(s) ?: return today().toString()
+    val (a, b, c) = m.destructured
+    var yr = c.toInt(); if (yr < 100) yr += 2000
+    val mm = a.toInt(); val dd = b.toInt()
+    if (mm !in 1..12 || dd !in 1..31) return today().toString()
+    val iso = "${yr.toString().padStart(4, '0')}-${mm.toString().padStart(2, '0')}-${dd.toString().padStart(2, '0')}"
+    return if (parseDateOrNull(iso) != null) iso else today().toString()
+}
+
+// Best-effort transaction extraction: use header names when present (amount, or
+// debit/credit; date; description-like), else guess (first col = date, longest
+// non-numeric = description, last numeric = amount).
+private fun parseTransactions(text: String): List<Txn> {
+    val rows = parseCsvRows(text)
+    if (rows.isEmpty()) return emptyList()
+    val header = rows[0].map { it.trim().lowercase() }
+    fun findIdx(vararg keys: String) = header.indexOfFirst { h -> keys.any { h.contains(it) } }
+    val dateIdx = findIdx("date", "posted")
+    val descIdx = findIdx("description", "desc", "payee", "name", "memo", "details", "narrative")
+    val amtIdx = findIdx("amount", "value")
+    val debitIdx = findIdx("debit", "withdrawal")
+    val creditIdx = findIdx("credit", "deposit")
+    val hasHeader = dateIdx >= 0 || descIdx >= 0 || amtIdx >= 0 || debitIdx >= 0 || creditIdx >= 0
+    val dataRows = if (hasHeader) rows.drop(1) else rows
+
+    val out = ArrayList<Txn>()
+    for (r in dataRows) {
+        if (r.isEmpty()) continue
+        val amount: Double? = when {
+            amtIdx >= 0 -> parseAmount(r.getOrElse(amtIdx) { "" })
+            debitIdx >= 0 || creditIdx >= 0 -> {
+                val debit = if (debitIdx >= 0) parseAmount(r.getOrElse(debitIdx) { "" }) else null
+                val credit = if (creditIdx >= 0) parseAmount(r.getOrElse(creditIdx) { "" }) else null
+                when {
+                    credit != null && credit != 0.0 -> abs(credit)
+                    debit != null && debit != 0.0 -> -abs(debit)
+                    else -> null
+                }
+            }
+            else -> r.asReversed().firstNotNullOfOrNull { parseAmount(it) }
+        }
+        if (amount == null) continue
+        val dateStr = normalizeDate(if (dateIdx >= 0) r.getOrElse(dateIdx) { "" } else r.getOrElse(0) { "" })
+        val desc = (if (descIdx >= 0) r.getOrElse(descIdx) { "" }
+        else r.filter { parseAmount(it) == null && !it.contains("/") }.maxByOrNull { it.length } ?: "Imported")
+            .trim().replace("\n", " ").ifBlank { "Imported" }
+        out.add(Txn(dateStr, desc, amount))
+    }
+    return out
+}
+
+// Import — pick a bank/card CSV, review the parsed transactions, then add them to
+// the ledger. (Auto-matching a row to a bill and marking it paid is a later step.)
+@Composable
+private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
+    var txns by remember { mutableStateOf<List<Txn>?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun onFile(text: String?) {
+        if (text == null) return
+        busy = true
+        scope.launch {
+            val parsed = withContext(Dispatchers.Default) { parseTransactions(text) }
+            busy = false
+            if (parsed.isEmpty()) { error = "Couldn't find transactions in that file."; txns = null }
+            else { error = null; txns = parsed }
+        }
+    }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("Import transactions", style = MaterialTheme.typography.titleMedium)
+        Text("Pick a bank or card CSV export — its rows are added to the ledger (spending negative).", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(12.dp))
+
+        if (!Native.supportsFilePick) {
+            Text("File import isn't available on this platform.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return
+        }
+
+        Button(onClick = { error = null; Native.pickTextFile { onFile(it) } }, enabled = !busy) {
+            if (busy) {
+                CircularProgressIndicator(Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("Reading…")
+            } else {
+                Text("Choose CSV file")
+            }
+        }
+        error?.let {
+            Spacer(Modifier.height(6.dp))
+            Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+        }
+
+        txns?.let { list ->
+            Spacer(Modifier.height(12.dp))
+            val net = list.sumOf { it.amount }
+            Text("${list.size} transaction${if (list.size == 1) "" else "s"} · net ${fmt(net)}", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(8.dp))
+            LazyColumn(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                itemsIndexed(list) { i, t ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(usDate(t.date).ifBlank { t.date }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(84.dp))
+                        Text(t.desc, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        Text(fmt(t.amount), style = MaterialTheme.typography.bodyMedium, color = if (t.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                        TextButton(onClick = { txns = list.filterIndexed { idx, _ -> idx != i } }) { Text("×") }
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { txns = null }) { Text("Cancel") }
+                Spacer(Modifier.weight(1f))
+                Button(onClick = {
+                    var id = (data.entries.maxOfOrNull { it.id } ?: 0L) + 1
+                    val entries = list.map { Entry(id++, it.desc, it.amount, "Imported", false, it.date) }
+                    onChange(data.copy(entries = entries + data.entries))
+                    txns = null
+                }) { Text("Add ${list.size} to ledger") }
             }
         }
     }

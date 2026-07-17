@@ -51,6 +51,7 @@ actual object Native {
     actual val supportsQrScan = true
     actual val supportsLocation = true
     actual val supportsCamera = true
+    actual val supportsFilePick = true
 
     actual fun speak(text: String) {
         val ctx = NativeHost.ctx() ?: return
@@ -276,6 +277,18 @@ actual object Native {
             request.invoke()
         } catch (e: Exception) {
             NativeHost.cameraCallback = null
+            onResult(null)
+        }
+    }
+
+    actual fun pickTextFile(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.fileCallback = onResult
+        try {
+            launcher.launch(arrayOf("*/*"))
+        } catch (e: Exception) {
+            NativeHost.fileCallback = null
             onResult(null)
         }
     }
