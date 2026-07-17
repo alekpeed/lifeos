@@ -10,6 +10,7 @@ import com.alekpeed.lifeos.packing.PackingScreen
 import com.alekpeed.lifeos.places.PlacesScreen
 import com.alekpeed.lifeos.quartermaster.QuartermasterScreen
 import com.alekpeed.lifeos.recipes.RecipesScreen
+import com.alekpeed.lifeos.sharebox.ShareboxScreen
 import com.alekpeed.lifeos.finance.LedgerScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.health.HealthScreen
@@ -66,7 +67,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("documents", "📄", "Documents", "People", true) { DocumentsScreen() },
     Module("quartermaster", "📦", "Quartermaster", "People", true) { QuartermasterScreen() },
     Module("packing", "🧳", "Packing Lists", "People", true) { PackingScreen() },
-    Module("sharebox", "🤝", "Sharebox", "People", true) { NoteListScreen("Sharebox", "Something to share", "With whom") },
+    Module("sharebox", "🤝", "Sharebox", "People", true) { ShareboxScreen() },
     // Memory
     Module("books", "📚", "Books", "Memory", true) {
         StatusListScreen("Books", "Add a book", listOf("Want", "Reading", "Read"), seed = listOf("Life OS design notes" to 1))
