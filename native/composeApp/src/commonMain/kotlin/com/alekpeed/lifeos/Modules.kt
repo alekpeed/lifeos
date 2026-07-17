@@ -3,6 +3,7 @@ package com.alekpeed.lifeos
 import androidx.compose.runtime.Composable
 import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
+import com.alekpeed.lifeos.documents.DocumentsScreen
 import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
 import com.alekpeed.lifeos.places.PlacesScreen
@@ -60,7 +61,7 @@ fun lifeOsModules(): List<Module> = listOf(
     // People
     Module("contacts", "👤", "Contacts", "People", true) { ContactsScreen() },
     Module("recipes", "🍳", "Recipes", "People", true) { RecipesScreen() },
-    Module("documents", "📄", "Documents", "People", true) { NoteListScreen("Documents", "Document name", "Where it lives / reference #") },
+    Module("documents", "📄", "Documents", "People", true) { DocumentsScreen() },
     Module("quartermaster", "📦", "Quartermaster", "People", true) { NoteListScreen("Quartermaster", "Item", "Location / quantity") },
     Module("packing", "🧳", "Packing Lists", "People", true) { SimpleListScreen("Packing", "Add an item") },
     Module("sharebox", "🤝", "Sharebox", "People", true) { NoteListScreen("Sharebox", "Something to share", "With whom") },
