@@ -22,8 +22,16 @@ data class InventoryItem(
     val lentSince: String = "",
 )
 
+// A labeled reference photo for the few-shot stock check: a human label
+// ("low"/"full"/…) plus a blob-store id for the image.
 @Serializable
-data class QuartermasterData(val items: List<InventoryItem> = emptyList())
+data class StockRef(val id: Long, val label: String, val blob: String)
+
+@Serializable
+data class QuartermasterData(
+    val items: List<InventoryItem> = emptyList(),
+    val stockRefs: List<StockRef> = emptyList(),
+)
 
 private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 

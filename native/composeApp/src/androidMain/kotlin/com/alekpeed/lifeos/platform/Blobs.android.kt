@@ -33,6 +33,17 @@ actual fun deleteBlob(id: String) {
     }
 }
 
+actual fun readBlobBase64(id: String): String? = try {
+    if (id.isBlank()) null
+    else {
+        val dir = blobsDir()
+        val f = if (dir != null) File(dir, "$id.bin") else null
+        if (f == null || !f.exists()) null else Base64.encodeToString(f.readBytes(), Base64.NO_WRAP)
+    }
+} catch (e: Exception) {
+    null
+}
+
 actual fun loadBlobImage(id: String): ImageBitmap? = try {
     if (id.isBlank()) null
     else {

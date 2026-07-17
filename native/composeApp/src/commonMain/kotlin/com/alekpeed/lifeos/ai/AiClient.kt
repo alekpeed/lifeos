@@ -44,6 +44,13 @@ private data class ErrEnvelope(val error: ErrBody? = null)
 
 data class AiReply(val text: String, val isError: Boolean)
 
+// A content block for a multi-image vision request: interleaved text and images
+// in one user turn (e.g. labeled reference photos followed by a query photo).
+sealed class VisionBlock {
+    data class Txt(val text: String) : VisionBlock()
+    data class Img(val base64: String) : VisionBlock()
+}
+
 // The AI entry point. Routes Ask + the Assistant to whichever provider is selected
 // in Settings (Claude / OpenAI / Gemini); each provider's key + model live in local
 // Storage. Claude is the built-in default and lives here; OpenAI/Gemini are in their
@@ -116,6 +123,64 @@ object AiClient {
                 else -> askClaudeWithImage(system, userText, imageBase64, maxTokens)
             }
         }
+
+    // Multi-image vision: interleaved text + images in one turn. Backs few-shot
+    // classification (labeled reference photos + a query photo).
+    suspend fun askVision(system: String, blocks: List<VisionBlock>, maxTokens: Int = 1024): AiReply =
+        withAiRetry {
+            when (provider()) {
+                "openai" -> OpenAiClient.askVision(system, blocks, maxTokens)
+                "gemini" -> GeminiClient.askVision(system, blocks, maxTokens)
+                else -> askClaudeVision(system, blocks, maxTokens)
+            }
+        }
+
+    private suspend fun askClaudeVision(system: String, blocks: List<VisionBlock>, maxTokens: Int): AiReply {
+        val key = Storage.read("ApiKey")?.trim().orEmpty()
+        if (key.isEmpty()) return AiReply("Add your Anthropic API key in Settings to use this.", isError = true)
+
+        val body = buildJsonObject {
+            put("model", model())
+            put("max_tokens", maxTokens)
+            put("system", system)
+            put("messages", buildJsonArray {
+                add(buildJsonObject {
+                    put("role", "user")
+                    put("content", buildJsonArray {
+                        blocks.forEach { b ->
+                            when (b) {
+                                is VisionBlock.Txt -> add(buildJsonObject { put("type", "text"); put("text", b.text) })
+                                is VisionBlock.Img -> add(buildJsonObject {
+                                    put("type", "image")
+                                    put("source", buildJsonObject {
+                                        put("type", "base64"); put("media_type", "image/jpeg"); put("data", b.base64)
+                                    })
+                                })
+                            }
+                        }
+                    })
+                })
+            })
+        }.toString()
+
+        val headers = mapOf("x-api-key" to key, "anthropic-version" to "2023-06-01", "content-type" to "application/json")
+        val resp = com.alekpeed.lifeos.net.httpPostJson("https://api.anthropic.com/v1/messages", headers, body)
+        if (resp.ok) {
+            return try {
+                val text = json.parseToJsonElement(resp.body).jsonObject["content"]
+                    ?.jsonArray?.firstOrNull { it.jsonObject["type"]?.jsonPrimitive?.content == "text" }
+                    ?.jsonObject?.get("text")?.jsonPrimitive?.content
+                if (!text.isNullOrBlank()) AiReply(text.trim(), isError = false)
+                else AiReply("The model returned no answer.", isError = true)
+            } catch (e: Exception) {
+                AiReply("Got an unexpected response from the model.", isError = true)
+            }
+        }
+        val detail = try {
+            json.parseToJsonElement(resp.body).jsonObject["error"]?.jsonObject?.get("message")?.jsonPrimitive?.content
+        } catch (e: Exception) { null }
+        return AiReply(friendlyAiError(resp.status, detail, "Claude"), isError = true)
+    }
 
     private suspend fun askClaudeWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int): AiReply {
         val key = Storage.read("ApiKey")?.trim().orEmpty()

@@ -36,11 +36,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.ai.VisionBlock
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.readBlobBase64
+import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.SaveToast
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -88,6 +99,7 @@ fun QuartermasterScreen() {
     var catalogError by remember { mutableStateOf<String?>(null) }
     var draft by remember { mutableStateOf<List<String>?>(null) }
     var showSource by remember { mutableStateOf(false) }
+    var showStock by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     fun onPhoto(b64: String?) {
@@ -155,7 +167,11 @@ fun QuartermasterScreen() {
                 Spacer(Modifier.height(6.dp))
                 Text(it, style = MaterialTheme.typography.labelMedium, color = DANGER)
             }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = { showStock = true }) { Text("📊 Stock check") }
         }
+
+        if (showStock) StockDialog(data, ::save, ::freshId) { showStock = false }
 
         if (showSource) {
             androidx.compose.material3.AlertDialog(
@@ -280,6 +296,105 @@ private fun CatalogReview(
             TextButton(onClick = onCancel) { Text("Cancel") }
             Spacer(Modifier.weight(1f))
             Button(onClick = onAddAll) { Text("Add ${items.count { it.isNotBlank() }}") }
+        }
+    }
+}
+
+private const val STOCK_SYSTEM =
+    "You judge an item's stock level by visually comparing a query photo to labeled reference " +
+        "photos. You are shown reference photos each with a label, then a final photo to classify. " +
+        "Respond with ONLY the single best-matching label, nothing else."
+
+// Few-shot stock check: keep a few labeled reference photos, then photograph an
+// item and have the vision model classify it against them.
+@Composable
+private fun StockDialog(
+    data: QuartermasterData,
+    save: (QuartermasterData) -> Unit,
+    freshId: () -> Long,
+    onClose: () -> Unit,
+) {
+    var label by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var verdict by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun addRef(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        save(data.copy(stockRefs = data.stockRefs + StockRef(freshId(), label.trim().ifBlank { "unlabeled" }, id)))
+        label = ""
+    }
+
+    fun check(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val refs = data.stockRefs.takeLast(6)
+        if (refs.isEmpty()) { error = "Add at least one labeled reference photo first."; return }
+        busy = true; verdict = null; error = null
+        scope.launch {
+            val blocks = buildList {
+                add(VisionBlock.Txt("Reference photos, each with its stock label:"))
+                refs.forEach { r ->
+                    val b = withContext(Dispatchers.Default) { readBlobBase64(r.blob) }
+                    if (b != null) { add(VisionBlock.Txt("Labeled \"${r.label}\":")); add(VisionBlock.Img(b)) }
+                }
+                add(VisionBlock.Txt("Classify THIS photo's stock level using only the labels above. Reply with just the label."))
+                add(VisionBlock.Img(b64))
+            }
+            val reply = AiClient.askVision(STOCK_SYSTEM, blocks, 60)
+            busy = false
+            if (reply.isError) error = reply.text else verdict = reply.text.trim()
+        }
+    }
+
+    Dialog(onDismissRequest = onClose) {
+        Column(
+            Modifier.fillMaxWidth().heightIn(max = 560.dp).clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surface).padding(16.dp).verticalScroll(rememberScrollState()),
+        ) {
+            Text("Stock check", style = MaterialTheme.typography.titleMedium)
+            Text("Photograph an item and I'll judge its stock level against your labeled reference photos.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(12.dp))
+
+            Text("Reference photos (${data.stockRefs.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            data.stockRefs.forEach { r ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val img = loadBlobImage(r.blob)
+                    if (img != null) Image(img, contentDescription = null, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
+                    else Text("🖼")
+                    Spacer(Modifier.width(8.dp))
+                    Text(r.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { deleteBlob(r.blob); save(data.copy(stockRefs = data.stockRefs.filterNot { it.id == r.id })) }) { Text("×") }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(label, { label = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Label (e.g. low / full)") })
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(onClick = { Native.takePhoto { addRef(it) } }) { Text("+ Ref") }
+            }
+            Spacer(Modifier.height(14.dp))
+
+            Button(onClick = { Native.takePhoto { check(it) } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                if (busy) {
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Judging…")
+                } else {
+                    Text("📷 Check stock")
+                }
+            }
+            verdict?.let {
+                Spacer(Modifier.height(10.dp))
+                Text("Verdict: $it", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            error?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(it, style = MaterialTheme.typography.labelMedium, color = DANGER)
+            }
+            Spacer(Modifier.height(10.dp))
+            TextButton(onClick = onClose) { Text("Close") }
         }
     }
 }

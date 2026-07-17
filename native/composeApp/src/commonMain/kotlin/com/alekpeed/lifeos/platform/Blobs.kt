@@ -16,3 +16,7 @@ expect fun deleteBlob(id: String)
 
 // Decode a stored blob into an ImageBitmap for display, or null if missing.
 expect fun loadBlobImage(id: String): ImageBitmap?
+
+// Read a stored blob back as a base64 string (for re-sending to a vision API),
+// or null if missing.
+expect fun readBlobBase64(id: String): String?
