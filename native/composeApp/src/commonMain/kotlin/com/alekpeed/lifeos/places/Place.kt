@@ -33,6 +33,7 @@ data class Place(
     val notes: String = "",
     val visitDates: List<String> = emptyList(),
     val notesToSelf: List<String> = emptyList(),
+    val photoBlob: String = "",          // blob-store id of an attached photo, if any
 )
 
 @Serializable

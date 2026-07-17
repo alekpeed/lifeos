@@ -31,6 +31,7 @@ data class Recipe(
     val ingredients: List<Ingredient> = emptyList(),
     val steps: List<Step> = emptyList(),
     val cookLogs: List<CookLog> = emptyList(),
+    val photoBlob: String = "",      // blob-store id of an attached photo, if any
 )
 
 @Serializable

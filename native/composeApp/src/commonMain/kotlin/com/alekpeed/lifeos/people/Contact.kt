@@ -9,7 +9,8 @@ import kotlinx.serialization.json.Json
 // person has phones, emails, company/title, relationship, birthday, tags, and
 // notes. The single source of truth for people. Persists as one JSON blob under
 // "Contacts"; old plain-line stubs (incl. "Name — detail" from phone import)
-// migrate so existing entries survive. (Contact photos wait on the media layer.)
+// migrate so existing entries survive. Each may carry an optional attached photo
+// (blob-store id).
 
 @Serializable
 data class Contact(
@@ -23,6 +24,7 @@ data class Contact(
     val birthday: String = "",           // YYYY-MM-DD or MM-DD
     val tags: List<String> = emptyList(),
     val notes: String = "",
+    val photoBlob: String = "",          // blob-store id of an attached photo, if any
 )
 
 @Serializable

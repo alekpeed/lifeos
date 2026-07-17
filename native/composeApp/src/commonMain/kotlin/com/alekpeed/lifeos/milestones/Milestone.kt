@@ -19,6 +19,7 @@ data class Milestone(
     val date: String = "",
     val category: String = "",
     val notes: String = "",
+    val photoBlob: String = "",
 )
 
 @Serializable

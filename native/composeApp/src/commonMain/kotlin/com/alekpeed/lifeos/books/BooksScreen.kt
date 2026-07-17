@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.books
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,9 +36,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 
@@ -137,6 +145,16 @@ private fun BookCard(book: Book, onClick: () -> Unit) {
 private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -> Long, book: Book, onClose: () -> Unit) {
     fun patch(f: (Book) -> Book) = save(data.copy(books = data.books.map { if (it.id == book.id) f(it) else it }))
     var pagesToday by remember { mutableStateOf("") }
+    var showSource by remember { mutableStateOf(false) }
+
+    // Attach/replace the photo: save the new blob, drop the old one, point the
+    // record at the new id.
+    fun onAttach(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        deleteBlob(book.photoBlob)
+        patch { it.copy(photoBlob = id) }
+    }
 
     Panel {
         Row {
@@ -202,11 +220,52 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
             }) { Text("Log") }
         }
 
+        Label("Photo")
+        val img = remember(book.photoBlob) { loadBlobImage(book.photoBlob) }
+        if (book.photoBlob.isNotBlank()) {
+            if (img != null) {
+                Image(
+                    bitmap = img,
+                    contentDescription = "Attached photo",
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit,
+                )
+            } else {
+                Text("Photo attached (no preview available).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
+                TextButton(onClick = { deleteBlob(book.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
+            }
+        } else if (Native.supportsCamera) {
+            OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
+        } else {
+            Text("Photo attachments need a camera.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (showSource) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showSource = false },
+                title = { Text("Attach a photo") },
+                text = { Text("Take a new photo, or choose one from your library.") },
+                confirmButton = {
+                    TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") }
+                },
+            )
+        }
+
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { save(data.copy(books = data.books.filterNot { it.id == book.id })); onClose() }) { Text("Delete book", color = DANGER) }
+            TextButton(onClick = {
+                deleteBlob(book.photoBlob)
+                save(data.copy(books = data.books.filterNot { it.id == book.id }))
+                onClose()
+            }) { Text("Delete book", color = DANGER) }
         }
     }
 }

@@ -32,6 +32,7 @@ data class Book(
     val rating: Int = 0,
     val notes: String = "",
     val logs: List<ReadLog> = emptyList(),
+    val photoBlob: String = "",        // blob-store id of an attached photo, if any
 )
 
 @Serializable
