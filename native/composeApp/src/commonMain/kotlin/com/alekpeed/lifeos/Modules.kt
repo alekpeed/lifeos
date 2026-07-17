@@ -6,6 +6,7 @@ import com.alekpeed.lifeos.core.TodayScreen
 import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
 import com.alekpeed.lifeos.places.PlacesScreen
+import com.alekpeed.lifeos.recipes.RecipesScreen
 import com.alekpeed.lifeos.finance.LedgerScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.health.HealthScreen
@@ -58,7 +59,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("orrery", "🪐", "Orrery", "Core", true) { NoteListScreen("Orrery", "Celestial note or event", "When") },
     // People
     Module("contacts", "👤", "Contacts", "People", true) { ContactsScreen() },
-    Module("recipes", "🍳", "Recipes", "People", true) { NoteListScreen("Recipes", "Recipe name", "Key ingredients / notes") },
+    Module("recipes", "🍳", "Recipes", "People", true) { RecipesScreen() },
     Module("documents", "📄", "Documents", "People", true) { NoteListScreen("Documents", "Document name", "Where it lives / reference #") },
     Module("quartermaster", "📦", "Quartermaster", "People", true) { NoteListScreen("Quartermaster", "Item", "Location / quantity") },
     Module("packing", "🧳", "Packing Lists", "People", true) { SimpleListScreen("Packing", "Add an item") },
