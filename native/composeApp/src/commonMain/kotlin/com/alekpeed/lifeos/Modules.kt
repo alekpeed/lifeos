@@ -1,6 +1,7 @@
 package com.alekpeed.lifeos
 
 import androidx.compose.runtime.Composable
+import com.alekpeed.lifeos.books.BooksScreen
 import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
 import com.alekpeed.lifeos.documents.DocumentsScreen
@@ -69,9 +70,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("packing", "🧳", "Packing Lists", "People", true) { PackingScreen() },
     Module("sharebox", "🤝", "Sharebox", "People", true) { ShareboxScreen() },
     // Memory
-    Module("books", "📚", "Books", "Memory", true) {
-        StatusListScreen("Books", "Add a book", listOf("Want", "Reading", "Read"), seed = listOf("Life OS design notes" to 1))
-    },
+    Module("books", "📚", "Books", "Memory", true) { BooksScreen() },
     Module("photos", "🖼", "Photos", "Memory", true) { NoteListScreen("Photos", "Caption", "Where it's stored") },
     Module("milestones", "🏆", "Milestones", "Memory", true) { NoteListScreen("Milestones", "What you achieved", "When") },
     Module("museum", "🏛", "Museum", "Memory", true) { NoteListScreen("Museum", "Artifact", "Note") },
