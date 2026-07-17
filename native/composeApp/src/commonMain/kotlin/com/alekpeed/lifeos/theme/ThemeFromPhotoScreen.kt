@@ -52,13 +52,13 @@ private fun parseHex(hex: String): Color? {
 
 @Composable
 fun ThemeFromPhotoScreen() {
-    var chosen by remember { mutableStateOf(Storage.read("Theme from Photo")?.trim().orEmpty()) }
+    var chosen by remember { mutableStateOf(com.alekpeed.lifeos.AppTheme.accentHex) }
     var custom by remember { mutableStateOf("") }
-    fun choose(hex: String) { chosen = hex; Storage.write("Theme from Photo", hex) }
+    fun choose(hex: String) { chosen = hex; com.alekpeed.lifeos.AppTheme.setAccent(hex) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Theme from Photo", style = MaterialTheme.typography.headlineMedium)
-        Text("Pick an accent color to keep. Pulling a palette from one of your photos and applying it live come with the media and theming layers.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Pick an accent color — it applies across the app immediately. Pulling a palette out of one of your photos comes with the media layer.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
 
         Text("Palette", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)

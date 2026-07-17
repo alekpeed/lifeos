@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.core.runAutomations
 import com.alekpeed.lifeos.interfaces.Interfaces
 
 // Home launcher <-> module detail navigation.
@@ -25,6 +26,9 @@ import com.alekpeed.lifeos.interfaces.Interfaces
 fun Shell() {
     val modules = remember { lifeOsModules() }
     var current by remember { mutableStateOf<Module?>(null) }
+
+    // Run the opt-in automation rules once on app open (no-op unless enabled).
+    LaunchedEffect(Unit) { runAutomations() }
 
     // A deep link / app shortcut / NFC tag / shared item can request a module by id.
     LaunchedEffect(Nav.pendingModuleId) {

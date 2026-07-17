@@ -32,7 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.AppTheme
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.core.exportBackupJson
+import com.alekpeed.lifeos.core.importBackupJson
 import com.alekpeed.lifeos.ai.DEFAULT_AI_MODEL
 import com.alekpeed.lifeos.ai.DEFAULT_GEMINI_MODEL
 import com.alekpeed.lifeos.ai.DEFAULT_OPENAI_MODEL
@@ -506,5 +509,69 @@ fun SettingsScreen() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.height(24.dp))
+
+        Text("APPEARANCE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Text("Theme", style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (v, l) ->
+                FilterChip(selected = AppTheme.mode == v, onClick = { AppTheme.setMode(v) }, label = { Text(l) })
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = AppTheme.compact, onCheckedChange = { AppTheme.setCompact(it) })
+            Spacer(Modifier.width(10.dp))
+            Text("Compact density", style = MaterialTheme.typography.bodyLarge)
+        }
+        Text(
+            "Accent follows your Theme-from-Photo pick and applies app-wide.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.height(24.dp))
+
+        var automationsOn by remember { mutableStateOf(Storage.read("AutomationsOn") == "1") }
+        Text("AUTOMATIONS", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = automationsOn, onCheckedChange = { automationsOn = it; Storage.write("AutomationsOn", if (it) "1" else "0") })
+            Spacer(Modifier.width(10.dp))
+            Text("Run built-in rules on open", style = MaterialTheme.typography.bodyLarge)
+        }
+        Text(
+            "Logs a milestone at habit-streak marks (7 / 30 / 100 / 365) and creates a “Renew” task for expiring documents. Off by default; idempotent — it never double-fires.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.height(24.dp))
+
+        var backupMsg by remember { mutableStateOf("") }
+        Text("BACKUP", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(onClick = { Native.shareText(exportBackupJson()); backupMsg = "Backup shared — paste it somewhere safe." }) { Text("Export (share)") }
+            OutlinedButton(onClick = {
+                val n = importBackupJson(Native.readClipboard().orEmpty())
+                backupMsg = if (n >= 0) "Restored $n module(s) from the clipboard — reopen a module to see it." else "The clipboard didn't contain a valid backup."
+            }) { Text("Import from clipboard") }
+        }
+        Text(
+            "Export shares a full JSON of your data; import reads a backup from the clipboard. Drive-independent.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (backupMsg.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(backupMsg, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+        }
     }
 }
