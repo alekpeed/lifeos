@@ -53,8 +53,14 @@ data class AiReply(val text: String, val isError: Boolean)
 object AiClient {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    // "claude" | "openai" | "gemini"
-    fun provider(): String = Storage.read("AiProvider")?.trim()?.ifBlank { null } ?: "claude"
+    // "claude" | "openai" | "gemini". A choice saved in Settings wins; otherwise
+    // default to OpenAI when the build ships with a baked-in OpenAI key, so the
+    // app works out of the box, else Claude.
+    fun provider(): String {
+        val stored = Storage.read("AiProvider")?.trim()?.ifBlank { null }
+        if (stored != null) return stored
+        return if (OpenAiClient.key().isNotEmpty()) "openai" else "claude"
+    }
 
     // True when the *active* provider has a key set.
     fun hasKey(): Boolean = when (provider()) {

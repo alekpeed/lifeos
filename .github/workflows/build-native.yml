@@ -35,6 +35,11 @@ jobs:
 
       - name: Build native Android APK
         working-directory: native
+        env:
+          # Baked into the APK at build time so the app ships working without each
+          # user pasting a key. Stored as a repo secret — never in source. Absent
+          # (empty) on forks/PRs, where the app falls back to a user-entered key.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: gradle :composeApp:assembleDebug --no-daemon --stacktrace
 
       - name: Upload Android APK

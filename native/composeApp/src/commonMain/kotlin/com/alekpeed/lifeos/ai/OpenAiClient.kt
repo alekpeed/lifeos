@@ -11,7 +11,10 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
-const val DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+// The model the app ships with. If AI calls start failing with a "model not
+// found" / 404, verify this id against OpenAI's current model list — a mistyped
+// or out-of-date id fails every request.
+const val DEFAULT_OPENAI_MODEL = "gpt-5.6-luna"
 
 // OpenAI Chat Completions. Works directly from the native app — the browser-CORS
 // limitation that blocks it in the web build doesn't apply here (no browser origin,
@@ -20,7 +23,9 @@ object OpenAiClient {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun key(): String = Storage.read("OpenAiKey")?.trim().orEmpty()
+    // A key set in Settings wins; otherwise fall back to the key baked into the
+    // build (from a CI secret), so the app works out of the box.
+    fun key(): String = Storage.read("OpenAiKey")?.trim()?.ifBlank { null } ?: bakedOpenAiKey()
     fun model(): String = Storage.read("OpenAiModel")?.trim()?.ifBlank { null } ?: DEFAULT_OPENAI_MODEL
 
     suspend fun ask(system: String, userText: String, maxTokens: Int): AiReply {

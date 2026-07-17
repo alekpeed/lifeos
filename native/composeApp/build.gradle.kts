@@ -56,6 +56,15 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        // Baked-in default OpenAI key, injected from the OPENAI_API_KEY build
+        // environment (a GitHub Actions secret in CI) — never committed to source.
+        // Empty for local/desktop/PR builds, where the app falls back to a
+        // user-entered key. Escape any double-quote defensively.
+        val bakedKey = (System.getenv("OPENAI_API_KEY") ?: "").replace("\"", "\\\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"$bakedKey\"")
+    }
+    buildFeatures {
+        buildConfig = true
     }
     // A checked-in debug keystore (standard well-known debug credentials, not a
     // secret) so every CI build is signed with the same key. Without this, each
