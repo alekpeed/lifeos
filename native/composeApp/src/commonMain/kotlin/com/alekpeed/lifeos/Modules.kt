@@ -30,6 +30,8 @@ import com.alekpeed.lifeos.insight.BriefingScreen
 import com.alekpeed.lifeos.insight.EntropyScreen
 import com.alekpeed.lifeos.insight.NotificationsScreen
 import com.alekpeed.lifeos.insight.RecallScreen
+import com.alekpeed.lifeos.knowledge.KnowledgeGraphScreen
+import com.alekpeed.lifeos.timemachine.TimeMachineScreen
 import com.alekpeed.lifeos.people.ContactsScreen
 import com.alekpeed.lifeos.photos.PhotosScreen
 import com.alekpeed.lifeos.settings.SettingsScreen
@@ -96,11 +98,11 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("briefing", "📋", "Briefing", "Insight", true) { BriefingScreen() },
     Module("ask", "🔎", "Ask", "Insight", true) { AskScreen() },
     Module("ai-assistant", "🤖", "AI Assistant", "Insight", true) { AssistantScreen() },
-    Module("knowledge-graph", "🕸", "Knowledge Graph", "Insight", true) { NoteListScreen("Knowledge Graph", "Node", "Links to…") },
+    Module("knowledge-graph", "🕸", "Knowledge Graph", "Insight", true) { KnowledgeGraphScreen() },
     Module("recall", "♻", "Recall", "Insight", true) { RecallScreen() },
     Module("notifications", "🔔", "Notifications", "Insight", true) { NotificationsScreen() },
     Module("entropy", "🌀", "Entropy", "Insight", true) { EntropyScreen() },
-    Module("time-machine", "⏰", "Time Machine", "Insight", true) { NoteListScreen("Time Machine", "On this day…", "Date") },
+    Module("time-machine", "⏰", "Time Machine", "Insight", true) { TimeMachineScreen() },
     // System
     Module("search", "🔍", "Search", "System", true) { SearchScreen("Search", "Search everything…") },
     Module("tools", "🧰", "Tools", "System", true) { ToolsScreen() },
