@@ -7,11 +7,14 @@ import com.alekpeed.lifeos.core.TodayScreen
 import com.alekpeed.lifeos.documents.DocumentsScreen
 import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
+import com.alekpeed.lifeos.milestones.MilestonesScreen
+import com.alekpeed.lifeos.museum.MuseumScreen
 import com.alekpeed.lifeos.packing.PackingScreen
 import com.alekpeed.lifeos.places.PlacesScreen
 import com.alekpeed.lifeos.quartermaster.QuartermasterScreen
 import com.alekpeed.lifeos.recipes.RecipesScreen
 import com.alekpeed.lifeos.sharebox.ShareboxScreen
+import com.alekpeed.lifeos.timecapsules.TimeCapsulesScreen
 import com.alekpeed.lifeos.finance.LedgerScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.health.HealthScreen
@@ -23,6 +26,7 @@ import com.alekpeed.lifeos.insight.EntropyScreen
 import com.alekpeed.lifeos.insight.NotificationsScreen
 import com.alekpeed.lifeos.insight.RecallScreen
 import com.alekpeed.lifeos.people.ContactsScreen
+import com.alekpeed.lifeos.photos.PhotosScreen
 import com.alekpeed.lifeos.settings.SettingsScreen
 import com.alekpeed.lifeos.system.QrSyncScreen
 import com.alekpeed.lifeos.system.StationCatScreen
@@ -71,10 +75,10 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("sharebox", "🤝", "Sharebox", "People", true) { ShareboxScreen() },
     // Memory
     Module("books", "📚", "Books", "Memory", true) { BooksScreen() },
-    Module("photos", "🖼", "Photos", "Memory", true) { NoteListScreen("Photos", "Caption", "Where it's stored") },
-    Module("milestones", "🏆", "Milestones", "Memory", true) { NoteListScreen("Milestones", "What you achieved", "When") },
-    Module("museum", "🏛", "Museum", "Memory", true) { NoteListScreen("Museum", "Artifact", "Note") },
-    Module("time-capsules", "⏳", "Time Capsules", "Memory", true) { NoteListScreen("Time Capsules", "Message to future you", "Open on") },
+    Module("photos", "🖼", "Photos", "Memory", true) { PhotosScreen() },
+    Module("milestones", "🏆", "Milestones", "Memory", true) { MilestonesScreen() },
+    Module("museum", "🏛", "Museum", "Memory", true) { MuseumScreen() },
+    Module("time-capsules", "⏳", "Time Capsules", "Memory", true) { TimeCapsulesScreen() },
     Module("collections", "🗂", "Collections", "Memory", true) { SimpleListScreen("Collections", "Add an item") },
     Module("ghost-days", "👻", "Ghost Days", "Memory", true) { NoteListScreen("Ghost Days", "A quiet or lost day", "Date") },
     Module("rabbit-holes", "🕳", "Rabbit Holes", "Memory", true) { SimpleListScreen("Rabbit Holes", "New rabbit hole") },
