@@ -71,6 +71,11 @@ expect object Native {
     // cancelled/unsupported. Android launches a scanner; desktop is a no-op.
     fun scanQr(onResult: (String?) -> Unit)
 
+    // Scan a 1D product barcode (EAN-13/UPC — e.g. a book's ISBN) with the camera;
+    // `onResult` gets the decoded digits, or null if cancelled/unsupported. Gated
+    // by supportsQrScan (same camera scanner). Desktop is a no-op.
+    fun scanBarcode(onResult: (String?) -> Unit)
+
     // One-shot current location (fused provider). Requests the permission if it's
     // missing and returns null,null for that call — the caller re-taps once granted.
     // Desktop has no location source and always returns null,null.

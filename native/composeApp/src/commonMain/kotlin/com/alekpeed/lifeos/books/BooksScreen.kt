@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -31,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,12 +42,38 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.net.httpGet
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+private val obJson = Json { ignoreUnknownKeys = true }
+
+// Look an ISBN up on Open Library (keyless, public) → a draft Book (title, author,
+// pages). Returns null if not found / offline. id is assigned by the caller.
+private suspend fun lookupIsbn(isbn: String): Book? {
+    val clean = isbn.trim().filter { it.isDigit() || it == 'X' || it == 'x' }
+    if (clean.length < 10) return null
+    val resp = httpGet("https://openlibrary.org/api/books?bibkeys=ISBN:$clean&jscmd=data&format=json")
+    if (!resp.ok) return null
+    return try {
+        val entry = obJson.parseToJsonElement(resp.body).jsonObject["ISBN:$clean"]?.jsonObject ?: return null
+        val title = entry["title"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: return null
+        val author = entry["authors"]?.jsonArray?.firstOrNull()?.jsonObject?.get("name")?.jsonPrimitive?.content.orEmpty()
+        val pages = entry["number_of_pages"]?.jsonPrimitive?.content?.toIntOrNull()
+        Book(id = 0L, title = title, author = author, totalPages = pages)
+    } catch (e: Exception) {
+        null
+    }
+}
 
 private val DANGER = Color(0xFFD64545)
 private val STAR_ON = Color(0xFFE0A63C)
@@ -77,6 +105,9 @@ fun BooksScreen() {
     var tab by remember { mutableStateOf("reading") }
     var selected by remember { mutableStateOf<Long?>(null) }
     var input by remember { mutableStateOf("") }
+    var scanBusy by remember { mutableStateOf(false) }
+    var scanMsg by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Books", style = MaterialTheme.typography.headlineMedium)
@@ -99,6 +130,39 @@ fun BooksScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(books = data.books + Book(freshId(), t, status = tab))); input = "" }
             }) { Text("Add") }
+        }
+        if (Native.supportsQrScan) {
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(
+                    onClick = {
+                        scanMsg = null
+                        Native.scanBarcode { code ->
+                            if (code == null) return@scanBarcode
+                            scanBusy = true
+                            scope.launch {
+                                val draft = lookupIsbn(code)
+                                scanBusy = false
+                                if (draft == null) scanMsg = "Couldn't find that ISBN — add it by hand."
+                                else save(data.copy(books = data.books + draft.copy(id = freshId(), status = tab)))
+                            }
+                        }
+                    },
+                    enabled = !scanBusy,
+                ) {
+                    if (scanBusy) {
+                        CircularProgressIndicator(Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Looking up…")
+                    } else {
+                        Text("📷 Scan ISBN")
+                    }
+                }
+                scanMsg?.let {
+                    Spacer(Modifier.width(10.dp))
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
         Spacer(Modifier.height(12.dp))
 

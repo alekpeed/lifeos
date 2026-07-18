@@ -253,6 +253,24 @@ actual object Native {
         }
     }
 
+    actual fun scanBarcode(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.qrLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.qrCallback = onResult
+        val opts = com.journeyapps.barcodescanner.ScanOptions().apply {
+            setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.PRODUCT_CODE_TYPES)
+            setPrompt("Scan a book barcode")
+            setBeepEnabled(false)
+            setOrientationLocked(false)
+        }
+        try {
+            launcher.launch(opts)
+        } catch (e: Exception) {
+            NativeHost.qrCallback = null
+            onResult(null)
+        }
+    }
+
     actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) {
         Geofences.currentLocation(NativeHost.ctx(), onResult)
     }
