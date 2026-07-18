@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -280,34 +281,35 @@ private fun DayRing(pct: Int) {
     )
     val ringColors = listOf(cyan, violet, pink, cyan)
 
-    Box(Modifier.size(94.dp), contentAlignment = Alignment.Center) {
-        // Soft glowing ring behind the crisp one — a blurred stroked circle whose
-        // colors rotate with the ring, breathing in and out.
+    Box(Modifier.size(92.dp), contentAlignment = Alignment.Center) {
+        // Soft glow behind the ring — a blurred gradient ring clipped to a CIRCLE
+        // (BlurredEdgeTreatment), so there's no square edge artifact. Breathes via
+        // alpha and rotates its colors with the crisp ring.
         Canvas(
             Modifier
-                .size(88.dp)
-                .blur(16.dp)
+                .size(84.dp)
+                .blur(13.dp, BlurredEdgeTreatment(CircleShape))
                 .alpha(glow)
         ) {
             rotate(rotation) {
                 drawArc(
                     brush = Brush.sweepGradient(ringColors),
                     startAngle = 0f, sweepAngle = 360f, useCenter = false,
-                    style = Stroke(13.dp.toPx(), cap = StrokeCap.Round),
+                    style = Stroke(8.dp.toPx(), cap = StrokeCap.Round),
                 )
             }
         }
-        Canvas(Modifier.size(94.dp)) {
-            val stroke = 11.dp.toPx()
+        // Crisp thin ring: a faint full-gradient track so it always reads as a
+        // colored ring (even at 0%), with the colors rotating around it, and the
+        // bright progress arc held at the top.
+        Canvas(Modifier.size(76.dp)) {
+            val stroke = 8.dp.toPx()
             rotate(rotation) {
-                // Faint full-gradient track so the ring always reads as a colored
-                // ring — even at 0% — with the colors slowly rotating around it.
                 drawArc(
                     brush = Brush.sweepGradient(ringColors),
                     startAngle = -90f - rotation, sweepAngle = 360f, useCenter = false,
-                    style = Stroke(stroke, cap = StrokeCap.Round), alpha = 0.30f,
+                    style = Stroke(stroke, cap = StrokeCap.Round), alpha = 0.32f,
                 )
-                // Bright progress arc, held at the top while its colors rotate.
                 if (pct > 0) {
                     drawArc(
                         brush = Brush.sweepGradient(ringColors),
@@ -318,7 +320,7 @@ private fun DayRing(pct: Int) {
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$pct%", fontSize = 22.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text("$pct%", fontSize = 21.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             Text("TODAY", fontSize = 8.sp, letterSpacing = 1.5.sp, color = Color(0xFF9DB0D8))
         }
     }
@@ -360,14 +362,17 @@ private fun SectionBar(section: SectionMeta, onClick: () -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .drawBehind {
-                    val c = Offset(size.width - 20f, size.height / 2f)
+                    // A soft glow hugging the right edge — a tasteful corner halo,
+                    // not a half-bar wash.
+                    val c = Offset(size.width + size.height * 0.15f, size.height / 2f)
+                    val r = size.height * 1.5f
                     drawCircle(
                         brush = Brush.radialGradient(
-                            colors = listOf(section.halo.copy(alpha = 0.60f), Color.Transparent),
+                            colors = listOf(section.halo.copy(alpha = 0.75f), Color.Transparent),
                             center = c,
-                            radius = size.height * 2.1f,
+                            radius = r,
                         ),
-                        radius = size.height * 2.1f,
+                        radius = r,
                         center = c,
                     )
                 }
