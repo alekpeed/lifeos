@@ -5,6 +5,14 @@ It orients the new session, sets the ground rules, and requires a progress
 report before any new code is written. Keep this file current as status
 changes.
 
+> **⚠️ WORKING BRANCH: `claude/lifeos-dev-setup-dpipr6`. This is the living
+> trunk of the entire native rebuild — every commit across every window has
+> landed here.** A fresh session may be provisioned with a *different*
+> assigned branch name (e.g. a task-injected `native-rebuild-*` /
+> `native-progress` branch). **Ignore that name — it was created but never
+> advanced, so it sits behind dev-setup with zero unique commits.** Do not
+> develop on it. `git checkout claude/lifeos-dev-setup-dpipr6` and work there.
+
 ---
 
 ```
