@@ -28,8 +28,7 @@ import com.alekpeed.lifeos.recipes.loadRecipes
 // Ghost Days — "on this day across the years." A read-only view (ported from the
 // web) that scans the dated modules for anything that happened on today's
 // month-day in a past year: milestones, places visited, books started/finished,
-// recipes cooked. (Contact birthdays and dated task completions join once those
-// carry dates natively.)
+// recipes cooked, tasks completed, and workouts logged.
 
 private data class Ghost(val year: String, val kind: String, val text: String)
 
@@ -49,6 +48,13 @@ fun GhostDaysScreen() {
             if (on(b.startedDate)) out.add(Ghost(b.startedDate.take(4), "Started reading", b.title.ifBlank { "(untitled)" }))
         }
         loadRecipes().recipes.forEach { r -> r.cookLogs.forEach { l -> if (on(l.date)) out.add(Ghost(l.date.take(4), "Cooked", r.title.ifBlank { "(untitled)" })) } }
+        // Task completions carry a real date now (Task.completedDate).
+        com.alekpeed.lifeos.tasks.loadTasks().forEach { tk ->
+            if (tk.done && on(tk.completedDate)) out.add(Ghost(tk.completedDate.take(4), "Completed", tk.title.ifBlank { "(untitled)" }))
+        }
+        com.alekpeed.lifeos.health.loadHealth().workouts.forEach { w ->
+            if (on(w.date)) out.add(Ghost(w.date.take(4), "Worked out", w.type))
+        }
         // Contact birthdays today (annual, any year) — blank year, floated to the top.
         loadContacts().contacts.forEach { c ->
             val b = c.birthday
