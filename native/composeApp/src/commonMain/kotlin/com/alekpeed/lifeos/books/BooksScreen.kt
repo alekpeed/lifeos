@@ -1,11 +1,17 @@
 package com.alekpeed.lifeos.books
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -31,7 +37,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,9 +48,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.ceil
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.net.httpGet
@@ -402,49 +415,103 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
 
 // ---------- Reader ----------
 
-// Full-screen reader over an imported ebook's extracted text. Adjustable type
-// size (persisted), a live progress %, and it remembers your scroll position on
-// the book (readFrac) — restored on open, saved on leave (Back or system-back).
+// Full-screen reader that lays the ebook out as real pages: the text is measured
+// to the screen once, sliced into page-sized line ranges, and you tap the right
+// or left half to turn (with a page-slide). Justified "book" text, adjustable +
+// persisted type size, a page counter, and it remembers your place per book
+// (readFrac) — restored on open, saved on every turn.
 @Composable
 private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit, onClose: () -> Unit) {
     val text = remember(book.textBlob) { readTextBlob(book.textBlob) ?: "" }
     var fontSize by remember { mutableStateOf(Storage.read("ReaderFontSize")?.toIntOrNull() ?: 18) }
-    val scroll = rememberScrollState()
-    var restored by remember { mutableStateOf(false) }
+    var page by remember { mutableStateOf(-1) }   // -1 until restored from readFrac
+    var forward by remember { mutableStateOf(true) }
 
-    // Restore the saved position once the content has a measured height.
-    LaunchedEffect(scroll.maxValue, text) {
-        if (!restored && scroll.maxValue > 0) {
-            scroll.scrollTo((book.readFrac * scroll.maxValue).toInt())
-            restored = true
-        }
+    fun persist(p: Int, count: Int) {
+        val frac = if (count > 1) p.toFloat() / (count - 1) else 0f
+        save(data.copy(books = data.books.map { if (it.id == book.id) it.copy(readFrac = frac) else it }))
     }
-    fun frac(): Float = if (scroll.maxValue > 0) scroll.value.toFloat() / scroll.maxValue else book.readFrac
-    fun persist() = save(data.copy(books = data.books.map { if (it.id == book.id) it.copy(readFrac = frac()) else it }))
-    // Save on any exit, including system back.
-    DisposableEffect(book.id) { onDispose { persist() } }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+    val bodyStyle = MaterialTheme.typography.bodyLarge.copy(
+        fontSize = fontSize.sp,
+        lineHeight = (fontSize * 1.55f).sp,
+        textAlign = TextAlign.Justify,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+
+    Column(Modifier.fillMaxSize().padding(horizontal = 22.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { persist(); onClose() }) { Text("‹ Back") }
+            TextButton(onClick = onClose) { Text("‹ Library") }
             Text(book.title.ifBlank { "Reading" }, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
             TextButton(onClick = { fontSize = (fontSize - 1).coerceAtLeast(12); Storage.write("ReaderFontSize", fontSize.toString()) }) { Text("A−") }
             TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(30); Storage.write("ReaderFontSize", fontSize.toString()) }) { Text("A+") }
         }
-        val pct = if (scroll.maxValue > 0) scroll.value * 100 / scroll.maxValue else 0
-        Text("$pct%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(8.dp))
+
         if (text.isBlank()) {
+            Spacer(Modifier.height(12.dp))
             Text("This book's text isn't available. Import an EPUB or TXT from its detail panel.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = fontSize.sp,
-                lineHeight = (fontSize * 1.6).sp,
-                modifier = Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 32.dp),
-            )
+            return@Column
         }
+
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(vertical = 10.dp)) {
+            val measurer = rememberTextMeasurer()
+            val wPx = constraints.maxWidth
+            val hPx = constraints.maxHeight
+            val lineHeightPx = with(LocalDensity.current) { (fontSize * 1.55f).sp.toPx() }
+            val linesPerPage = max(1, (hPx / lineHeightPx).toInt())
+
+            // One measure per (text, size, width); page turns are then just substrings.
+            val layout = remember(text, fontSize, wPx) {
+                measurer.measure(AnnotatedString(text), style = bodyStyle, constraints = Constraints(maxWidth = wPx))
+            }
+            val pageCount = max(1, ceil(layout.lineCount.toFloat() / linesPerPage).toInt())
+
+            LaunchedEffect(pageCount) {
+                page = if (page < 0) (book.readFrac * (pageCount - 1)).roundToInt().coerceIn(0, pageCount - 1)
+                else page.coerceIn(0, pageCount - 1)
+            }
+
+            fun pageText(p: Int): String {
+                val first = p * linesPerPage
+                if (first >= layout.lineCount) return ""
+                val last = min(first + linesPerPage - 1, layout.lineCount - 1)
+                return text.substring(layout.getLineStart(first), layout.getLineEnd(last, visibleEnd = true)).trim()
+            }
+            fun go(delta: Int) {
+                val next = (page + delta).coerceIn(0, pageCount - 1)
+                if (next != page) { forward = delta > 0; page = next; persist(next, pageCount) }
+            }
+
+            if (page >= 0) {
+                AnimatedContent(
+                    targetState = page,
+                    transitionSpec = {
+                        if (forward) {
+                            (slideInHorizontally { w -> w } + fadeIn()) togetherWith (slideOutHorizontally { w -> -w } + fadeOut())
+                        } else {
+                            (slideInHorizontally { w -> -w } + fadeIn()) togetherWith (slideOutHorizontally { w -> w } + fadeOut())
+                        }
+                    },
+                    label = "page",
+                ) { p ->
+                    Text(pageText(p), style = bodyStyle, modifier = Modifier.fillMaxSize())
+                }
+                // Invisible tap zones: left third → back, right two-thirds → forward.
+                Row(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f).fillMaxHeight().clickable { go(-1) })
+                    Box(Modifier.weight(2f).fillMaxHeight().clickable { go(1) })
+                }
+            }
+        }
+
+        // Footer page counter derived from the current fraction (measured inside).
+        val pctPage = if (book.readFrac > 0f) book.readFrac else 0f
+        Text(
+            "Tap right to turn · left to go back" + if (page >= 0) "   ·   ${(pctPage * 100).roundToInt()}%" else "",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
     }
 }
 
