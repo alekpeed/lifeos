@@ -16,16 +16,28 @@ import kotlinx.serialization.json.Json
 data class Contact(
     val id: Long,
     val name: String,
+    // Each entry is "value" or "label: value" (e.g. "mobile: 555-1234") — labeled
+    // without a schema change, so older saved data reads back unchanged.
     val phones: List<String> = emptyList(),
     val emails: List<String> = emptyList(),
     val company: String = "",
     val title: String = "",
     val relationship: String = "",
+    val address: String = "",
     val birthday: String = "",           // YYYY-MM-DD or MM-DD
     val tags: List<String> = emptyList(),
     val notes: String = "",
     val photoBlob: String = "",          // blob-store id of an attached photo, if any
 )
+
+// Split "label: value" into label + value ("" label when bare).
+fun splitLabeled(entry: String): Pair<String, String> {
+    val i = entry.indexOf(": ")
+    return if (i > 0) entry.substring(0, i) to entry.substring(i + 2) else "" to entry
+}
+
+fun joinLabeled(label: String, value: String): String =
+    if (label.isBlank()) value.trim() else "${label.trim()}: ${value.trim()}"
 
 @Serializable
 data class ContactsData(val contacts: List<Contact> = emptyList())

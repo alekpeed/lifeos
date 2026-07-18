@@ -59,6 +59,8 @@ fun ContactsScreen() {
     var input by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    var query by remember { mutableStateOf("") }
+    var tagFilter by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Contacts", style = MaterialTheme.typography.headlineMedium)
@@ -73,6 +75,24 @@ fun ContactsScreen() {
                     save(data.copy(contacts = data.contacts + Contact(freshId(), n))); input = ""
                 }
             }) { Text("Add") }
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+            placeholder = { Text("🔍 Search name, phone, email, company, tag…") },
+        )
+        val allTags = data.contacts.flatMap { it.tags }.distinct().sorted()
+        if (allTags.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                allTags.forEach { t ->
+                    androidx.compose.material3.FilterChip(
+                        selected = tagFilter == t,
+                        onClick = { tagFilter = if (tagFilter == t) null else t },
+                        label = { Text("#$t") },
+                    )
+                }
+            }
         }
 
         if (Native.supportsContacts) {
@@ -96,8 +116,19 @@ fun ContactsScreen() {
         Spacer(Modifier.height(14.dp))
 
         if (data.contacts.isEmpty()) { Muted("No contacts yet."); return }
+        val q = query.trim().lowercase()
+        val shown = data.contacts
+            .filter { tagFilter == null || tagFilter in it.tags }
+            .filter { c ->
+                q.isEmpty() || listOf(
+                    c.name, c.company, c.title, c.relationship, c.address, c.notes,
+                    c.phones.joinToString(" "), c.emails.joinToString(" "), c.tags.joinToString(" "),
+                ).any { it.lowercase().contains(q) }
+            }
+            .sortedBy { it.name.lowercase() }
+        if (shown.isEmpty()) { Muted("No matches."); return }
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(data.contacts.sortedBy { it.name.lowercase() }, key = { it.id }) { c ->
+            items(shown, key = { it.id }) { c ->
                 Column {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
@@ -143,8 +174,10 @@ private fun ContactDetail(data: ContactsData, save: (ContactsData) -> Unit, c: C
             .background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp),
     ) {
         Label("Name"); Field(c.name, "Name") { v -> patch { it.copy(name = v.replace("\n", " ")) } }
-        Label("Phones (comma separated)"); Field(c.phones.joinToString(", "), "555-1234") { v -> patch { it.copy(phones = commaList(v)) } }
-        Label("Emails (comma separated)"); Field(c.emails.joinToString(", "), "a@b.com") { v -> patch { it.copy(emails = commaList(v)) } }
+        Label("Phones")
+        LabeledEntryEditor(c.phones, "mobile", "555-1234") { next -> patch { it.copy(phones = next) } }
+        Label("Emails")
+        LabeledEntryEditor(c.emails, "personal", "a@b.com") { next -> patch { it.copy(emails = next) } }
         Row {
             Column(Modifier.weight(1f)) { Label("Company"); Field(c.company, "") { v -> patch { it.copy(company = v.replace("\n", " ")) } } }
             Spacer(Modifier.width(10.dp))
@@ -155,6 +188,7 @@ private fun ContactDetail(data: ContactsData, save: (ContactsData) -> Unit, c: C
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) { Label("Birthday"); DateField(c.birthday) { v -> patch { it.copy(birthday = v) } } }
         }
+        Label("Address"); Field(c.address, "Street, city…") { v -> patch { it.copy(address = v.replace("\n", " ")) } }
         Label("Tags (comma separated)"); Field(c.tags.joinToString(", "), "work, gym") { v -> patch { it.copy(tags = commaList(v)) } }
         Label("Notes"); Field(c.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
 
@@ -202,6 +236,29 @@ private fun ContactDetail(data: ContactsData, save: (ContactsData) -> Unit, c: C
             TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(contacts = data.contacts.filterNot { it.id == c.id })); onClose() }) { Text("Delete", color = DANGER) }
         }
     }
+}
+
+// Editable rows of "label: value" entries (phones, emails). Each row has a small
+// label field (mobile / work / …) and the value; a blank label stores just the
+// value, so old unlabeled data round-trips untouched.
+@Composable
+private fun LabeledEntryEditor(entries: List<String>, labelHint: String, valueHint: String, onChange: (List<String>) -> Unit) {
+    entries.forEachIndexed { i, entry ->
+        val (label, value) = splitLabeled(entry)
+        Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                label, { v -> onChange(entries.mapIndexed { j, e -> if (j == i) joinLabeled(v, splitLabeled(e).second) else e }) },
+                modifier = Modifier.width(110.dp), singleLine = true, placeholder = { Text(labelHint) },
+            )
+            Spacer(Modifier.width(8.dp))
+            OutlinedTextField(
+                value, { v -> onChange(entries.mapIndexed { j, e -> if (j == i) joinLabeled(splitLabeled(e).first, v) else e }) },
+                modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text(valueHint) },
+            )
+            TextButton(onClick = { onChange(entries.filterIndexed { j, _ -> j != i }) }) { Text("✕") }
+        }
+    }
+    TextButton(onClick = { onChange(entries + "") }) { Text("+ Add") }
 }
 
 @Composable
