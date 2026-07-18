@@ -99,8 +99,15 @@ fun AlmanacScreen() {
         val workoutVsSleep = workout.keys.filter { sleep.containsKey(it) }
             .map { workout[it]!! to sleep[it]!! }
 
+        // Sleep vs. tasks completed that day (completedDate stamps make this real).
+        val tasksByDate = com.alekpeed.lifeos.tasks.loadTasks()
+            .filter { it.done && it.completedDate.isNotBlank() }
+            .groupingBy { it.completedDate }.eachCount()
+        val sleepVsTasks = sleep.keys.map { sleep[it]!! to (tasksByDate[it] ?: 0).toDouble() }
+
         val corrSleepHabits = if (sleepVsHabits.size >= CORR_MIN) pearson(sleepVsHabits) else null
         val corrWorkoutSleep = if (workoutVsSleep.size >= CORR_MIN) pearson(workoutVsSleep) else null
+        val corrSleepTasks = if (sleepVsTasks.count { it.second > 0 } >= CORR_MIN) pearson(sleepVsTasks) else null
         val sleepHabitsLin = if (sleepVsHabits.size >= CORR_MIN) linregress(sleepVsHabits) else null
 
         // Sleep trend (value over ordered day index)
@@ -151,7 +158,7 @@ fun AlmanacScreen() {
             .distinctBy { it.desc }.map { it.desc to abs(it.amount) }
 
         AlmanacModel(
-            corrSleepHabits, corrWorkoutSleep, sleepHabitsLin,
+            corrSleepHabits, corrWorkoutSleep, corrSleepTasks, sleepHabitsLin,
             sleepTrend, readingForecasts, spendForecast, weekdaySkips,
             recurring, sleep.values.toList(),
         )
@@ -168,6 +175,7 @@ fun AlmanacScreen() {
                 val lines = buildList {
                     model.corrSleepHabits?.let { add("Sleep vs. habits kept: ${strength(it)} (r = ${fmt1(it)})") }
                     model.corrWorkoutSleep?.let { add("Workout minutes vs. sleep: ${strength(it)} (r = ${fmt1(it)})") }
+                    model.corrSleepTasks?.let { add("Sleep vs. tasks completed: ${strength(it)} (r = ${fmt1(it)})") }
                 }
                 if (lines.isEmpty()) Muted("Log sleep, workouts, and habit check-ins on the same days to see how they move together (need $CORR_MIN+ days).")
                 else Column { lines.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) } }
@@ -236,6 +244,7 @@ private fun WhatIf(model: AlmanacModel) {
 private data class AlmanacModel(
     val corrSleepHabits: Double?,
     val corrWorkoutSleep: Double?,
+    val corrSleepTasks: Double?,
     val sleepHabitsLin: Lin?,
     val sleepTrend: Pair<Lin, Int>?,
     val readingForecasts: List<Pair<String, String>>,
