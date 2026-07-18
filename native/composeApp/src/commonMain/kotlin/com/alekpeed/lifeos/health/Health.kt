@@ -35,8 +35,69 @@ data class DailyLog(
             waterOz == null && weightLb == null && notes.isBlank()
 }
 
+// One logged workout session. Distance is optional and unit-tagged (meters for
+// rowing/swimming, miles for road work) so pace math knows what it's looking at.
 @Serializable
-data class HealthData(val readings: List<Reading> = emptyList(), val logs: List<DailyLog> = emptyList())
+data class Workout(
+    val id: Long,
+    val date: String,
+    val type: String,                    // Rowing | Run | Walk | Cycle | Swim | Lift | Yoga | Other…
+    val minutes: Double? = null,
+    val distance: Double? = null,
+    val distanceUnit: String = "",       // "m" | "mi" | ""
+    val notes: String = "",
+)
+
+@Serializable
+data class HealthData(
+    val readings: List<Reading> = emptyList(),
+    val logs: List<DailyLog> = emptyList(),
+    val workouts: List<Workout> = emptyList(),
+)
+
+val WORKOUT_TYPES = listOf("Rowing", "Run", "Walk", "Cycle", "Swim", "Lift", "Yoga", "Other")
+
+// The natural distance unit per type ("" = distance not usually tracked).
+fun defaultDistanceUnit(type: String): String = when (type) {
+    "Rowing", "Swim" -> "m"
+    "Run", "Walk", "Cycle" -> "mi"
+    else -> ""
+}
+
+// "m:ss" from decimal minutes (7.53 → "7:32").
+fun mmss(minutes: Double): String {
+    val totalSeconds = (minutes * 60).toLong().coerceAtLeast(0)
+    return "${totalSeconds / 60}:${(totalSeconds % 60).toString().padStart(2, '0')}"
+}
+
+// The headline pace for a session, in the unit that sport actually uses:
+// rowing → /500m split, swimming → /100m, run/walk → min/mi, cycling → mph.
+fun paceLabel(w: Workout): String? {
+    val mins = w.minutes ?: return null
+    val dist = w.distance ?: return null
+    if (mins <= 0 || dist <= 0) return null
+    return when {
+        w.type == "Rowing" && w.distanceUnit == "m" -> "${mmss(mins / (dist / 500.0))} /500m"
+        w.type == "Swim" && w.distanceUnit == "m" -> "${mmss(mins / (dist / 100.0))} /100m"
+        w.type == "Cycle" && w.distanceUnit == "mi" -> "${((dist / (mins / 60.0)) * 10).toLong() / 10.0} mph"
+        w.distanceUnit == "mi" -> "${mmss(mins / dist)} /mi"
+        else -> null
+    }
+}
+
+// Numeric pace for best-of comparisons (lower is better; cycling inverted to
+// minutes-per-mile so "lower wins" holds for every type).
+fun paceValue(w: Workout): Double? {
+    val mins = w.minutes ?: return null
+    val dist = w.distance ?: return null
+    if (mins <= 0 || dist <= 0) return null
+    return when {
+        w.type == "Rowing" && w.distanceUnit == "m" -> mins / (dist / 500.0)
+        w.type == "Swim" && w.distanceUnit == "m" -> mins / (dist / 100.0)
+        w.distanceUnit == "mi" -> mins / dist
+        else -> null
+    }
+}
 
 private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
@@ -66,18 +127,27 @@ data class HealthPoint(val metric: String, val value: Double, val date: String)
 fun healthSeries(): List<HealthPoint> {
     val data = loadHealth()
     val fromReadings = data.readings.map { HealthPoint(it.metric, it.value, it.date) }
+    // Workout-log sessions are the strongest signal — sum minutes per day.
+    val workoutByDate = data.workouts.filter { (it.minutes ?: 0.0) > 0 }
+        .groupBy { it.date }.mapValues { e -> e.value.sumOf { it.minutes ?: 0.0 } }
+    val fromWorkouts = workoutByDate.map { (date, mins) -> HealthPoint("Workout", mins, date) }
     val fromLogs = data.logs.flatMap { log ->
         buildList {
             log.sleepHours?.let { add(HealthPoint("Sleep", it, log.date)) }
-            log.workoutMinutes?.let { add(HealthPoint("Workout", it, log.date)) }
+            // The daily log's workout minutes yield to workout-log sessions on the
+            // same day, so a session logged in both places isn't double-counted.
+            if (!workoutByDate.containsKey(log.date)) {
+                log.workoutMinutes?.let { add(HealthPoint("Workout", it, log.date)) }
+            }
             log.waterOz?.let { add(HealthPoint("Water", it, log.date)) }
             log.weightLb?.let { add(HealthPoint("Weight", it, log.date)) }
         }
     }
     // A structured log wins over a same-day free-form reading of the same metric,
     // so an Apple import followed by Almanac math doesn't double-count the day.
-    val logKeys = fromLogs.map { it.metric to it.date }.toSet()
-    return fromReadings.filterNot { (it.metric to it.date) in logKeys } + fromLogs
+    val structured = fromLogs + fromWorkouts
+    val logKeys = structured.map { it.metric to it.date }.toSet()
+    return fromReadings.filterNot { (it.metric to it.date) in logKeys } + structured
 }
 
 // ---- Import: shared merge ---------------------------------------------------

@@ -74,15 +74,129 @@ fun HealthScreen() {
         Text("Health", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(10.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("daily" to "Daily", "metrics" to "Metrics", "import" to "Import").forEach { (v, lbl) ->
+            listOf("daily" to "Daily", "workouts" to "Workouts", "metrics" to "Metrics", "import" to "Import").forEach { (v, lbl) ->
                 FilterChip(selected = tab == v, onClick = { tab = v }, label = { Text(lbl) })
             }
         }
         Spacer(Modifier.height(12.dp))
         when (tab) {
+            "workouts" -> WorkoutsTab(data) { persist(it) }
             "metrics" -> MetricsTab(data) { persist(it) }
             "import" -> ImportTab(data) { persist(it) }
             else -> DailyTab(data) { persist(it) }
+        }
+    }
+}
+
+// ---- Workout log -------------------------------------------------------------
+
+// A per-session workout log with sport-native pace math — rowing shows a /500m
+// split, swimming /100m, runs min/mi, cycling mph — plus per-type totals and
+// best pace. Rowing distance is meters, road work miles (editable per session).
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WorkoutsTab(data: HealthData, persist: (HealthData) -> Unit) {
+    var nextId by remember { mutableStateOf((data.workouts.maxOfOrNull { it.id } ?: 0L) + 1) }
+    var type by remember { mutableStateOf("Rowing") }
+    var minutes by remember { mutableStateOf("") }
+    var distance by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf(defaultDistanceUnit("Rowing")) }
+    var notes by remember { mutableStateOf("") }
+    var statType by remember { mutableStateOf<String?>(null) }
+
+    Column(Modifier.fillMaxSize()) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            WORKOUT_TYPES.forEach { t ->
+                FilterChip(selected = type == t, onClick = { type = t; unit = defaultDistanceUnit(t) }, label = { Text(t) })
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                minutes, { minutes = it }, modifier = Modifier.weight(1f), singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), placeholder = { Text("Minutes") },
+            )
+            Spacer(Modifier.width(8.dp))
+            OutlinedTextField(
+                distance, { distance = it }, modifier = Modifier.weight(1f), singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                placeholder = { Text(if (unit.isBlank()) "Distance (opt.)" else "Distance ($unit)") },
+            )
+            Spacer(Modifier.width(8.dp))
+            OutlinedTextField(unit, { unit = it.trim() }, modifier = Modifier.width(64.dp), singleLine = true, placeholder = { Text("unit") })
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(notes, { notes = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Notes (10×500m, felt strong…)") })
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = {
+                val m = minutes.trim().toDoubleOrNull()
+                val d = distance.trim().toDoubleOrNull()
+                if (m != null || d != null) {
+                    val w = Workout(nextId, today().toString(), type, m, d, if (d != null) unit else "", notes.trim())
+                    nextId += 1
+                    persist(data.copy(workouts = listOf(w) + data.workouts))
+                    minutes = ""; distance = ""; notes = ""
+                }
+            }) { Text("Log") }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        if (data.workouts.isEmpty()) {
+            Text("No workouts logged yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return
+        }
+
+        // Per-type rollup: sessions, time, distance, best pace. Tap a chip to
+        // filter the session list below.
+        val byType = data.workouts.groupBy { it.type }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            byType.entries.sortedByDescending { it.value.size }.forEach { (t, list) ->
+                FilterChip(
+                    selected = statType == t,
+                    onClick = { statType = if (statType == t) null else t },
+                    label = { Text("$t · ${list.size}") },
+                )
+            }
+        }
+        statType?.let { t ->
+            val list = byType[t] ?: emptyList()
+            val totalMin = list.sumOf { it.minutes ?: 0.0 }
+            val dist = list.filter { it.distance != null }
+            val distTotal = dist.sumOf { it.distance ?: 0.0 }
+            val distUnit = dist.firstOrNull()?.distanceUnit ?: ""
+            val best = list.filter { paceValue(it) != null }.minByOrNull { paceValue(it)!! }
+            val bits = buildList {
+                add("${list.size} session${if (list.size == 1) "" else "s"}")
+                if (totalMin > 0) {
+                    add(if (totalMin >= 60) "${(totalMin / 60).toInt()}h ${(totalMin % 60).toInt()}m total" else "${totalMin.toInt()}m total")
+                }
+                if (distTotal > 0) add("${num(distTotal)}$distUnit total")
+                best?.let { b -> paceLabel(b)?.let { add("best $it (${usDate(b.date).ifBlank { b.date }})") } }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(bits.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        Spacer(Modifier.height(8.dp))
+
+        val shown = data.workouts.filter { statType == null || it.type == statType }.sortedByDescending { it.date }
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(shown, key = { it.id }) { w ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(w.type, style = MaterialTheme.typography.bodyLarge)
+                        val meta = buildList {
+                            add(usDate(w.date).ifBlank { w.date })
+                            w.minutes?.let { add(mmss(it)) }
+                            w.distance?.let { add("${num(it)}${w.distanceUnit}") }
+                            paceLabel(w)?.let { add(it) }
+                            if (w.notes.isNotBlank()) add(w.notes)
+                        }
+                        Text(meta.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    TextButton(onClick = { persist(data.copy(workouts = data.workouts.filterNot { it.id == w.id })) }) { Text("✕") }
+                }
+            }
         }
     }
 }
