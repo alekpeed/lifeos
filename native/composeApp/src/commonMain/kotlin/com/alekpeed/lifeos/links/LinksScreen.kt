@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.links
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,8 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.net.httpGetImageBase64
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
@@ -103,12 +110,34 @@ private fun LinkCard(data: LinksData, save: (LinksData) -> Unit, link: Link, exp
     fun patch(f: (Link) -> Link) = save(data.copy(links = data.links.map { if (it.id == link.id) f(it) else it }))
 
     Column {
+        // YouTube links get a real thumbnail: fetched once from the keyless
+        // img.youtube.com endpoint, cached in the blob store on the record.
+        if (link.type == "video" && link.videoId.isNotBlank() && link.thumbBlob.isBlank()) {
+            var tried by remember(link.id) { mutableStateOf(false) }
+            LaunchedEffect(link.id) {
+                if (tried) return@LaunchedEffect
+                tried = true
+                val b64 = httpGetImageBase64("https://img.youtube.com/vi/${link.videoId}/mqdefault.jpg")
+                if (b64 != null) saveBlob(b64)?.let { id -> patch { it.copy(thumbBlob = id) } }
+            }
+        }
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onToggle() }.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(if (link.type == "video") "▶" else "📄", modifier = Modifier.padding(end = 10.dp))
+            val thumb = if (link.thumbBlob.isNotBlank()) remember(link.thumbBlob) { loadBlobImage(link.thumbBlob) } else null
+            if (thumb != null) {
+                Image(
+                    bitmap = thumb,
+                    contentDescription = "Video thumbnail",
+                    modifier = Modifier.width(72.dp).height(40.dp).clip(RoundedCornerShape(6.dp)).padding(end = 0.dp),
+                    contentScale = ContentScale.Crop,
+                )
+                Spacer(Modifier.width(10.dp))
+            } else {
+                Text(if (link.type == "video") "▶" else "📄", modifier = Modifier.padding(end = 10.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(link.title.ifBlank { hostnameOf(link.url) }, style = MaterialTheme.typography.bodyLarge)
                 val chips = buildList {
@@ -164,7 +193,10 @@ private fun LinkDetail(
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { save(data.copy(links = data.links.filterNot { it.id == link.id })); onClose() }) {
+            TextButton(onClick = {
+                if (link.thumbBlob.isNotBlank()) deleteBlob(link.thumbBlob)
+                save(data.copy(links = data.links.filterNot { it.id == link.id })); onClose()
+            }) {
                 Text("Delete link", color = DANGER)
             }
         }

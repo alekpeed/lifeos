@@ -20,6 +20,7 @@ data class Link(
     val status: String = "unread",       // unread | done
     val shareWith: String = "",
     val videoId: String = "",
+    val thumbBlob: String = "",          // blob-store id of the cached YouTube thumbnail
 )
 
 @Serializable
