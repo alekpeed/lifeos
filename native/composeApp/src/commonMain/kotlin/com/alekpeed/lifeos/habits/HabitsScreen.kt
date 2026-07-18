@@ -1,6 +1,7 @@
 package com.alekpeed.lifeos.habits
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -43,6 +45,7 @@ fun HabitsScreen() {
     val habits = remember { mutableStateListOf<Habit>().apply { addAll(loadHabits()) } }
     fun persist() { saveHabits(habits); SaveToast.show() }
     var input by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Habits", style = MaterialTheme.typography.headlineMedium)
@@ -72,25 +75,27 @@ fun HabitsScreen() {
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             itemsIndexed(habits) { index, habit ->
                 Column(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        Modifier.fillMaxWidth().clickable { expanded = if (expanded == habit.name) null else habit.name },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text("🔥 ${habit.streak}", style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.width(12.dp))
                         Text(habit.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        // Checking in twice still can't inflate the streak — but a
+                        // mis-tap can now be UNDONE by tapping again today.
                         TextButton(
-                            enabled = !habit.checkedInToday,
                             onClick = {
                                 if (index < habits.size) {
-                                    habits[index] = habit.copy(checkins = habit.checkins + today())
+                                    habits[index] = if (habit.checkedInToday) {
+                                        habit.copy(checkins = habit.checkins - today())
+                                    } else {
+                                        habit.copy(checkins = habit.checkins + today())
+                                    }
                                     persist()
                                 }
                             },
-                        ) { Text(if (habit.checkedInToday) "✓ Done today" else "Check in") }
-                        TextButton(onClick = {
-                            if (index < habits.size) {
-                                habits.removeAt(index)
-                                persist()
-                            }
-                        }) { Text("✕") }
+                        ) { Text(if (habit.checkedInToday) "✓ Done (undo)" else "Check in") }
                     }
                     Spacer(Modifier.height(4.dp))
                     Row(Modifier.padding(start = 40.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -106,6 +111,39 @@ fun HabitsScreen() {
                                         else MaterialTheme.colorScheme.surfaceVariant,
                                     ),
                             )
+                        }
+                    }
+                    if (expanded == habit.name) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(top = 8.dp)
+                                .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp),
+                        ) {
+                            Text("Name", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            OutlinedTextField(
+                                habit.name,
+                                { v ->
+                                    val clean = v.replace("|", "/").replace("\n", " ")
+                                    if (index < habits.size) { habits[index] = habit.copy(name = clean); expanded = clean; persist() }
+                                },
+                                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text("Notes", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            OutlinedTextField(
+                                habit.notes,
+                                { v -> if (index < habits.size) { habits[index] = habit.copy(notes = v); persist() } },
+                                modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Why / how / when") },
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "${habit.checkins.size} check-in${if (habit.checkins.size == 1) "" else "s"} all-time" +
+                                    (habit.lastCheckIn?.let { " · last $it" } ?: ""),
+                                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            TextButton(onClick = {
+                                if (index < habits.size) { habits.removeAt(index); expanded = null; persist() }
+                            }) { Text("Delete habit", color = MaterialTheme.colorScheme.error) }
                         }
                     }
                 }

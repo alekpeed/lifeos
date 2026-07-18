@@ -10,7 +10,7 @@ import kotlinx.datetime.LocalDate
 // checked in (deduped), and `streak` is derived from that history so tapping
 // "check in" twice in a day can't inflate it, and missing a day genuinely
 // resets it — the two behaviors the earlier version got wrong.
-data class Habit(val name: String, val checkins: Set<LocalDate>) {
+data class Habit(val name: String, val checkins: Set<LocalDate>, val notes: String = "") {
     val lastCheckIn: LocalDate? get() = checkins.maxOrNull()
     val checkedInToday: Boolean get() = lastCheckIn == today()
 
@@ -28,10 +28,11 @@ data class Habit(val name: String, val checkins: Set<LocalDate>) {
         }
 }
 
-// name|epochDay1,epochDay2,... (sorted, capped to the most recent 60 so the file
-// doesn't grow unbounded)
+// name|date1,date2,...|notes (dates sorted, capped to the most recent 366 so the
+// file doesn't grow unbounded but a full year of streak/recap history survives;
+// the notes field is optional so old two-field lines parse unchanged)
 private fun Habit.toLine(): String =
-    "$name|${checkins.sorted().takeLast(60).joinToString(",") { it.toString() }}"
+    "$name|${checkins.sorted().takeLast(366).joinToString(",") { it.toString() }}|${notes.replace("|", "/").replace("\n", " ")}"
 
 private fun parseLine(line: String): Habit {
     val parts = line.split("|")
@@ -40,7 +41,7 @@ private fun parseLine(line: String): Habit {
         .split(",")
         .mapNotNull { parseDateOrNull(it) }
         .toSet()
-    return Habit(name, dates)
+    return Habit(name, dates, parts.getOrElse(2) { "" })
 }
 
 fun loadHabits(): List<Habit> =
