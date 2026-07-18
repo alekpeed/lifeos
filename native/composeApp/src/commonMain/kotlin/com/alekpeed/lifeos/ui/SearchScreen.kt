@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.data.searchAll
 
 // Live search across everything the app has stored — one box, results grouped by
@@ -60,7 +62,12 @@ fun SearchScreen(title: String, prompt: String) {
             Spacer(Modifier.height(8.dp))
             LazyColumn(Modifier.fillMaxSize()) {
                 items(hits) { hit ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    // Tap a result to jump to the module it lives in.
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .clickable { Nav.open(hit.moduleId) }
+                            .padding(vertical = 6.dp),
+                    ) {
                         Text(
                             hit.source,
                             style = MaterialTheme.typography.labelMedium,

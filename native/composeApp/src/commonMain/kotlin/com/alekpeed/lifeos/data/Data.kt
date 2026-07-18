@@ -105,7 +105,12 @@ fun countOf(key: String): Int = linesOf(key).size
 fun displayOf(line: String): String =
     line.substringBefore("\t").substringBefore("|").trim()
 
-data class SearchHit(val source: String, val text: String)
+data class SearchHit(val source: String, val text: String) {
+    // The registry id of the module this hit came from ("Rabbit Holes" →
+    // "rabbit-holes") so search results can navigate. A label with no module
+    // (e.g. a removed one) simply no-ops in the Nav bus.
+    val moduleId: String get() = source.lowercase().replace(' ', '-')
+}
 
 fun searchAll(query: String): List<SearchHit> {
     val q = query.trim()
