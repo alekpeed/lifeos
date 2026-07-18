@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.core.runAutomations
+import com.alekpeed.lifeos.home.HubScreen
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.platform.SystemBackHandler
 import com.alekpeed.lifeos.ui.SaveToast
@@ -40,6 +43,8 @@ import kotlinx.coroutines.delay
 fun Shell() {
     val modules = remember { lifeOsModules() }
     var current by remember { mutableStateOf<Module?>(null) }
+    // Home shows six sections; tapping one drills into that group's modules.
+    var section by remember { mutableStateOf<String?>(null) }
 
     // Run the opt-in automation rules once on app open (no-op unless enabled).
     LaunchedEffect(Unit) { runAutomations() }
@@ -63,8 +68,12 @@ fun Shell() {
 
     Box(Modifier.fillMaxSize()) {
         val c = current
-        if (c == null) {
-            HomeScreen(modules) { current = it }
+        val s = section
+        if (c == null && s == null) {
+            HubScreen(modules) { section = it }
+        } else if (c == null) {
+            SystemBackHandler(enabled = true) { section = null }
+            SectionScreen(s!!, modules.filter { it.group == s }, onBack = { section = null }) { current = it }
         } else {
             // Android edge-swipe / back button pops to Home instead of leaving the app.
             SystemBackHandler(enabled = true) { current = null }
@@ -86,6 +95,36 @@ fun Shell() {
             }
         }
         SnackbarHost(snackHost, Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp))
+    }
+}
+
+// The list of modules within one section, reached by tapping a home section bar.
+@Composable
+private fun SectionScreen(section: String, mods: List<Module>, onBack: () -> Unit, onOpen: (Module) -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BackArrow(onBack)
+            Spacer(Modifier.width(10.dp))
+            Text(section, style = MaterialTheme.typography.headlineSmall)
+        }
+        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            items(mods) { m ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onOpen(m) }
+                        .padding(vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(m.icon)
+                    Spacer(Modifier.width(14.dp))
+                    Text(m.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                }
+            }
+        }
     }
 }
 
