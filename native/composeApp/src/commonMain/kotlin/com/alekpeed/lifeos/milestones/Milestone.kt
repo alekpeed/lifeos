@@ -7,10 +7,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 // Milestones — ported from the web app's Milestones view: a life timeline
-// grouped by year, plus a yearly recap. Each milestone has a title, date,
-// category, and notes. Persists as one JSON blob under "Milestones"; old note
-// stubs migrate. (The recap's AI narrative waits on wiring the recap prompt to
-// the AI layer; its stats are computed from real native data.)
+// grouped by year, plus a yearly recap with real cross-module stats and an
+// AI-written narrative grounded in those numbers. Each milestone has a title,
+// date, category, notes, and an optional photo. Persists as one JSON blob under
+// "Milestones"; old note stubs migrate.
 
 @Serializable
 data class Milestone(

@@ -293,7 +293,7 @@ private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, d
             AssistChip(onClick = { patch { it.copy(expiryDate = today().toString()) } }, label = { Text("Today") })
         }
         Label("Linked contact")
-        Field(doc.linkedContact, "Name") { v -> patch { it.copy(linkedContact = v.replace("\n", " ")) } }
+        com.alekpeed.lifeos.people.ContactField(doc.linkedContact) { v -> patch { it.copy(linkedContact = v) } }
         Label("Summary")
         Field(doc.summary, "Short summary of the document", singleLine = false) { v -> patch { it.copy(summary = v) } }
         Label("Transcription")

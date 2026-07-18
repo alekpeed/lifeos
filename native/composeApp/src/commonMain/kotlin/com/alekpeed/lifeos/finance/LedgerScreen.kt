@@ -83,6 +83,7 @@ private data class Bill(
     val remindDays: Int = 3,
     val category: String = "Bills",
     val paymentHistory: List<Payment> = emptyList(),
+    val contact: String = "",
 )
 
 @Serializable
@@ -333,6 +334,7 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     var cadence by remember { mutableStateOf("monthly") }
     var autopay by remember { mutableStateOf(false) }
     var remindDays by remember { mutableStateOf(3) }
+    var contact by remember { mutableStateOf("") }
 
     val sorted = bills.sortedBy { parseDateOrNull(it.dueDate) ?: today().plusDays(3650) }
     val monthlyTotal = bills.filter { it.cadence != "one-time" }.sumOf { monthlyEquiv(it.amount, it.cadence) }
@@ -361,15 +363,17 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
             }
         }
         Spacer(Modifier.height(8.dp))
+        com.alekpeed.lifeos.people.ContactField(contact, placeholder = "Linked contact (optional)") { contact = it }
+        Spacer(Modifier.height(8.dp))
         Button(onClick = {
             val n = name.trim().replace("\n", " ")
             val a = amount.trim().toDoubleOrNull()
             if (n.isNotEmpty() && a != null) {
-                val bill = Bill(nextId, n, a, dueDate.trim(), cadence, autopay, remindDays)
+                val bill = Bill(nextId, n, a, dueDate.trim(), cadence, autopay, remindDays, contact = contact.trim())
                 nextId += 1
                 persist(listOf(bill) + bills)
                 scheduleBill(bill)
-                name = ""; amount = ""; dueDate = today().toString(); cadence = "monthly"; autopay = false; remindDays = 3
+                name = ""; amount = ""; dueDate = today().toString(); cadence = "monthly"; autopay = false; remindDays = 3; contact = ""
             }
         }, modifier = Modifier.fillMaxWidth()) { Text("Add bill") }
         Spacer(Modifier.height(14.dp))
@@ -388,6 +392,7 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                             add(b.cadence)
                             if (due != null) add("due ${relativeLabel(due)}") else if (b.dueDate.isNotBlank()) add("due ${usDate(b.dueDate)}")
                             if (b.autopay) add("autopay")
+                            if (b.contact.isNotBlank()) add("👤 ${b.contact}")
                             if (b.paymentHistory.isNotEmpty()) {
                                 val last = b.paymentHistory.maxByOrNull { it.date }?.date
                                 add("paid ${b.paymentHistory.size}×" + if (last != null) ", last ${usDate(last)}" else "")
