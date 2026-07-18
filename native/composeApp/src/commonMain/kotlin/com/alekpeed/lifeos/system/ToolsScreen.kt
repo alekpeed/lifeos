@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.system
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -125,7 +127,7 @@ private fun UnitConverterCard() {
     }
 }
 
-private val ZONES = listOf(
+private val DEFAULT_ZONES = listOf(
     "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York",
     "Europe/London", "Europe/Paris", "Asia/Dubai", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney",
 )
@@ -135,8 +137,19 @@ private fun fmtClock(dt: LocalDateTime): String {
     return "$h:${dt.minute.toString().padStart(2, '0')} ${if (dt.hour < 12) "AM" else "PM"}"
 }
 
+// Timezones — a user-editable world clock. Search the full IANA zone database
+// (type "tok" → Asia/Tokyo) to add zones; the saved list persists. Offline.
 @Composable
 private fun TimezoneCard() {
+    var saved by remember {
+        mutableStateOf(
+            Storage.read("SavedZones")?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+                ?.ifEmpty { null } ?: DEFAULT_ZONES,
+        )
+    }
+    fun persist(next: List<String>) { saved = next; Storage.write("SavedZones", next.joinToString(",")) }
+    var query by remember { mutableStateOf("") }
+
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text("Timezones", style = MaterialTheme.typography.titleMedium)
@@ -145,14 +158,39 @@ private fun TimezoneCard() {
             val local = TimeZone.currentSystemDefault()
             Text("Local (${local.id.substringAfterLast('/').replace('_', ' ')}): ${fmtClock(now.toLocalDateTime(local))}", style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(6.dp))
-            ZONES.forEach { z ->
+            saved.forEach { z ->
                 val tz = runCatching { TimeZone.of(z) }.getOrNull()
-                if (tz != null && tz != local) {
+                if (tz != null) {
                     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(z.substringAfterLast('/').replace('_', ' '), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                         Text(fmtClock(now.toLocalDateTime(tz)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(onClick = { persist(saved - z) }) { Text("✕") }
                     }
                 }
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("Add a zone — try \"tokyo\" or \"berlin\"") },
+            )
+            if (query.isNotBlank()) {
+                val q = query.trim().lowercase().replace(' ', '_')
+                TimeZone.availableZoneIds
+                    .filter { it.lowercase().contains(q) && it !in saved }
+                    .sorted()
+                    .take(8)
+                    .forEach { z ->
+                        Text(
+                            z.replace('_', ' '),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable { persist(saved + z); query = "" }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                        )
+                    }
             }
         }
     }
@@ -216,62 +254,130 @@ private fun WeatherCard() {
     }
 }
 
+// Currency — live converter over the full ~160-currency table. Rates load (and
+// persist for offline) automatically, refresh when stale, and the result
+// recomputes as you type. Pickers are type-ahead: "j" surfaces Jordan / Japan /
+// Jamaica; "jpy" pins the Japanese Yen. Search matches code, name, and country.
 @Composable
 private fun CurrencyCard() {
     var amount by remember { mutableStateOf("100") }
-    var from by remember { mutableStateOf("USD") }
-    var to by remember { mutableStateOf("EUR") }
+    var from by remember { mutableStateOf(Storage.read("CurrencyFrom")?.ifBlank { null } ?: "USD") }
+    var to by remember { mutableStateOf(Storage.read("CurrencyTo")?.ifBlank { null } ?: "EUR") }
     var loading by remember { mutableStateOf(false) }
-    var result by remember { mutableStateOf<String?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var ratesTick by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
 
-    fun convert() {
-        val amt = amount.trim().toDoubleOrNull()
-        if (amt == null) { error = "Enter a number"; result = null; return }
-        if (loading) return
-        loading = true; error = null; result = null
-        scope.launch {
-            val ok = CurrencyClient.ensureRates()
-            if (!ok) { error = "Couldn't fetch rates"; loading = false; return@launch }
-            val out = CurrencyClient.convert(amt, from, to)
-            if (out == null) error = "Unknown currency"
-            else result = "${trim2(amt)} $from  =  ${trim2(out)} $to"
+    LaunchedEffect(Unit) {
+        if (CurrencyClient.isStale()) {
+            loading = true
+            CurrencyClient.ensureRates()
             loading = false
         }
+        ratesTick += 1
+    }
+
+    val amt = amount.trim().toDoubleOrNull()
+    val result = remember(amount, from, to, ratesTick) {
+        if (amt == null || !CurrencyClient.hasRates()) null
+        else CurrencyClient.convert(amt, from, to)?.let { "${trim2(amt)} $from  =  ${trim2(it)} $to" }
     }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text("Currency converter", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = amount,
+                onValueChange = { amount = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Amount") },
+            )
+            Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it; error = null },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    label = { Text("Amount") },
-                )
-                Spacer(Modifier.width(10.dp))
-                CurrencyPicker(from) { from = it }
-                Spacer(Modifier.width(6.dp))
-                Text("→", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.width(6.dp))
-                CurrencyPicker(to) { to = it }
+                Text("From", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.weight(1f))
+                OutlinedButton(onClick = { val f = from; from = to; to = f }) { Text("⇄ Swap") }
             }
+            CurrencySearchField(from) { from = it; Storage.write("CurrencyFrom", it) }
+            Spacer(Modifier.height(6.dp))
+            Text("To", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            CurrencySearchField(to) { to = it; Storage.write("CurrencyTo", it) }
             Spacer(Modifier.height(10.dp))
+            when {
+                loading -> LoadingRow("Fetching rates…")
+                result != null -> Text(result, style = MaterialTheme.typography.titleMedium)
+                amt == null -> Text("Enter a number.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                !CurrencyClient.hasRates() -> Text("No rates yet — tap Refresh when online.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else -> Text("Unknown currency.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            }
+            Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = { convert() }, enabled = !loading) { Text("Convert") }
-                Spacer(Modifier.width(12.dp))
-                when {
-                    loading -> LoadingRow("Fetching rates…")
-                    error != null -> Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                    result != null -> Text(result!!, style = MaterialTheme.typography.bodyLarge)
-                    else -> {}
-                }
+                val at = CurrencyClient.ratesAgeEpochSeconds()
+                Text(
+                    if (at > 0) "Rates ${agoLabel(at)}" else "Rates not loaded",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(
+                    onClick = {
+                        if (!loading) {
+                            loading = true
+                            scope.launch {
+                                CurrencyClient.ensureRates(force = true)
+                                loading = false
+                                ratesTick += 1
+                            }
+                        }
+                    },
+                    enabled = !loading,
+                ) { Text("Refresh") }
             }
         }
+    }
+}
+
+// Type-ahead currency picker: shows the selected code + name as a button; tap to
+// search by code, currency name, or country, tap a match to pick it.
+@Composable
+private fun CurrencySearchField(code: String, onPick: (String) -> Unit) {
+    var editing by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+
+    if (!editing) {
+        val label = CurrencyClient.info(code)?.let { "${it.code} — ${it.name}" } ?: code
+        OutlinedButton(onClick = { editing = true; query = "" }, modifier = Modifier.fillMaxWidth()) { Text(label) }
+        return
+    }
+    Column(Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Type a code, currency, or country…") },
+        )
+        CurrencyClient.search(query, limit = 8).forEach { c ->
+            Text(
+                "${c.code} — ${c.name}  (${c.region})",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth()
+                    .clickable { onPick(c.code); editing = false }
+                    .padding(vertical = 8.dp, horizontal = 4.dp),
+            )
+        }
+        TextButton(onClick = { editing = false }) { Text("Cancel") }
+    }
+}
+
+// "just now" / "12m ago" / "3h ago" / "2d ago"
+private fun agoLabel(epochSeconds: Long): String {
+    val s = Clock.System.now().epochSeconds - epochSeconds
+    return when {
+        s < 90 -> "just now"
+        s < 3600 -> "${s / 60}m ago"
+        s < 86400 -> "${s / 3600}h ago"
+        else -> "${s / 86400}d ago"
     }
 }
 
@@ -340,19 +446,6 @@ private fun MarketsCard() {
             if (djia != null) {
                 Spacer(Modifier.height(10.dp))
                 Text(djia!!, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-    }
-}
-
-@Composable
-private fun CurrencyPicker(value: String, onPick: (String) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        OutlinedButton(onClick = { open = true }) { Text(value) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            CurrencyClient.common.forEach { code ->
-                DropdownMenuItem(text = { Text(code) }, onClick = { onPick(code); open = false })
             }
         }
     }
