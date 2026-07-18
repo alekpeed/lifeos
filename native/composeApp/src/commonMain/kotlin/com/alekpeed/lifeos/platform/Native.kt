@@ -103,4 +103,8 @@ expect object Native {
     // first .xml/.csv entry. Built for the Apple Health export, whose export.xml
     // runs to hundreds of MB — the whole file never sits in memory at once.
     fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit)
+
+    // Pick an ebook (EPUB or .txt) and hand back its readable plain text in
+    // reading order, or null if cancelled / unsupported. Backs the Books reader.
+    fun pickEbook(onResult: (String?) -> Unit)
 }

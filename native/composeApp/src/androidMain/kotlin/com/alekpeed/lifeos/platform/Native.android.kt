@@ -324,4 +324,18 @@ actual object Native {
             onResult(null)
         }
     }
+
+    actual fun pickEbook(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.fileCallback = onResult
+        NativeHost.ebookMode = true
+        try {
+            launcher.launch(arrayOf("application/epub+zip", "text/plain", "*/*"))
+        } catch (e: Exception) {
+            NativeHost.fileCallback = null
+            NativeHost.ebookMode = false
+            onResult(null)
+        }
+    }
 }

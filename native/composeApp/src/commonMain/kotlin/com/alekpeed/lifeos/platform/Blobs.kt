@@ -20,3 +20,11 @@ expect fun loadBlobImage(id: String): ImageBitmap?
 // Read a stored blob back as a base64 string (for re-sending to a vision API),
 // or null if missing.
 expect fun readBlobBase64(id: String): String?
+
+// Persist a (possibly large) UTF-8 text blob device-locally — like image blobs,
+// it stays out of the JSON backup and cross-device sync. Backs the Books reader's
+// extracted ebook text. Returns an id, or null if there's no blob store.
+expect fun saveTextBlob(text: String): String?
+
+// Read a stored text blob back, or null if missing.
+expect fun readTextBlob(id: String): String?

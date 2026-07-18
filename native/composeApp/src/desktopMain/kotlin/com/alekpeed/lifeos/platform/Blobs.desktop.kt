@@ -7,3 +7,5 @@ actual fun saveBlob(base64: String): String? = null
 actual fun deleteBlob(id: String) {}
 actual fun loadBlobImage(id: String): ImageBitmap? = null
 actual fun readBlobBase64(id: String): String? = null
+actual fun saveTextBlob(text: String): String? = null
+actual fun readTextBlob(id: String): String? = null

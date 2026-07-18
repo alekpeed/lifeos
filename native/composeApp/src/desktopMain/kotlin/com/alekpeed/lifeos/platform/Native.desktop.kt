@@ -61,4 +61,5 @@ actual object Native {
     actual fun capturePhoto(onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickTextFile(onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
+    actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
 }

@@ -45,6 +45,10 @@ object NativeHost {
     // with the callback on every result.
     @Volatile var fileFilter: List<String>? = null
 
+    // When true the picked file is parsed as an ebook (EPUB → readable text in
+    // spine order, or a plain .txt) for the Books reader (Native.pickEbook).
+    @Volatile var ebookMode: Boolean = false
+
     fun ctx(): Context? = activity ?: appContext
 
     fun ensureTts(context: Context) {

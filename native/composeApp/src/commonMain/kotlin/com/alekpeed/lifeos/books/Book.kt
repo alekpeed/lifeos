@@ -11,8 +11,9 @@ import kotlinx.serialization.json.Json
 // per-day reading log (which advances your current page), ratings, page counts
 // and word estimates, a reading streak + genre/author stats, and a spine shelf.
 // Persists as one JSON blob under "Books"; old status-stub lines migrate.
-// Scanning an ISBN auto-downloads the cover into photoBlob; a full EPUB/PDF
-// reader and attached book files still wait on the file layer.
+// Scanning an ISBN auto-downloads the cover into photoBlob; importing an EPUB/TXT
+// extracts its text into a device-local text blob (textBlob) for the in-app
+// reader, which remembers your place (readFrac).
 
 const val WORDS_PER_PAGE = 275
 
@@ -34,6 +35,8 @@ data class Book(
     val notes: String = "",
     val logs: List<ReadLog> = emptyList(),
     val photoBlob: String = "",        // blob-store id of an attached photo, if any
+    val textBlob: String = "",         // text-blob id of an imported ebook's extracted text
+    val readFrac: Float = 0f,          // reader scroll position, 0..1, so you resume where you left off
 )
 
 @Serializable

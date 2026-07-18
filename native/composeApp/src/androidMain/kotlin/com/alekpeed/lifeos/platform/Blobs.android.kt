@@ -44,6 +44,26 @@ actual fun readBlobBase64(id: String): String? = try {
     null
 }
 
+actual fun saveTextBlob(text: String): String? = try {
+    val dir = blobsDir() ?: return null
+    val id = "text_" + UUID.randomUUID().toString()
+    File(dir, "$id.txt").writeBytes(text.encodeToByteArray())
+    id
+} catch (e: Exception) {
+    null
+}
+
+actual fun readTextBlob(id: String): String? = try {
+    if (id.isBlank()) null
+    else {
+        val dir = blobsDir()
+        val f = if (dir != null) File(dir, "$id.txt") else null
+        if (f == null || !f.exists()) null else f.readBytes().decodeToString()
+    }
+} catch (e: Exception) {
+    null
+}
+
 actual fun loadBlobImage(id: String): ImageBitmap? = try {
     if (id.isBlank()) null
     else {

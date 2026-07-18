@@ -3,6 +3,8 @@ package com.alekpeed.lifeos.books
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +31,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,13 +45,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.net.httpGet
 import com.alekpeed.lifeos.net.httpGetImageBase64
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.readTextBlob
 import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.platform.saveTextBlob
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -116,10 +124,18 @@ fun BooksScreen() {
 
     var tab by remember { mutableStateOf("reading") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    var reading by remember { mutableStateOf<Long?>(null) }
     var input by remember { mutableStateOf("") }
     var scanBusy by remember { mutableStateOf(false) }
     var scanMsg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    // Reading a book takes over the whole screen.
+    val readingBook = data.books.firstOrNull { it.id == reading }
+    if (readingBook != null) {
+        ReaderScreen(readingBook, data, ::save) { reading = null }
+        return
+    }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Books", style = MaterialTheme.typography.headlineMedium)
@@ -190,7 +206,7 @@ fun BooksScreen() {
             items(filtered, key = { it.id }) { book ->
                 Column {
                     BookCard(book) { selected = if (selected == book.id) null else book.id }
-                    if (selected == book.id) BookDetail(data, ::save, ::freshId, book) { selected = null }
+                    if (selected == book.id) BookDetail(data, ::save, ::freshId, book, onRead = { reading = book.id }) { selected = null }
                 }
             }
         }
@@ -224,10 +240,11 @@ private fun BookCard(book: Book, onClick: () -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -> Long, book: Book, onClose: () -> Unit) {
+private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -> Long, book: Book, onRead: () -> Unit, onClose: () -> Unit) {
     fun patch(f: (Book) -> Book) = save(data.copy(books = data.books.map { if (it.id == book.id) f(it) else it }))
     var pagesToday by remember { mutableStateOf("") }
     var showSource by remember { mutableStateOf(false) }
+    var importing by remember { mutableStateOf(false) }
 
     // Attach/replace the photo: save the new blob, drop the old one, point the
     // record at the new id.
@@ -339,6 +356,37 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
             )
         }
 
+        Label("Ebook")
+        if (book.textBlob.isNotBlank()) {
+            val pct = (book.readFrac * 100).toInt()
+            Button(onClick = onRead) { Text(if (pct > 0) "📖 Continue reading · $pct%" else "📖 Read") }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (Native.supportsFilePick) {
+                    TextButton(onClick = {
+                        importing = true
+                        Native.pickEbook { text ->
+                            importing = false
+                            if (text != null) saveTextBlob(text)?.let { id -> patch { it.copy(textBlob = id, readFrac = 0f) } }
+                        }
+                    }, enabled = !importing) { Text("Replace") }
+                }
+                TextButton(onClick = { patch { it.copy(textBlob = "", readFrac = 0f) } }) { Text("Remove") }
+            }
+        } else if (Native.supportsFilePick) {
+            OutlinedButton(
+                onClick = {
+                    importing = true
+                    Native.pickEbook { text ->
+                        importing = false
+                        if (text != null) saveTextBlob(text)?.let { id -> patch { it.copy(textBlob = id, readFrac = 0f) } }
+                    }
+                },
+                enabled = !importing,
+            ) { Text(if (importing) "Reading file…" else "📖 Add ebook (EPUB / TXT)") }
+        } else {
+            Text("Ebook import needs a file picker.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
@@ -348,6 +396,54 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
                 save(data.copy(books = data.books.filterNot { it.id == book.id }))
                 onClose()
             }) { Text("Delete book", color = DANGER) }
+        }
+    }
+}
+
+// ---------- Reader ----------
+
+// Full-screen reader over an imported ebook's extracted text. Adjustable type
+// size (persisted), a live progress %, and it remembers your scroll position on
+// the book (readFrac) — restored on open, saved on leave (Back or system-back).
+@Composable
+private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit, onClose: () -> Unit) {
+    val text = remember(book.textBlob) { readTextBlob(book.textBlob) ?: "" }
+    var fontSize by remember { mutableStateOf(Storage.read("ReaderFontSize")?.toIntOrNull() ?: 18) }
+    val scroll = rememberScrollState()
+    var restored by remember { mutableStateOf(false) }
+
+    // Restore the saved position once the content has a measured height.
+    LaunchedEffect(scroll.maxValue, text) {
+        if (!restored && scroll.maxValue > 0) {
+            scroll.scrollTo((book.readFrac * scroll.maxValue).toInt())
+            restored = true
+        }
+    }
+    fun frac(): Float = if (scroll.maxValue > 0) scroll.value.toFloat() / scroll.maxValue else book.readFrac
+    fun persist() = save(data.copy(books = data.books.map { if (it.id == book.id) it.copy(readFrac = frac()) else it }))
+    // Save on any exit, including system back.
+    DisposableEffect(book.id) { onDispose { persist() } }
+
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { persist(); onClose() }) { Text("‹ Back") }
+            Text(book.title.ifBlank { "Reading" }, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
+            TextButton(onClick = { fontSize = (fontSize - 1).coerceAtLeast(12); Storage.write("ReaderFontSize", fontSize.toString()) }) { Text("A−") }
+            TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(30); Storage.write("ReaderFontSize", fontSize.toString()) }) { Text("A+") }
+        }
+        val pct = if (scroll.maxValue > 0) scroll.value * 100 / scroll.maxValue else 0
+        Text("$pct%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        if (text.isBlank()) {
+            Text("This book's text isn't available. Import an EPUB or TXT from its detail panel.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            Text(
+                text,
+                style = MaterialTheme.typography.bodyLarge,
+                fontSize = fontSize.sp,
+                lineHeight = (fontSize * 1.6).sp,
+                modifier = Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 32.dp),
+            )
         }
     }
 }

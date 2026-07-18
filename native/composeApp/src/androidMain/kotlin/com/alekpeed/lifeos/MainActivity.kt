@@ -86,10 +86,24 @@ class MainActivity : ComponentActivity() {
     private val openDocumentLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         val cb = NativeHost.fileCallback
         val filter = NativeHost.fileFilter
+        val ebook = NativeHost.ebookMode
         NativeHost.fileCallback = null
         NativeHost.fileFilter = null
+        NativeHost.ebookMode = false
         if (uri == null) {
             cb?.invoke(null)
+            return@registerForActivityResult
+        }
+        if (ebook) {
+            Thread {
+                val text = try {
+                    contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?.let { if (it.size > 40_000_000) null else parseEbook(it) }
+                } catch (e: Exception) {
+                    null
+                }
+                runOnUiThread { cb?.invoke(text) }
+            }.start()
             return@registerForActivityResult
         }
         if (filter == null) {
@@ -142,6 +156,59 @@ class MainActivity : ComponentActivity() {
             }
         }
         return out.toString()
+    }
+
+    // Turn a picked ebook's bytes into readable plain text. A .txt (no PK zip
+    // magic) decodes directly; an EPUB is unzipped, its OPF read for the real
+    // reading order (spine → manifest hrefs), and each chapter's XHTML stripped to
+    // text. Falls back to name-sorted XHTML entries when there's no usable OPF.
+    private fun parseEbook(bytes: ByteArray): String {
+        if (bytes.size < 2 || bytes[0] != 'P'.code.toByte() || bytes[1] != 'K'.code.toByte()) {
+            return bytes.decodeToString().trim().ifBlank { "(Empty file.)" }
+        }
+        val entries = HashMap<String, ByteArray>()
+        java.util.zip.ZipInputStream(bytes.inputStream()).use { zip ->
+            var e = zip.nextEntry
+            while (e != null) {
+                if (!e.isDirectory) entries[e.name] = zip.readBytes()
+                e = zip.nextEntry
+            }
+        }
+        val opfName = entries.keys.firstOrNull { it.endsWith(".opf", ignoreCase = true) }
+        val order: List<String> = if (opfName != null) {
+            val opf = entries[opfName]!!.decodeToString()
+            val base = opfName.substringBeforeLast('/', "")
+            val manifest = Regex("(?is)<item\\b[^>]*>").findAll(opf).mapNotNull { m ->
+                val id = Regex("id=\"([^\"]*)\"").find(m.value)?.groupValues?.get(1)
+                val href = Regex("href=\"([^\"]*)\"").find(m.value)?.groupValues?.get(1)
+                if (id != null && href != null) id to href else null
+            }.toMap()
+            Regex("idref=\"([^\"]*)\"").findAll(opf).mapNotNull { manifest[it.groupValues[1]] }
+                .map { if (base.isEmpty()) it else "$base/$it" }.toList()
+        } else {
+            entries.keys.filter { val l = it.lowercase(); l.endsWith(".xhtml") || l.endsWith(".html") || l.endsWith(".htm") }.sorted()
+        }
+        val sb = StringBuilder()
+        for (href in order) {
+            val path = href.substringBefore('#')
+            val data = entries[path] ?: entries[path.substringAfterLast('/')] ?: continue
+            sb.append(htmlToText(data.decodeToString())).append("\n\n")
+        }
+        return sb.toString().trim().ifBlank { "(Couldn't extract readable text from this EPUB.)" }
+    }
+
+    private fun htmlToText(html: String): String {
+        var s = html
+        s = s.replace(Regex("(?is)<(script|style|head)\\b[^>]*>.*?</\\1>"), " ")
+        s = s.replace(Regex("(?i)<(br|/p|/div|/h[1-6]|/li|/tr)\\b[^>]*>"), "\n")
+        s = s.replace(Regex("<[^>]+>"), "")
+        s = s.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+            .replace("&#39;", "'").replace("&apos;", "'").replace("&quot;", "\"")
+            .replace("&mdash;", "—").replace("&ndash;", "–")
+            .replace("&rsquo;", "’").replace("&lsquo;", "‘")
+            .replace("&ldquo;", "“").replace("&rdquo;", "”").replace("&hellip;", "…")
+        s = s.replace(Regex("[ \\t]+"), " ").replace(Regex("\\n[ \\t]+"), "\n").replace(Regex("\\n{3,}"), "\n\n")
+        return s.trim()
     }
 
     // Camera runtime permission (declared in the manifest, so it's enforced). On
