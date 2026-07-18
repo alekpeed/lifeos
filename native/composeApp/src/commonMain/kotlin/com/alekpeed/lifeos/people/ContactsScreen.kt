@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -86,7 +87,7 @@ fun ContactsScreen() {
             Spacer(Modifier.height(6.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 allTags.forEach { t ->
-                    androidx.compose.material3.FilterChip(
+                    FilterChip(
                         selected = tagFilter == t,
                         onClick = { tagFilter = if (tagFilter == t) null else t },
                         label = { Text("#$t") },
