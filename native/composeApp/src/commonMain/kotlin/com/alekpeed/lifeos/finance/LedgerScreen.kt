@@ -643,8 +643,20 @@ private fun parseTransactions(text: String): List<Txn> {
     return out
 }
 
-// Import — pick a bank/card CSV, review the parsed transactions, then add them to
-// the ledger. (Auto-matching a row to a bill and marking it paid is a later step.)
+// Find a bill this transaction likely pays: same amount (to the cent) and a name
+// that overlaps the transaction description.
+private fun matchBill(txn: Txn, bills: List<Bill>): Bill? {
+    val amt = abs(txn.amount)
+    val desc = txn.desc.lowercase()
+    return bills.filter { it.amount > 0 && abs(it.amount - amt) <= 0.01 }
+        .firstOrNull { b ->
+            val name = b.name.lowercase().trim()
+            name.isNotBlank() && (desc.contains(name) || name.split(" ").any { w -> w.length >= 4 && desc.contains(w) })
+        }
+}
+
+// Import — pick a bank/card CSV, review the parsed transactions, then either add
+// them to the ledger or (for rows that match a bill) mark that bill paid.
 @Composable
 private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     var txns by remember { mutableStateOf<List<Txn>?>(null) }
@@ -665,7 +677,7 @@ private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Import transactions", style = MaterialTheme.typography.titleMedium)
-        Text("Pick a bank or card CSV export — its rows are added to the ledger (spending negative).", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Pick a bank or card CSV export. Rows go to the ledger (spending negative); rows that match a bill can be marked paid instead.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
 
         if (!Native.supportsFilePick) {
@@ -688,17 +700,32 @@ private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
         }
 
         txns?.let { list ->
+            val matches = remember(list, data.bills) { list.map { matchBill(it, data.bills) } }
+            var payIdx by remember(list, data.bills) { mutableStateOf(matches.indices.filter { matches[it] != null }.toSet()) }
+            val payCount = payIdx.size
+            val ledgerCount = list.size - payCount
+
             Spacer(Modifier.height(12.dp))
-            val net = list.sumOf { it.amount }
-            Text("${list.size} transaction${if (list.size == 1) "" else "s"} · net ${fmt(net)}", style = MaterialTheme.typography.labelLarge)
+            Text("${list.size} transaction${if (list.size == 1) "" else "s"}" + if (matches.any { it != null }) " · ${matches.count { it != null }} match a bill" else "", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
             LazyColumn(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 itemsIndexed(list) { i, t ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(usDate(t.date).ifBlank { t.date }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(84.dp))
-                        Text(t.desc, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                        Text(fmt(t.amount), style = MaterialTheme.typography.bodyMedium, color = if (t.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-                        TextButton(onClick = { txns = list.filterIndexed { idx, _ -> idx != i } }) { Text("×") }
+                    val b = matches[i]
+                    Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(usDate(t.date).ifBlank { t.date }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(84.dp))
+                            Text(t.desc, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(fmt(t.amount), style = MaterialTheme.typography.bodyMedium, color = if (t.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                            TextButton(onClick = { txns = list.filterIndexed { idx, _ -> idx != i } }) { Text("×") }
+                        }
+                        if (b != null) {
+                            val paying = i in payIdx
+                            FilterChip(
+                                selected = paying,
+                                onClick = { payIdx = if (paying) payIdx - i else payIdx + i },
+                                label = { Text(if (paying) "✓ Pay bill: ${b.name}" else "Add to ledger instead") },
+                            )
+                        }
                     }
                 }
             }
@@ -706,11 +733,27 @@ private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                 TextButton(onClick = { txns = null }) { Text("Cancel") }
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
+                    // Mark matched-and-selected rows' bills paid; add the rest to the ledger.
+                    var bills = data.bills
+                    payIdx.forEach { i ->
+                        val b = matches.getOrNull(i) ?: return@forEach
+                        bills = bills.map { bill ->
+                            if (bill.id == b.id) {
+                                val paid = bill.copy(
+                                    paymentHistory = bill.paymentHistory + Payment(list[i].date, bill.amount),
+                                    dueDate = advanceDue(bill.dueDate, bill.cadence),
+                                )
+                                scheduleBill(paid)
+                                paid
+                            } else bill
+                        }
+                    }
                     var id = (data.entries.maxOfOrNull { it.id } ?: 0L) + 1
-                    val entries = list.map { Entry(id++, it.desc, it.amount, "Imported", false, it.date) }
-                    onChange(data.copy(entries = entries + data.entries))
+                    val entries = list.filterIndexed { i, _ -> i !in payIdx }
+                        .map { Entry(id++, it.desc, it.amount, "Imported", false, it.date) }
+                    onChange(data.copy(entries = entries + data.entries, bills = bills))
                     txns = null
-                }) { Text("Add ${list.size} to ledger") }
+                }) { Text("Import ($ledgerCount ledger, $payCount paid)") }
             }
         }
     }
