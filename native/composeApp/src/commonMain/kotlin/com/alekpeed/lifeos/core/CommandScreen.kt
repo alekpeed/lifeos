@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.habits.saveHabits
@@ -41,53 +42,93 @@ import com.alekpeed.lifeos.tasks.saveTasks
 import kotlinx.coroutines.launch
 
 
-// Create a record of the given type. Tasks go through the real JSON model (not
-// the old tab format — that would corrupt the now-JSON Tasks blob); ideas and
-// contacts are plain lines; a habit command checks in a matching habit today.
-private fun createRecord(type: String, title: String): String {
-    val t = title.trim().replace("\n", " ")
-    if (t.isEmpty()) return ""
-    return when (type) {
+// A lightweight local due-date read: trailing "today" / "tomorrow" / "next week"
+// / "in N days" set the date and are stripped from the title. Keyless — works
+// without AI, and the AI path can still supply an exact DUE line.
+private fun extractDue(text: String): Pair<String, String> {
+    var t = text.trim()
+    fun strip(re: Regex): Boolean {
+        val m = re.find(t) ?: return false
+        t = t.removeRange(m.range).trim().trimEnd(',', '.', ' ')
+        return true
+    }
+    val due = when {
+        strip(Regex("(?i)\\btomorrow\\b")) -> today().plusDays(1).toString()
+        strip(Regex("(?i)\\bnext week\\b")) -> today().plusDays(7).toString()
+        strip(Regex("(?i)\\btoday\\b")) -> today().toString()
+        else -> {
+            val m = Regex("(?i)\\bin (\\d{1,2}) days?\\b").find(t)
+            if (m != null) {
+                val n = m.groupValues[1].toIntOrNull() ?: 0
+                t = t.removeRange(m.range).trim().trimEnd(',', '.', ' ')
+                today().plusDays(n).toString()
+            } else ""
+        }
+    }
+    return t to due
+}
+
+// Everything the confirm needs: what to make, of what, when, for how much.
+private data class ParsedCmd(val type: String, val title: String, val due: String = "", val amount: Double? = null)
+
+// Create the record. Tasks carry the extracted due date; bills go through the
+// real Finance model (monthly by default); ideas/contacts/habits as before.
+// Returns (confirmation message, module id to open).
+private fun createRecord(cmd: ParsedCmd): Pair<String, String> {
+    val t = cmd.title.trim().replace("\n", " ")
+    if (t.isEmpty()) return "" to ""
+    return when (cmd.type) {
         "task" -> {
+            val (title, localDue) = extractDue(t)
+            val due = cmd.due.ifBlank { localDue }
             val tasks = loadTasks()
             val id = (tasks.maxOfOrNull { it.id } ?: 0L) + 1
-            saveTasks(tasks + Task(id, t))
-            "Added task: “$t”"
+            saveTasks(tasks + Task(id, title, due = due))
+            ("Added task: “$title”" + if (due.isNotBlank()) " (due $due)" else "") to "tasks"
         }
-        "idea" -> { appendIdea(t); "Added idea: “$t”" }
+        "bill" -> {
+            com.alekpeed.lifeos.finance.financeAddBill(t, cmd.amount ?: 0.0, cmd.due.ifBlank { today().toString() })
+            "Added bill: “$t”" to "finance"
+        }
+        "idea" -> { appendIdea(t); "Added idea: “$t”" to "ideas" }
         "contact" -> {
             val cd = loadContacts()
             val id = (cd.contacts.maxOfOrNull { it.id } ?: 0L) + 1
             saveContacts(cd.copy(contacts = cd.contacts + Contact(id, t)))
-            "Added contact: “$t”"
+            "Added contact: “$t”" to "contacts"
         }
         "habit" -> {
             val habits = loadHabits()
             val match = habits.firstOrNull { t.contains(it.name, ignoreCase = true) || it.name.contains(t, ignoreCase = true) }
             if (match != null) {
                 saveHabits(habits.map { if (it.name == match.name) it.copy(checkins = it.checkins + today()) else it })
-                "Checked in: “${match.name}”"
+                "Checked in: “${match.name}”" to "habits"
             } else {
                 saveHabits(habits + com.alekpeed.lifeos.habits.Habit(t, setOf(today())))
-                "New habit + checked in: “$t”"
+                "New habit + checked in: “$t”" to "habits"
             }
         }
-        else -> { appendIdea(t); "Added idea: “$t”" }
+        else -> { appendIdea(t); "Added idea: “$t”" to "ideas" }
     }
 }
 
 private const val PARSE_SYSTEM =
     "You classify a person's quick command into ONE action for a life-management app. " +
-        "Respond with EXACTLY two lines and nothing else:\n" +
-        "TYPE: <task|idea|contact|habit>\n" +
+        "Respond with EXACTLY these lines and nothing else:\n" +
+        "TYPE: <task|idea|contact|habit|bill>\n" +
         "TITLE: <the cleaned-up text of the thing>\n" +
+        "DUE: <YYYY-MM-DD or blank>\n" +
+        "AMOUNT: <number or blank>\n" +
         "Use 'habit' only for check-in style commands (e.g. 'did my workout'); 'contact' for a person to remember; " +
-        "'task' for something to do; otherwise 'idea'."
+        "'bill' for a payment obligation (rent, electric — AMOUNT is its cost); 'task' for something to do; otherwise 'idea'. " +
+        "Resolve relative dates (tomorrow, Friday) against TODAY given in the message."
 
-private fun parseAction(reply: String): Pair<String, String>? {
-    val type = Regex("(?im)^TYPE:\\s*(task|idea|contact|habit)").find(reply)?.groupValues?.get(1)?.lowercase()
+private fun parseAction(reply: String): ParsedCmd? {
+    val type = Regex("(?im)^TYPE:\\s*(task|idea|contact|habit|bill)").find(reply)?.groupValues?.get(1)?.lowercase()
     val title = Regex("(?im)^TITLE:\\s*(.+)$").find(reply)?.groupValues?.get(1)?.trim()
-    return if (type != null && !title.isNullOrBlank()) type to title else null
+    val due = Regex("(?im)^DUE:\\s*(\\d{4}-\\d{2}-\\d{2})").find(reply)?.groupValues?.get(1) ?: ""
+    val amount = Regex("(?im)^AMOUNT:\\s*\\$?([0-9]+(?:\\.[0-9]+)?)").find(reply)?.groupValues?.get(1)?.toDoubleOrNull()
+    return if (type != null && !title.isNullOrBlank()) ParsedCmd(type, title, due, amount) else null
 }
 
 // The quick-capture command bar: type once, fire it into the right module. With
@@ -97,21 +138,23 @@ private fun parseAction(reply: String): Pair<String, String>? {
 fun CommandScreen() {
     var input by remember { mutableStateOf("") }
     var lastAction by remember { mutableStateOf("") }
+    var lastModule by remember { mutableStateOf("") }
     var parsing by remember { mutableStateOf(false) }
-    var pending by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var pending by remember { mutableStateOf<ParsedCmd?>(null) }
     val scope = rememberCoroutineScope()
     val hasKey = remember { AiClient.hasKey() }
 
-    fun capture(type: String) {
-        val msg = createRecord(type, input)
-        if (msg.isNotEmpty()) { lastAction = msg; input = ""; pending = null }
+    fun run(cmd: ParsedCmd) {
+        val (msg, module) = createRecord(cmd)
+        if (msg.isNotEmpty()) { lastAction = msg; lastModule = module; input = ""; pending = null }
     }
+    fun capture(type: String) = run(ParsedCmd(type, input))
     fun parse() {
         val q = input.trim()
         if (q.isEmpty() || parsing) return
         parsing = true; pending = null; lastAction = ""
         scope.launch {
-            val reply = AiClient.ask(PARSE_SYSTEM, q, maxTokens = 120)
+            val reply = AiClient.ask(PARSE_SYSTEM, "TODAY: ${today()}\n$q", maxTokens = 160)
             pending = if (reply.isError) null else parseAction(reply.text)
             if (pending == null && !reply.isError) lastAction = "Couldn't parse that — use the buttons below."
             else if (reply.isError) lastAction = reply.text
@@ -143,15 +186,16 @@ fun CommandScreen() {
             }
         }
 
-        pending?.let { (type, title) ->
+        pending?.let { cmd ->
             Spacer(Modifier.height(16.dp))
             Column {
-                Text("Create ${type}: “$title”?", style = MaterialTheme.typography.bodyMedium)
+                val detail = buildList {
+                    if (cmd.due.isNotBlank()) add("due ${cmd.due}")
+                    cmd.amount?.let { add("$$it") }
+                }.joinToString(", ")
+                Text("Create ${cmd.type}: “${cmd.title}”${if (detail.isNotEmpty()) " ($detail)" else ""}?", style = MaterialTheme.typography.bodyMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = {
-                        val msg = createRecord(type, title)
-                        if (msg.isNotEmpty()) { lastAction = msg; input = ""; pending = null }
-                    }) { Text("Confirm") }
+                    Button(onClick = { run(cmd) }) { Text("Confirm") }
                     TextButton(onClick = { pending = null }) { Text("Discard") }
                 }
             }
@@ -159,7 +203,12 @@ fun CommandScreen() {
 
         if (lastAction.isNotEmpty()) {
             Spacer(Modifier.height(18.dp))
-            Text(lastAction, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(lastAction, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                if (lastModule.isNotBlank()) {
+                    TextButton(onClick = { com.alekpeed.lifeos.Nav.open(lastModule) }) { Text("Open →") }
+                }
+            }
         }
     }
 }

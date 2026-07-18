@@ -171,6 +171,15 @@ data class PaymentPoint(val date: String, val amount: Double)
 fun financeBillPayments(): List<PaymentPoint> =
     loadData().bills.flatMap { b -> b.paymentHistory.map { PaymentPoint(it.date, it.amount) } }
 
+// Create a bill from outside (the Command bar). Monthly by default; schedules
+// the due reminder like the Bills tab does.
+fun financeAddBill(name: String, amount: Double, dueDate: String) {
+    val data = loadData()
+    val bill = Bill((data.bills.maxOfOrNull { it.id } ?: 0L) + 1, name.trim(), amount, dueDate)
+    saveData(data.copy(bills = listOf(bill) + data.bills))
+    scheduleBill(bill)
+}
+
 private val CADENCES = listOf("weekly", "monthly", "yearly", "one-time")
 private val CYCLES = listOf("weekly", "monthly", "yearly")
 private val REMIND_OPTIONS = listOf(0, 1, 3, 7)
