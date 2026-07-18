@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -109,8 +111,8 @@ private fun SectionScreen(section: String, mods: List<Module>, onBack: () -> Uni
             Spacer(Modifier.width(10.dp))
             Text(section, style = MaterialTheme.typography.headlineSmall)
         }
-        androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            androidx.compose.foundation.lazy.items(mods) { m ->
+        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            items(mods) { m ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
