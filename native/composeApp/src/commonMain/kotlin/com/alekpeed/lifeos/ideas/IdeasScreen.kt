@@ -53,13 +53,13 @@ fun IdeasScreen() {
         Text("Ideas", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(12.dp))
 
-        OutlinedTextField(input, { input = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("New idea") })
+        OutlinedTextField(input, { input = it }, modifier = Modifier.fillMaxWidth(), singleLine = false, placeholder = { Text("New idea") })
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(tagInput, { tagInput = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Tags (comma-separated)") })
             Spacer(Modifier.width(10.dp))
             Button(onClick = {
-                val t = input.trim().replace("\n", " ")
+                val t = input.trim()
                 if (t.isNotEmpty()) {
                     val tags = tagInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
                     save(data.copy(ideas = data.ideas + Idea(nextId, t, tags, false, today().toString())))
@@ -101,6 +101,18 @@ fun IdeasScreen() {
                 Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(idea.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        // Promote → a real Task (idea text + tags carry over); the
+                        // idea archives so it doesn't linger in both piles.
+                        if (!idea.archived) {
+                            TextButton(onClick = {
+                                val tasks = com.alekpeed.lifeos.tasks.loadTasks()
+                                val tid = (tasks.maxOfOrNull { it.id } ?: 0L) + 1
+                                com.alekpeed.lifeos.tasks.saveTasks(
+                                    tasks + com.alekpeed.lifeos.tasks.Task(tid, idea.text.replace("\n", " "), tags = idea.tags),
+                                )
+                                patch { it.copy(archived = true) }
+                            }) { Text("→ Task") }
+                        }
                         TextButton(onClick = { patch { it.copy(archived = !it.archived) } }) {
                             Text(if (idea.archived) "Restore" else "Archive")
                         }
