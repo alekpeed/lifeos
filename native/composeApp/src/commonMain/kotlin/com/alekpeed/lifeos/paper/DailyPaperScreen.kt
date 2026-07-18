@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -198,6 +199,43 @@ fun DailyPaperScreen() {
         }
     }
 
+    // Weather block: reuses the city Tools/Today saved; silent when unset/offline.
+    var weather by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        val city = com.alekpeed.lifeos.Storage.read("WeatherCity")?.trim().orEmpty()
+        if (city.isNotEmpty()) {
+            com.alekpeed.lifeos.integrations.WeatherClient.forCity(city).onSuccess { w ->
+                weather = "${w.place} — ${w.tempF}°F, ${w.description}. High ${w.highF}°, low ${w.lowF}°."
+            }
+        }
+    }
+
+    // Send the whole issue to Telegram as a plain-text digest.
+    var tgStatus by remember { mutableStateOf<String?>(null) }
+    var sending by remember { mutableStateOf(false) }
+    fun sendDigest() {
+        if (sending) return
+        sending = true; tgStatus = null
+        val digest = buildString {
+            append("📰 The Daily Ledger — ${today()}\n")
+            weather?.let { append("\n☀️ $it\n") }
+            if (editorial.isNotBlank()) append("\n$editorial\n")
+            if (editorsPick.isNotBlank()) append("\n🎯 Maybe today: $editorsPick\n")
+            if (docket.isNotEmpty()) {
+                append("\nON THE DOCKET\n")
+                docket.forEach { append("• ${if (it.overdue) "OVERDUE " else ""}${it.title.ifBlank { "(untitled)" }} (${it.kind}, ${it.date})\n") }
+            }
+            val pending = habits.filter { today() !in it.checkins }
+            if (pending.isNotEmpty()) append("\nHABITS WAITING: ${pending.joinToString(", ") { it.name }}\n")
+        }
+        scope.launch {
+            com.alekpeed.lifeos.integrations.TelegramClient.send(digest)
+                .onSuccess { tgStatus = "Sent ✓" }
+                .onFailure { tgStatus = it.message }
+            sending = false
+        }
+    }
+
     fun toggleCheck(key: String, on: Boolean) {
         checked = if (on) checked + key else checked - key
         saveChecklist(checked)
@@ -210,11 +248,23 @@ fun DailyPaperScreen() {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("The Daily Ledger", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text(today().toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("The Daily Ledger", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(today().toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (com.alekpeed.lifeos.integrations.TelegramClient.isConfigured()) {
+                TextButton(onClick = { sendDigest() }, enabled = !sending) { Text(if (sending) "Sending…" else "📨 Telegram") }
+            }
+        }
+        tgStatus?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
         Spacer(Modifier.height(14.dp))
 
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            weather?.let { w ->
+                item { Head("The Sky Today") }
+                item { Text(w, style = MaterialTheme.typography.bodyMedium) }
+            }
             item { Head("Editorial") }
             item {
                 when {
