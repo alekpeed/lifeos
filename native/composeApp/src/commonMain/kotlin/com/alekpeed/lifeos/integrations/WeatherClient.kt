@@ -22,6 +22,27 @@ object WeatherClient {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    // Geocode a free-text place name to (lat, lng) — the same keyless Open-Meteo
+    // endpoint the weather flow uses. Also serves Places ("Find on map").
+    suspend fun geocode(name: String): Result<Pair<Double, Double>> {
+        val q = name.trim()
+        if (q.isEmpty()) return Result.failure(IllegalArgumentException("Enter a place name"))
+        return try {
+            val url = "https://geocoding-api.open-meteo.com/v1/search?name=" +
+                q.encodeUrl() + "&count=1&language=en&format=json"
+            val res = httpGet(url)
+            if (!res.ok) return Result.failure(RuntimeException("Couldn't reach the geocoder"))
+            val first = json.parseToJsonElement(res.body).jsonObject["results"]?.jsonArray?.firstOrNull()?.jsonObject
+                ?: return Result.failure(RuntimeException("No place called “$q”"))
+            val lat = first["latitude"]?.jsonPrimitive?.content?.toDoubleOrNull()
+            val lng = first["longitude"]?.jsonPrimitive?.content?.toDoubleOrNull()
+            if (lat == null || lng == null) Result.failure(RuntimeException("No coordinates for “$q”"))
+            else Result.success(lat to lng)
+        } catch (e: Exception) {
+            Result.failure(RuntimeException("Geocoding failed"))
+        }
+    }
+
     suspend fun forCity(city: String): Result<WeatherNow> {
         val q = city.trim()
         if (q.isEmpty()) return Result.failure(IllegalArgumentException("Enter a city"))

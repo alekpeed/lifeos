@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.integrations.WeatherClient
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
@@ -49,6 +51,7 @@ import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
+import kotlinx.coroutines.launch
 
 private val DANGER = Color(0xFFD64545)
 private val STAR_ON = Color(0xFFE0A63C)
@@ -73,9 +76,28 @@ fun PlacesScreen() {
         Text("Places", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("visited" to "Visited", "wantToGo" to "Want to go", "bucket" to "Bucket list").forEach { (v, lbl) ->
+            listOf("visited" to "Visited", "wantToGo" to "Want to go", "map" to "Map", "bucket" to "Bucket list").forEach { (v, lbl) ->
                 FilterChip(selected = tab == v, onClick = { tab = v; selected = null }, label = { Text(lbl) })
             }
+        }
+
+        if (tab == "map") {
+            Spacer(Modifier.height(12.dp))
+            val pins = mapPins(data.places)
+            if (pins.isEmpty()) {
+                Text(
+                    "No places have coordinates yet. Open a place and tap “Find on map” (or “Use my location”) to pin it.",
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                // Tapping a pin jumps to that place's list with its editor open.
+                WorldMapView(pins) { id ->
+                    val place = data.places.firstOrNull { it.id == id } ?: return@WorldMapView
+                    tab = if (place.listType == "wantToGo") "wantToGo" else "visited"
+                    selected = id
+                }
+            }
+            return@Column
         }
 
         if (tab != "bucket" && Native.supportsLocation) {
@@ -221,13 +243,39 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
                 Field(place.lng?.toString() ?: "", "lng") { v -> patch { it.copy(lng = v.toDoubleOrNull()) } }
             }
         }
-        if (Native.supportsLocation) {
+        run {
+            val scope = rememberCoroutineScope()
+            var geoBusy by remember { mutableStateOf(false) }
+            var geoErr by remember { mutableStateOf<String?>(null) }
             Spacer(Modifier.height(6.dp))
-            TextButton(onClick = {
-                Native.getCurrentLocation { lat, lng ->
-                    if (lat != null && lng != null) patch { it.copy(lat = lat, lng = lng) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (Native.supportsLocation) {
+                    TextButton(onClick = {
+                        Native.getCurrentLocation { lat, lng ->
+                            if (lat != null && lng != null) patch { it.copy(lat = lat, lng = lng) }
+                        }
+                    }) { Text("Use my location") }
                 }
-            }) { Text("Use my location") }
+                // Geocode the name/address (keyless Open-Meteo) so the place shows
+                // on the Map tab without hand-typing coordinates.
+                TextButton(
+                    onClick = {
+                        if (geoBusy) return@TextButton
+                        geoBusy = true; geoErr = null
+                        val query = place.address.ifBlank { place.name }
+                        scope.launch {
+                            WeatherClient.geocode(query)
+                                .onSuccess { (lat, lng) -> patch { it.copy(lat = lat, lng = lng) } }
+                                .onFailure { geoErr = it.message }
+                            geoBusy = false
+                        }
+                    },
+                    enabled = !geoBusy,
+                ) { Text(if (geoBusy) "Finding…" else "🗺 Find on map") }
+            }
+            geoErr?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            }
         }
 
         if ((place.listType.ifBlank { "visited" }) == "visited") {
