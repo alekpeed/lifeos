@@ -15,10 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
@@ -37,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.epochMillisAt
 import com.alekpeed.lifeos.data.minusDays
 import com.alekpeed.lifeos.data.parseDateOrNull
@@ -55,6 +58,8 @@ import kotlinx.datetime.plus
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.math.abs
 
 private val CATEGORIES = listOf("General", "Bills", "Food", "Transport", "Fun", "Income")
@@ -211,6 +216,24 @@ fun FinanceScreen() {
     }
 }
 
+private const val RECEIPT_SYSTEM =
+    "You read a photo of a store or restaurant receipt. Respond with ONLY a JSON object and nothing else: " +
+        "{\"merchant\": string, \"amount\": number, \"date\": \"YYYY-MM-DD\"}. \"amount\" is the grand total " +
+        "as a positive number. Use \"\" for merchant if unclear and \"\" for date if not visible. Never invent values."
+
+// Parse the receipt JSON into a spending ledger entry (amount stored negative).
+private fun parseReceipt(raw: String): Entry? {
+    val start = raw.indexOf('{')
+    val end = raw.lastIndexOf('}')
+    if (start < 0 || end <= start) return null
+    val obj = try { json.parseToJsonElement(raw.substring(start, end + 1)).jsonObject } catch (e: Exception) { return null }
+    val amt = obj["amount"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
+    val merchant = (obj["merchant"]?.jsonPrimitive?.content ?: "").trim().replace("\n", " ").ifBlank { "Receipt" }
+    val date = (obj["date"]?.jsonPrimitive?.content ?: "").trim()
+    val iso = if (parseDateOrNull(date) != null) date else today().toString()
+    return Entry(0L, merchant, -abs(amt), "General", false, iso)
+}
+
 // A money ledger with categories, dates, and a recurring flag. All-time balance
 // and a live this-month income / spending / net summary up top, then a
 // per-category breakdown. Marking an entry recurring schedules a real reminder
@@ -224,6 +247,28 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("General") }
     var recurring by remember { mutableStateOf(false) }
+    var scanning by remember { mutableStateOf(false) }
+    var scanErr by remember { mutableStateOf<String?>(null) }
+    var showSource by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    fun onReceipt(b64: String?) {
+        when {
+            b64 == null -> {}
+            b64.isEmpty() -> scanErr = "Couldn't read that image — try another photo."
+            else -> {
+                scanErr = null; scanning = true
+                scope.launch {
+                    val reply = AiClient.askWithImage(RECEIPT_SYSTEM, "Extract the receipt total, merchant, and date.", b64, 400)
+                    scanning = false
+                    if (reply.isError) { scanErr = reply.text; return@launch }
+                    val e = parseReceipt(reply.text)
+                    if (e == null) { scanErr = "Couldn't read a total off that receipt."; return@launch }
+                    persist(listOf(e.copy(id = nextId)) + entries); nextId += 1
+                }
+            }
+        }
+    }
 
     val balance = entries.sumOf { it.amount }
     val month = today().toString().take(7)
@@ -284,6 +329,38 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CATEGORIES.drop(3).forEach { c -> FilterChip(selected = category == c, onClick = { category = c }, label = { Text(c) }) }
             FilterChip(selected = recurring, onClick = { recurring = !recurring }, label = { Text("↻ Recurring") })
+        }
+
+        if (Native.supportsCamera) {
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(
+                    onClick = { if (!AiClient.hasKey()) scanErr = "Add an AI key in Settings to scan." else { scanErr = null; showSource = true } },
+                    enabled = !scanning,
+                ) {
+                    if (scanning) {
+                        CircularProgressIndicator(Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Reading…")
+                    } else {
+                        Text("📷 Scan receipt")
+                    }
+                }
+                scanErr?.let {
+                    Spacer(Modifier.width(10.dp))
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+
+        if (showSource) {
+            AlertDialog(
+                onDismissRequest = { showSource = false },
+                title = { Text("Scan a receipt") },
+                text = { Text("Take a new photo of the receipt, or choose one from your library.") },
+                confirmButton = { TextButton(onClick = { showSource = false; Native.takePhoto { onReceipt(it) } }) { Text("Take a photo") } },
+                dismissButton = { TextButton(onClick = { showSource = false; Native.capturePhoto { onReceipt(it) } }) { Text("Choose from library") } },
+            )
         }
 
         if (byCategory.size > 1) {
