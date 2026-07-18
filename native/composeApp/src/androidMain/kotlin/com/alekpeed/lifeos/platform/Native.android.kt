@@ -52,6 +52,7 @@ actual object Native {
     actual val supportsLocation = true
     actual val supportsCamera = true
     actual val supportsFilePick = true
+    actual val supportsPdfExport = true
 
     actual fun speak(text: String) {
         val ctx = NativeHost.ctx() ?: return
@@ -322,6 +323,60 @@ actual object Native {
             NativeHost.fileCallback = null
             NativeHost.fileFilter = null
             onResult(null)
+        }
+    }
+
+    actual fun exportTextAsPdf(title: String, text: String) {
+        val ctx = NativeHost.ctx() ?: return
+        try {
+            val doc = android.graphics.pdf.PdfDocument()
+            val pageW = 595; val pageH = 842; val margin = 40           // A4 @ 72dpi
+            val width = pageW - margin * 2
+            val body = android.text.TextPaint().apply { textSize = 12f; color = android.graphics.Color.BLACK; isAntiAlias = true }
+            val titlePaint = android.text.TextPaint().apply { textSize = 18f; color = android.graphics.Color.BLACK; isFakeBoldText = true; isAntiAlias = true }
+            val layout = android.text.StaticLayout.Builder.obtain(text, 0, text.length, body, width).build()
+            val totalH = layout.height
+
+            var drawn = 0
+            var pageNum = 1
+            while (drawn < totalH && pageNum <= 300) {
+                val page = doc.startPage(android.graphics.pdf.PdfDocument.PageInfo.Builder(pageW, pageH, pageNum).create())
+                val c = page.canvas
+                var top = margin
+                if (pageNum == 1) { c.drawText(title, margin.toFloat(), (margin + 14).toFloat(), titlePaint); top = margin + 34 }
+                val avail = (pageH - margin) - top
+                // Snap the page break to a whole line so nothing gets sliced.
+                val bottomLine = layout.getLineForVertical(drawn + avail)
+                var pageH2 = layout.getLineTop(bottomLine) - drawn
+                if (pageH2 <= 0) pageH2 = avail
+                c.save()
+                c.translate(margin.toFloat(), top.toFloat())
+                c.clipRect(0, 0, width, minOf(pageH2, avail))
+                c.translate(0f, -drawn.toFloat())
+                layout.draw(c)
+                c.restore()
+                doc.finishPage(page)
+                drawn += pageH2
+                pageNum++
+            }
+
+            val safe = title.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("").take(40).ifBlank { "lifeos" }
+            val file = java.io.File(ctx.cacheDir, "$safe.pdf")
+            java.io.FileOutputStream(file).use { doc.writeTo(it) }
+            doc.close()
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(send, "Print / Save PDF").apply {
+                if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            (NativeHost.activity ?: ctx).startActivity(chooser)
+        } catch (e: Exception) {
+            // best-effort export
         }
     }
 

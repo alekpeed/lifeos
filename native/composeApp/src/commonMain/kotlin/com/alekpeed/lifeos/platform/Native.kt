@@ -20,6 +20,7 @@ expect object Native {
     val supportsLocation: Boolean
     val supportsCamera: Boolean
     val supportsFilePick: Boolean
+    val supportsPdfExport: Boolean
 
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
@@ -107,4 +108,9 @@ expect object Native {
     // Pick an ebook (EPUB or .txt) and hand back its readable plain text in
     // reading order, or null if cancelled / unsupported. Backs the Books reader.
     fun pickEbook(onResult: (String?) -> Unit)
+
+    // Render plain text to a paginated PDF and hand it to the system print / share
+    // sheet (which offers "Save as PDF" and any installed printer). Android only;
+    // desktop no-ops. Gate UI on supportsPdfExport.
+    fun exportTextAsPdf(title: String, text: String)
 }

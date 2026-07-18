@@ -20,6 +20,7 @@ actual object Native {
     actual val supportsLocation = false
     actual val supportsCamera = false
     actual val supportsFilePick = false
+    actual val supportsPdfExport = false
 
     actual fun speak(text: String) {}
     actual fun stopSpeaking() {}
@@ -62,4 +63,5 @@ actual object Native {
     actual fun pickTextFile(onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun exportTextAsPdf(title: String, text: String) {}
 }

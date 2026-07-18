@@ -42,6 +42,7 @@ import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.documents.loadDocuments
 import com.alekpeed.lifeos.education.loadEducation
 import com.alekpeed.lifeos.habits.Habit
+import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.habits.saveHabits
 import com.alekpeed.lifeos.milestones.loadMilestones
@@ -210,24 +211,31 @@ fun DailyPaperScreen() {
         }
     }
 
+    // The whole issue as plain text — shared by the Telegram digest and the PDF.
+    fun issueText(): String = buildString {
+        append("📰 The Daily Ledger — ${today()}\n")
+        weather?.let { append("\n☀️ $it\n") }
+        if (editorial.isNotBlank()) append("\n$editorial\n")
+        if (editorsPick.isNotBlank()) append("\n🎯 Maybe today: $editorsPick\n")
+        if (docket.isNotEmpty()) {
+            append("\nON THE DOCKET\n")
+            docket.forEach { append("• ${if (it.overdue) "OVERDUE " else ""}${it.title.ifBlank { "(untitled)" }} (${it.kind}, ${it.date})\n") }
+        }
+        val pending = habits.filter { today() !in it.checkins }
+        if (pending.isNotEmpty()) append("\nHABITS WAITING: ${pending.joinToString(", ") { it.name }}\n")
+        if (onThisDay.isNotEmpty()) {
+            append("\nON THIS DAY\n")
+            onThisDay.forEach { append("• ${it.title} (${it.year})\n") }
+        }
+    }
+
     // Send the whole issue to Telegram as a plain-text digest.
     var tgStatus by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
     fun sendDigest() {
         if (sending) return
         sending = true; tgStatus = null
-        val digest = buildString {
-            append("📰 The Daily Ledger — ${today()}\n")
-            weather?.let { append("\n☀️ $it\n") }
-            if (editorial.isNotBlank()) append("\n$editorial\n")
-            if (editorsPick.isNotBlank()) append("\n🎯 Maybe today: $editorsPick\n")
-            if (docket.isNotEmpty()) {
-                append("\nON THE DOCKET\n")
-                docket.forEach { append("• ${if (it.overdue) "OVERDUE " else ""}${it.title.ifBlank { "(untitled)" }} (${it.kind}, ${it.date})\n") }
-            }
-            val pending = habits.filter { today() !in it.checkins }
-            if (pending.isNotEmpty()) append("\nHABITS WAITING: ${pending.joinToString(", ") { it.name }}\n")
-        }
+        val digest = issueText()
         scope.launch {
             com.alekpeed.lifeos.integrations.TelegramClient.send(digest)
                 .onSuccess { tgStatus = "Sent ✓" }
@@ -252,6 +260,9 @@ fun DailyPaperScreen() {
             Column(Modifier.weight(1f)) {
                 Text("The Daily Ledger", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text(today().toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (Native.supportsPdfExport) {
+                TextButton(onClick = { Native.exportTextAsPdf("The Daily Ledger — ${today()}", issueText()) }) { Text("🖨 PDF") }
             }
             if (com.alekpeed.lifeos.integrations.TelegramClient.isConfigured()) {
                 TextButton(onClick = { sendDigest() }, enabled = !sending) { Text(if (sending) "Sending…" else "📨 Telegram") }
