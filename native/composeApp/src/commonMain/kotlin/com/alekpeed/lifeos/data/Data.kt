@@ -126,6 +126,19 @@ fun searchAll(query: String): List<SearchHit> {
     return hits
 }
 
+// Every displayable record across every module, as (source, text) — the corpus
+// Ask embeds for semantic search. Blank display lines are dropped.
+fun allRecords(): List<SearchHit> {
+    val out = mutableListOf<SearchHit>()
+    for (src in DATA_SOURCES) {
+        for (line in linesOf(src.key)) {
+            val text = displayOf(line).trim()
+            if (text.isNotEmpty()) out.add(SearchHit(src.label, text))
+        }
+    }
+    return out
+}
+
 // A compact snapshot of the user's data for grounding an AI answer: lines that
 // match the query first, then a per-module count summary — bounded so the prompt
 // stays small and cheap.

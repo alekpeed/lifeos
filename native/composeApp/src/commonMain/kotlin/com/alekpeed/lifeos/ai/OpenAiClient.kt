@@ -67,6 +67,31 @@ object OpenAiClient {
         return AiReply(friendlyAiError(resp.status, detail, "OpenAI"), isError = true)
     }
 
+    // Embeddings — text-embedding-3-small (1536-dim, unit-normalized so a dot
+    // product IS cosine similarity). Backs Ask's semantic memory search. Returns
+    // one vector per input in order, or null if the call failed / no key.
+    suspend fun embed(inputs: List<String>): List<FloatArray>? {
+        val key = key()
+        if (key.isEmpty() || inputs.isEmpty()) return null
+        val body = buildJsonObject {
+            put("model", "text-embedding-3-small")
+            putJsonArrayCompat("input") { inputs.forEach { add(it.take(6000)) } }
+        }.toString()
+        val resp = httpPostJson(
+            "https://api.openai.com/v1/embeddings",
+            mapOf("Authorization" to "Bearer $key", "content-type" to "application/json"),
+            body,
+        )
+        if (!resp.ok) return null
+        return try {
+            json.parseToJsonElement(resp.body).jsonObject["data"]?.jsonArray?.map { row ->
+                row.jsonObject["embedding"]!!.jsonArray.map { it.jsonPrimitive.content.toFloat() }.toFloatArray()
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     // Vision: a chat message whose content is a text part plus an image_url part
     // carrying the JPEG as a data URI.
     suspend fun askWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int): AiReply {
