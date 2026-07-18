@@ -76,14 +76,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Document picker → the pending Native.pickTextFile callback. Read the file's
-    // bytes as UTF-8 text (capped) in the result callback. Null uri = cancelled.
+    // Document picker → the pending Native.pickTextFile / pickFilteredTextFile
+    // callback. Plain picks read the file's bytes as UTF-8 text (capped). When
+    // NativeHost.fileFilter is set, the file is instead STREAMED line-by-line and
+    // only matching lines are kept — this is how a multi-hundred-MB Apple Health
+    // export.xml (or the .zip around it) fits through without an OOM. Reading
+    // happens off the main thread; the callback fires back on it. Null = cancelled
+    // or unreadable.
     private val openDocumentLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         val cb = NativeHost.fileCallback
+        val filter = NativeHost.fileFilter
         NativeHost.fileCallback = null
+        NativeHost.fileFilter = null
         if (uri == null) {
             cb?.invoke(null)
-        } else {
+            return@registerForActivityResult
+        }
+        if (filter == null) {
             val text = try {
                 contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?.let { if (it.size > 4_000_000) null else it.decodeToString() }
@@ -91,7 +100,48 @@ class MainActivity : ComponentActivity() {
                 null
             }
             cb?.invoke(text)
+            return@registerForActivityResult
         }
+        Thread {
+            val text = try {
+                contentResolver.openInputStream(uri)?.use { raw -> readFilteredText(raw, filter) }
+            } catch (e: Exception) {
+                null
+            }
+            runOnUiThread { cb?.invoke(text) }
+        }.start()
+    }
+
+    // Stream a picked file (or the first .xml/.csv entry of a .zip, detected by
+    // magic bytes) line-by-line, keeping lines that contain any of the filter
+    // substrings, capped at ~8 MB of kept text.
+    private fun readFilteredText(raw: java.io.InputStream, filter: List<String>): String? {
+        val stream = java.io.BufferedInputStream(raw, 1 shl 16)
+        stream.mark(4)
+        val magic = ByteArray(2)
+        val n = stream.read(magic)
+        stream.reset()
+        val source: java.io.InputStream? = if (n == 2 && magic[0] == 'P'.code.toByte() && magic[1] == 'K'.code.toByte()) {
+            val zip = java.util.zip.ZipInputStream(stream)
+            var entry = zip.nextEntry
+            while (entry != null) {
+                val name = entry.name.lowercase()
+                if (!entry.isDirectory && (name.endsWith(".xml") || name.endsWith(".csv"))) break
+                entry = zip.nextEntry
+            }
+            if (entry == null) null else zip
+        } else {
+            stream
+        }
+        if (source == null) return null
+        val out = StringBuilder()
+        source.bufferedReader().forEachLine { line ->
+            if (out.length > 8_000_000) return@forEachLine
+            if (filter.isEmpty() || filter.any { line.contains(it) }) {
+                out.append(line).append('\n')
+            }
+        }
+        return out.toString()
     }
 
     // Camera runtime permission (declared in the manifest, so it's enforced). On

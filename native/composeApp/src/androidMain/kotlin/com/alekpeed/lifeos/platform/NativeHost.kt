@@ -39,6 +39,12 @@ object NativeHost {
     var filePickLauncher: ActivityResultLauncher<Array<String>>? = null
     @Volatile var fileCallback: ((String?) -> Unit)? = null
 
+    // When set, the picked file is streamed line-by-line and only lines containing
+    // one of these substrings are kept (Native.pickFilteredTextFile) — how a
+    // multi-hundred-MB Apple Health export fits through without an OOM. Cleared
+    // with the callback on every result.
+    @Volatile var fileFilter: List<String>? = null
+
     fun ctx(): Context? = activity ?: appContext
 
     fun ensureTts(context: Context) {

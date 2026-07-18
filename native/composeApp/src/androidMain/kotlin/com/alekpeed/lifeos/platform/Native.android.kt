@@ -310,4 +310,18 @@ actual object Native {
             onResult(null)
         }
     }
+
+    actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.fileCallback = onResult
+        NativeHost.fileFilter = substrings
+        try {
+            launcher.launch(arrayOf("*/*"))
+        } catch (e: Exception) {
+            NativeHost.fileCallback = null
+            NativeHost.fileFilter = null
+            onResult(null)
+        }
+    }
 }

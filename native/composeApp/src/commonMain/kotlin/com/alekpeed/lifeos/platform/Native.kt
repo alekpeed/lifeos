@@ -97,4 +97,10 @@ expect object Native {
     // if the user cancelled / the platform has no file picker. Android opens the
     // system document picker; desktop has none and returns null.
     fun pickTextFile(onResult: (String?) -> Unit)
+
+    // Pick a potentially huge text file and stream it, keeping only lines that
+    // contain one of `substrings` (all lines when empty). Zips are opened to their
+    // first .xml/.csv entry. Built for the Apple Health export, whose export.xml
+    // runs to hundreds of MB — the whole file never sits in memory at once.
+    fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit)
 }

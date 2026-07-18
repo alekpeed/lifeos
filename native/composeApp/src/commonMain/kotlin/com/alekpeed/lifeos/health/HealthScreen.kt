@@ -1,6 +1,7 @@
 package com.alekpeed.lifeos.health
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +16,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,64 +32,202 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.data.minusDays
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.SaveToast
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import com.alekpeed.lifeos.ui.usDate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-@Serializable
-private data class Reading(val id: Long, val metric: String, val value: Double, val unit: String = "", val date: String = "")
-
-@Serializable
-private data class HealthData(val readings: List<Reading> = emptyList())
-
-private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-
-// Common metrics to prefill the field with one tap.
+// Common metrics to prefill the free-form field with one tap.
 private val QUICK = listOf("Weight" to "lb", "Sleep" to "h", "Workout" to "min", "Resting HR" to "bpm", "Water" to "oz", "Steps" to "", "Mood" to "/10")
-
-// Public read-only accessor for the stats layer (The Almanac). Exposes each
-// dated reading as (metric, value, date) without leaking the private model.
-data class HealthPoint(val metric: String, val value: Double, val date: String)
-fun healthSeries(): List<HealthPoint> = load().map { HealthPoint(it.metric, it.value, it.date) }
 
 private fun num(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else ((v * 100).toLong() / 100.0).toString()
 
-private fun load(): List<Reading> {
-    val raw = Storage.read("Health")
-    if (raw.isNullOrBlank()) return emptyList()
-    if (raw.trimStart().startsWith("{")) {
-        return runCatching { json.decodeFromString<HealthData>(raw).readings }.getOrElse { emptyList() }
-    }
-    // Migrate old "metric\tvalue\tunit" lines (undated).
-    return raw.lines().filter { it.isNotBlank() }.mapIndexed { i, line ->
-        val p = line.split("\t")
-        Reading(i + 1L, p.getOrElse(0) { line }, p.getOrElse(1) { "0" }.toDoubleOrNull() ?: 0.0, p.getOrElse(2) { "" })
-    }
-}
-
-private fun save(readings: List<Reading>) {
-    Storage.write("Health", json.encodeToString(HealthData(readings)))
-    SaveToast.show()
-}
-
-// Structured, dated health readings — metric, value, unit, date — grouped by
-// metric with the latest value + when, a change arrow vs the previous reading,
-// and a small bar trend of recent values. Quick-metric chips prefill common ones.
+// Health — three tabs. Daily is the web app's structured one-row-per-day log
+// (sleep / workout / water / weight / notes) with a rolling 7-day summary;
+// Metrics is free-form dated readings with trend bars (kept from the first
+// native pass — it logs things the daily shape has no slot for); Import pulls
+// an Apple Health export or Garmin Connect CSV into the daily log, preview +
+// confirm before anything is written.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HealthScreen() {
-    var readings by remember { mutableStateOf(load()) }
-    fun persist(next: List<Reading>) { readings = next; save(next) }
+    var data by remember { mutableStateOf(loadHealth()) }
+    fun persist(next: HealthData) { data = next; saveHealth(next); SaveToast.show() }
+    var tab by remember { mutableStateOf("daily") }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("Health", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(10.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("daily" to "Daily", "metrics" to "Metrics", "import" to "Import").forEach { (v, lbl) ->
+                FilterChip(selected = tab == v, onClick = { tab = v }, label = { Text(lbl) })
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        when (tab) {
+            "metrics" -> MetricsTab(data) { persist(it) }
+            "import" -> ImportTab(data) { persist(it) }
+            else -> DailyTab(data) { persist(it) }
+        }
+    }
+}
+
+// ---- Daily log --------------------------------------------------------------
+
+@Composable
+private fun DailyTab(data: HealthData, persist: (HealthData) -> Unit) {
+    var selectedDate by remember { mutableStateOf<String?>(null) }
+    val logs = data.logs.sortedByDescending { it.date }
+
+    fun upsert(log: DailyLog) {
+        val next = if (data.logs.any { it.date == log.date }) {
+            data.logs.map { if (it.date == log.date) log else it }
+        } else {
+            data.logs + log
+        }
+        persist(data.copy(logs = next))
+    }
+
+    // Rolling 7-day summary, same math as the web view.
+    val cutoff = today().minusDays(7).toString()
+    val recent = logs.filter { it.date >= cutoff }
+    val sleeps = recent.mapNotNull { it.sleepHours }
+    val waters = recent.mapNotNull { it.waterOz }
+    val workouts = recent.count { it.workoutType.isNotBlank() || (it.workoutMinutes ?: 0.0) > 0 }
+    val summary = buildList {
+        if (sleeps.isNotEmpty()) add("avg sleep ${num((sleeps.sum() / sleeps.size * 10).toLong() / 10.0)}h")
+        if (waters.isNotEmpty()) add("avg water ${num((waters.sum() / waters.size).toLong().toDouble())}oz")
+        add("$workouts workout${if (workouts == 1) "" else "s"}")
+    }.joinToString(" · ")
+
+    Column(Modifier.fillMaxSize()) {
+        Button(onClick = {
+            val d = today().toString()
+            if (data.logs.none { it.date == d }) upsert(DailyLog(date = d))
+            selectedDate = d
+        }) { Text("+ Log today's entry") }
+        Spacer(Modifier.height(8.dp))
+        Text("Last 7 days: $summary", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(10.dp))
+
+        if (logs.isEmpty()) {
+            Text("No health logs yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return
+        }
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(logs, key = { it.date }) { log ->
+                Column(
+                    Modifier.fillMaxWidth()
+                        .clickable { selectedDate = if (selectedDate == log.date) null else log.date }
+                        .padding(vertical = 4.dp),
+                ) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(usDate(log.date).ifBlank { log.date }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        val chips = buildList {
+                            log.sleepHours?.let { add("😴 ${num(it)}h") }
+                            if (log.workoutType.isNotBlank() || (log.workoutMinutes ?: 0.0) > 0) {
+                                val t = log.workoutType.ifBlank { "Workout" }
+                                add("🏋 $t" + (log.workoutMinutes?.let { " (${num(it)}m)" } ?: ""))
+                            }
+                            log.waterOz?.let { add("💧 ${num(it)}oz") }
+                            log.weightLb?.let { add("⚖ ${num(it)}") }
+                        }
+                        Text(chips.joinToString("  "), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                    if (selectedDate == log.date) {
+                        DailyEditor(
+                            log = log,
+                            onChange = { upsert(it) },
+                            onDelete = {
+                                persist(data.copy(logs = data.logs.filterNot { it.date == log.date }))
+                                selectedDate = null
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DailyEditor(log: DailyLog, onChange: (DailyLog) -> Unit, onDelete: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 6.dp)
+            .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp),
+    ) {
+        Label("Date")
+        DateField(log.date) { v -> if (v.isNotBlank()) onChange(log.copy(date = v)) }
+        Row {
+            Column(Modifier.weight(1f)) {
+                Label("Sleep (hrs)")
+                NumField(log.sleepHours?.let { num(it) } ?: "", "7.5") { v -> onChange(log.copy(sleepHours = v)) }
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Label("Water (oz)")
+                NumField(log.waterOz?.let { num(it) } ?: "", "64") { v -> onChange(log.copy(waterOz = v)) }
+            }
+        }
+        Row {
+            Column(Modifier.weight(1f)) {
+                Label("Workout type")
+                OutlinedTextField(
+                    log.workoutType, { onChange(log.copy(workoutType = it.replace("\n", " "))) },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Run, lift, yoga…") },
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Label("Workout (min)")
+                NumField(log.workoutMinutes?.let { num(it) } ?: "", "45") { v -> onChange(log.copy(workoutMinutes = v)) }
+            }
+        }
+        Label("Weight (lb)")
+        NumField(log.weightLb?.let { num(it) } ?: "", "optional") { v -> onChange(log.copy(weightLb = v)) }
+        Label("Notes")
+        OutlinedTextField(
+            log.notes, { onChange(log.copy(notes = it)) },
+            modifier = Modifier.fillMaxWidth(), singleLine = false, placeholder = { Text("Notes") },
+        )
+        Spacer(Modifier.height(6.dp))
+        TextButton(onClick = onDelete) { Text("Delete log", color = Color(0xFFD64545)) }
+    }
+}
+
+@Composable
+private fun NumField(value: String, placeholder: String, onChange: (Double?) -> Unit) {
+    var text by remember(value) { mutableStateOf(value) }
+    OutlinedTextField(
+        text,
+        { text = it; onChange(it.trim().toDoubleOrNull()) },
+        modifier = Modifier.fillMaxWidth(), singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        placeholder = { Text(placeholder) },
+    )
+}
+
+// ---- Free-form metrics (the original native pass) ---------------------------
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MetricsTab(data: HealthData, persist: (HealthData) -> Unit) {
+    val readings = data.readings
     var nextId by remember { mutableStateOf((readings.maxOfOrNull { it.id } ?: 0L) + 1) }
     var metric by remember { mutableStateOf("") }
     var value by remember { mutableStateOf("") }
@@ -94,10 +237,7 @@ fun HealthScreen() {
     readings.forEach { grouped.getOrPut(it.metric) { mutableListOf() }.add(it) }
     val groups = grouped.entries.toList()
 
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Health", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
-
+    Column(Modifier.fillMaxSize()) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             QUICK.forEach { (m, u) ->
                 AssistChip(onClick = { metric = m; unit = u }, label = { Text(m) })
@@ -119,7 +259,7 @@ fun HealthScreen() {
                 val v = value.trim().toDoubleOrNull()
                 val u = unit.trim().replace("\n", " ")
                 if (m.isNotEmpty() && v != null) {
-                    persist(readings + Reading(nextId, m, v, u, today().toString()))
+                    persist(data.copy(readings = readings + Reading(nextId, m, v, u, today().toString())))
                     nextId += 1
                     value = ""
                 }
@@ -150,7 +290,7 @@ fun HealthScreen() {
                         }
                         TextButton(onClick = {
                             val target = readings.lastOrNull { it.metric == name }
-                            if (target != null) persist(readings.filterNot { it.id == target.id })
+                            if (target != null) persist(data.copy(readings = readings.filterNot { it.id == target.id }))
                         }) { Text("✕") }
                     }
                     Spacer(Modifier.height(6.dp))
@@ -169,4 +309,106 @@ fun HealthScreen() {
             }
         }
     }
+}
+
+// ---- Import (Apple Health / Garmin) -----------------------------------------
+
+@Composable
+private fun ImportTab(data: HealthData, persist: (HealthData) -> Unit) {
+    var busy by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var preview by remember { mutableStateOf<List<DailyLog>?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun runParse(text: String?, parse: (String) -> List<DailyLog>) {
+        if (text == null) { busy = false; return }
+        scope.launch {
+            val days = withContext(Dispatchers.Default) { parse(text) }
+            busy = false
+            if (days.isEmpty()) {
+                error = "No sleep, workout, water, or weight data found in that file."
+            } else {
+                preview = days
+            }
+        }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        if (!Native.supportsFilePick) {
+            Text("File import isn't available on this platform.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return
+        }
+
+        Text("Apple Health", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Health app → profile picture → Export All Health Data. Pick the export.zip (or export.xml). Sleep, workouts, water, and weight aggregate to one entry per day. One-time import, not a live sync.",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(6.dp))
+        OutlinedButton(
+            onClick = {
+                error = null; preview = null; busy = true
+                Native.pickFilteredTextFile(APPLE_HEALTH_FILTER) { text -> runParse(text, ::parseAppleHealth) }
+            },
+            enabled = !busy,
+        ) { Text("Choose Apple Health export") }
+
+        Spacer(Modifier.height(16.dp))
+        Text("Garmin Connect", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "A CSV export from Garmin Connect — the Activities list export (workouts), or a sleep/weight report CSV.",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(6.dp))
+        OutlinedButton(
+            onClick = {
+                error = null; preview = null; busy = true
+                Native.pickTextFile { text -> runParse(text, ::parseGarminCsv) }
+            },
+            enabled = !busy,
+        ) { Text("Choose Garmin CSV") }
+
+        Spacer(Modifier.height(12.dp))
+        if (busy) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("Reading… large exports can take a moment.", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        status?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error) }
+
+        preview?.let { days ->
+            Spacer(Modifier.height(8.dp))
+            val sleeps = days.count { it.sleepHours != null }
+            val workouts = days.count { it.workoutType.isNotBlank() || it.workoutMinutes != null }
+            val waters = days.count { it.waterOz != null }
+            val weights = days.count { it.weightLb != null }
+            Text("Found ${days.size} day(s): $sleeps sleep · $workouts workout · $waters water · $weights weight.", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                "Importing fills matching fields on existing logs for those dates and creates new ones otherwise.",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(6.dp))
+            Row {
+                Button(onClick = {
+                    val (merged, result) = mergeImportedDays(data.logs, days)
+                    persist(data.copy(logs = merged))
+                    preview = null
+                    status = "Imported: ${result.created} new day(s), ${result.updated} updated."
+                }) { Text("Confirm import") }
+                Spacer(Modifier.width(10.dp))
+                TextButton(onClick = { preview = null }) { Text("Cancel") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Label(text: String) {
+    Spacer(Modifier.height(8.dp))
+    Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(4.dp))
 }
