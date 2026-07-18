@@ -155,7 +155,7 @@ fun TodayScreen() {
                         overdue.forEach { task ->
                             TaskRow(task, showDue = true) { checked ->
                                 val i = tasks.indexOfFirst { it.id == task.id }
-                                if (i >= 0) { tasks[i] = task.copy(status = if (checked) "done" else "not_started"); persistTasks() }
+                                if (i >= 0) { tasks[i] = task.copy(status = if (checked) "done" else "not_started", completedDate = if (checked) today().toString() else ""); persistTasks() }
                             }
                         }
                     }
@@ -167,7 +167,7 @@ fun TodayScreen() {
                         dueToday.forEach { task ->
                             TaskRow(task, showDue = false) { checked ->
                                 val i = tasks.indexOfFirst { it.id == task.id }
-                                if (i >= 0) { tasks[i] = task.copy(status = if (checked) "done" else "not_started"); persistTasks() }
+                                if (i >= 0) { tasks[i] = task.copy(status = if (checked) "done" else "not_started", completedDate = if (checked) today().toString() else ""); persistTasks() }
                             }
                         }
                     }

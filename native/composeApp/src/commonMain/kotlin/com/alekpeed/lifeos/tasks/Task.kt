@@ -31,6 +31,7 @@ data class Task(
     val subtasks: List<Subtask> = emptyList(),
     val recur: String = "",             // "" | daily | weekly | monthly | yearly
     val snoozedUntil: String = "",      // ISO date or ""
+    val completedDate: String = "",     // ISO date stamped when marked done (yearly recap)
 ) {
     val done: Boolean get() = status == "done"
     fun dueDate(): LocalDate? = parseDateOrNull(due)

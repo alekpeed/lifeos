@@ -166,6 +166,11 @@ fun financeBills(): List<BillPoint> = loadData().bills.map {
     BillPoint(it.name, it.amount, it.dueDate, it.autopay, it.cadence == "one-time" && it.paymentHistory.isNotEmpty())
 }
 
+// Every logged bill payment as (date, amount) — the yearly recap's "bills paid".
+data class PaymentPoint(val date: String, val amount: Double)
+fun financeBillPayments(): List<PaymentPoint> =
+    loadData().bills.flatMap { b -> b.paymentHistory.map { PaymentPoint(it.date, it.amount) } }
+
 private val CADENCES = listOf("weekly", "monthly", "yearly", "one-time")
 private val CYCLES = listOf("weekly", "monthly", "yearly")
 private val REMIND_OPTIONS = listOf(0, 1, 3, 7)

@@ -66,7 +66,7 @@ fun BriefingScreen() {
         val out = mutableListOf<BriefLine>()
 
         fun completeTask(id: Long) {
-            val all = loadTasks().map { if (it.id == id) it.copy(status = "done") else it }
+            val all = loadTasks().map { if (it.id == id) it.copy(status = "done", completedDate = today().toString()) else it }
             saveTasks(all)
             tick += 1
         }

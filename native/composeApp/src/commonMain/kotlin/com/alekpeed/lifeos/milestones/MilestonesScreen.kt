@@ -195,20 +195,50 @@ private fun Recap(data: MilestonesData) {
     var year by remember { mutableStateOf(today().toString().take(4)) }
     val y = year
 
-    // Real cross-module stats computed from native storage for the chosen year.
+    // Real cross-module stats computed from native storage for the chosen year —
+    // the web recap's full spread (tasks, assignments, bills, habits, health)
+    // plus a native workouts line. Stats with no data for the year still show as
+    // zero; only avg-sleep hides when there's nothing to average.
     val books = remember(y) { loadBooks() }
     val recipes = remember(y) { loadRecipes() }
     val places = remember(y) { loadPlaces() }
     val booksFinished = books.books.count { it.finishedDate.startsWith(y) }
     val pagesRead = books.books.flatMap { it.logs }.filter { it.date.startsWith(y) }.sumOf { it.pagesRead }
-    val cookSessions = recipes.recipes.flatMap { it.cookLogs }.count { it.date.startsWith(y) }
-    val visits = places.places.flatMap { it.visitDates }.count { it.startsWith(y) }
+    val cookLogsYear = recipes.recipes.map { r -> r.cookLogs.count { it.date.startsWith(y) } }
+    val cookSessions = cookLogsYear.sum()
+    val recipesCooked = cookLogsYear.count { it > 0 }
+    val visitDatesYear = places.places.map { p -> p.visitDates.count { it.startsWith(y) } }
+    val visits = visitDatesYear.sum()
+    val placesVisited = visitDatesYear.count { it > 0 }
+    val tasksDone = remember(y) { com.alekpeed.lifeos.tasks.loadTasks().count { it.done && it.completedDate.startsWith(y) } }
+    val assignmentsDone = remember(y) {
+        com.alekpeed.lifeos.education.loadEducation().assignments.count { it.done && it.dueDate.startsWith(y) }
+    }
+    val billsPaid = remember(y) {
+        com.alekpeed.lifeos.finance.financeBillPayments().filter { it.date.startsWith(y) }.sumOf { it.amount }
+    }
+    val habitCheckins = remember(y) {
+        com.alekpeed.lifeos.habits.loadHabits().sumOf { h -> h.checkins.count { it.toString().startsWith(y) } }
+    }
+    val health = remember(y) { com.alekpeed.lifeos.health.loadHealth() }
+    val healthLogs = health.logs.count { it.date.startsWith(y) }
+    val sleeps = health.logs.filter { it.date.startsWith(y) }.mapNotNull { it.sleepHours }
+    val workoutsLogged = health.workouts.count { it.date.startsWith(y) }
     val ms = data.milestones.filter { it.date.startsWith(y) }.sortedBy { it.date }
-    val stats = listOf(
-        "Milestones" to ms.size.toString(), "Books finished" to booksFinished.toString(),
-        "Pages read" to pagesRead.toString(), "Recipe cook sessions" to cookSessions.toString(),
-        "Place visits" to visits.toString(),
-    )
+    val stats = buildList {
+        add("Milestones" to ms.size.toString())
+        add("Tasks completed" to tasksDone.toString())
+        add("Assignments completed" to assignmentsDone.toString())
+        add("Places visited" to "$placesVisited places, $visits visits")
+        add("Books finished" to booksFinished.toString())
+        add("Pages read" to pagesRead.toString())
+        add("Recipes cooked" to "$recipesCooked recipes, $cookSessions sessions")
+        add("Bills paid" to "$" + ((billsPaid * 100).toLong() / 100.0).toString())
+        add("Habit check-ins" to habitCheckins.toString())
+        add("Workouts logged" to workoutsLogged.toString())
+        add("Health logs" to healthLogs.toString())
+        if (sleeps.isNotEmpty()) add("Avg. sleep (hrs)" to (((sleeps.sum() / sleeps.size) * 10).toLong() / 10.0).toString())
+    }
 
     val scope = rememberCoroutineScope()
     val hasKey = remember { AiClient.hasKey() }

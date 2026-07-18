@@ -105,7 +105,8 @@ fun TasksScreen() {
     }
     fun moveStatus(task: Task, newStatus: String) {
         if (newStatus == "done" && task.status != "done" && task.recur.isNotEmpty()) spawnRecurrence(task)
-        update(task.id) { it.copy(status = newStatus) }
+        // Stamp/clear the completion date so the yearly recap can count real years.
+        update(task.id) { it.copy(status = newStatus, completedDate = if (newStatus == "done") today().toString() else "") }
     }
     fun toggleDone(task: Task) = moveStatus(task, if (task.status == "done") "not_started" else "done")
 
@@ -316,7 +317,11 @@ private fun TaskEditor(task: Task, update: (Long, (Task) -> Task) -> Unit, onDel
         Label("Status")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TASK_STATUSES.forEach { (v, lbl) ->
-                FilterChip(selected = task.status == v, onClick = { update(task.id) { it.copy(status = v) } }, label = { Text(lbl) })
+                FilterChip(
+                    selected = task.status == v,
+                    onClick = { update(task.id) { it.copy(status = v, completedDate = if (v == "done") today().toString() else "") } },
+                    label = { Text(lbl) },
+                )
             }
         }
         Label("Priority")
