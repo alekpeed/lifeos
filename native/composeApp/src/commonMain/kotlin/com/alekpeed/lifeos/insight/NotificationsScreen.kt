@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.insight
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,15 +27,69 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.epochMillisAt
 import com.alekpeed.lifeos.data.formatEpochMillis
 import com.alekpeed.lifeos.data.nextClockTime
 import com.alekpeed.lifeos.data.nowPlusHours
+import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.plusDays
+import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.documents.ExpiryState
+import com.alekpeed.lifeos.documents.expiryState
+import com.alekpeed.lifeos.documents.loadDocuments
+import com.alekpeed.lifeos.education.loadEducation
+import com.alekpeed.lifeos.finance.financeBills
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.tasks.loadTasks
 import com.alekpeed.lifeos.ui.SaveToast
+
+// One row of the cross-module attention feed — what needs you, from where.
+private data class Attention(
+    val icon: String,
+    val title: String,
+    val meta: String,
+    val moduleId: String,
+    val urgent: Boolean,
+    val sortKey: String,
+)
+
+// The web Notifications view's aggregated feed: overdue / due-soon tasks, unpaid
+// bills, open assignments, and expiring documents, each tappable to jump to its
+// module. Assembled fresh on every open — no polling, no stored state.
+private fun buildAttention(): List<Attention> {
+    val now = today()
+    val soon = now.plusDays(7)
+    val out = mutableListOf<Attention>()
+
+    loadTasks().filter { !it.done }.forEach { t ->
+        val due = t.dueDate() ?: return@forEach
+        val snoozed = t.snoozeDate()?.let { it > now } == true
+        if (snoozed || due > soon) return@forEach
+        out.add(Attention("✅", t.title, if (due < now) relativeLabel(due) else "due ${relativeLabel(due)}", "tasks", due < now, due.toString()))
+    }
+    financeBills().filter { !it.settled }.forEach { b ->
+        val due = parseDateOrNull(b.dueDate) ?: return@forEach
+        if (due > soon) return@forEach
+        val label = (if (due < now) relativeLabel(due) else "due ${relativeLabel(due)}") + if (b.autopay) " · autopay" else ""
+        out.add(Attention("💵", b.name, label, "finance", due < now && !b.autopay, due.toString()))
+    }
+    loadEducation().assignments.filter { !it.done }.forEach { a ->
+        val due = parseDateOrNull(a.dueDate) ?: return@forEach
+        if (due > soon) return@forEach
+        out.add(Attention("🎓", a.title, if (due < now) relativeLabel(due) else "due ${relativeLabel(due)}", "education", due < now, due.toString()))
+    }
+    loadDocuments().documents.forEach { d ->
+        when (expiryState(d)) {
+            ExpiryState.EXPIRED -> out.add(Attention("📄", d.title, "expired", "documents", true, d.expiryDate))
+            ExpiryState.SOON -> out.add(Attention("📄", d.title, "expires ${parseDateOrNull(d.expiryDate)?.let { relativeLabel(it) } ?: d.expiryDate}", "documents", false, d.expiryDate))
+            else -> {}
+        }
+    }
+    return out.sortedWith(compareBy({ !it.urgent }, { it.sortKey }))
+}
 
 private data class Reminder(val text: String, val atEpochMillis: Long?)
 
@@ -77,9 +132,37 @@ fun NotificationsScreen() {
         input = ""
     }
 
+    val attention = remember { buildAttention() }
+
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Notifications", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(14.dp))
+
+        // Needs attention — tap a row to jump to its module.
+        if (attention.isNotEmpty()) {
+            Text("NEEDS ATTENTION", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+            attention.take(10).forEach { a ->
+                Row(
+                    Modifier.fillMaxWidth()
+                        .clickable { Nav.open(a.moduleId) }
+                        .padding(vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(a.icon, modifier = Modifier.padding(end = 8.dp))
+                    Text(a.title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(
+                        a.meta,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (a.urgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (attention.size > 10) {
+                Text("+${attention.size - 10} more", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(14.dp))
+        }
 
         OutlinedTextField(
             value = input,
