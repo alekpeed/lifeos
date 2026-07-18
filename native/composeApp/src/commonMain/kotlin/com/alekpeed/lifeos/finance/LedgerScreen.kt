@@ -1,6 +1,8 @@
 package com.alekpeed.lifeos.finance
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,7 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -47,6 +51,10 @@ import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
+import androidx.compose.ui.layout.ContentScale
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
 import com.alekpeed.lifeos.ui.SaveToast
@@ -72,6 +80,7 @@ private data class Entry(
     val category: String = "General",
     val recurring: Boolean = false,
     val date: String = "",
+    val photoBlob: String = "",   // blob-store id of the scanned receipt, if any
 )
 
 @Serializable
@@ -250,6 +259,7 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     var scanning by remember { mutableStateOf(false) }
     var scanErr by remember { mutableStateOf<String?>(null) }
     var showSource by remember { mutableStateOf(false) }
+    var previewBlob by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     fun onReceipt(b64: String?) {
@@ -264,7 +274,9 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                     if (reply.isError) { scanErr = reply.text; return@launch }
                     val e = parseReceipt(reply.text)
                     if (e == null) { scanErr = "Couldn't read a total off that receipt."; return@launch }
-                    persist(listOf(e.copy(id = nextId)) + entries); nextId += 1
+                    // Keep the source photo so the entry has a receipt of record.
+                    val blobId = saveBlob(b64) ?: ""
+                    persist(listOf(e.copy(id = nextId, photoBlob = blobId)) + entries); nextId += 1
                 }
             }
         }
@@ -376,9 +388,44 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
         }
         Spacer(Modifier.height(14.dp))
 
+        previewBlob?.let { blobId ->
+            val full = remember(blobId) { loadBlobImage(blobId) }
+            AlertDialog(
+                onDismissRequest = { previewBlob = null },
+                confirmButton = { TextButton(onClick = { previewBlob = null }) { Text("Close") } },
+                title = { Text("Receipt") },
+                text = {
+                    if (full != null) {
+                        Image(
+                            bitmap = full,
+                            contentDescription = "Receipt",
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Fit,
+                        )
+                    } else {
+                        Text("The receipt image is no longer available.")
+                    }
+                },
+            )
+        }
+
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             items(entries, key = { it.id }) { e ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (e.photoBlob.isNotBlank()) {
+                        val thumb = remember(e.photoBlob) { loadBlobImage(e.photoBlob) }
+                        if (thumb != null) {
+                            Image(
+                                bitmap = thumb,
+                                contentDescription = "Receipt",
+                                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)).clickable { previewBlob = e.photoBlob },
+                                contentScale = ContentScale.Crop,
+                            )
+                            Spacer(Modifier.width(10.dp))
+                        } else {
+                            Text("🧾", modifier = Modifier.padding(end = 10.dp))
+                        }
+                    }
                     Column(Modifier.weight(1f)) {
                         Text(e.desc, style = MaterialTheme.typography.bodyLarge)
                         Text(
@@ -389,6 +436,7 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                     Text(fmt(e.amount), style = MaterialTheme.typography.bodyLarge, color = if (e.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                     TextButton(onClick = {
                         if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
+                        if (e.photoBlob.isNotBlank()) deleteBlob(e.photoBlob)
                         persist(entries.filterNot { it.id == e.id })
                     }) { Text("✕") }
                 }
