@@ -21,6 +21,7 @@ data class RabbitHole(
     val links: List<HoleLink> = emptyList(),
     val status: String = "active",   // active | resolved
     val startedDate: String = "",
+    val photoBlob: String = "",      // blob-store id of an attached photo, if any
 )
 
 @Serializable

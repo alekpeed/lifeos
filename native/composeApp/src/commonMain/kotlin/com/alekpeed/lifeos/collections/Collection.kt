@@ -25,6 +25,7 @@ data class Collection(
     val name: String,
     val description: String = "",
     val items: List<CollItem> = emptyList(),
+    val photoBlob: String = "",      // blob-store id of an attached photo, if any
 )
 
 @Serializable

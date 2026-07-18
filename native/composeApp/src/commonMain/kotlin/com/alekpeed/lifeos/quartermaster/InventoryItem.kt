@@ -20,6 +20,7 @@ data class InventoryItem(
     val tags: List<String> = emptyList(),
     val lentTo: String = "",
     val lentSince: String = "",
+    val photoBlob: String = "",      // blob-store id of an attached photo, if any
 )
 
 // A labeled reference photo for the few-shot stock check: a human label

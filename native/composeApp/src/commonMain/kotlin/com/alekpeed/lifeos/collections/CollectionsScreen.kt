@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.collections
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,13 +12,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,7 +34,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
 import com.alekpeed.lifeos.ui.SaveToast
@@ -90,7 +99,7 @@ private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, fre
                     Text(c.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                     Text("${c.items.size} item${if (c.items.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
-                TextButton(onClick = { save(data.copy(collections = data.collections.filterNot { it.id == c.id })) }) { Text("×") }
+                TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(collections = data.collections.filterNot { it.id == c.id })) }) { Text("×") }
             }
         }
     }
@@ -100,6 +109,13 @@ private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, fre
 @Composable
 private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, freshId: () -> Long, coll: Collection, onBack: () -> Unit) {
     fun patch(f: (Collection) -> Collection) = save(data.copy(collections = data.collections.map { if (it.id == coll.id) f(it) else it }))
+    var showSource by remember { mutableStateOf(false) }
+    fun onAttach(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        deleteBlob(coll.photoBlob)
+        patch { it.copy(photoBlob = id) }
+    }
     var iName by remember { mutableStateOf("") }
     var iDate by remember { mutableStateOf("") }
     var iTags by remember { mutableStateOf("") }
@@ -111,6 +127,39 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
         Text(coll.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
     }
     if (coll.description.isNotBlank()) Text(coll.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(10.dp))
+
+    Text("Photo", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val img = remember(coll.photoBlob) { loadBlobImage(coll.photoBlob) }
+    if (img != null) {
+        Image(
+            bitmap = img,
+            contentDescription = "Attached photo",
+            modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Fit,
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (coll.photoBlob.isBlank()) {
+            if (Native.supportsCamera) OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
+        } else {
+            if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
+            TextButton(onClick = { deleteBlob(coll.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
+        }
+    }
+    if (showSource) {
+        AlertDialog(
+            onDismissRequest = { showSource = false },
+            title = { Text("Attach a photo") },
+            text = { Text("Take a new photo, or choose one from your library.") },
+            confirmButton = {
+                TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") }
+            },
+        )
+    }
     Spacer(Modifier.height(10.dp))
 
     OutlinedTextField(iName, { iName = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Item name") })

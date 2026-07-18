@@ -225,6 +225,18 @@ fun QuartermasterScreen() {
 private fun ItemCard(data: QuartermasterData, save: (QuartermasterData) -> Unit, item: InventoryItem) {
     fun patch(f: (InventoryItem) -> InventoryItem) = save(data.copy(items = data.items.map { if (it.id == item.id) f(it) else it }))
     var lendTo by remember(item.id) { mutableStateOf("") }
+    var showSource by remember { mutableStateOf(false) }
+
+    // Attach/replace the photo: save the new blob, drop the old one, point the
+    // record at the new id.
+    fun onAttach(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        deleteBlob(item.photoBlob)
+        patch { it.copy(photoBlob = id) }
+    }
+
+    val img = remember(item.photoBlob) { loadBlobImage(item.photoBlob) }
 
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
@@ -232,7 +244,10 @@ private fun ItemCard(data: QuartermasterData, save: (QuartermasterData) -> Unit,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(item.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            TextButton(onClick = { save(data.copy(items = data.items.filterNot { it.id == item.id })) }) { Text("×") }
+            TextButton(onClick = {
+                deleteBlob(item.photoBlob)
+                save(data.copy(items = data.items.filterNot { it.id == item.id }))
+            }) { Text("×") }
         }
         val chips = buildList {
             if (item.location.isNotBlank()) add("📍 ${item.location}")
@@ -258,6 +273,42 @@ private fun ItemCard(data: QuartermasterData, save: (QuartermasterData) -> Unit,
                     if (who.isNotEmpty()) { patch { it.copy(lentTo = who, lentSince = today().toString()) }; lendTo = "" }
                 }) { Text("Lend it out") }
             }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Text("Photo", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        if (item.photoBlob.isNotBlank()) {
+            if (img != null) {
+                Image(
+                    bitmap = img,
+                    contentDescription = "Attached photo",
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit,
+                )
+            } else {
+                Text("Photo attached (no preview available).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
+                TextButton(onClick = { deleteBlob(item.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
+            }
+        } else if (Native.supportsCamera) {
+            OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
+        }
+
+        if (showSource) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showSource = false },
+                title = { Text("Attach a photo") },
+                text = { Text("Take a new photo, or choose one from your library.") },
+                confirmButton = {
+                    TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") }
+                },
+            )
         }
     }
 }

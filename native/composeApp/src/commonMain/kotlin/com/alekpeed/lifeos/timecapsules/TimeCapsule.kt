@@ -19,6 +19,7 @@ data class TimeCapsule(
     val body: String,
     val sealedUntil: String = "",
     val createdAt: String = "",
+    val photoBlob: String = "",      // blob-store id of an attached photo, if any
 )
 
 @Serializable
