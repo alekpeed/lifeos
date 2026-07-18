@@ -11,7 +11,8 @@ import kotlinx.serialization.json.Json
 // per-day reading log (which advances your current page), ratings, page counts
 // and word estimates, a reading streak + genre/author stats, and a spine shelf.
 // Persists as one JSON blob under "Books"; old status-stub lines migrate.
-// (EPUB/PDF reader, cover images, and book files wait on the attachment layer.)
+// Scanning an ISBN auto-downloads the cover into photoBlob; a full EPUB/PDF
+// reader and attached book files still wait on the file layer.
 
 const val WORDS_PER_PAGE = 275
 

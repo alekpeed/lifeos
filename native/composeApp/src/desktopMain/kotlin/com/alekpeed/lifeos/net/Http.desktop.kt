@@ -32,3 +32,22 @@ actual suspend fun httpRequest(
         conn.disconnect()
     }
 }
+
+actual suspend fun httpGetImageBase64(url: String): String? = withContext(Dispatchers.IO) {
+    val conn = URL(url).openConnection() as HttpURLConnection
+    try {
+        conn.requestMethod = "GET"
+        conn.connectTimeout = 30000
+        conn.readTimeout = 60000
+        conn.instanceFollowRedirects = true
+        val status = conn.responseCode
+        if (status !in 200..299) return@withContext null
+        val bytes = conn.inputStream.use { it.readBytes() }
+        if (bytes.isEmpty() || bytes.size > 8 * 1024 * 1024) return@withContext null
+        java.util.Base64.getEncoder().encodeToString(bytes)
+    } catch (e: Exception) {
+        null
+    } finally {
+        conn.disconnect()
+    }
+}

@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.net.httpGet
+import com.alekpeed.lifeos.net.httpGetImageBase64
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
@@ -73,6 +74,17 @@ private suspend fun lookupIsbn(isbn: String): Book? {
     } catch (e: Exception) {
         null
     }
+}
+
+// Pull the cover art for an ISBN from Open Library's keyless covers API and stash
+// it in the blob store; returns "" when there's no cover or the download fails.
+// `default=false` makes the endpoint 404 instead of returning a blank 1×1
+// placeholder when a cover isn't on file.
+private suspend fun downloadCover(isbn: String): String {
+    val clean = isbn.trim().filter { it.isDigit() || it == 'X' || it == 'x' }
+    if (clean.length < 10) return ""
+    val b64 = httpGetImageBase64("https://covers.openlibrary.org/b/isbn/$clean-L.jpg?default=false") ?: return ""
+    return saveBlob(b64) ?: ""
 }
 
 private val DANGER = Color(0xFFD64545)
@@ -142,9 +154,15 @@ fun BooksScreen() {
                             scanBusy = true
                             scope.launch {
                                 val draft = lookupIsbn(code)
+                                if (draft == null) {
+                                    scanBusy = false
+                                    scanMsg = "Couldn't find that ISBN — add it by hand."
+                                    return@launch
+                                }
+                                // Best-effort cover art; the book still saves without it.
+                                val coverBlob = downloadCover(code)
                                 scanBusy = false
-                                if (draft == null) scanMsg = "Couldn't find that ISBN — add it by hand."
-                                else save(data.copy(books = data.books + draft.copy(id = freshId(), status = tab)))
+                                save(data.copy(books = data.books + draft.copy(id = freshId(), status = tab, photoBlob = coverBlob)))
                             }
                         }
                     },
