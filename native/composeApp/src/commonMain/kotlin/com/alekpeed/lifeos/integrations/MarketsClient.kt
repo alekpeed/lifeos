@@ -13,12 +13,16 @@ object MarketsClient {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private const val WATCH_KEY = "CryptoWatch"
+    const val WATCH_KEY = "CryptoWatch"
     private const val DEFAULT_WATCH = "bitcoin,ethereum,solana"
 
     fun watchlist(read: (String) -> String?): List<String> =
         (read(WATCH_KEY)?.ifBlank { null } ?: DEFAULT_WATCH)
             .split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+
+    // Persist an edited watchlist (deduped, order preserved).
+    fun saveWatchlist(ids: List<String>, write: (String, String) -> Unit) =
+        write(WATCH_KEY, ids.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct().joinToString(","))
 
     suspend fun crypto(ids: List<String>): Result<List<CoinPrice>> {
         if (ids.isEmpty()) return Result.success(emptyList())

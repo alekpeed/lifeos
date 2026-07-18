@@ -32,6 +32,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,8 @@ import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.integrations.CoinPrice
+import com.alekpeed.lifeos.integrations.MarketsClient
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
@@ -207,7 +210,7 @@ fun FinanceScreen() {
     var data by remember { mutableStateOf(loadData()) }
     fun persist(next: FinanceData) { data = next; saveData(next) }
     var tab by remember { mutableStateOf(0) }
-    val tabs = listOf("Ledger", "Bills", "Subs", "Yearly", "Import")
+    val tabs = listOf("Ledger", "Bills", "Subs", "Yearly", "Markets", "Import")
 
     Column(Modifier.fillMaxSize()) {
         ScrollableTabRow(selectedTabIndex = tab, edgePadding = 0.dp) {
@@ -220,6 +223,7 @@ fun FinanceScreen() {
             1 -> BillsTab(data) { persist(it) }
             2 -> SubscriptionsTab(data) { persist(it) }
             3 -> YearlyTab(data)
+            4 -> MarketsTab()
             else -> ImportTab(data) { persist(it) }
         }
     }
@@ -887,6 +891,130 @@ private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
             }
         }
     }
+}
+
+// Markets — a keyless CoinGecko crypto watchlist (price + 24h change) plus the Dow
+// Jones close from Stooq. The watchlist is user-editable and persisted; ids are
+// CoinGecko slugs (bitcoin, ethereum, solana), not ticker symbols. On-demand fetch
+// with a manual refresh — no polling.
+@Composable
+private fun MarketsTab() {
+    var watch by remember { mutableStateOf(MarketsClient.watchlist { Storage.read(it) }) }
+    var prices by remember { mutableStateOf<List<CoinPrice>>(emptyList()) }
+    var djia by remember { mutableStateOf<Double?>(null) }
+    var loading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var newCoin by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    fun persistWatch() = MarketsClient.saveWatchlist(watch) { k, v -> Storage.write(k, v) }
+
+    fun refresh() {
+        loading = true; error = null
+        scope.launch {
+            MarketsClient.crypto(watch)
+                .onSuccess { prices = it }
+                .onFailure { error = it.message ?: "Couldn't load prices" }
+            MarketsClient.djia().onSuccess { djia = it }
+            loading = false
+        }
+    }
+
+    LaunchedEffect(Unit) { refresh() }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Markets", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = { refresh() }, enabled = !loading) {
+                if (loading) {
+                    CircularProgressIndicator(Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Refresh")
+                }
+            }
+        }
+        djia?.let {
+            Text("Dow Jones  ${fmtIndex(it)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        error?.let {
+            Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.height(12.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                newCoin, { newCoin = it }, modifier = Modifier.weight(1f), singleLine = true,
+                placeholder = { Text("CoinGecko id (bitcoin, ethereum…)") },
+            )
+            Spacer(Modifier.width(10.dp))
+            Button(onClick = {
+                val id = newCoin.trim().lowercase()
+                if (id.isNotEmpty() && id !in watch) {
+                    watch = watch + id
+                    persistWatch()
+                    newCoin = ""
+                    refresh()
+                }
+            }) { Text("Add") }
+        }
+        Text(
+            "Coin ids are CoinGecko slugs (bitcoin, not BTC).",
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(12.dp))
+
+        if (prices.isEmpty() && !loading) {
+            Text(
+                if (watch.isEmpty()) "No coins on your watchlist yet." else "No prices — tap Refresh, or check the coin ids.",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(prices, key = { it.id }) { c ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(c.label, style = MaterialTheme.typography.bodyLarge)
+                        Text(c.id, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(fmtPrice(c.usd), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            fmtPct(c.change24h),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (c.change24h < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    TextButton(onClick = {
+                        watch = watch - c.id
+                        persistWatch()
+                        prices = prices.filterNot { it.id == c.id }
+                    }) { Text("✕") }
+                }
+            }
+        }
+    }
+}
+
+// Crypto prices span orders of magnitude, so show cents for ≥ $1 and up to six
+// decimals for sub-dollar coins, all via integer math to avoid Double's
+// scientific-notation toString.
+private fun fmtPrice(v: Double): String {
+    if (v >= 1.0) return fmt(v)
+    val micros = (v * 1_000_000).toLong()
+    val whole = micros / 1_000_000
+    val frac = (micros % 1_000_000).toString().padStart(6, '0').trimEnd('0').ifEmpty { "0" }
+    return "$$whole.$frac"
+}
+
+private fun fmtPct(v: Double): String {
+    val sign = if (v >= 0) "+" else "-"
+    val cents = (abs(v) * 100).toLong()
+    return "$sign${cents / 100}.${(cents % 100).toString().padStart(2, '0')}%"
+}
+
+private fun fmtIndex(v: Double): String {
+    val cents = (abs(v) * 100).toLong()
+    return "${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
 }
 
 @Composable
