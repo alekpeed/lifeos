@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.museum
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,14 +9,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.books.loadBooks
 import com.alekpeed.lifeos.education.loadEducation
 import com.alekpeed.lifeos.habits.loadHabits
@@ -30,7 +36,7 @@ import kotlinx.datetime.daysUntil
 // milestones, mastered recipes, best habit streaks). Ported from the web view;
 // stores nothing of its own, reads each module's real native storage.
 
-private data class Plaque(val title: String, val meta: String)
+private data class Plaque(val title: String, val meta: String, val coverBlob: String = "")
 private data class Wing(val title: String, val items: List<Plaque>)
 
 private fun longestStreak(dates: Set<LocalDate>): Int {
@@ -57,11 +63,23 @@ fun MuseumScreen() {
         val streaks = loadHabits().map { it.name to longestStreak(it.checkins) }
             .filter { it.second > 0 }.sortedByDescending { it.second }
 
+        // Projects Completed: a named project every one of whose tasks is done —
+        // dated by the last completion where the stamps exist.
+        val allTasks = loadTasks()
+        val completedProjects = allTasks.map { it.project.trim() }.filter { it.isNotEmpty() }.distinct()
+            .mapNotNull { proj ->
+                val inProject = allTasks.filter { it.project.trim() == proj }
+                if (inProject.isEmpty() || !inProject.all { it.done }) return@mapNotNull null
+                val lastDone = inProject.mapNotNull { it.completedDate.ifBlank { null } }.maxOrNull()
+                Plaque(proj, listOf("${inProject.size} tasks", lastDone ?: "").filter { it.isNotBlank() }.joinToString(" · "))
+            }
+
         listOf(
-            Wing("Books Read", finishedBooks.map { Plaque(it.title.ifBlank { "(untitled)" }, listOf(it.author, it.finishedDate).filter { s -> s.isNotBlank() }.joinToString(" · ")) }),
+            Wing("Projects Completed", completedProjects),
+            Wing("Books Read", finishedBooks.map { Plaque(it.title.ifBlank { "(untitled)" }, listOf(it.author, it.finishedDate).filter { s -> s.isNotBlank() }.joinToString(" · "), coverBlob = it.photoBlob) }),
             Wing(
                 "Tasks & Assignments Completed",
-                (tasks.map { Plaque(it.title.ifBlank { "(untitled)" }, "task") } +
+                (tasks.map { Plaque(it.title.ifBlank { "(untitled)" }, listOf("task", it.completedDate).filter { s -> s.isNotBlank() }.joinToString(" · ")) } +
                     assignments.map { Plaque(it.title.ifBlank { "(untitled)" }, "assignment") }),
             ),
             Wing("Milestones Achieved", milestones.map { Plaque(it.title.ifBlank { "(untitled)" }, listOf(it.category, it.date).filter { s -> s.isNotBlank() }.joinToString(" · ")) }),
@@ -90,6 +108,20 @@ fun MuseumScreen() {
                     w.items.forEach { p ->
                         item {
                             Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                // Books with cover art (ISBN scan / attached photo) hang the
+                                // real cover next to the plaque instead of bare text.
+                                if (p.coverBlob.isNotBlank()) {
+                                    val cover = remember(p.coverBlob) { loadBlobImage(p.coverBlob) }
+                                    if (cover != null) {
+                                        Image(
+                                            bitmap = cover,
+                                            contentDescription = "Cover",
+                                            modifier = Modifier.width(30.dp).height(44.dp).clip(RoundedCornerShape(3.dp)),
+                                            contentScale = ContentScale.Crop,
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                }
                                 Text(p.title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                                 if (p.meta.isNotBlank()) Text(p.meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
