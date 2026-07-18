@@ -6,7 +6,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -42,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
@@ -113,29 +116,71 @@ fun HubScreen(modules: List<Module>, onOpenSection: (String) -> Unit) {
             .fillMaxSize()
             .background(bgDeep)
     ) {
+        AuroraBackground()
+
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(horizontal = 18.dp)
-                .padding(top = 18.dp, bottom = 150.dp),
-            verticalArrangement = Arrangement.spacedBy(13.dp),
+                .padding(top = 30.dp, bottom = 20.dp),
         ) {
             Greeting()
+            Spacer(Modifier.height(16.dp))
             HeroCard(ringPct, tasksDue, habitsToCheck, streak)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+            // Section bars sit in the middle band and split the free space evenly,
+            // so there's no dead void between the hero and the mood bar.
+            Column(
+                Modifier.fillMaxWidth().weight(1f).padding(vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(11.dp, Alignment.CenterVertically),
+            ) {
                 SECTIONS.forEach { s -> SectionBar(s) { onOpenSection(s.id) } }
             }
+
+            MoodBar(onCommit = { score -> scope.launch { appendMood(score) } })
+            Spacer(Modifier.height(11.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(11.dp),
+            ) {
+                CornerButton("⚙") { Nav.open("settings") }
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Ticker(weather, btc, djia)
+                }
+                CornerButton("🔍") { Nav.open("search") }
+            }
         }
+    }
+}
 
-        MoodBar(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 78.dp, start = 18.dp, end = 18.dp),
-            onCommit = { score -> scope.launch { appendMood(score) } },
-        )
-
-        Ticker(weather, btc, djia, Modifier.align(Alignment.BottomCenter).padding(bottom = 44.dp))
-
-        CornerButton("⚙", Modifier.align(Alignment.BottomStart).padding(18.dp)) { Nav.open("settings") }
-        CornerButton("🔍", Modifier.align(Alignment.BottomEnd).padding(18.dp)) { Nav.open("search") }
+// The drifting aurora — three soft radial blobs (teal, violet, pink) that slowly
+// wander behind everything. This is the atmosphere the hub is built on.
+@Composable
+private fun AuroraBackground() {
+    val t = rememberInfiniteTransition(label = "aurora")
+    val dx by t.animateFloat(
+        initialValue = -1f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(19000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "auroraDx",
+    )
+    val dy by t.animateFloat(
+        initialValue = -1f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(23000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "auroraDy",
+    )
+    Canvas(Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        fun blob(cx: Float, cy: Float, r: Float, color: Color) {
+            drawCircle(
+                brush = Brush.radialGradient(listOf(color, Color.Transparent), center = Offset(cx, cy), radius = r),
+                radius = r, center = Offset(cx, cy),
+            )
+        }
+        blob(w * 0.16f + dx * 42f, h * 0.06f + dy * 32f, w * 0.78f, cyan.copy(alpha = 0.20f))
+        blob(w * 0.92f + dx * 52f, h * 0.12f - dy * 30f, w * 0.82f, violet.copy(alpha = 0.26f))
+        blob(w * 0.60f - dx * 44f, h * 1.02f + dy * 24f, w * 0.95f, pink.copy(alpha = 0.18f))
     }
 }
 
@@ -180,8 +225,9 @@ private fun Greeting() {
             style = MaterialTheme.typography.headlineSmall.copy(
                 brush = Brush.linearGradient(
                     colors = listOf(cyan, violet, pink, cyan),
-                    start = Offset(shift * 900f - 300f, 0f),
-                    end = Offset(shift * 900f + 300f, 0f),
+                    start = Offset(shift * 260f, 0f),
+                    end = Offset(shift * 260f + 260f, 0f),
+                    tileMode = TileMode.Mirror,
                 ),
             ),
         )
@@ -228,36 +274,51 @@ private fun DayRing(pct: Int) {
         label = "ringRotation",
     )
     val glow by transition.animateFloat(
-        initialValue = 0.3f, targetValue = 0.58f,
-        animationSpec = infiniteRepeatable(tween(3000, easing = LinearEasing), RepeatMode.Reverse),
+        initialValue = 0.35f, targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(tween(2600, easing = LinearEasing), RepeatMode.Reverse),
         label = "ringGlow",
     )
+    val ringColors = listOf(cyan, violet, pink, cyan)
 
-    Box(Modifier.size(82.dp), contentAlignment = Alignment.Center) {
-        Box(
+    Box(Modifier.size(94.dp), contentAlignment = Alignment.Center) {
+        // Soft glowing ring behind the crisp one — a blurred stroked circle whose
+        // colors rotate with the ring, breathing in and out.
+        Canvas(
             Modifier
-                .size(70.dp)
-                .background(Brush.sweepGradient(listOf(cyan, violet, pink, cyan)), CircleShape)
-                .blur(14.dp)
+                .size(88.dp)
+                .blur(16.dp)
                 .alpha(glow)
-        )
-        androidx.compose.foundation.Canvas(Modifier.size(82.dp)) {
-            val stroke = 9.dp.toPx()
-            drawArc(
-                color = Color.White.copy(alpha = 0.12f),
-                startAngle = -90f, sweepAngle = 360f, useCenter = false,
-                style = Stroke(stroke, cap = StrokeCap.Round),
-            )
+        ) {
             rotate(rotation) {
                 drawArc(
-                    brush = Brush.sweepGradient(listOf(cyan, violet, pink, cyan)),
-                    startAngle = -90f, sweepAngle = 360f * (pct / 100f), useCenter = false,
-                    style = Stroke(stroke, cap = StrokeCap.Round),
+                    brush = Brush.sweepGradient(ringColors),
+                    startAngle = 0f, sweepAngle = 360f, useCenter = false,
+                    style = Stroke(13.dp.toPx(), cap = StrokeCap.Round),
                 )
             }
         }
+        Canvas(Modifier.size(94.dp)) {
+            val stroke = 11.dp.toPx()
+            rotate(rotation) {
+                // Faint full-gradient track so the ring always reads as a colored
+                // ring — even at 0% — with the colors slowly rotating around it.
+                drawArc(
+                    brush = Brush.sweepGradient(ringColors),
+                    startAngle = -90f - rotation, sweepAngle = 360f, useCenter = false,
+                    style = Stroke(stroke, cap = StrokeCap.Round), alpha = 0.30f,
+                )
+                // Bright progress arc, held at the top while its colors rotate.
+                if (pct > 0) {
+                    drawArc(
+                        brush = Brush.sweepGradient(ringColors),
+                        startAngle = -90f - rotation, sweepAngle = 360f * (pct / 100f), useCenter = false,
+                        style = Stroke(stroke, cap = StrokeCap.Round),
+                    )
+                }
+            }
+        }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$pct%", fontSize = 21.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text("$pct%", fontSize = 22.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             Text("TODAY", fontSize = 8.sp, letterSpacing = 1.5.sp, color = Color(0xFF9DB0D8))
         }
     }
@@ -275,10 +336,11 @@ private fun RaisedGlass(
         modifier
             .clip(shape)
             .background(
-                Brush.linearGradient(
-                    colors = listOf(Color.White.copy(alpha = 0.13f), Color.White.copy(alpha = 0.028f)),
+                Brush.verticalGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.14f), Color.White.copy(alpha = 0.05f)),
                 ),
             )
+            .border(1.dp, Color.White.copy(alpha = 0.14f), shape)
     ) {
         content()
     }
@@ -289,48 +351,47 @@ private fun RaisedGlass(
 @Composable
 private fun SectionBar(section: SectionMeta, onClick: () -> Unit) {
     RaisedGlass(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {
-        Box {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .drawBehind {
-                        val c = Offset(size.width - 24f, -18f)
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(section.halo.copy(alpha = 0.55f), Color.Transparent),
-                                center = c,
-                                radius = 150f,
-                            ),
-                            radius = 150f,
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    val c = Offset(size.width - 20f, size.height / 2f)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(section.halo.copy(alpha = 0.60f), Color.Transparent),
                             center = c,
-                        )
-                    }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.06f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(section.icon, fontSize = 19.sp)
+                            radius = size.height * 2.1f,
+                        ),
+                        radius = size.height * 2.1f,
+                        center = c,
+                    )
                 }
-                Spacer(Modifier.width(13.dp))
-                Text(
-                    section.label,
-                    fontSize = 16.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                )
-                Text("›", fontSize = 20.sp, color = Color(0xFF8592B4))
+                .padding(horizontal = 16.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(section.icon, fontSize = 22.sp)
             }
+            Spacer(Modifier.width(15.dp))
+            Text(
+                section.label,
+                fontSize = 18.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+            Text("›", fontSize = 22.sp, color = Color(0xFF8592B4))
         }
     }
 }
@@ -383,8 +444,9 @@ private fun MoodBar(modifier: Modifier = Modifier, onCommit: (Int) -> Unit) {
                     style = MaterialTheme.typography.titleMedium.copy(
                         brush = Brush.linearGradient(
                             colors = listOf(cyan, violet, pink, cyan),
-                            start = Offset(flow * 200f - 60f, 0f),
-                            end = Offset(flow * 200f + 60f, 0f),
+                            start = Offset(flow * 60f, 0f),
+                            end = Offset(flow * 60f + 60f, 0f),
+                            tileMode = TileMode.Mirror,
                         ),
                     ),
                 )
@@ -432,8 +494,9 @@ private fun MoodTrack(value: Int, flow: Float, onCommit: (Int) -> Unit) {
                 .background(
                     Brush.linearGradient(
                         colors = listOf(cyan, violet, pink, cyan),
-                        start = Offset(flow * 220f - 60f, 0f),
-                        end = Offset(flow * 220f + 60f, 0f),
+                        start = Offset(flow * 90f, 0f),
+                        end = Offset(flow * 90f + 90f, 0f),
+                        tileMode = TileMode.Mirror,
                     ),
                 )
         )
@@ -460,7 +523,7 @@ private fun Int.grouped(): String =
 @Composable
 private fun Ticker(weather: WeatherNow?, btc: Double?, djia: Double?, modifier: Modifier = Modifier) {
     RaisedGlass(modifier = modifier, shape = RoundedCornerShape(15.dp)) {
-        Row(Modifier.padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(horizontal = 4.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
             TickerCell("NYC", weather?.let { "☀ ${it.tempF}°" } ?: "—")
             TickerDivider()
             TickerCell("BTC", btc?.let { "$${it.toInt().grouped()}" } ?: "—")
@@ -472,10 +535,10 @@ private fun Ticker(weather: WeatherNow?, btc: Double?, djia: Double?, modifier: 
 
 @Composable
 private fun TickerCell(key: String, value: String) {
-    Row(Modifier.padding(horizontal = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(key, fontSize = 8.sp, letterSpacing = 1.sp, color = Color(0xFF8EA2CC))
-        Spacer(Modifier.width(6.dp))
-        Text(value, fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+        Spacer(Modifier.width(5.dp))
+        Text(value, fontSize = 11.5.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
     }
 }
 
