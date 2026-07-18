@@ -28,6 +28,13 @@ the app is stubs missing the behavior the existing app has.
 Honest status artifact (the corrected one):
 https://claude.ai/code/artifact/8b63ae9b-45c9-43dc-9489-64799d5e33f5
 
+> **Update (2026-07-18):** a fresh source-level parity audit found the "half are
+> stubs" number is now stale in the *pessimistic* direction — the generic
+> add/list stubs are gone from the registry and most modules have their real
+> behavior. Current split ≈ **13 parity / 22 partial / 4 thin**. Per-module
+> matrix + biggest-gap ranking: **`NATIVE_PARITY_AUDIT.md`**. (Still source-level,
+> not device-verified.)
+
 **Two hard rules, non-negotiable (also in CLAUDE.md top):**
 1. **Never pitch / offer / "note the trade of" the web app.** Native is the
    product. `js/` is a reference to port FROM, nothing else. Do not frame native
