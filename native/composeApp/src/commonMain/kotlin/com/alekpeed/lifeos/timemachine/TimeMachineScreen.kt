@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.recipes.loadRecipes
 import com.alekpeed.lifeos.timecapsules.loadCapsules
 import com.alekpeed.lifeos.ui.DateField
+import kotlinx.datetime.daysUntil
 
 private data class Event(val icon: String, val text: String, val source: String)
 
@@ -52,16 +54,52 @@ private fun eventsOn(date: String): List<Event> {
     return out
 }
 
+// Every dated event in the record as (store label, ISO date) — the raw material
+// for the then-vs-now counts. Gathered once per open.
+private fun allDatedEvents(): List<Pair<String, String>> {
+    val out = mutableListOf<Pair<String, String>>()
+    loadMilestones().milestones.forEach { if (it.date.isNotBlank()) out.add("Milestones" to it.date) }
+    loadPlaces().places.forEach { p -> p.visitDates.forEach { out.add("Place visits" to it) } }
+    loadBooks().books.forEach { b ->
+        if (b.startedDate.isNotBlank()) out.add("Books started" to b.startedDate)
+        b.logs.forEach { out.add("Reading sessions" to it.date) }
+    }
+    loadRecipes().recipes.forEach { r -> r.cookLogs.forEach { out.add("Cook sessions" to it.date) } }
+    loadCollections().collections.forEach { c -> c.items.forEach { if (it.acquiredDate.isNotBlank()) out.add("Collection items" to it.acquiredDate) } }
+    loadCapsules().capsules.forEach { if (it.createdAt.isNotBlank()) out.add("Capsules sealed" to it.createdAt) }
+    com.alekpeed.lifeos.tasks.loadTasks().forEach { if (it.done && it.completedDate.isNotBlank()) out.add("Tasks completed" to it.completedDate) }
+    com.alekpeed.lifeos.health.loadHealth().let { h ->
+        h.workouts.forEach { out.add("Workouts" to it.date) }
+        h.logs.forEach { out.add("Health logs" to it.date) }
+    }
+    com.alekpeed.lifeos.habits.loadHabits().forEach { hb -> hb.checkins.forEach { out.add("Habit check-ins" to it.toString()) } }
+    return out
+}
+
 @Composable
 fun TimeMachineScreen() {
     var date by remember { mutableStateOf(today().toString()) }
     val events = remember(date) { eventsOn(date) }
+    val dated = remember { allDatedEvents() }
+
+    // Scrubber range: the earliest dated record → today.
+    val earliest = remember(dated) { dated.minOfOrNull { it.second }?.let { parseDateOrNull(it) } ?: today() }
+    val totalDays = remember(earliest) { maxOf(earliest.daysUntil(today()), 0) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Time Machine", style = MaterialTheme.typography.headlineMedium)
         Text("Scrub back and see what you recorded on any given day.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
 
+        // The scrubber — drag across your whole recorded history.
+        if (totalDays > 0) {
+            val pos = parseDateOrNull(date)?.let { earliest.daysUntil(it).coerceIn(0, totalDays) } ?: totalDays
+            Slider(
+                value = pos.toFloat(),
+                onValueChange = { v -> date = earliest.plusDays(v.toInt().coerceIn(0, totalDays)).toString() },
+                valueRange = 0f..totalDays.toFloat(),
+            )
+        }
         DateField(date) { v -> date = v }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -80,6 +118,23 @@ fun TimeMachineScreen() {
             style = MaterialTheme.typography.titleMedium,
         )
         Text("${events.size} thing${if (events.size == 1) "" else "s"} recorded that day.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+
+        // Then vs now — how much of the record existed by the selected day.
+        val thenTotal = dated.count { it.second <= date }
+        Text(
+            "THEN vs NOW — $thenTotal of ${dated.size} dated records existed by this day",
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(4.dp))
+        val byStore = dated.groupBy { it.first }
+        byStore.entries.sortedByDescending { it.value.size }.take(6).forEach { (label, list) ->
+            val then = list.count { it.second <= date }
+            Row(Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
+                Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                Text("$then → ${list.size}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
+        }
         Spacer(Modifier.height(10.dp))
 
         if (events.isEmpty()) {
