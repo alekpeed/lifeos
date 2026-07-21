@@ -174,6 +174,11 @@ fun CommandScreen() {
             Button(onClick = { capture("task") }) { Text("→ Task") }
             Button(onClick = { capture("idea") }) { Text("→ Idea") }
             OutlinedButton(onClick = { Native.readClipboard()?.let { input = it.trim() } }) { Text("📋 Paste") }
+            if (Native.supportsDictation) {
+                OutlinedButton(onClick = {
+                    Native.dictate { spoken -> if (!spoken.isNullOrBlank()) input = if (input.isBlank()) spoken else "$input $spoken" }
+                }) { Text("🎤 Speak") }
+            }
         }
         if (hasKey) {
             Spacer(Modifier.height(10.dp))

@@ -2,6 +2,7 @@ package com.alekpeed.lifeos.platform
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.speech.tts.TextToSpeech
 import androidx.activity.result.ActivityResultLauncher
 import com.journeyapps.barcodescanner.ScanOptions
@@ -53,6 +54,10 @@ object NativeHost {
     // base64) for the shared attachment layer (Native.pickAttachment). Takes
     // precedence over ebook/filter/text handling; cleared with every result.
     @Volatile var attachCallback: ((String?, String?, String?) -> Unit)? = null
+
+    // One-shot speech-to-text (Native.dictate): the system recognizer dialog result.
+    var dictateLauncher: ActivityResultLauncher<Intent>? = null
+    @Volatile var dictateCallback: ((String?) -> Unit)? = null
 
     fun ctx(): Context? = activity ?: appContext
 

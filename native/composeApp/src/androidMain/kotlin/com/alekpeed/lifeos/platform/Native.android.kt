@@ -52,6 +52,7 @@ actual object Native {
     actual val supportsLocation = true
     actual val supportsCamera = true
     actual val supportsFilePick = true
+    actual val supportsDictation = true
     actual val supportsPdfExport = true
 
     actual fun speak(text: String) {
@@ -390,6 +391,22 @@ actual object Native {
         } catch (e: Exception) {
             NativeHost.fileCallback = null
             NativeHost.ebookMode = false
+            onResult(null)
+        }
+    }
+
+    actual fun dictate(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.dictateLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.dictateCallback = onResult
+        try {
+            val intent = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Speak now…")
+            }
+            launcher.launch(intent)
+        } catch (e: Exception) {
+            NativeHost.dictateCallback = null
             onResult(null)
         }
     }

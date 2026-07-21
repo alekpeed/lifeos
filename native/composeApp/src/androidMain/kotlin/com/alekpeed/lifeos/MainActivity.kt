@@ -239,6 +239,16 @@ class MainActivity : ComponentActivity() {
 
     // Camera runtime permission (declared in the manifest, so it's enforced). On
     // grant, launch the camera; on deny, report cancel.
+    // One-shot dictation: the system speech recognizer returns its transcript here.
+    private val dictateLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val cb = NativeHost.dictateCallback
+        NativeHost.dictateCallback = null
+        val text = if (result.resultCode == RESULT_OK) {
+            result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+        } else null
+        cb?.invoke(text)
+    }
+
     private val cameraPermLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
             launchCamera()
@@ -289,6 +299,7 @@ class MainActivity : ComponentActivity() {
         NativeHost.photoLauncher = photoPickLauncher
         NativeHost.cameraRequest = { requestCameraCapture() }
         NativeHost.filePickLauncher = openDocumentLauncher
+        NativeHost.dictateLauncher = dictateLauncher
         NativeHost.ensureTts(applicationContext)
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         requestNeededPermissions()

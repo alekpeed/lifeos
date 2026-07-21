@@ -21,6 +21,7 @@ expect object Native {
     val supportsCamera: Boolean
     val supportsFilePick: Boolean
     val supportsPdfExport: Boolean
+    val supportsDictation: Boolean
 
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
@@ -38,6 +39,11 @@ expect object Native {
 
     // Copy text to the system clipboard.
     fun copyToClipboard(text: String)
+
+    // One-shot speech-to-text: opens the system dictation UI and hands back the
+    // recognized text, or null if cancelled / nothing heard / unsupported. Gate the
+    // mic button on supportsDictation.
+    fun dictate(onResult: (String?) -> Unit)
 
     // Cooking mode: keep the screen on while true.
     fun keepScreenAwake(on: Boolean)

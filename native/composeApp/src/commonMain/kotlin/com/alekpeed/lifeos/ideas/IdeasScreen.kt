@@ -54,6 +54,13 @@ fun IdeasScreen() {
         Spacer(Modifier.height(12.dp))
 
         OutlinedTextField(input, { input = it }, modifier = Modifier.fillMaxWidth(), singleLine = false, placeholder = { Text("New idea") })
+        if (com.alekpeed.lifeos.platform.Native.supportsDictation) {
+            TextButton(onClick = {
+                com.alekpeed.lifeos.platform.Native.dictate { spoken ->
+                    if (!spoken.isNullOrBlank()) input = if (input.isBlank()) spoken else "$input $spoken"
+                }
+            }) { Text("🎤 Dictate") }
+        }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(tagInput, { tagInput = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Tags (comma-separated)") })

@@ -20,6 +20,7 @@ actual object Native {
     actual val supportsLocation = false
     actual val supportsCamera = false
     actual val supportsFilePick = false
+    actual val supportsDictation = false
     actual val supportsPdfExport = false
 
     actual fun speak(text: String) {}
@@ -63,6 +64,8 @@ actual object Native {
     actual fun pickTextFile(onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun dictate(onResult: (String?) -> Unit) { onResult(null) }
+
     actual fun openUrl(url: String) {
         try {
             val u = if (url.contains("://")) url else "https://$url"
