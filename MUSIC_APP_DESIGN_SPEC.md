@@ -6,6 +6,12 @@ Its companion is `CHORDS_APP_HANDOFF.md`, which carries the actual engine source
 in dependency order — read that for *how it works*; read this for *what the app
 is and how it should feel to use*.
 
+> **Build target locked (2026-07-21): native Kotlin + Compose Multiplatform**,
+> with Riff Pads + musical typing, Practice/Lessons/Log, and cloud sync +
+> accounts. The concrete build plan (engine port, synth port, milestones) lives
+> in **`MUSIC_APP_BUILD_PLAN.md`** — start there; this spec is the product/UX
+> source of truth it builds against.
+
 ---
 
 ## 1. What it is

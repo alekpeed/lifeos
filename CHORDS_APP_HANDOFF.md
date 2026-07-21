@@ -1,5 +1,9 @@
 # Chords Engine — Starting Point for an Independent Music App
 
+> **Build docs:** the plan for turning this engine into a native app is
+> **`MUSIC_APP_BUILD_PLAN.md`** (start there); the product/UX spec is
+> **`MUSIC_APP_DESIGN_SPEC.md`**. This file is the engine source those reference.
+
 **What this is:** the full music-theory + audio-synthesis engine built for Life OS's Chords module, extracted here as a starting point for a standalone music app. Life OS itself is cutting Chords and Languages to keep its own scope tight ("a life OS, not an omnibus hobby app") — but the engine is real, working, and has zero dependency on Life OS's data layer or UI framework. It's pasted in full below, in dependency order, plus a data-model reference and a tour of how it was wired into a UI (that last part is reference only — it's tightly coupled to Life OS's own conventions and won't port directly).
 
 ## Architecture: how the pieces fit together
