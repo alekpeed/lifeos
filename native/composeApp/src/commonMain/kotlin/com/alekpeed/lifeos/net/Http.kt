@@ -27,3 +27,20 @@ expect suspend fun httpGetImageBase64(url: String): String?
 
 suspend fun httpPostJson(url: String, headers: Map<String, String>, body: String): NetResponse =
     httpRequest("POST", url, headers, body)
+
+// Upload raw bytes (decoded from `base64Body`) as the request body — the binary
+// counterpart of httpRequest, which UTF-8-encodes its String body and would
+// corrupt binary. Used to PUT/POST a file to Supabase Storage. Never throws;
+// network failure comes back as status -1.
+expect suspend fun httpSendBytes(
+    method: String,
+    url: String,
+    headers: Map<String, String>,
+    base64Body: String,
+): NetResponse
+
+// GET binary bytes (with auth headers) and return them as standard base64 (no
+// data: prefix). Like httpGetImageBase64 but headered (private Storage objects
+// need Authorization) and with a larger cap for arbitrary files. Returns null on
+// non-2xx / network failure / empty / oversize payload.
+expect suspend fun httpGetBytesBase64(url: String, headers: Map<String, String>): String?

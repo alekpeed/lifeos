@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Nav
+import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.sync.SupabaseAuth
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.launch
@@ -120,9 +121,25 @@ fun SharedSpacesTab() {
                     val sorted = items.sortedWith(compareBy({ urgencyRank(it.urgency) }, { it.createdAt ?: "" }))
                     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(sorted, key = { it.id }) { item ->
-                            SharedItemRow(item, nameFor(item.postedBy), myUid = SupabaseAuth.userId()) {
-                                scope.launch { ShareboxV2.removeItem(item.id).onSuccess { reloadItems(sel) }.onFailure { SaveToast.show(it.message ?: "Couldn't delete") } }
-                            }
+                            SharedItemRow(
+                                item, nameFor(item.postedBy), myUid = SupabaseAuth.userId(),
+                                onOpenFile = {
+                                    SaveToast.show("Opening…")
+                                    scope.launch {
+                                        val path = item.storagePath
+                                        val b64 = if (path != null) ShareboxStorage.download(path) else null
+                                        if (b64 != null) Native.openAttachment(b64, item.title ?: "file", mimeOf(item.title ?: ""))
+                                        else SaveToast.show("Couldn't download file")
+                                    }
+                                },
+                                onDelete = {
+                                    scope.launch {
+                                        ShareboxV2.removeItem(item.id)
+                                            .onSuccess { item.storagePath?.let { ShareboxStorage.delete(it) }; reloadItems(sel) }
+                                            .onFailure { SaveToast.show(it.message ?: "Couldn't delete") }
+                                    }
+                                },
+                            )
                         }
                     }
                 }
@@ -181,19 +198,30 @@ private fun AddItemForm(spaceId: String, scope: kotlinx.coroutines.CoroutineScop
     var url by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
     var noteBody by remember { mutableStateOf("") }
+    var uploading by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = kind == "link", onClick = { kind = "link" }, label = { Text("🔗 Link") })
             FilterChip(selected = kind == "note", onClick = { kind = "note" }, label = { Text("📝 Note") })
+            if (Native.supportsFilePick) {
+                FilterChip(selected = kind == "file", onClick = { kind = "file" }, label = { Text("📎 File") })
+            }
         }
         Spacer(Modifier.height(6.dp))
-        if (kind == "link") {
-            OutlinedTextField(url, { url = it }, Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("https://…") })
-            Spacer(Modifier.height(6.dp))
-            OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Title (optional)") })
-        } else {
-            OutlinedTextField(noteBody, { noteBody = it }, Modifier.fillMaxWidth(), placeholder = { Text("Write a note…") })
+        when (kind) {
+            "link" -> {
+                OutlinedTextField(url, { url = it }, Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("https://…") })
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Title (optional)") })
+            }
+            "file" -> {
+                Text(
+                    "Pick a file (photo, PDF, doc). It uploads to your shared space so your friend can open it.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            else -> OutlinedTextField(noteBody, { noteBody = it }, Modifier.fillMaxWidth(), placeholder = { Text("Write a note…") })
         }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -202,30 +230,55 @@ private fun AddItemForm(spaceId: String, scope: kotlinx.coroutines.CoroutineScop
                 Spacer(Modifier.width(6.dp))
             }
             Spacer(Modifier.weight(1f))
-            Button(onClick = {
-                if (kind == "link") {
+            when (kind) {
+                "link" -> Button(onClick = {
                     val u = url.trim(); if (u.isEmpty()) return@Button
                     scope.launch {
                         ShareboxV2.addItem(spaceId, "link", normalizeUrl(u), title.trim().ifBlank { null }, null, urgency)
                             .onSuccess { url = ""; title = ""; SaveToast.show("Shared"); onAdded() }
                             .onFailure { SaveToast.show(it.message ?: "Couldn't share") }
                     }
-                } else {
+                }) { Text("Share") }
+                "file" -> Button(enabled = !uploading, onClick = {
+                    Native.pickAttachment { name, mime, b64 ->
+                        if (b64.isNullOrBlank()) return@pickAttachment
+                        val fileName = name?.ifBlank { null } ?: "file"
+                        uploading = true
+                        SaveToast.show("Uploading…")
+                        scope.launch {
+                            ShareboxStorage.upload(spaceId, fileName, mime.orEmpty(), b64)
+                                .onSuccess { path ->
+                                    ShareboxV2.addItem(spaceId, "file", null, fileName, null, urgency, storagePath = path)
+                                        .onSuccess { SaveToast.show("Shared"); onAdded() }
+                                        .onFailure { SaveToast.show(it.message ?: "Uploaded but couldn't post") }
+                                }
+                                .onFailure { SaveToast.show(it.message ?: "Couldn't upload") }
+                            uploading = false
+                        }
+                    }
+                }) { Text(if (uploading) "Uploading…" else "Attach a file") }
+                else -> Button(onClick = {
                     val b = noteBody.trim(); if (b.isEmpty()) return@Button
                     scope.launch {
                         ShareboxV2.addItem(spaceId, "note", null, null, b, urgency)
                             .onSuccess { noteBody = ""; SaveToast.show("Shared"); onAdded() }
                             .onFailure { SaveToast.show(it.message ?: "Couldn't share") }
                     }
-                }
-            }) { Text("Share") }
+                }) { Text("Share") }
+            }
         }
         Spacer(Modifier.height(12.dp))
     }
 }
 
 @Composable
-private fun SharedItemRow(item: ItemRow, poster: String, myUid: String?, onDelete: () -> Unit) {
+private fun SharedItemRow(
+    item: ItemRow,
+    poster: String,
+    myUid: String?,
+    onOpenFile: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -242,8 +295,29 @@ private fun SharedItemRow(item: ItemRow, poster: String, myUid: String?, onDelet
         }
         val uColor = when (item.urgency) { "urgent" -> URGENT; "soon" -> SOON; else -> MaterialTheme.colorScheme.onSurfaceVariant }
         Text(item.urgency, style = MaterialTheme.typography.labelSmall, color = uColor, modifier = Modifier.padding(end = 6.dp))
+        if (item.kind == "file" && item.storagePath != null) {
+            TextButton(onClick = onOpenFile) { Text("Open") }
+        }
         if (item.postedBy != null && item.postedBy == myUid) {
             TextButton(onClick = onDelete) { Text("×") }
         }
     }
+}
+
+// Best-effort mime from a filename extension, so the OS opener picks the right app.
+private fun mimeOf(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
+    "pdf" -> "application/pdf"
+    "jpg", "jpeg" -> "image/jpeg"
+    "png" -> "image/png"
+    "gif" -> "image/gif"
+    "webp" -> "image/webp"
+    "heic" -> "image/heic"
+    "txt" -> "text/plain"
+    "csv" -> "text/csv"
+    "doc" -> "application/msword"
+    "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    "xls" -> "application/vnd.ms-excel"
+    "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    "zip" -> "application/zip"
+    else -> ""
 }
