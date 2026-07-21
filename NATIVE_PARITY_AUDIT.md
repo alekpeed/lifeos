@@ -11,9 +11,41 @@ not carried over from the prior doc.
 > here is "done" until Alek sees it work on device. This is a map of where things
 > stand, not a sign-off.
 
+## Closed since this audit (2026-07-21, later same day)
+
+The matrix below was the morning read. These landed after it (batches 1–3 +
+the four solo builds) and have gone **green on CI** — treat their rows'
+named gaps as closed (device-verify still pending):
+
+- **command / ideas** — voice dictation wired (🎤 → RecognizerIntent). *(gap closed)*
+- **places** — link contacts to a place (ContactField picker). *(gap closed; multi-photo grid still open)*
+- **quartermaster** — per-item persisted stock status + chips. *(→ PARITY)*
+- **books** — in-app PDF reader (PdfRenderer) **and** EPUB chapter/TOC nav. *(both reader gaps closed; many-files-per-book still open)*
+- **documents** — multi-file/PDF attachments + configurable expiry window. *(→ PARITY)*
+- **finance** — PDF bill attachments, sub renewal/notes/category, manual payment history, CSV dedup. *(→ PARITY)*
+- **links** — tap-to-open in browser (↗ Open → Native.openUrl). *(→ PARITY)*
+- **education** — renders the tagged Links list. *(→ PARITY)*
+- **tasks** — project picker (FilterChips) + hide-snoozed toggle. *(→ near/at PARITY)*
+- **briefing** — snooze-task / renew-document one-tap actions. *(→ PARITY)*
+- **knowledge-graph** — stale-label gap fixed (live resolution). *(only the graphics-deferred radial viz remains)*
+- **sharebox** — copy-space-ID button. *(file uploads + Realtime still open)*
+
+**Shared attachment layer** (multi-file incl. PDF, on the device blob store —
+`attach/Attachment.kt` + `AttachmentsSection.kt`) is built and wired into
+Documents, Books, Places, and Finance — Lever #1 from the old audit, done.
+
+**Still genuinely open** (see the handoff for the network-gated split):
+Sharebox file uploads + Realtime · Photos Google-Photos import · Time Machine
+createdAt existence grid · Places multi-photo grid · Station Cat mood logic +
+audio · Settings (calendar push, two-way Telegram, app-lock, threshold
+inputs). **Graphics-parked:** Orrery solar system, KG radial graph, Station
+Cat face. **Product calls for Alek:** Recall (flashcard vs resurfacing),
+Notifications (device-alarms vs activity feed).
+
 ## Tally
 
 **20 PARITY · 17 PARTIAL · 3 DIVERGED (by design) · 1 THIN** — 41 modules.
+*(Pre-delta snapshot; the block above supersedes ~11 of the PARTIAL rows.)*
 
 The prior doc's "13 / 22 / 4" was stale in the pessimistic direction: the
 Tier-B pass filled most of the named gaps. No module is a text stub; every
