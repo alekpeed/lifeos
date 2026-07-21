@@ -30,6 +30,7 @@ import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.documents.ExpiryState
 import com.alekpeed.lifeos.documents.expiryState
 import com.alekpeed.lifeos.documents.loadDocuments
+import com.alekpeed.lifeos.documents.saveDocuments
 import com.alekpeed.lifeos.education.loadEducation
 import com.alekpeed.lifeos.finance.financeBills
 import com.alekpeed.lifeos.habits.loadHabits
@@ -45,8 +46,10 @@ private data class BriefLine(
     val text: String,
     val note: String,
     val moduleId: String,
-    val action: String? = null,      // label of the one-tap action, if any
+    val action: String? = null,      // label of the primary one-tap action, if any
     val resolve: (() -> Unit)? = null,
+    val action2: String? = null,     // an optional secondary action (e.g. Snooze)
+    val resolve2: (() -> Unit)? = null,
 )
 
 // A real prioritized worklist, not a list dump: overdue tasks, due-today tasks,
@@ -70,11 +73,16 @@ fun BriefingScreen() {
             saveTasks(all)
             tick += 1
         }
+        fun snoozeTask(id: Long) {
+            val all = loadTasks().map { if (it.id == id) it.copy(snoozedUntil = today().plusDays(1).toString()) else it }
+            saveTasks(all)
+            tick += 1
+        }
         tasks.filter { val d = it.dueDate(); !it.done && d != null && d < now }
             .sortedBy { it.dueDate() }
-            .forEach { t -> out.add(BriefLine("t${t.id}", t.title, relativeLabel(t.dueDate()!!), "tasks", "Done ✓", { completeTask(t.id) })) }
+            .forEach { t -> out.add(BriefLine("t${t.id}", t.title, relativeLabel(t.dueDate()!!), "tasks", "Done ✓", { completeTask(t.id) }, "Snooze", { snoozeTask(t.id) })) }
         tasks.filter { !it.done && it.dueDate() == now }
-            .forEach { t -> out.add(BriefLine("t${t.id}", t.title, "Today", "tasks", "Done ✓", { completeTask(t.id) })) }
+            .forEach { t -> out.add(BriefLine("t${t.id}", t.title, "Today", "tasks", "Done ✓", { completeTask(t.id) }, "Snooze", { snoozeTask(t.id) })) }
         habits.filter { it.streak > 0 && !it.checkedInToday }
             .forEach { h ->
                 out.add(
@@ -93,10 +101,21 @@ fun BriefingScreen() {
             val due = parseDateOrNull(a.dueDate) ?: return@forEach
             if (due <= soon) out.add(BriefLine("a${a.id}", a.title, relativeLabel(due), "education"))
         }
+        fun renewDocument(id: Long) {
+            val docs = loadDocuments()
+            val next = docs.documents.map { doc ->
+                if (doc.id == id) {
+                    val base = parseDateOrNull(doc.expiryDate) ?: today()
+                    doc.copy(expiryDate = base.plusDays(365).toString())
+                } else doc
+            }
+            saveDocuments(docs.copy(documents = next))
+            tick += 1
+        }
         loadDocuments().documents.forEach { d ->
             when (expiryState(d)) {
-                ExpiryState.EXPIRED -> out.add(BriefLine("d${d.id}", d.title, "expired", "documents"))
-                ExpiryState.SOON -> out.add(BriefLine("d${d.id}", d.title, "expires soon", "documents"))
+                ExpiryState.EXPIRED -> out.add(BriefLine("d${d.id}", d.title, "expired", "documents", "Renew +1y", { renewDocument(d.id) }))
+                ExpiryState.SOON -> out.add(BriefLine("d${d.id}", d.title, "expires soon", "documents", "Renew +1y", { renewDocument(d.id) }))
                 else -> {}
             }
         }
@@ -149,6 +168,9 @@ fun BriefingScreen() {
                         }
                         if (line.action != null && line.resolve != null) {
                             TextButton(onClick = { line.resolve.invoke() }) { Text(line.action) }
+                        }
+                        if (line.action2 != null && line.resolve2 != null) {
+                            TextButton(onClick = { line.resolve2.invoke() }) { Text(line.action2) }
                         }
                     }
                 }

@@ -36,6 +36,11 @@ data class DocumentsData(val documents: List<Document> = emptyList())
 
 const val EXPIRY_SOON_DAYS = 30
 
+// The "expires soon" window, in days — configurable, stored under "DocExpiryDays"
+// (default 30). Read fresh so a change takes effect immediately.
+fun docExpiryDays(): Int = Storage.read("DocExpiryDays")?.trim()?.toIntOrNull()?.coerceIn(1, 365) ?: EXPIRY_SOON_DAYS
+fun setDocExpiryDays(days: Int) = Storage.write("DocExpiryDays", days.coerceIn(1, 365).toString())
+
 enum class ExpiryState { NONE, OK, SOON, EXPIRED }
 
 fun expiryState(d: Document): ExpiryState {
@@ -43,7 +48,7 @@ fun expiryState(d: Document): ExpiryState {
     val now = today()
     return when {
         date < now -> ExpiryState.EXPIRED
-        date <= now.plusDays(EXPIRY_SOON_DAYS) -> ExpiryState.SOON
+        date <= now.plusDays(docExpiryDays()) -> ExpiryState.SOON
         else -> ExpiryState.OK
     }
 }

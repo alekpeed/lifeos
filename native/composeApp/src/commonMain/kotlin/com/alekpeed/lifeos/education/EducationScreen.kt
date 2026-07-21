@@ -220,6 +220,22 @@ private fun CourseDetail(
         }
         Label("Reading-list tag (tag Links entries to build this course's list)")
         EditField(course.readingListTag, "e.g. econ101") { v -> patch { it.copy(readingListTag = v.trim()) } }
+        val readingTag = course.readingListTag.trim()
+        if (readingTag.isNotBlank()) {
+            val tagged = remember(readingTag) {
+                com.alekpeed.lifeos.links.loadLinks().links.filter { l -> l.tags.any { it.equals(readingTag, ignoreCase = true) } }
+            }
+            if (tagged.isEmpty()) {
+                Text("No Links tagged \"$readingTag\" yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                tagged.forEach { l ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("• ${l.title.ifBlank { l.url }}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
+                        if (l.url.isNotBlank()) TextButton(onClick = { com.alekpeed.lifeos.platform.Native.openUrl(l.url) }) { Text("Open") }
+                    }
+                }
+            }
+        }
         Label("Notes")
         EditField(course.notes, "Course notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
 

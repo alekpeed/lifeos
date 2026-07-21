@@ -183,6 +183,16 @@ fun DocumentsScreen() {
             }
         }
 
+        var expiryDays by remember { mutableStateOf(docExpiryDays()) }
+        Spacer(Modifier.height(10.dp))
+        Text("Flag documents expiring within", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(7, 14, 30, 60, 90).forEach { d ->
+                FilterChip(selected = expiryDays == d, onClick = { expiryDays = d; setDocExpiryDays(d) }, label = { Text("${d}d") })
+            }
+        }
+
         if (showSource) {
             AlertDialog(
                 onDismissRequest = { showSource = false },
