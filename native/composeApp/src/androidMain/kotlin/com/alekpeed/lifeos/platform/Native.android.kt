@@ -393,4 +393,39 @@ actual object Native {
             onResult(null)
         }
     }
+
+    actual fun pickAttachment(onResult: (String?, String?, String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null, null, null); return }
+        NativeHost.attachCallback = onResult
+        try {
+            launcher.launch(arrayOf("*/*"))
+        } catch (e: Exception) {
+            NativeHost.attachCallback = null
+            onResult(null, null, null)
+        }
+    }
+
+    actual fun openAttachment(base64: String, name: String, mime: String) {
+        val ctx = NativeHost.ctx() ?: return
+        try {
+            val bytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+            val safe = name.map { if (it.isLetterOrDigit() || it == '.' || it == '-' || it == '_') it else '_' }
+                .joinToString("").take(60).ifBlank { "attachment" }
+            val file = java.io.File(ctx.cacheDir, safe)
+            java.io.FileOutputStream(file).use { it.write(bytes) }
+            val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+            val type = mime.ifBlank { ctx.contentResolver.getType(uri) ?: "application/octet-stream" }
+            val view = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, type)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(view, "Open").apply {
+                if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            (NativeHost.activity ?: ctx).startActivity(chooser)
+        } catch (e: Exception) {
+            // best-effort open
+        }
+    }
 }

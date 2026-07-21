@@ -63,5 +63,20 @@ actual object Native {
     actual fun pickTextFile(onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun pickAttachment(onResult: (String?, String?, String?) -> Unit) { onResult(null, null, null) }
+
+    // Best-effort: write the bytes to a temp file and hand it to the system opener.
+    actual fun openAttachment(base64: String, name: String, mime: String) {
+        try {
+            val bytes = java.util.Base64.getDecoder().decode(base64)
+            val safe = name.map { if (it.isLetterOrDigit() || it == '.' || it == '-' || it == '_') it else '_' }
+                .joinToString("").take(60).ifBlank { "attachment" }
+            val file = java.io.File(System.getProperty("java.io.tmpdir"), safe)
+            file.writeBytes(bytes)
+            if (java.awt.Desktop.isDesktopSupported()) java.awt.Desktop.getDesktop().open(file)
+        } catch (e: Exception) {
+            // best-effort open
+        }
+    }
     actual fun exportTextAsPdf(title: String, text: String) {}
 }

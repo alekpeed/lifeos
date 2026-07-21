@@ -27,7 +27,8 @@ data class Document(
     val summary: String = "",        // short plain-language summary (from a scan)
     val notes: String = "",          // your own free notes
     val linkedContact: String = "",
-    val photoBlob: String = "",      // blob-store id of an attached photo, if any
+    val photoBlob: String = "",      // blob-store id of the scanned photo, if any
+    val attachments: List<com.alekpeed.lifeos.attach.Attachment> = emptyList(), // multi-file: PDFs, docs, images
 )
 
 @Serializable

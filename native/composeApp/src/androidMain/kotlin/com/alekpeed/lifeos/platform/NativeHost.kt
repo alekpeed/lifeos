@@ -49,6 +49,11 @@ object NativeHost {
     // spine order, or a plain .txt) for the Books reader (Native.pickEbook).
     @Volatile var ebookMode: Boolean = false
 
+    // When set, the picked file is returned as (display name, mime, raw bytes as
+    // base64) for the shared attachment layer (Native.pickAttachment). Takes
+    // precedence over ebook/filter/text handling; cleared with every result.
+    @Volatile var attachCallback: ((String?, String?, String?) -> Unit)? = null
+
     fun ctx(): Context? = activity ?: appContext
 
     fun ensureTts(context: Context) {

@@ -109,6 +109,18 @@ expect object Native {
     // reading order, or null if cancelled / unsupported. Backs the Books reader.
     fun pickEbook(onResult: (String?) -> Unit)
 
+    // Pick ANY file (PDF, doc, image, …) and hand back its display name, best-effort
+    // mime type, and raw bytes as base64 — for the shared attachment layer. All three
+    // are null if the user cancelled / the file was unreadable / there's no picker
+    // (desktop). Gate the "add file" UI on supportsFilePick.
+    fun pickAttachment(onResult: (name: String?, mime: String?, base64: String?) -> Unit)
+
+    // Open a previously-stored attachment: writes its base64 bytes to a temp file
+    // and hands it to the OS to view/open with the right app (PDF viewer, image
+    // viewer, …). Android uses a FileProvider + ACTION_VIEW; desktop uses the system
+    // opener. No-ops if it can't.
+    fun openAttachment(base64: String, name: String, mime: String)
+
     // Render plain text to a paginated PDF and hand it to the system print / share
     // sheet (which offers "Save as PDF" and any installed printer). Android only;
     // desktop no-ops. Gate UI on supportsPdfExport.

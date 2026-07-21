@@ -87,9 +87,35 @@ class MainActivity : ComponentActivity() {
         val cb = NativeHost.fileCallback
         val filter = NativeHost.fileFilter
         val ebook = NativeHost.ebookMode
+        val attach = NativeHost.attachCallback
         NativeHost.fileCallback = null
         NativeHost.fileFilter = null
         NativeHost.ebookMode = false
+        NativeHost.attachCallback = null
+        // Attachment pick: return name + mime + raw bytes as base64 (off-thread; the
+        // callback fires back on the main thread). Capped so a huge file can't OOM.
+        if (attach != null) {
+            if (uri == null) { attach(null, null, null); return@registerForActivityResult }
+            Thread {
+                var name: String? = null
+                var mime: String? = null
+                var b64: String? = null
+                try {
+                    mime = contentResolver.getType(uri)
+                    contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                        if (c.moveToFirst()) name = c.getString(0)
+                    }
+                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes != null && bytes.size <= 25_000_000) {
+                        b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                    }
+                } catch (e: Exception) {
+                    b64 = null
+                }
+                runOnUiThread { attach(name, mime, b64) }
+            }.start()
+            return@registerForActivityResult
+        }
         if (uri == null) {
             cb?.invoke(null)
             return@registerForActivityResult

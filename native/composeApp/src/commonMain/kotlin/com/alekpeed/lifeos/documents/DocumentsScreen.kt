@@ -324,6 +324,13 @@ private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, d
             Text("Photo attachments need a camera.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        Label("Files")
+        com.alekpeed.lifeos.attach.AttachmentsSection(
+            attachments = doc.attachments,
+            onChange = { list -> patch { it.copy(attachments = list) } },
+            label = "PDFs & documents",
+        )
+
         if (showSource) {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showSource = false },
