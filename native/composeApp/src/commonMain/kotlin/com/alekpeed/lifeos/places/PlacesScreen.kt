@@ -361,6 +361,9 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
             Text("Photo attachments need a camera.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        Label("Files")
+        com.alekpeed.lifeos.attach.AttachmentsSection(place.attachments, { list -> patch { it.copy(attachments = list) } }, label = "More photos & files")
+
         if (showSource) {
             AlertDialog(
                 onDismissRequest = { showSource = false },

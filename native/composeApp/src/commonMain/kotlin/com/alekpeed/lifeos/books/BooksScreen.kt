@@ -309,6 +309,9 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
         }
         Label("Notes"); Field(book.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
 
+        Label("Files")
+        com.alekpeed.lifeos.attach.AttachmentsSection(book.attachments, { list -> patch { it.copy(attachments = list) } }, label = "PDF & other files")
+
         Label("Reading log")
         book.logs.sortedByDescending { it.date }.forEach { log ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
