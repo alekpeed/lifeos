@@ -63,6 +63,24 @@ actual object Native {
     actual fun pickTextFile(onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun openUrl(url: String) {
+        try {
+            val u = if (url.contains("://")) url else "https://$url"
+            if (java.awt.Desktop.isDesktopSupported()) java.awt.Desktop.getDesktop().browse(java.net.URI(u))
+        } catch (e: Exception) {
+            // no browser
+        }
+    }
+
+    actual fun copyToClipboard(text: String) {
+        try {
+            val sel = java.awt.datatransfer.StringSelection(text)
+            java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(sel, sel)
+        } catch (e: Exception) {
+            // headless / no clipboard
+        }
+    }
+
     actual fun pickAttachment(onResult: (String?, String?, String?) -> Unit) { onResult(null, null, null) }
 
     // Best-effort: write the bytes to a temp file and hand it to the system opener.

@@ -185,9 +185,12 @@ private fun LinkDetail(
             Text(if (link.type == "video") "Watched" else "Read", style = MaterialTheme.typography.bodyMedium)
         }
 
-        OutlinedButton(onClick = {
-            Native.shareText(if (link.title.isNotBlank()) "${link.title} — ${link.url}" else link.url)
-        }) { Text("↗ Share") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { Native.openUrl(link.url) }, enabled = link.url.isNotBlank()) { Text("↗ Open") }
+            OutlinedButton(onClick = {
+                Native.shareText(if (link.title.isNotBlank()) "${link.title} — ${link.url}" else link.url)
+            }) { Text("Share") }
+        }
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {

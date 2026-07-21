@@ -32,6 +32,13 @@ expect object Native {
     // Read the current clipboard text, if any (the "clipboard catcher").
     fun readClipboard(): String?
 
+    // Open a URL in the system browser (Android ACTION_VIEW; desktop Desktop.browse).
+    // A bare host gets an https:// scheme. No-ops if it can't.
+    fun openUrl(url: String)
+
+    // Copy text to the system clipboard.
+    fun copyToClipboard(text: String)
+
     // Cooking mode: keep the screen on while true.
     fun keepScreenAwake(on: Boolean)
 

@@ -112,7 +112,10 @@ fun SharedSpacesTab() {
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = { reloadItems(sel) }, enabled = !busy) { Text(if (busy) "…" else "Refresh") }
                     }
-                    Text("Space id: ${sel}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Space id: $sel", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { com.alekpeed.lifeos.platform.Native.copyToClipboard(sel); SaveToast.show("Space id copied — send it to your friend") }) { Text("Copy id") }
+                    }
                     Spacer(Modifier.height(8.dp))
                     val sorted = items.sortedWith(compareBy({ urgencyRank(it.urgency) }, { it.createdAt ?: "" }))
                     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {

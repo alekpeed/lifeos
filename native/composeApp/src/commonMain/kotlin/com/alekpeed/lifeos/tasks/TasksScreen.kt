@@ -88,6 +88,7 @@ fun TasksScreen() {
     var board by remember { mutableStateOf(false) }
     var projectFilter by remember { mutableStateOf<String?>(null) }
     var hideDone by remember { mutableStateOf(false) }
+    var showSnoozed by remember { mutableStateOf(false) }
     var sortByPriority by remember { mutableStateOf(false) }
 
     fun update(id: Long, f: (Task) -> Task) {
@@ -138,6 +139,8 @@ fun TasksScreen() {
             FilterChip(selected = board, onClick = { board = true }, label = { Text("Board") })
             if (!board) {
                 FilterChip(selected = hideDone, onClick = { hideDone = !hideDone }, label = { Text("Hide done") })
+                val snoozed = visible(tasks).count { !it.done && (it.snoozeDate()?.let { d -> d > today() } == true) }
+                if (snoozed > 0) FilterChip(selected = showSnoozed, onClick = { showSnoozed = !showSnoozed }, label = { Text("Snoozed ($snoozed)") })
                 FilterChip(selected = sortByPriority, onClick = { sortByPriority = !sortByPriority }, label = { Text(if (sortByPriority) "By priority" else "By due") })
             }
         }
@@ -161,6 +164,7 @@ fun TasksScreen() {
         } else {
             val shown = visible(tasks)
                 .filter { !hideDone || !it.done }
+                .filter { showSnoozed || it.done || (it.snoozeDate()?.let { d -> d <= today() } ?: true) }
                 .sortedWith(
                     if (sortByPriority) {
                         compareBy({ it.done }, { priorityRank(it.priority) }, { it.dueDate()?.toString() ?: "9999-99-99" })

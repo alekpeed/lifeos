@@ -394,6 +394,29 @@ actual object Native {
         }
     }
 
+    actual fun openUrl(url: String) {
+        val ctx = NativeHost.ctx() ?: return
+        try {
+            val u = if (url.contains("://")) url else "https://$url"
+            val view = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(u)).apply {
+                if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            (NativeHost.activity ?: ctx).startActivity(view)
+        } catch (e: Exception) {
+            // no browser / bad url
+        }
+    }
+
+    actual fun copyToClipboard(text: String) {
+        val ctx = NativeHost.ctx() ?: return
+        try {
+            val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("lifeos", text))
+        } catch (e: Exception) {
+            // no clipboard service
+        }
+    }
+
     actual fun pickAttachment(onResult: (String?, String?, String?) -> Unit) {
         val launcher = NativeHost.filePickLauncher
         if (launcher == null) { onResult(null, null, null); return }
