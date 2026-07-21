@@ -664,13 +664,13 @@ private fun parseChapters(raw: String): Pair<String, List<ReaderChapter>> {
     val re = Regex("\uE000([^\uE000]*)\uE000\\n?")
     var last = 0
     for (m in re.findAll(raw)) {
-        sb.append(raw, last, m.range.first)
+        sb.appendRange(raw, last, m.range.first)
         val title = m.groupValues[1].trim().ifBlank { "Chapter ${chapters.size + 1}" }
         chapters.add(ReaderChapter(title, sb.length))
         sb.append(title).append("\n\n")
         last = m.range.last + 1
     }
-    sb.append(raw, last, raw.length)
+    sb.appendRange(raw, last, raw.length)
     return sb.toString() to chapters
 }
 
