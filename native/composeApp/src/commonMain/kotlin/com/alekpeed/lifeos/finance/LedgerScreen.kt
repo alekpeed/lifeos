@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
@@ -101,6 +102,7 @@ private data class Bill(
     val category: String = "Bills",
     val paymentHistory: List<Payment> = emptyList(),
     val contact: String = "",
+    val attachments: List<com.alekpeed.lifeos.attach.Attachment> = emptyList(), // bill PDFs, statements
 )
 
 @Serializable
@@ -478,6 +480,10 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
 private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     val bills = data.bills
     fun persist(next: List<Bill>) { onChange(data.copy(bills = next)) }
+    fun patchBill(id: Long, f: (Bill) -> Bill) = persist(bills.map { if (it.id == id) f(it) else it })
+    var expandedBill by remember { mutableStateOf<Long?>(null) }
+    var payDate by remember { mutableStateOf(today().toString()) }
+    var payAmount by remember { mutableStateOf("") }
     var nextId by remember { mutableStateOf((bills.maxOfOrNull { it.id } ?: 0L) + 1) }
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
@@ -535,36 +541,78 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
         }
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(sorted, key = { it.id }) { b ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(b.name, style = MaterialTheme.typography.bodyLarge)
-                        val due = parseDateOrNull(b.dueDate)
-                        val meta = buildList {
-                            add(b.cadence)
-                            if (due != null) add("due ${relativeLabel(due)}") else if (b.dueDate.isNotBlank()) add("due ${usDate(b.dueDate)}")
-                            if (b.autopay) add("autopay")
-                            if (b.contact.isNotBlank()) add("👤 ${b.contact}")
-                            if (b.paymentHistory.isNotEmpty()) {
-                                val last = b.paymentHistory.maxByOrNull { it.date }?.date
-                                add("paid ${b.paymentHistory.size}×" + if (last != null) ", last ${usDate(last)}" else "")
-                            }
-                        }.joinToString(" · ")
-                        Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val expanded = expandedBill == b.id
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(
+                            Modifier.weight(1f).clickable { expandedBill = if (expanded) null else b.id },
+                        ) {
+                            Text(b.name, style = MaterialTheme.typography.bodyLarge)
+                            val due = parseDateOrNull(b.dueDate)
+                            val meta = buildList {
+                                add(b.cadence)
+                                if (due != null) add("due ${relativeLabel(due)}") else if (b.dueDate.isNotBlank()) add("due ${usDate(b.dueDate)}")
+                                if (b.autopay) add("autopay")
+                                if (b.contact.isNotBlank()) add("👤 ${b.contact}")
+                                if (b.attachments.isNotEmpty()) add("📎 ${b.attachments.size}")
+                                if (b.paymentHistory.isNotEmpty()) {
+                                    val last = b.paymentHistory.maxByOrNull { it.date }?.date
+                                    add("paid ${b.paymentHistory.size}×" + if (last != null) ", last ${usDate(last)}" else "")
+                                }
+                            }.joinToString(" · ")
+                            Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(fmt(b.amount), style = MaterialTheme.typography.bodyLarge)
+                        Spacer(Modifier.width(4.dp))
+                        TextButton(onClick = {
+                            val paid = b.copy(
+                                paymentHistory = b.paymentHistory + Payment(today().toString(), b.amount),
+                                dueDate = advanceDue(b.dueDate, b.cadence),
+                            )
+                            persist(bills.map { if (it.id == b.id) paid else it })
+                            scheduleBill(paid)
+                        }) { Text("Paid") }
+                        TextButton(onClick = {
+                            if (Native.supportsNotifications) Native.cancelReminder(billReminderId(b.name))
+                            persist(bills.filterNot { it.id == b.id })
+                        }) { Text("✕") }
                     }
-                    Text(fmt(b.amount), style = MaterialTheme.typography.bodyLarge)
-                    Spacer(Modifier.width(4.dp))
-                    TextButton(onClick = {
-                        val paid = b.copy(
-                            paymentHistory = b.paymentHistory + Payment(today().toString(), b.amount),
-                            dueDate = advanceDue(b.dueDate, b.cadence),
-                        )
-                        persist(bills.map { if (it.id == b.id) paid else it })
-                        scheduleBill(paid)
-                    }) { Text("Paid") }
-                    TextButton(onClick = {
-                        if (Native.supportsNotifications) Native.cancelReminder(billReminderId(b.name))
-                        persist(bills.filterNot { it.id == b.id })
-                    }) { Text("✕") }
+                    if (expanded) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            com.alekpeed.lifeos.attach.AttachmentsSection(
+                                b.attachments,
+                                { list -> patchBill(b.id) { it.copy(attachments = list) } },
+                                label = "Bill PDFs & statements",
+                            )
+                            Text("Payment history", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (b.paymentHistory.isEmpty()) {
+                                Text("No payments logged yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            b.paymentHistory.sortedByDescending { it.date }.forEach { p ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("${usDate(p.date)} · ${fmt(p.amount)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                                    TextButton(onClick = {
+                                        patchBill(b.id) { it.copy(paymentHistory = it.paymentHistory.filterNot { q -> q.date == p.date && q.amount == p.amount }) }
+                                    }) { Text("×") }
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(Modifier.weight(1f)) { DateField(payDate) { v -> payDate = v } }
+                                OutlinedTextField(
+                                    payAmount, { payAmount = it }, modifier = Modifier.weight(1f), singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), placeholder = { Text("Amount") },
+                                )
+                                TextButton(onClick = {
+                                    val a = payAmount.trim().toDoubleOrNull() ?: b.amount
+                                    patchBill(b.id) { it.copy(paymentHistory = it.paymentHistory + Payment(payDate.trim().ifBlank { today().toString() }, a)) }
+                                    payAmount = ""
+                                }) { Text("Log") }
+                            }
+                        }
+                    }
                 }
             }
         }
