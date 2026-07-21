@@ -35,6 +35,7 @@ data class Place(
     val notesToSelf: List<String> = emptyList(),
     val photoBlob: String = "",          // blob-store id of the primary attached photo, if any
     val attachments: List<com.alekpeed.lifeos.attach.Attachment> = emptyList(), // more photos / files
+    val contacts: List<String> = emptyList(), // linked people (contact names)
 )
 
 @Serializable

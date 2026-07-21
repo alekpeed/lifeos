@@ -232,6 +232,23 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
         }
         Label("Address")
         Field(place.address, "Address") { v -> patch { it.copy(address = v.replace("\n", " ")) } }
+
+        Label("Linked people")
+        place.contacts.forEach { c ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("👤 $c", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                TextButton(onClick = { patch { it.copy(contacts = it.contacts.filterNot { x -> x == c }) } }) { Text("×") }
+            }
+        }
+        var newContact by remember { mutableStateOf("") }
+        com.alekpeed.lifeos.people.ContactField(newContact, "Link a person") { newContact = it }
+        if (newContact.isNotBlank()) {
+            TextButton(onClick = {
+                val n = newContact.trim()
+                if (n.isNotEmpty() && n !in place.contacts) patch { it.copy(contacts = it.contacts + n) }
+                newContact = ""
+            }) { Text("+ Add ${newContact.trim()}") }
+        }
         Row {
             Column(Modifier.weight(1f)) {
                 Label("Latitude")

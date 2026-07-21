@@ -348,6 +348,18 @@ private fun TaskEditor(task: Task, update: (Long, (Task) -> Task) -> Unit, onDel
             }
         }
         Label("Project")
+        val projectOptions = remember { loadTasks().map { it.project.trim() }.filter { it.isNotEmpty() }.distinct().sorted() }
+        if (projectOptions.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                projectOptions.forEach { p ->
+                    FilterChip(
+                        selected = task.project.trim() == p,
+                        onClick = { update(task.id) { t -> t.copy(project = if (t.project.trim() == p) "" else p) } },
+                        label = { Text(p) },
+                    )
+                }
+            }
+        }
         EditField(task.project, "e.g. Home renovation") { v -> update(task.id) { it.copy(project = v.replace("\n", " ")) } }
         Label("Tags (comma separated)")
         EditField(task.tags.joinToString(", "), "errand, work") { v ->
