@@ -631,7 +631,7 @@ private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit,
     }
 
     if (showToc) {
-        AlertDialog(
+        androidx.compose.material3.AlertDialog(
             onDismissRequest = { showToc = false },
             title = { Text("Chapters") },
             text = {
