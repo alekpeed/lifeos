@@ -523,7 +523,12 @@ private fun PdfReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Un
 // (readFrac) — restored on open, saved on every turn.
 @Composable
 private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit, onClose: () -> Unit) {
-    val text = remember(book.textBlob) { readTextBlob(book.textBlob) ?: "" }
+    val raw = remember(book.textBlob) { readTextBlob(book.textBlob) ?: "" }
+    val chaptered = remember(raw) { parseChapters(raw) }
+    val text = chaptered.first
+    val chapters = chaptered.second
+    var showToc by remember { mutableStateOf(false) }
+    var pendingChapterStart by remember { mutableStateOf<Int?>(null) }
     var fontSize by remember { mutableStateOf(Storage.read("ReaderFontSize")?.toIntOrNull() ?: 18) }
     var page by remember { mutableStateOf(-1) }   // -1 until restored from readFrac
     var forward by remember { mutableStateOf(true) }
@@ -544,6 +549,7 @@ private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit,
         Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("‹ Library") }
             Text(book.title.ifBlank { "Reading" }, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
+            if (chapters.size > 1) TextButton(onClick = { showToc = true }) { Text("☰ Chapters") }
             TextButton(onClick = { fontSize = (fontSize - 1).coerceAtLeast(12); Storage.write("ReaderFontSize", fontSize.toString()) }) { Text("A−") }
             TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(30); Storage.write("ReaderFontSize", fontSize.toString()) }) { Text("A+") }
         }
@@ -570,6 +576,15 @@ private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit,
             LaunchedEffect(pageCount) {
                 page = if (page < 0) (book.readFrac * (pageCount - 1)).roundToInt().coerceIn(0, pageCount - 1)
                 else page.coerceIn(0, pageCount - 1)
+            }
+            // Jump to a chapter picked from the table of contents: map its char
+            // offset to a line, then to a page.
+            LaunchedEffect(pendingChapterStart, pageCount) {
+                val off = pendingChapterStart ?: return@LaunchedEffect
+                val line = layout.getLineForOffset(off.coerceIn(0, text.length))
+                page = (line / linesPerPage).coerceIn(0, pageCount - 1)
+                persist(page, pageCount)
+                pendingChapterStart = null
             }
 
             fun pageText(p: Int): String {
@@ -614,6 +629,49 @@ private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit,
             modifier = Modifier.padding(bottom = 12.dp),
         )
     }
+
+    if (showToc) {
+        AlertDialog(
+            onDismissRequest = { showToc = false },
+            title = { Text("Chapters") },
+            text = {
+                LazyColumn(Modifier.heightIn(max = 400.dp)) {
+                    items(chapters) { ch ->
+                        Text(
+                            ch.title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.fillMaxWidth().clickable { pendingChapterStart = ch.start; showToc = false }.padding(vertical = 10.dp),
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showToc = false }) { Text("Close") } },
+        )
+    }
+}
+
+// A book's text split into chapters at the private-use markers parseEbook writes
+// (EPUB spine items). Returns the clean display text (markers replaced with the
+// chapter title as a heading) and each chapter's start offset in it. No markers
+// (plain TXT or an old import) → the whole book as one unnamed section.
+private data class ReaderChapter(val title: String, val start: Int)
+
+private fun parseChapters(raw: String): Pair<String, List<ReaderChapter>> {
+    if (!raw.contains('\uE000')) return raw to emptyList()
+    val sb = StringBuilder()
+    val chapters = mutableListOf<ReaderChapter>()
+    val re = Regex("\uE000([^\uE000]*)\uE000\\n?")
+    var last = 0
+    for (m in re.findAll(raw)) {
+        sb.append(raw, last, m.range.first)
+        val title = m.groupValues[1].trim().ifBlank { "Chapter ${chapters.size + 1}" }
+        chapters.add(ReaderChapter(title, sb.length))
+        sb.append(title).append("\n\n")
+        last = m.range.last + 1
+    }
+    sb.append(raw, last, raw.length)
+    return sb.toString() to chapters
 }
 
 // ---------- Shelf ----------

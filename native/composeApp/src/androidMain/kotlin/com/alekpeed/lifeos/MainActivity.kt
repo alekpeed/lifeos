@@ -214,13 +214,33 @@ class MainActivity : ComponentActivity() {
         } else {
             entries.keys.filter { val l = it.lowercase(); l.endsWith(".xhtml") || l.endsWith(".html") || l.endsWith(".htm") }.sorted()
         }
+        // Each spine item becomes a chapter, delimited by a private-use marker
+        // (title) the reader parses into a table of contents. The title
+        // comes from the item's first heading / <title>, else "Chapter N".
         val sb = StringBuilder()
+        var chapterNum = 0
         for (href in order) {
             val path = href.substringBefore('#')
             val data = entries[path] ?: entries[path.substringAfterLast('/')] ?: continue
-            sb.append(htmlToText(data.decodeToString())).append("\n\n")
+            val html = data.decodeToString()
+            val body = htmlToText(html)
+            if (body.isBlank()) continue
+            chapterNum++
+            val title = ebookChapterTitle(html) ?: "Chapter $chapterNum"
+            sb.append('\uE000').append(title).append('\uE000').append('\n')
+            sb.append(body).append("\n\n")
         }
         return sb.toString().trim().ifBlank { "(Couldn't extract readable text from this EPUB.)" }
+    }
+
+    // The chapter heading for a spine document: its first h1–h3, else its <title>,
+    // stripped of tags and clamped to a sane length. Null if nothing usable.
+    private fun ebookChapterTitle(html: String): String? {
+        val raw = Regex("(?is)<h[1-3][^>]*>(.*?)</h[1-3]>").find(html)?.groupValues?.get(1)
+            ?: Regex("(?is)<title[^>]*>(.*?)</title>").find(html)?.groupValues?.get(1)
+            ?: return null
+        val text = Regex("<[^>]+>").replace(raw, "").replace(Regex("\\s+"), " ").trim()
+        return text.takeIf { it.isNotBlank() && it.length <= 80 }
     }
 
     private fun htmlToText(html: String): String {
