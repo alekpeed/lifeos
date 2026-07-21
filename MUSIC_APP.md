@@ -1,10 +1,682 @@
-# Chords Engine — Starting Point for an Independent Music App
+# Music App — Complete Build Brief
 
-> **Build docs:** the plan for turning this engine into a native app is
-> **`MUSIC_APP_BUILD_PLAN.md`** (start there); the product/UX spec is
-> **`MUSIC_APP_DESIGN_SPEC.md`**. This file is the engine source those reference.
+A single, self-contained brief for building an independent music app from a
+working jazz-harmony engine. Everything needed is in this one document:
 
-**What this is:** the full music-theory + audio-synthesis engine built for Life OS's Chords module, extracted here as a starting point for a standalone music app. Life OS itself is cutting Chords and Languages to keep its own scope tight ("a life OS, not an omnibus hobby app") — but the engine is real, working, and has zero dependency on Life OS's data layer or UI framework. It's pasted in full below, in dependency order, plus a data-model reference and a tour of how it was wired into a UI (that last part is reference only — it's tightly coupled to Life OS's own conventions and won't port directly).
+- **Part I — The App** — what it is, how it should feel, every screen, and scope.
+- **Part II — Build Plan** — how to build it as a native **Kotlin + Compose
+  Multiplatform** app (Android + desktop): porting the engine, the synth, the
+  data model, the extra features, and milestones.
+- **Part III — The Engine** — the complete source (ten files, in dependency
+  order) that you port. It's pure logic + audio synthesis, with no dependency on
+  any other app or framework.
+
+Nothing here points to anything outside this file.
+
+---
+
+# Part I — The App (product & design)
+
+Working title only; the name is yours to choose. This is the **design/product
+spec** for turning an existing **Chords** module into a standalone music app.
+The complete engine source (all ten files) is in **Part III** of this document;
+this part covers *what the app is and how it should feel to use*.
+
+---
+
+## 1. What it is
+
+A **jazz-harmony study tool**: look any chord up, see and *hear* every voicing,
+walk the real relationships between chords, learn Barry Harris's system, and keep
+yourself sharp with spaced-repetition drills — all offline, all synthesized, no
+accounts and no licensing.
+
+It is **not** a DAW, a sequencer, or a play-along backing-track app. There's no
+tempo, no timeline, no recording. Every "play" button is an *audition* — hear
+this chord, hear this move, hear this trail — in service of understanding, not
+production.
+
+**Who it's for:** an intermediate-to-advanced player (piano or guitar) who reads
+chord symbols and wants to internalize voicings, reharmonization, and the logic
+of where chords go. It assumes real musical literacy; it rewards it.
+
+**Why it's different from every other chord app:** *curation*. The relationship
+graph only surfaces moves that are actually worthwhile, each with a stated reason
+— not a naive "everything connects to everything" that's useless in practice.
+The spelling engine is degree-aware, so a chord's ♯9 is always some kind of D,
+never a wrong-looking E♭. Correctness and taste are the product.
+
+---
+
+## 2. Design principles (carried over, and why)
+
+1. **Curation over completeness.** The harmony map is hand-weighted (strength 3 =
+   strong functional pull, 1 = color move). Surface real relationships, each with
+   a *reason*. Never dump an exhaustive matrix.
+2. **Audition-first.** Nothing is text-only. Every chord, voicing, move, and
+   trail is playable inline. The synth is the primary "read-back" channel.
+3. **Correct spelling, always.** Degree-aware enharmonics are non-negotiable —
+   it's what makes the app trustworthy to a literate musician.
+4. **A study tool, not a sequencer.** Fixed audition gaps, not a tempo. This
+   stance keeps the UI honest and the scope tight.
+5. **Offline, synthesized, self-contained.** No samples, no network, no licensing
+   baggage. The whole thing runs on a pure theory engine + a Web Audio synth.
+6. **The engine is sacred and portable; the UI is disposable.** All nine theory
+   files + the synth are pure functions on plain objects (notes, chords, MIDI
+   numbers). The old web UI file does not port — a fresh UI is built on the
+   untouched engine.
+
+---
+
+## 3. Information architecture
+
+The old module had nine surfaces. For a standalone app, group them into three
+intents so the nav reads as a purpose, not a pile of tabs:
+
+**LOOK UP** — reference, one chord at a time
+- **Dictionary** — the home surface. Look up any chord → tones, all voicings, hear
+  everything.
+- **Calculator** — build a chord from root + quality directly (the "I don't know
+  the symbol" path into the Dictionary).
+- **Barry Harris** — enter a chord, get its 6th-diminished "scale of chords,"
+  spelled and playable.
+
+**EXPLORE** — relationships, the territory
+- **Harmony Map** — the walkable graph: from one chord, every worthwhile place to
+  go, as a clickable node diagram. Key-context toggle; an "adventurous" mode that
+  reveals color moves. Build a **trail** (an ordered walk) and save it.
+- **Atlas** — the whole territory at once (vs. the Map's one-chord walk), plus the
+  four dim7 families shown simultaneously.
+
+**PRACTICE** — get better, over time
+- **Lessons** — 18 written lessons (Foundations → Voicings → Harmony → Barry
+  Harris), each with clickable chord-symbol chips that load the Dictionary.
+- **Practice** — the adaptive spaced-repetition drill session (spell / name /
+  voicing-recognition), with a streak counter and a printable sheet.
+- **Log** — the freeform practice-session log (what you actually worked on at the
+  instrument), kept separate from drill accuracy.
+
+**Settings surface**
+- **Sound** — the synth's parameter controls; dial in and save your own preset.
+  Lives in settings, but every surface plays through whatever's selected here.
+
+Recommended primary nav: **Dictionary · Harmony Map · Practice**, with the rest
+reachable from within those (Calculator + Barry Harris hang off Dictionary; Atlas
+off Harmony Map; Lessons + Log off Practice; Sound in settings).
+
+---
+
+## 4. Screen specs
+
+Each surface below: its job, the key elements, the interactions, and the audio
+behavior. States: empty (no chord chosen), loaded, playing.
+
+### 4.1 Dictionary (home)
+- **Job:** the fastest path from "what is this chord" to seeing and hearing it.
+- **Input:** a chord-symbol field that parses live (`Cmaj7`, `F#m7b5`, `Bb13`,
+  `AΔ`, `Eø`). Case matters (`M7` ≠ `m7`); show a gentle "not a chord I know" when
+  parsing fails, never a hard error.
+- **Shows:** the chord's tones (each with degree label + note name), the full
+  symbol, and **every applicable voicing grouped by family** — Shells, Drop
+  voicings (close / drop 2 / drop 3 / drop 2&4), Rootless A/B (Bill Evans), color
+  voicings (Kenny Barron, "So What" quartal), upper-structure triads. Each voicing
+  carries a one-line "what/why" description.
+- **Guitar view:** any voicing can render as a real fretboard grip (frets 0–15,
+  fingerable span) — drop 2 / drop 3 *are* guitar shapes, so these are idiomatic,
+  not approximations.
+- **Audio:** a play button on the chord and on each voicing. Chords roll low→high
+  slightly, so a voicing reads as a shape, not a block.
+- **Cross-links:** "See in Harmony Map," "Barry Harris view," "Which keys contain
+  this."
+
+### 4.2 Calculator
+- **Job:** build a chord when you don't know the symbol. Root picker × quality
+  picker (35 qualities, grouped by family) → drops you into the Dictionary result.
+
+### 4.3 Barry Harris
+- **Job:** show how Barry would treat the entered chord.
+- **Shows:** the mapped 6th-diminished scale spelled out, the alternating
+  6th-chord / dim7 "scale of chords" positions (each playable), and a plain-prose
+  headline + explanation of *why* this chord maps to that scale (e.g. "a m7 is a
+  major 6 from its 6th").
+- **Audio:** step through the harmonized positions; hear the motion-over-a-static-
+  tonic effect.
+
+### 4.4 Harmony Map
+- **Job:** the signature surface — walk real chord relationships.
+- **Shows:** the center chord as a node, surrounded by its curated destinations,
+  grouped (Resolves to / Substitutes / Approached by / Barry family), each edge
+  weighted (thickness/emphasis = strength 3→1) and labeled with its reason.
+- **Interactions:** click a node to re-center on it (walk the graph). A **key
+  context** toggle adds Roman-numeral labels relative to a chosen key. An
+  **adventurous** toggle reveals the weaker color moves that are hidden by default.
+- **Trails:** the sequence of chords you walk becomes a **trail** — an ordered
+  list you can name and **save** (see data model: `ChordProgressions`), then
+  replay as a sequence ("hear the trail").
+- **Audio:** "hear the move" auditions any two-chord edge with minimum-motion
+  voice leading; "hear the trail" plays the saved walk.
+
+### 4.5 Atlas
+- **Job:** the whole territory at once, for orientation rather than a single walk.
+- **Shows:** the full relationship field, plus a **diminished-engines** view of
+  all four dim7 families at once (the symmetry that underlies dominant
+  substitution).
+
+### 4.6 Voice-leading detail (a panel, not a tab)
+- Wherever two chords are shown as a move (Harmony Map edge, a saved trail step),
+  offer a **"why it's smooth"** panel: common tones held, voices that move (and by
+  how much), tritone resolutions, bass-motion type, guide-tone continuity, and a
+  one-line smoothness verdict — all computed from the actual notes, in prose.
+
+### 4.7 Lessons
+- **Job:** structured learning path. 18 lessons across Foundations → Voicings →
+  Harmony → Barry Harris. Each lesson is written prose with **clickable chord-symbol
+  chips** that jump to the Dictionary loaded with that chord. Reading and doing are
+  the same gesture.
+
+### 4.8 Practice
+- **Job:** keep skills sharp with spaced repetition.
+- **Drills:** spell-the-chord, name-the-chord, recognize-the-voicing.
+- **Grading:** language-app-style SRS — "same again / good / easy" maps to an
+  interval scheme per tracked concept (e.g. `spell:maj7`, `voicing:drop2`).
+- **Session shape:** adaptive — due reviews first, then weak spots, then a few new
+  concepts. A streak counter; a printable practice sheet.
+
+### 4.9 Log
+- **Job:** a freeform record of *actual instrument practice* (date, duration, what
+  you worked on) — deliberately separate from drill accuracy. Two different
+  signals: "am I good at m7♭5 spelling" vs. "did I pick up the instrument today."
+
+### 4.10 Sound (settings)
+- **Job:** shape the instrument. Per-preset controls: two oscillators (+ optional
+  FM "tine"), full ADSR, 3-band EQ, volume. Four factory presets (Piano / Rhodes
+  EP / Organ / Pad). Save your own; the selection is global to every play button.
+
+---
+
+## 5. The engine (what powers all of it)
+
+Nine pure theory files + one synth, all portable, zero framework/DOM/storage
+dependency (full source in Part III):
+
+- **notes → chords → voicings → harmony → barry → graph → voicelead**, plus
+  **lessons** (content) and **drills** (SRS). Every function takes plain
+  notes/chords/MIDI in and returns notes/chords/analysis out.
+- **synth** — Web Audio, fully synthesized, knows no theory; give it MIDI numbers
+  + a params object and it plays.
+
+Design consequence: the app is a thin, replaceable UI over a correct, tested core.
+Any platform that can render diagrams and produce audio can host it.
+
+---
+
+## 6. Data model
+
+Four persisted stores (IndexedDB in the original; the shapes port to any store),
+plus one for synth presets:
+
+```
+ChordProgressions  { id, name, chords: [{ symbol, … }] }
+   — saved "trails" from the Harmony Map: an ordered, replayable chord walk.
+
+ChordSkills        { id, interval, dueDate, attempts, correct }
+   — one row per tracked concept (e.g. "spell:maj7", "voicing:drop2").
+     interval/dueDate = SRS state; attempts/correct = accuracy.
+
+ChordDrillLogs     { id, date, conceptId, … }
+   — append-only history of every graded drill answer (indexed by date, concept).
+
+ChordPracticeLogs  { id, date, duration, notes, … }
+   — freeform instrument-practice sessions (the Log surface).
+
+SynthPresets       { id, name, params:{…} }   ← new for the standalone app
+   — user-saved Sound presets beyond the four factory ones.
+```
+
+No server, no auth required for the core. Optional cloud sync (see §9) would layer
+on top; local-first stays the default.
+
+---
+
+## 7. Audio & interaction spec
+
+- **Three audition affordances, everywhere they apply:** *hear the chord* (a
+  voicing), *hear the move* (a two-chord edge, minimum-motion voiced), *hear the
+  trail* (a saved sequence). Fixed audition gap between chords — a study cadence,
+  not a tempo.
+- **One shared audio context**, resumed on first user gesture (mobile/browser
+  autoplay rules). The selected Sound preset feeds every play button.
+- **Chord roll:** notes fire low→high a few ms apart so a voicing is heard as a
+  shape.
+- **No transport controls** (no play/pause/loop of a timeline). If it starts to
+  feel like a sequencer, it's out of scope.
+
+---
+
+## 8. Visual & platform direction
+
+**Visual identity is yours to bring** — this spec deliberately does not invent a
+palette, type, or brand. What the design *must* accommodate, whatever the look:
+
+- **Diagram-heavy.** Three diagram types carry the app: a **keyboard/staff** chord
+  view, a **guitar fretboard** grip, and a **node-graph** (Harmony Map / Atlas).
+  These need to render crisply and legibly at a glance and scale to phone width.
+  They're information graphics, not decoration — clarity beats flourish.
+- **Dense but scannable.** A literate musician wants a lot on screen (tones,
+  labels, multiple voicings) without it turning to noise. Strong typographic
+  hierarchy and tabular alignment matter more than imagery.
+- **Dark-friendly.** Practice happens at instruments in low light; design both
+  themes.
+
+**Platform recommendation:** the engine is pure JS and the synth is Web Audio, so
+the lowest-friction path is a **local-first web app / PWA** (installable, offline,
+no store review). If you'd rather it match a native build (Kotlin +
+Compose Multiplatform), the theory engine ports cleanly to Kotlin as pure
+functions, and the synth maps to the platform audio API — more work, but a real
+native app on Android + desktop. Pick based on whether "runs everywhere from one
+URL" or "native app you install" matters more.
+
+---
+
+## 9. Scope: MVP → full
+
+**MVP (the smallest thing that's genuinely useful):**
+- Dictionary (parse + tones + voicings + guitar shapes + audio)
+- Sound (presets so it's pleasant to listen to)
+- Calculator (the no-symbol entry path)
+
+That alone is a better chord dictionary than most, because of correct spelling +
+every voicing + real audio.
+
+**V1 (the thing that's *distinctive*):**
+- Harmony Map + trails + voice-leading panel  ← the reason to use this over anything else
+- Barry Harris
+- Practice + Log
+
+**Later / optional:**
+- Atlas (orientation view — powerful but not load-bearing)
+- Lessons (content-heavy; can grow over time)
+- **"Life as Music" companion mode** — the old ambient sonification that turned
+  live personal-data counts into a slow generative chord loop on the Pad preset.
+  It's a charming, self-contained extra that reuses the same synth; include it only
+  if the app has a data source to sonify, otherwise leave it out.
+- **Riff Pads & musical typing** (§10) — keyboard-as-instrument + one-key phrase
+  triggers, with shareable "packs." Could equally be pulled forward into V1.
+- Optional account + cloud sync for trails/practice history across devices.
+
+---
+
+## 10. Feature idea: Riff Pads & musical typing
+
+Make the computer keyboard an instrument — but a pad is **not** "this key = this
+note." A pad is a **programmable musical event**: a chord/voicing (any number of
+notes) with an articulation, and pads can chain into a riff. All of it rides on
+the existing synth, which already plays voicings, rolls, and timed sequences.
+
+**Musical typing — real-time play.** A QWERTY→piano layout (GarageBand/Ableton
+convention: `A`–`K` = white keys, `W E T Y U` = black keys, `Z`/`X` shift the
+octave), with a **chord mode** where a key fires a whole voicing rather than a
+single note. Doubles as an input method the Dictionary, Calculator, and Practice
+surfaces can borrow.
+
+**Riff pads — one key, a programmed event.** Bind a key (or short combo) to
+anything from a single note, to a full **voicing**, to a rolled/strummed chord, to
+a multi-chord riff with timing — one press fires it through the selected preset.
+
+**Per-event articulation.** Each note-event carries *how* it sounds:
+- **block** — all notes at once,
+- **roll up / roll down** — spread low→high or high→low, with a settable roll
+  speed (the synth already rolls chords; this exposes the control),
+- **strum** — a faster, guitar-like spread.
+Plus onset, sustain, and optional velocity per event.
+
+**Voicing-aware — build pads from the library.** Because the app already computes
+named voicings (drop 2, rootless A/B, Kenny Barron, "So What", guitar grips…), a
+pad event can *reference a voicing* (`{ symbol, voicingId }`) instead of raw notes
+— so it stays editable and transposable, and you can "send this voicing to a pad"
+straight from the Dictionary.
+
+**Store pitches, not keys.** Pads store absolute MIDI (with octave), so a figure
+repeated an octave up plays back faithfully — the octave *is* the data. (This is
+why key-position storage fails: same fingers, wrong octave.) If you ever want the
+app to *recognize* a riff regardless of octave or key — a guessing game, or
+matching your playing to a pack — match on **intervals / pitch-classes** instead,
+so octave and transposition fall away. Two different jobs: play it back exactly
+(store pitches) vs. recognize it anywhere (compare shapes).
+
+**Packs — named, shareable collections of pads.** Record your own (play it once,
+save-to-key), or load a curated pack. This generalizes the app's existing
+**trails** (saved chord walks) to full voiced, articulated, timed phrases.
+
+New store:
+```
+RiffPacks { id, name, pads: [{
+  key,                       // trigger: a key or short combo
+  name,
+  preset?,                   // optional per-pad synth preset override
+  events: [{
+    midis: […],              // a voicing — one or many notes, absolute pitch
+    voicingRef?,             // optional { symbol, voicingId } from the library
+    articulation,            // 'block' | 'roll-up' | 'roll-down' | 'strum'
+    rollMs,                  // note-to-note spread when rolled/strummed
+    atMs, durMs, velocity?,  // onset from trigger, sustain, dynamics
+  }]
+}]}
+```
+
+**Copyright, for the record:** this app is personal, not for sale, so play
+whatever you like. (For completeness: a pad is synthesized note-data, not a
+sampled recording — but compositions are still copyrighted, so *distributing* a
+"famous songs" pack as a product would carry licensing implications. User-made and
+original/public-domain packs don't.)
+
+Fits with near-zero new engine work: block + rolled chords and timed sequences are
+already in the synth (`playChord` rolls low→high; `playSequence` schedules
+events), and voicings come from the voicing engine — so this is mostly a pad
+editor + a key listener. Lives as a persistent bar across surfaces, or its own
+"Pads" surface.
+
+## 11. Open decisions (yours)
+
+1. **Name** — deliberately unset here.
+2. **Platform** — web/PWA (fast, universal) vs native Kotlin (installs as an app). §8 has the trade.
+3. **Instrument focus** — piano-first, guitar-first, or truly both co-equal? Both
+   are supported by the engine; the UI emphasis is a choice.
+4. **Include "Life as Music"?** — only if this app has data to sonify.
+5. **Riff Pads (§10)** — ship it as a core input method, or a later add-on?
+6. **Free / paid / distribution** — out of scope for this spec, but the offline,
+   no-licensing, no-server design keeps every option open.
+
+---
+
+---
+
+# Part II — Build Plan (native Kotlin / Compose Multiplatform)
+
+Everything the app *is* — screens, interactions, scope — is in Part I above. This
+part is **how to build it as a native app**, and Part III is the **complete engine
+source** you port. This document is self-contained: you need nothing outside it.
+
+## B1. Target & project shape
+
+**Native Kotlin + Compose Multiplatform**, one module producing an **Android APK**
+and a **desktop app** (Windows/macOS/Linux) from shared code:
+
+```
+music-app/
+  composeApp/
+    src/
+      commonMain/kotlin/…/
+        theory/     ← the 9 theory files (Part III), ported to pure Kotlin (no UI, no audio, no IO)
+        audio/      ← the synth: pure-Kotlin DSP (commonMain) + an `expect` audio sink
+        data/       ← @Serializable stores + local persistence + (optional) cloud sync
+        ui/         ← Compose screens (Dictionary, Harmony Map, Practice, Pads, …)
+        platform/   ← `expect` declarations (audio out, storage, key input)
+      androidMain/…  ← `actual`: AudioTrack, storage, hardware-key handling
+      desktopMain/…  ← `actual`: javax.sound SourceDataLine, storage, key handling
+    build.gradle.kts
+  .github/workflows/build.yml   ← two CI jobs (see B7)
+```
+
+The guiding principle: **the engine is portable and correct; the UI is
+disposable.** Port the ten engine files faithfully and test them, then build a
+fresh Compose UI on top. (The engine originally ran inside a web app; that old
+web UI is *not* part of this — build the UI new for Compose.)
+
+## B2. Porting the theory engine (9 files)
+
+All nine theory files (Part III) are pure functions over plain data — ideal to
+port. Do it in **dependency order**: `notes → chords → voicings → harmony → barry
+→ graph → voicelead`, plus the two leaf files `lessons` (pure content) and
+`drills` (depends on notes/chords/voicings).
+
+**Data-shape mapping (JS object → Kotlin):**
+
+| JS shape | Kotlin |
+|---|---|
+| `{ letter, acc, pc }` (a note) | `data class Note(val letter: Char, val acc: Int, val pc: Int)` |
+| `{ root, quality, tones, symbol }` (a chord) | `data class Chord(val root: Note, val quality: Quality, val tones: List<Tone>, val symbol: String)` |
+| quality-table entry | `data class Quality(val id: String, val display: String, val label: String, val cat: String, val intervals: List<Pair<Int,Int>>, val aliases: List<String>)` + `val QUALITIES: List<Quality>` |
+| `{ id, name, group, description, notes:[{midi,name,label}] }` (a voicing) | `data class Voicing(val id: String, val name: String, val group: String, val description: String, val notes: List<VoiceNote>)` |
+| MIDI note numbers | `Int` (unchanged) |
+| a module of `export function`s | a Kotlin `object` (e.g. `object Notes { … }`) |
+
+**Worked example — `notes.js` → `Notes.kt`** (the base layer; port this first so
+the idiom is set for the rest):
+
+```kotlin
+package …theory
+
+data class Note(val letter: Char, val acc: Int, val pc: Int)
+
+object Notes {
+    val LETTERS = listOf('C', 'D', 'E', 'F', 'G', 'A', 'B')
+    val NATURAL_PC = mapOf('C' to 0, 'D' to 2, 'E' to 4, 'F' to 5, 'G' to 7, 'A' to 9, 'B' to 11)
+    private val ACC_GLYPH = mapOf(-2 to "𝄫", -1 to "♭", 0 to "", 1 to "♯", 2 to "𝄪")
+    private val DEGREE_NATURAL = mapOf(1 to 0, 2 to 2, 3 to 4, 4 to 5, 5 to 7, 6 to 9, 7 to 11, 9 to 14, 11 to 17, 13 to 21)
+
+    fun parseNote(input: String): Note? {
+        val m = Regex("^([A-Ga-g])(bb|##|b|#|♭♭|♯♯|♭|♯)?$").find(input.trim()) ?: return null
+        val letter = m.groupValues[1].uppercase()[0]
+        val acc = when (m.groupValues[2]) {
+            "" -> 0
+            "bb", "♭♭" -> -2
+            "##", "♯♯" -> 2
+            "b", "♭" -> -1
+            else -> 1
+        }
+        return Note(letter, acc, ((NATURAL_PC[letter]!! + acc) % 12 + 12) % 12)
+    }
+
+    fun noteName(n: Note): String = n.letter + ACC_GLYPH[n.acc]
+
+    // Spell the note `semitones` above `root` functioning as scale degree `degree`.
+    fun spellInterval(root: Note, degree: Int, semitones: Int): Note {
+        val letter = LETTERS[(LETTERS.indexOf(root.letter) + degree - 1) % 7]
+        var acc = ((root.pc + semitones) % 12) - NATURAL_PC[letter]!!
+        if (acc > 6) acc -= 12
+        if (acc < -6) acc += 12
+        return Note(letter, acc, ((NATURAL_PC[letter]!! + acc) % 12 + 12) % 12)
+    }
+
+    fun degreeLabel(degree: Int, semitones: Int): String {
+        val diff = semitones - (DEGREE_NATURAL[degree] ?: 0)
+        val glyph = when (diff) { 0 -> ""; -1 -> "♭"; 1 -> "♯"; -2 -> "𝄫"; else -> "𝄪" }
+        return glyph + degree
+    }
+}
+```
+
+Two things this pins that the whole port must keep:
+- **Musical astral glyphs (double-sharp/double-flat) as `\uXXXX` escapes**, never
+  literal characters — they're surrogate pairs and literal ones break some
+  toolchains. (Shown above.)
+- **JS `%` and Kotlin `%` differ on negatives** — JS `-1 % 12 == -1` and some of
+  this code relies on it. Wherever a pitch class must stay 0–11, force it with
+  `((x % 12) + 12) % 12`.
+
+**Test the port — don't eyeball it.** Each theory file is deterministic. Write
+common tests that pin known outputs *before* building UI on top: `parseChord("F#m7b5")`
+spells F♯–A–C–E; the ♯9 of C spells D♯ (not E♭); `barryAnalysis` of a m7 names the
+right 6th-diminished scale. A ported engine with a green test suite is what lets
+everything above it move fast.
+
+## B3. Porting the synth (the one genuinely new piece)
+
+`synth.js` (Part III) is a Web-Audio node graph (oscillators → gain envelopes →
+3-band EQ → output) that doesn't exist outside a browser. This is the only part
+that isn't a mechanical port — it's real, but bounded, DSP.
+
+**Approach: a small software synth that renders PCM, played through a platform sink.**
+
+- **Pure-Kotlin DSP in commonMain.** Keep `PARAM_DEFS` and the four
+  `FACTORY_PRESETS` verbatim (they're just data). Reimplement `playVoice` as a
+  per-sample renderer: two oscillators (`sine/triangle/sawtooth/square` by direct
+  waveform math), optional FM on osc1's frequency, an ADSR gain envelope, summed
+  across voices, then a 3-band biquad EQ (lowshelf 220 Hz / peaking 1 kHz Q0.8 /
+  highshelf 3.6 kHz — the exact values in the source). Emit a `ShortArray` at
+  44.1 kHz.
+- **`expect` audio sink, `actual` per platform:**
+  - Android → `android.media.AudioTrack` (streaming, PCM 16-bit).
+  - Desktop → `javax.sound.sampled.SourceDataLine`.
+  ```kotlin
+  // commonMain
+  expect object AudioOut { fun play(samples: ShortArray, sampleRate: Int) }
+  ```
+- **Keep the three audition affordances** (Part I §7): *hear the chord* (roll
+  low→high ~22 ms apart), *hear the move* (two-chord minimum-motion via the
+  engine's `voiceLeadMidis`), *hear the trail* (a sequence with a fixed ~0.9 s
+  gap). Fixed gaps, **no transport/tempo** — it's a study tool, not a sequencer.
+- **One shared output**, started on the first user gesture (audio focus), fed by
+  whichever Sound preset is selected.
+
+Scope: an additive two-oscillator synth with an envelope and EQ — a few hundred
+lines of Kotlin, testable by rendering a buffer and asserting it isn't silent and
+has the right fundamental. It's the single biggest net-new item; everything else
+is a port.
+
+## B4. Data model (Kotlin)
+
+Six persisted stores. Model each as a `@Serializable` data class; persist locally
+first (JSON-per-store is plenty), then optionally sync (B5.3):
+
+```kotlin
+@Serializable data class ChordProgression(val id: String, val name: String, val chords: List<SavedChord>)   // Harmony-Map "trails"
+@Serializable data class ChordSkill(val id: String, val interval: Int, val dueDate: String, val attempts: Int, val correct: Int) // SRS state, one per concept
+@Serializable data class ChordDrillLog(val id: String, val date: String, val conceptId: String, val correct: Boolean)            // append-only drill history
+@Serializable data class ChordPracticeLog(val id: String, val date: String, val durationMin: Int, val notes: String)             // freeform instrument log
+@Serializable data class SynthPreset(val id: String, val name: String, val params: Map<String, Double>)                          // user Sound presets
+@Serializable data class RiffPack(val id: String, val name: String, val pads: List<Pad>)                                         // shareable pad collections (B5.1)
+```
+
+`ChordSkill` is keyed by concept id (`"spell:maj7"`, `"voicing:drop2"` — from
+`drills.js`'s CONCEPTS). Drill accuracy (`ChordDrillLog`) is deliberately separate
+from the instrument-practice log (`ChordPracticeLog`) — two different signals.
+
+## B5. The three extra features
+
+### B5.1 Riff Pads + musical typing
+Full design is in **Part I §10**. A pad is *not* "one key = one note" — it's a
+**programmable musical event**: a voicing (one or many notes) with an
+articulation, and pads can chain into a timed riff. It rides on the ported synth,
+which already does rolls and timed sequences, so this is mostly a **pad editor + a
+key listener**.
+
+```kotlin
+@Serializable data class Pad(val key: String, val name: String, val preset: String? = null, val events: List<PadEvent>)
+@Serializable data class PadEvent(
+    val midis: List<Int>,                 // a voicing — absolute pitch, one or many notes
+    val voicingRef: VoicingRef? = null,   // optional { symbol, voicingId } from the library
+    val articulation: String,             // "block" | "roll-up" | "roll-down" | "strum"
+    val rollMs: Int, val atMs: Int, val durMs: Int, val velocity: Double? = null,
+)
+```
+- **Store absolute MIDI, not key positions** — the octave *is* the data. To later
+  *recognize* a riff regardless of octave/key, match on intervals/pitch-classes.
+- **Key input:** desktop uses `Modifier.onPreviewKeyEvent` for real hardware keys
+  (QWERTY→piano: `A`–`K` white, `W E T Y U` black, `Z`/`X` octave shift; a chord
+  mode fires a whole voicing per key). Android is an on-screen pad grid, with the
+  same key path for a paired Bluetooth/USB keyboard.
+- **Packs are shareable:** export/import a `RiffPack` as JSON (share sheet / file),
+  and/or sync via the cloud table (B5.3).
+
+### B5.2 Practice + Lessons + Log
+- **Practice** — port `drills.js`: question generation (spell / name /
+  voicing-recognition), SRS grading (`gradeSkill`: same-again / good / easy →
+  interval scheme), adaptive session (due reviews → weak spots → a few new). UI: a
+  card per question, three grade buttons, a streak. State = `ChordSkill`; each
+  answer appends a `ChordDrillLog`.
+- **Lessons** — port `lessons.js` (18 written lessons) as content; render prose
+  with **clickable chord-symbol chips** that deep-link into the Dictionary loaded
+  with that chord.
+- **Log** — the freeform instrument-practice log (`ChordPracticeLog`).
+
+### B5.3 Cloud sync + accounts
+A backend-light, local-first design:
+- **Auth:** email + password against a hosted auth service (e.g. Supabase GoTrue,
+  or Firebase Auth) over plain HTTPS — no OAuth redirect, so it works cleanly on
+  Android + desktop. Store the access/refresh tokens locally; refresh on 401.
+  Same account on two devices → same user id → same rows.
+- **Storage:** one table with a generic per-key-blob shape —
+  `records(user_id, store, record_id, data jsonb, updated_at, deleted_at, primary
+  key(user_id, store, record_id))` — with a row-level-security rule
+  `user_id = <authenticated user>`. The six stores (B4) map onto `store`
+  namespaces (`progressions`, `skills`, `drilllogs`, `practicelogs`, `presets`,
+  `riffpacks`).
+- **Local-first stays default:** everything works signed-out on-device; sign-in is
+  additive (push local up, pull remote down, last-write-wins on `updated_at`).
+  Sharing a pack with *another person* is a separate, later concern (a public row
+  or an exported file); the sync above is device-to-device for your own data.
+
+## B6. Milestones (each independently shippable)
+
+| # | Milestone | Contents | Done when |
+|---|---|---|---|
+| **M0** | Repo + CI | CMP module skeleton; two-job CI (Android APK + desktop package). | An empty app builds green on both jobs. |
+| **M1** | Engine port + tests | Port the 9 theory files in dependency order; tests pin known outputs. | Test suite green; parsing/voicings/barry match. |
+| **M2** | Audio + MVP | Synth (B3); Dictionary (parse → tones → voicings → guitar shapes → audio); Calculator; Sound presets. | You can look up a chord and *hear* every voicing on device. |
+| **M3** | V1 distinctive | Harmony Map (curated graph, key/adventurous toggles, trails) + voice-leading panel; Barry Harris; Atlas. | You can walk relationships and audition moves/trails. |
+| **M4** | Practice | Drills + SRS + streak; Lessons (clickable chips); Log. | A drill session grades and schedules; lessons deep-link. |
+| **M5** | Riff Pads | Musical typing + programmable pads + articulations; packs export/import. | A key fires a voiced, articulated pad through the synth. |
+| **M6** | Cloud sync | Auth + `records` table + RLS; local-first sync of all six stores. | Same account on two devices shares trails/practice/packs. |
+
+MVP = **M0–M2**. V1 = **through M4**. Extras = **M5–M6**.
+
+## B7. Build & verify
+
+- **Compile in CI, test on device.** A minimal two-job GitHub Actions workflow
+  (adjust names to taste):
+
+  ```yaml
+  name: Build
+  on: { push: {}, workflow_dispatch: {} }
+  jobs:
+    android:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-java@v4
+          with: { distribution: temurin, java-version: '17' }
+        - uses: android-actions/setup-android@v3
+        - uses: gradle/actions/setup-gradle@v3
+        - run: gradle :composeApp:assembleDebug --no-daemon --stacktrace
+        - uses: actions/upload-artifact@v4
+          with: { name: android-apk, path: composeApp/build/outputs/apk/debug/*.apk }
+    desktop:
+      runs-on: windows-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-java@v4
+          with: { distribution: temurin, java-version: '17' }
+        - uses: gradle/actions/setup-gradle@v3
+        - run: gradle :composeApp:packageDistributionForCurrentOS --no-daemon --stacktrace
+        - uses: actions/upload-artifact@v4
+          with: { name: desktop-app, path: composeApp/build/compose/binaries/main/**/* }
+  ```
+
+- **Compose Multiplatform gotchas worth knowing up front:** in commonMain use
+  `StringBuilder.appendRange(cs, start, end)` (the 3-arg `append(CharSequence,…)`
+  is JVM-only); fully-qualify `androidx.compose.material3.AlertDialog` (a bare
+  `AlertDialog` can resolve to a non-Composable overload); lazy-list `items { }`
+  needs `import androidx.compose.foundation.lazy.items`; write astral glyphs
+  (double-sharp/double-flat) as `\uXXXX` escapes, not literals.
+- **Platform pattern:** `expect` in `commonMain/platform/` (AudioOut, Storage,
+  key-input helpers) with `android` + `desktop` actuals.
+
+## B8. Do NOT port
+- The original web UI that hosted this engine — build the Compose UI fresh.
+- Any "sonify live data" mode — out of scope for a standalone music app.
+
+## B9. Still to decide (won't block the build)
+1. **Name.** 2. **Instrument emphasis** — piano-first / guitar-first / co-equal
+(the engine supports both; it's a UI choice). 3. **Distribution** — free / paid /
+store vs. sideload; the offline, no-licensing, no-server core keeps every option open.
+
+---
+
+# Part III — The Engine (complete source)
+
+**What this is:** the full music-theory + audio-synthesis engine built for the original app's Chords module, extracted here as a starting point for a standalone music app. The engine is real, working, and has zero dependency on any host app's data layer or UI framework. It's pasted in full below, in dependency order, plus a data-model reference and a tour of how it was wired into a UI (that last part is reference only — it's tightly coupled to the original app's own conventions and won't port directly).
 
 ## Architecture: how the pieces fit together
 
@@ -26,15 +698,15 @@ Independent of all of the above:
 
 10. **`synth.js`** (originally `js/audio/synth.js`) — a fully synthesized (no samples) Web Audio chord engine: two oscillators per voice with optional FM (for an electric-piano "tine" sound), full ADSR envelope, 3-band EQ, four factory presets (Piano/Rhodes/Organ/Pad). Takes a plain array of MIDI note numbers and a params object; knows nothing about music theory.
 
-## What's portable vs. what's Life-OS-specific
+## What's portable vs. what's app-specific
 
 **Fully portable, zero framework dependency:** all nine theory files and `synth.js`. Every function is a pure function operating on plain objects (notes, chords, MIDI numbers) — no DOM references, no `import` from anything outside this set, no storage calls. You can drop these ten files into any JS project (or port the logic to another language) and they'll work exactly as they do here.
 
-**Not portable, reference only:** the original UI file (`js/interfaces/default/views/chords.js`, ~1,130 lines) that hosted this engine inside Life OS. It's tightly coupled to Life OS's own conventions — a shared `el()`/`svgEl()` DOM-building helper, a `ctx.data.*` IndexedDB access pattern, a `makeKnob()` UI widget shared with other modules. See "How it was wired into a UI" at the bottom for a tour of what it did, so you know what a real UI built on this engine needs to cover — but the code itself won't drop into a new project as-is.
+**Not portable, reference only:** the original UI file (`js/interfaces/default/views/chords.js`, ~1,130 lines) that hosted this engine inside the original web app. It's tightly coupled to that app's own conventions — a shared `el()`/`svgEl()` DOM-building helper, a `ctx.data.*` IndexedDB access pattern, a `makeKnob()` UI widget shared with other modules. See "How it was wired into a UI" at the bottom for a tour of what it did, so you know what a real UI built on this engine needs to cover — but the code itself won't drop into a new project as-is.
 
 ## Data model reference
 
-If you want a starting schema for your own app, this is what Life OS persisted around the engine (IndexedDB, but the shapes translate to any storage):
+If you want a starting schema for your own app, this is what the original app persisted around the engine (IndexedDB, but the shapes translate to any storage):
 
 ```
 ChordProgressions   { id, name, chords: [{ symbol, ... }] }
@@ -60,7 +732,7 @@ ChordPracticeLogs   { id, date, ... }
 
 ## How it was wired into a UI (reference only)
 
-The original Life OS view had nine tabs over this engine, worth knowing about as a checklist of what a full-featured version of this covers:
+The original view had nine tabs over this engine, worth knowing about as a checklist of what a full-featured version of this covers:
 
 - **Dictionary** — look up any chord, see its tones, hear it, see all its voicings.
 - **Barry Harris** — enter a chord, get its 6th-diminished scale spelled and playable.
