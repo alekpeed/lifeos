@@ -64,6 +64,15 @@ import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.net.httpGet
 import com.alekpeed.lifeos.net.httpGetImageBase64
 import com.alekpeed.lifeos.platform.Native
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.layout.onSizeChanged
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.ui.graphics.ImageBitmap
+import com.alekpeed.lifeos.platform.PdfReader
+import com.alekpeed.lifeos.platform.readBlobBase64
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.readTextBlob
@@ -146,7 +155,8 @@ fun BooksScreen() {
     // Reading a book takes over the whole screen.
     val readingBook = data.books.firstOrNull { it.id == reading }
     if (readingBook != null) {
-        ReaderScreen(readingBook, data, ::save) { reading = null }
+        if (readingBook.pdfBlob.isNotBlank()) PdfReaderScreen(readingBook, data, ::save) { reading = null }
+        else ReaderScreen(readingBook, data, ::save) { reading = null }
         return
     }
 
@@ -403,6 +413,33 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
             Text("Ebook import needs a file picker.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        Label("PDF")
+        if (book.pdfBlob.isNotBlank()) {
+            Button(onClick = onRead) { Text(if (book.pdfPage > 0) "📕 Continue PDF · p.${book.pdfPage + 1}" else "📕 Read PDF") }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (Native.supportsFilePick) {
+                    TextButton(onClick = {
+                        Native.pickAttachment { name, mime, b64 ->
+                            if (b64 != null && (mime?.contains("pdf") == true || name?.endsWith(".pdf", true) == true)) {
+                                deleteBlob(book.pdfBlob); saveBlob(b64)?.let { id -> patch { it.copy(pdfBlob = id, pdfPage = 0) } }
+                            } else if (b64 != null) SaveToast.show("That isn't a PDF")
+                        }
+                    }) { Text("Replace") }
+                }
+                TextButton(onClick = { deleteBlob(book.pdfBlob); patch { it.copy(pdfBlob = "", pdfPage = 0) } }) { Text("Remove") }
+            }
+        } else if (Native.supportsFilePick) {
+            OutlinedButton(onClick = {
+                Native.pickAttachment { name, mime, b64 ->
+                    if (b64 != null && (mime?.contains("pdf") == true || name?.endsWith(".pdf", true) == true)) {
+                        saveBlob(b64)?.let { id -> patch { it.copy(pdfBlob = id, pdfPage = 0) } }
+                    } else if (b64 != null) SaveToast.show("Pick a PDF file")
+                }
+            }) { Text("📕 Add PDF") }
+        } else {
+            Text("PDF import needs a file picker.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
@@ -417,6 +454,67 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
 }
 
 // ---------- Reader ----------
+
+// Full-screen PDF reader: rasterizes one page at a time via the platform
+// PdfReader, scaled to the viewport width, with prev/next paging and resume. On a
+// platform with no renderer (desktop) it offers to open the file externally.
+@Composable
+private fun PdfReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit, onClose: () -> Unit) {
+    val b64 = remember(book.pdfBlob) { readBlobBase64(book.pdfBlob) }
+    var pageCount by remember { mutableStateOf(-1) }   // -1 loading · 0 failed/unsupported
+    var page by remember { mutableStateOf(book.pdfPage.coerceAtLeast(0)) }
+    var widthPx by remember { mutableStateOf(0) }
+    var bmp by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(b64) {
+        pageCount = if (b64.isNullOrBlank()) 0 else withContext(Dispatchers.Default) { PdfReader.open(b64) }
+    }
+    LaunchedEffect(page, widthPx, pageCount) {
+        if (pageCount > 0 && widthPx > 0) {
+            val target = page.coerceIn(0, pageCount - 1)
+            bmp = withContext(Dispatchers.Default) { PdfReader.render(target, widthPx) }
+        }
+    }
+    DisposableEffect(book.pdfBlob) {
+        onDispose {
+            val safePage = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
+            save(data.copy(books = data.books.map { if (it.id == book.id) it.copy(pdfPage = safePage) else it }))
+            PdfReader.close()
+        }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onClose) { Text("‹ Close") }
+            Text(book.title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
+            if (pageCount > 0) Text("${page + 1} / $pageCount", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Box(
+            Modifier.weight(1f).fillMaxWidth()
+                .onSizeChanged { if (it.width > 0) widthPx = it.width }
+                .verticalScroll(rememberScrollState()),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            when {
+                pageCount < 0 -> CircularProgressIndicator(Modifier.padding(40.dp))
+                pageCount == 0 -> Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("This device can't render PDFs in-app.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(10.dp))
+                    if (!b64.isNullOrBlank()) OutlinedButton(onClick = { Native.openAttachment(b64, "${book.title}.pdf", "application/pdf") }) { Text("Open in PDF viewer") }
+                }
+                bmp != null -> Image(bmp!!, contentDescription = "Page ${page + 1}", modifier = Modifier.fillMaxWidth(), contentScale = ContentScale.FillWidth)
+                else -> CircularProgressIndicator(Modifier.padding(40.dp))
+            }
+        }
+        if (pageCount > 0) {
+            Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = { if (page > 0) page-- }, enabled = page > 0) { Text("‹ Prev") }
+                Text("${page + 1} / $pageCount", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                OutlinedButton(onClick = { if (page < pageCount - 1) page++ }, enabled = page < pageCount - 1) { Text("Next ›") }
+            }
+        }
+    }
+}
 
 // Full-screen reader that lays the ebook out as real pages: the text is measured
 // to the screen once, sliced into page-sized line ranges, and you tap the right

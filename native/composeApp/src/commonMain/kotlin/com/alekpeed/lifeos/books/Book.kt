@@ -37,6 +37,8 @@ data class Book(
     val photoBlob: String = "",        // blob-store id of an attached photo, if any
     val textBlob: String = "",         // text-blob id of an imported ebook's extracted text
     val readFrac: Float = 0f,          // reader scroll position, 0..1, so you resume where you left off
+    val pdfBlob: String = "",          // blob-store id of an imported PDF, read in-app page by page
+    val pdfPage: Int = 0,              // last page read in the PDF, so you resume where you left off
     val attachments: List<com.alekpeed.lifeos.attach.Attachment> = emptyList(), // extra files: the PDF, notes, etc.
 )
 
