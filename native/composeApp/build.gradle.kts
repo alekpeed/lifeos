@@ -29,6 +29,10 @@ kotlin {
             dependencies {
                 implementation("androidx.activity:activity-compose:1.8.2")
                 implementation("com.google.android.gms:play-services-location:21.0.1")
+                // WebSocket client for Supabase Realtime (Phoenix channels). minSdk 24
+                // rules out java.net.http.WebSocket (API 34+), so OkHttp carries it on
+                // both JVM targets.
+                implementation("com.squareup.okhttp3:okhttp:4.12.0")
                 // Offline speech engine: lightweight on-device keyword spotting +
                 // speaker identification, no cloud, far lighter than looping the
                 // system SpeechRecognizer. Bundles its own native libs (JNA + libvosk).
@@ -42,6 +46,8 @@ kotlin {
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation("com.google.zxing:core:3.5.3")
+                // Same Realtime WebSocket client as Android (see androidMain note).
+                implementation("com.squareup.okhttp3:okhttp:4.12.0")
             }
         }
     }

@@ -26,7 +26,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import com.alekpeed.lifeos.realtime.openShareboxRealtime
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +89,15 @@ fun SharedSpacesTab() {
     LaunchedEffect(Unit) { reloadSpaces() }
     LaunchedEffect(selected) { selected?.let { reloadItems(it) } }
 
+    // Live push: while a space is open, subscribe to its item changes over Realtime
+    // and reload on any insert/update/delete — no manual refresh needed. The channel
+    // is torn down when the selected space changes or the screen leaves composition.
+    DisposableEffect(selected) {
+        val sid = selected
+        val handle = if (sid != null) openShareboxRealtime(sid) { scope.launch { reloadItems(sid) } } else null
+        onDispose { handle?.close() }
+    }
+
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         when {
             spaces == null -> {
@@ -110,6 +121,8 @@ fun SharedSpacesTab() {
                     AddItemForm(sel, scope) { reloadItems(sel) }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Shared (${items.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(8.dp))
+                        Text("· live", style = MaterialTheme.typography.labelSmall, color = SOON)
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = { reloadItems(sel) }, enabled = !busy) { Text(if (busy) "…" else "Refresh") }
                     }
