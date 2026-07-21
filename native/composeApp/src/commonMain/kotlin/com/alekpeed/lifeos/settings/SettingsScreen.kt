@@ -84,7 +84,8 @@ fun SettingsScreen() {
     var tgToken by remember { mutableStateOf(Storage.read("TgToken") ?: "") }
     var tgChat by remember { mutableStateOf(Storage.read("TgChatId") ?: "") }
     var tgMsg by remember { mutableStateOf("") }
-    var sbEmail by remember { mutableStateOf(SupabaseAuth.email() ?: "") }
+    // Pre-fill from a QR-Sync pairing scan ("__pair_email") when not already signed in.
+    var sbEmail by remember { mutableStateOf(SupabaseAuth.email() ?: Storage.read("__pair_email")?.ifBlank { null } ?: "") }
     var sbPassword by remember { mutableStateOf("") }
     var sbSignedIn by remember { mutableStateOf(SupabaseAuth.isSignedIn()) }
     var sbBusy by remember { mutableStateOf(false) }

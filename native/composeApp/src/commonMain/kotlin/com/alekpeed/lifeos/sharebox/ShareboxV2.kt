@@ -71,7 +71,7 @@ object ShareboxV2 {
             put("p_display_name", displayName.ifBlank { "Me" })
         }.toString()
         return req { post("$REST/rpc/create_space", body) }.mapCatching { res ->
-            val el = json.parseToJsonElement(res.body)
+            val el = json.parseToJsonElement(res)
             val obj = if (el is kotlinx.serialization.json.JsonArray) el.jsonArray.first().jsonObject else el.jsonObject
             json.decodeFromJsonElement(SpaceRow.serializer(), obj)
         }
