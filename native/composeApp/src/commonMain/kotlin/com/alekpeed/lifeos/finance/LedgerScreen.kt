@@ -113,6 +113,8 @@ private data class Subscription(
     val cycle: String = "monthly", // weekly | monthly | yearly
     val active: Boolean = true,
     val category: String = "Subscriptions",
+    val renewalDate: String = "",  // next renewal / bill date, ISO
+    val notes: String = "",
 )
 
 @Serializable
@@ -626,6 +628,8 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
 private fun SubscriptionsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     val subs = data.subscriptions
     fun persist(next: List<Subscription>) { onChange(data.copy(subscriptions = next)) }
+    fun patchSub(id: Long, f: (Subscription) -> Subscription) = persist(subs.map { if (it.id == id) f(it) else it })
+    var expandedSub by remember { mutableStateOf<Long?>(null) }
     var nextId by remember { mutableStateOf((subs.maxOfOrNull { it.id } ?: 0L) + 1) }
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
@@ -670,19 +674,40 @@ private fun SubscriptionsTab(data: FinanceData, onChange: (FinanceData) -> Unit)
         }
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(subs.sortedByDescending { monthlyEquiv(it.amount, it.cycle) }, key = { it.id }) { s ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(s.name, style = MaterialTheme.typography.bodyLarge, color = if (s.active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            "${s.cycle} · ${fmt(monthlyEquiv(s.amount, s.cycle))}/mo" + if (!s.active) " · cancelled" else "",
-                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                val expanded = expandedSub == s.id
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f).clickable { expandedSub = if (expanded) null else s.id }) {
+                            Text(s.name, style = MaterialTheme.typography.bodyLarge, color = if (s.active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+                            val meta = buildList {
+                                add(s.cycle)
+                                add("${fmt(monthlyEquiv(s.amount, s.cycle))}/mo")
+                                if (s.category.isNotBlank() && s.category != "Subscriptions") add(s.category)
+                                parseDateOrNull(s.renewalDate)?.let { add("renews ${relativeLabel(it)}") }
+                                if (!s.active) add("cancelled")
+                            }.joinToString(" · ")
+                            Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(fmt(s.amount), style = MaterialTheme.typography.bodyLarge)
+                        TextButton(onClick = {
+                            persist(subs.map { if (it.id == s.id) it.copy(active = !it.active) else it })
+                        }) { Text(if (s.active) "Cancel" else "Resume") }
+                        TextButton(onClick = { persist(subs.filterNot { it.id == s.id }) }) { Text("✕") }
                     }
-                    Text(fmt(s.amount), style = MaterialTheme.typography.bodyLarge)
-                    TextButton(onClick = {
-                        persist(subs.map { if (it.id == s.id) it.copy(active = !it.active) else it })
-                    }) { Text(if (s.active) "Cancel" else "Resume") }
-                    TextButton(onClick = { persist(subs.filterNot { it.id == s.id }) }) { Text("✕") }
+                    if (expanded) {
+                        Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Renews", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            DateField(s.renewalDate) { v -> patchSub(s.id) { it.copy(renewalDate = v) } }
+                            OutlinedTextField(
+                                s.category, { v -> patchSub(s.id) { it.copy(category = v.replace("\n", " ")) } },
+                                modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Category") },
+                            )
+                            OutlinedTextField(
+                                s.notes, { v -> patchSub(s.id) { it.copy(notes = v) } },
+                                modifier = Modifier.fillMaxWidth(), placeholder = { Text("Notes") },
+                            )
+                        }
+                    }
                 }
             }
         }
