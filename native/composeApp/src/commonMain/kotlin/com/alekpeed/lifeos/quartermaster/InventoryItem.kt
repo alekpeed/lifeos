@@ -21,6 +21,8 @@ data class InventoryItem(
     val lentTo: String = "",
     val lentSince: String = "",
     val photoBlob: String = "",      // blob-store id of an attached photo, if any
+    val stockStatus: String = "",    // Full | OK | Low | Out — saved per item
+    val stockCheckedAt: String = "", // ISO date the stock status was last set
 )
 
 // A labeled reference photo for the few-shot stock check: a human label

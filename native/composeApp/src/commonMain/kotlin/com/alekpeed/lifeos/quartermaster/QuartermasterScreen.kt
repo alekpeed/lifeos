@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -251,11 +252,25 @@ private fun ItemCard(data: QuartermasterData, save: (QuartermasterData) -> Unit,
         }
         val chips = buildList {
             if (item.location.isNotBlank()) add("📍 ${item.location}")
+            if (item.stockStatus.isNotBlank()) add("📦 ${item.stockStatus}")
             item.tags.forEach { add("#$it") }
         }
         if (chips.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 chips.forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text("Stock", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("Full", "OK", "Low", "Out").forEach { s ->
+                FilterChip(
+                    selected = item.stockStatus == s,
+                    onClick = {
+                        patch { if (it.stockStatus == s) it.copy(stockStatus = "", stockCheckedAt = "") else it.copy(stockStatus = s, stockCheckedAt = today().toString()) }
+                    },
+                    label = { Text(s) },
+                )
             }
         }
         Spacer(Modifier.height(6.dp))
