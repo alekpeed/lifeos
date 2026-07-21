@@ -39,6 +39,19 @@ private val SOON = Color(0xFFE0A25C)
 
 @Composable
 fun ShareboxScreen() {
+    var mode by remember { mutableStateOf("local") }
+    Column(Modifier.fillMaxSize()) {
+        Text("Sharebox", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(start = 20.dp, top = 20.dp))
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = mode == "local", onClick = { mode = "local" }, label = { Text("Mine") })
+            FilterChip(selected = mode == "shared", onClick = { mode = "shared" }, label = { Text("Shared with a friend") })
+        }
+        if (mode == "local") LocalShareboxTab() else SharedSpacesTab()
+    }
+}
+
+@Composable
+private fun LocalShareboxTab() {
     var data by remember { mutableStateOf(loadSharebox()) }
     var counter by remember { mutableStateOf(data.items.maxOfOrNull { it.id } ?: 0L) }
     fun freshId(): Long { counter += 1; return counter }
@@ -51,9 +64,8 @@ fun ShareboxScreen() {
     var noteBody by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Sharebox", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Links and notes with an urgency flag. Syncs to your own devices; sharing a space with a friend comes with the multi-user backend.",
+            "Links and notes with an urgency flag, private to your own devices.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(12.dp))
