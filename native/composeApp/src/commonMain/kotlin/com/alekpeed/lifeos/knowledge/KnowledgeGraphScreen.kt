@@ -113,6 +113,9 @@ private fun GraphView(
             .filter { !(it.source == focus.source && it.label == focus.label) && (it.source to it.label) !in linked }
             .distinct().take(40)
     }
+    // Every node that still exists right now, so a linked record that was deleted
+    // or renamed can be shown as stale instead of a dead label.
+    val liveNodes = remember(data) { DATA_SOURCES.flatMap { ds -> linesOf(ds.key).map { ds.label to it } }.toSet() }
     fun suggest() {
         if (suggesting || candidates.isEmpty()) return
         suggesting = true
@@ -144,9 +147,14 @@ private fun GraphView(
         item { SectionLabel("Connections (${neighbors.size})") }
         if (neighbors.isEmpty()) item { Muted("Nothing linked yet — connect something below.") }
         else items(neighbors) { (src, lbl) ->
-            Row(Modifier.fillMaxWidth().clickable { onRefocus(Node(src, lbl)) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            val alive = (src to lbl) in liveNodes
+            Row(Modifier.fillMaxWidth().clickable(enabled = alive) { onRefocus(Node(src, lbl)) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(lbl, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        if (alive) lbl else "$lbl (deleted)",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (alive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Text(src, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
                 TextButton(onClick = {

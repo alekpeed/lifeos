@@ -891,6 +891,7 @@ private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     var txns by remember { mutableStateOf<List<Txn>?>(null) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var skipped by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
 
     fun onFile(text: String?) {
@@ -899,8 +900,16 @@ private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
         scope.launch {
             val parsed = withContext(Dispatchers.Default) { parseTransactions(text) }
             busy = false
-            if (parsed.isEmpty()) { error = "Couldn't find transactions in that file."; txns = null }
-            else { error = null; txns = parsed }
+            skipped = 0
+            if (parsed.isEmpty()) { error = "Couldn't find transactions in that file."; txns = null; return@launch }
+            // Drop rows already in the ledger — same date, amount (to the cent), and
+            // description — so re-importing an overlapping export doesn't double-count.
+            fun sig(date: String, amount: Double, desc: String) = "$date|${(amount * 100).toLong()}|${desc.trim().lowercase()}"
+            val existing = data.entries.map { sig(it.date, it.amount, it.desc) }.toSet()
+            val fresh = parsed.filterNot { sig(it.date, it.amount, it.desc) in existing }
+            skipped = parsed.size - fresh.size
+            if (fresh.isEmpty()) { error = "All ${parsed.size} row${if (parsed.size == 1) "" else "s"} are already in the ledger."; txns = null }
+            else { error = null; txns = fresh }
         }
     }
 
@@ -926,6 +935,10 @@ private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
         error?.let {
             Spacer(Modifier.height(6.dp))
             Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+        }
+        if (skipped > 0) {
+            Spacer(Modifier.height(6.dp))
+            Text("$skipped duplicate${if (skipped == 1) "" else "s"} skipped (already in the ledger).", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         txns?.let { list ->
