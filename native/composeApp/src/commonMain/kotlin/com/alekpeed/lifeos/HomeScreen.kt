@@ -68,29 +68,39 @@ private val PINNED_IDS = listOf("today", "tasks", "briefing", "finance", "comman
 
 @Composable
 fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
-    // Live signals, read from local storage on open (same sources as Today).
-    val tasks = remember { loadTasks() }
-    val overdue = remember { tasks.count { val d = it.dueDate(); !it.done && d != null && d < today() } }
-    val dueToday = remember { tasks.count { !it.done && it.dueDate() == today() } }
-    val streak = remember { loadHabits().maxOfOrNull { it.streak } ?: 0 }
+    // Live signals. Loaded OFF the first frame and fully guarded: this is the
+    // landing screen, so a bad record in any store must never keep the home from
+    // drawing — worst case the counts stay at zero.
+    var dueToday by remember { mutableStateOf(0) }
+    var overdue by remember { mutableStateOf(0) }
+    var streak by remember { mutableStateOf(0) }
+    var weather by remember { mutableStateOf<String?>(null) }
 
     val greeting = remember {
-        val hour = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour
-        when {
-            hour < 12 -> "Good morning"
-            hour < 18 -> "Good afternoon"
-            else -> "Good evening"
-        }
+        runCatching {
+            when (Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour) {
+                in 0..11 -> "Good morning"
+                in 12..17 -> "Good afternoon"
+                else -> "Good evening"
+            }
+        }.getOrDefault("Welcome back")
     }
-    val dateStamp = remember { today().toString().replace('-', '·') }
+    val dateStamp = remember { runCatching { today().toString().replace('-', '·') }.getOrDefault("") }
 
-    // Weather: reuses the city saved in Tools; quiet when unset or offline.
-    var weather by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
-        val city = Storage.read("WeatherCity")?.trim().orEmpty()
-        if (city.isNotEmpty()) {
-            WeatherClient.forCity(city).onSuccess { w ->
-                weather = "${w.tempF}°F · ${w.description} · ${w.place}"
+        runCatching {
+            val tasks = loadTasks()
+            overdue = tasks.count { val d = it.dueDate(); !it.done && d != null && d < today() }
+            dueToday = tasks.count { !it.done && it.dueDate() == today() }
+            streak = loadHabits().maxOfOrNull { it.streak } ?: 0
+        }
+        // Weather: reuses the city saved in Tools; quiet when unset or offline.
+        runCatching {
+            val city = Storage.read("WeatherCity")?.trim().orEmpty()
+            if (city.isNotEmpty()) {
+                WeatherClient.forCity(city).onSuccess { w ->
+                    weather = "${w.tempF}°F · ${w.description} · ${w.place}"
+                }
             }
         }
     }
