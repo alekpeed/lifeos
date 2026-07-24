@@ -98,7 +98,7 @@ private fun DomainRow(group: String, mods: List<Module>, isOpen: Boolean, onTogg
             Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(group, color = TEXT, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.width(76.dp))
+            Text(group, color = TEXT, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(116.dp))
             Text(
                 mods.take(6).joinToString(" ") { it.icon },
                 color = ICON_MUTED, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
