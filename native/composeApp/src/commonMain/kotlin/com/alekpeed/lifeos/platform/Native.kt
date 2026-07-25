@@ -140,6 +140,10 @@ expect object Native {
     // reading order, or null if cancelled / unsupported. Backs the Books reader.
     fun pickEbook(onResult: (String?) -> Unit)
 
+    // Same, plus the file's display name — a book can hold several files, and a list
+    // of them only reads properly if each one is named. Both null on cancel.
+    fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit)
+
     // Pick ANY file (PDF, doc, image, …) and hand back its display name, best-effort
     // mime type, and raw bytes as base64 — for the shared attachment layer. All three
     // are null if the user cancelled / the file was unreadable / there's no picker

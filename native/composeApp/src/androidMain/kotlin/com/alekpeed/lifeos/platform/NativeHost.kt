@@ -50,6 +50,11 @@ object NativeHost {
     // spine order, or a plain .txt) for the Books reader (Native.pickEbook).
     @Volatile var ebookMode: Boolean = false
 
+    // Set instead of fileCallback when the caller also wants the file's display name
+    // (Native.pickEbookNamed) — a book can hold several files, and a list of them is
+    // only useful if each one is named. Receives (name, text); both null on cancel.
+    @Volatile var ebookNamedCallback: ((String?, String?) -> Unit)? = null
+
     // When set, the picked file is returned as (display name, mime, raw bytes as
     // base64) for the shared attachment layer (Native.pickAttachment). Takes
     // precedence over ebook/filter/text handling; cleared with every result.

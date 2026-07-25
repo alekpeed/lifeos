@@ -465,6 +465,20 @@ actual object Native {
         }
     }
 
+    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null, null); return }
+        NativeHost.ebookNamedCallback = onResult
+        NativeHost.ebookMode = true
+        try {
+            launcher.launch(arrayOf("application/epub+zip", "text/plain", "*/*"))
+        } catch (e: Exception) {
+            NativeHost.ebookNamedCallback = null
+            NativeHost.ebookMode = false
+            onResult(null, null)
+        }
+    }
+
     actual fun dictate(onResult: (String?) -> Unit) {
         val launcher = NativeHost.dictateLauncher
         if (launcher == null) { onResult(null); return }

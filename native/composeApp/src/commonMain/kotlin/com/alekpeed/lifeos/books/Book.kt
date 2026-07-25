@@ -20,6 +20,25 @@ const val WORDS_PER_PAGE = 275
 @Serializable
 data class ReadLog(val id: Long, val date: String, val pagesRead: Int)
 
+// One readable file belonging to a book. A book is often several files — the EPUB and
+// the PDF of the same title, a companion workbook, the errata — and each one keeps its
+// own place, so switching between them doesn't lose where you were in either.
+//
+// `kind` picks the reader: "text" reads a text blob (EPUB/TXT already extracted to
+// plain text), "pdf" reads a PDF blob page by page. `frac` is the text reader's scroll
+// position (0..1) and `page` the PDF reader's last page; each is ignored by the other.
+@Serializable
+data class BookFile(
+    val id: Long,
+    val name: String,
+    val kind: String,          // text | pdf
+    val blobId: String,
+    val frac: Float = 0f,
+    val page: Int = 0,
+) {
+    val icon: String get() = if (kind == "pdf") "📕" else "📗"
+}
+
 @Serializable
 data class Book(
     val id: Long,
@@ -40,6 +59,10 @@ data class Book(
     val pdfBlob: String = "",          // blob-store id of an imported PDF, read in-app page by page
     val pdfPage: Int = 0,              // last page read in the PDF, so you resume where you left off
     val attachments: List<com.alekpeed.lifeos.attach.Attachment> = emptyList(), // extra files: the PDF, notes, etc.
+    // Readable files, any number of them. The single textBlob/pdfBlob fields above are
+    // the older one-file-per-kind shape; loadBooks() folds them in here on read, so
+    // existing books keep their file and their place in it.
+    val files: List<BookFile> = emptyList(),
 )
 
 @Serializable
@@ -63,11 +86,31 @@ fun readingStreak(allDates: Set<String>): Int {
 
 private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
+// Fold a book's legacy single ebook / single PDF into the files list, keeping the place
+// it was left at. Runs on every read and is idempotent: once the fields are empty (they
+// clear on the next save) there is nothing left to fold.
+private fun withFiles(b: Book): Book {
+    if (b.textBlob.isBlank() && b.pdfBlob.isBlank()) return b
+    var next = b.files.maxOfOrNull { it.id } ?: 0L
+    val folded = buildList {
+        addAll(b.files)
+        if (b.textBlob.isNotBlank() && b.files.none { it.blobId == b.textBlob }) {
+            add(BookFile(++next, "Ebook", "text", b.textBlob, frac = b.readFrac))
+        }
+        if (b.pdfBlob.isNotBlank() && b.files.none { it.blobId == b.pdfBlob }) {
+            add(BookFile(++next, "PDF", "pdf", b.pdfBlob, page = b.pdfPage))
+        }
+    }
+    return b.copy(files = folded, textBlob = "", pdfBlob = "", readFrac = 0f, pdfPage = 0)
+}
+
 fun loadBooks(): BooksData {
     val raw = Storage.read("Books")
     if (raw.isNullOrBlank()) return BooksData()
     if (raw.trimStart().startsWith("{")) {
-        return runCatching { json.decodeFromString<BooksData>(raw) }.getOrElse { BooksData() }
+        return runCatching { json.decodeFromString<BooksData>(raw) }
+            .map { d -> d.copy(books = d.books.map(::withFiles)) }
+            .getOrElse { BooksData() }
     }
     // Old StatusListScreen stub ("<title>\t<statusIndex>"): 0 Want, 1 Reading, 2 Read.
     val books = raw.lines().filter { it.isNotBlank() }.mapIndexed { i, line ->
