@@ -91,9 +91,26 @@ private val ELLIPSES: List<Pair<String, FloatArray>> = listOf(
     "core" to floatArrayOf(426f, 697f, 149f, 154f),
 )
 
-// Text slots left empty in the art: (x, y, w, h) in artwork space.
+// Text slots left empty in the art: (x, y, w, h) in trace space.
 private val SLOT_CLOCK = floatArrayOf(359f, 17f, 138f, 35f)
 private val SLOT_DATE = floatArrayOf(359f, 52f, 138f, 35f)
+
+// The Figma trace and the artwork disagree slightly: the image layer had moved (and
+// scaled ~1%) between tracing and reading its position, so every mapped shape sat
+// ~41px high at the top of the art and ~24px high at the bottom. Measured against
+// the artwork's own pixels (the top-right ring and the scan-button ring):
+//   art = trace * MAP_S + MAP_T, per axis.
+private const val MAP_SX = 0.9936f
+private const val MAP_TX = 1.1f
+private const val MAP_SY = 0.98993f
+private const val MAP_TY = 41.13f
+
+private fun traceToArt(r: FloatArray) = floatArrayOf(
+    r[0] * MAP_SX + MAP_TX, r[1] * MAP_SY + MAP_TY, r[2] * MAP_SX, r[3] * MAP_SY,
+)
+
+private val SLOT_CLOCK_ART = traceToArt(SLOT_CLOCK)
+private val SLOT_DATE_ART = traceToArt(SLOT_DATE)
 
 private val MONTHS = listOf(
     "January", "February", "March", "April", "May", "June",
@@ -171,9 +188,10 @@ fun NexusHome() {
         Canvas(
             modifier = Modifier.fillMaxSize().pointerInput(scale, ox, oy) {
                 detectTapGestures { tap ->
-                    // Screen -> artwork space, then test every region.
-                    val ax = (tap.x - ox) / scale
-                    val ay = (tap.y - oy) / scale
+                    // Screen -> artwork px -> trace space (undo the trace's offset and
+                    // ~1% scale), so every mapped region tests unchanged.
+                    val ax = ((tap.x - ox) / scale - MAP_TX) / MAP_SX
+                    val ay = ((tap.y - oy) / scale - MAP_TY) / MAP_SY
                     val petal = PETALS.firstOrNull { inPolygon(it.second, ax, ay) }
                     if (petal != null) { openDomain = petal.first; return@detectTapGestures }
                     for ((id, e) in ELLIPSES) {
@@ -201,8 +219,8 @@ fun NexusHome() {
         }
 
         // Live values printed into the slots the art leaves empty.
-        SlotText(clock, SLOT_CLOCK, ox, oy, scale, density, Color(0xFFF2F4F6), 26f, FontWeight.Medium)
-        SlotText(date, SLOT_DATE, ox, oy, scale, density, Color(0xFFE0708F), 19f, FontWeight.Normal)
+        SlotText(clock, SLOT_CLOCK_ART, ox, oy, scale, density, Color(0xFFF2F4F6), 26f, FontWeight.Medium)
+        SlotText(date, SLOT_DATE_ART, ox, oy, scale, density, Color(0xFFE0708F), 19f, FontWeight.Normal)
 
         if (openDomain.isNotBlank()) {
             DomainSheet(
