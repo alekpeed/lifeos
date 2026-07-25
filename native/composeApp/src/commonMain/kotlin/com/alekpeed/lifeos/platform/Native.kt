@@ -85,6 +85,11 @@ expect object Native {
     // cancelled/unsupported. Android launches a scanner; desktop is a no-op.
     fun scanQr(onResult: (String?) -> Unit)
 
+    // Scan ANY supported code — QR, EAN-13/UPC, Code 128, … — in one camera pass, so
+    // a universal scanner doesn't have to ask what kind of code it's looking at.
+    // `onResult` gets the decoded text, or null if cancelled/unsupported.
+    fun scanAnyCode(onResult: (String?) -> Unit)
+
     // Scan a 1D product barcode (EAN-13/UPC — e.g. a book's ISBN) with the camera;
     // `onResult` gets the decoded digits, or null if cancelled/unsupported. Gated
     // by supportsQrScan (same camera scanner). Desktop is a no-op.

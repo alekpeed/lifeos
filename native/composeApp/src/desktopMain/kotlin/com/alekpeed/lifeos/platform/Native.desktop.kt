@@ -57,6 +57,8 @@ actual object Native {
     actual fun setOnlyMyVoice(on: Boolean) {}
     actual fun onlyMyVoiceEnabled(): Boolean = false
     actual fun scanQr(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun scanAnyCode(onResult: (String?) -> Unit) = onResult(null)
+
     actual fun scanBarcode(onResult: (String?) -> Unit) { onResult(null) }
     actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) { onResult(null, null) }
     actual fun takePhoto(onResult: (String?) -> Unit) { onResult(null) }

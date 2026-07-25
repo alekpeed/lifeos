@@ -255,6 +255,24 @@ actual object Native {
         }
     }
 
+    actual fun scanAnyCode(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.qrLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.qrCallback = onResult
+        val opts = com.journeyapps.barcodescanner.ScanOptions().apply {
+            setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.ALL_CODE_TYPES)
+            setPrompt("Point at a code")
+            setBeepEnabled(false)
+            setOrientationLocked(false)
+        }
+        try {
+            launcher.launch(opts)
+        } catch (e: Exception) {
+            NativeHost.qrCallback = null
+            onResult(null)
+        }
+    }
+
     actual fun scanBarcode(onResult: (String?) -> Unit) {
         val launcher = NativeHost.qrLauncher
         if (launcher == null) { onResult(null); return }

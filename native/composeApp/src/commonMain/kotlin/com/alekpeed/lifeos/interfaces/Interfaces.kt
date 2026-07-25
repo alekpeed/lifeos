@@ -36,8 +36,12 @@ object Interfaces {
     // Active interface id, observable so switching it in Settings recomposes pages.
     // Persisted, so the interface you picked is still there after a restart.
     private const val K_ACTIVE = "ActiveInterface"
+    // NEXUS is the baseline interface — the graphical home is what Life OS opens into
+    // unless you pick something else in Settings. It falls back to the built-in
+    // functional launcher wherever its artwork isn't available (e.g. desktop).
+    const val BASELINE = "nexus"
     private var activeState by mutableStateOf(
-        Storage.read(K_ACTIVE)?.ifBlank { null } ?: DEFAULT,
+        Storage.read(K_ACTIVE)?.ifBlank { null } ?: BASELINE,
     )
     val active: String get() = activeState
 

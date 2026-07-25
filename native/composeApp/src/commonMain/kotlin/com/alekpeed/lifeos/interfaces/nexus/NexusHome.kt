@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ import com.alekpeed.lifeos.HomeScreen
 import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.lifeOsModules
 import com.alekpeed.lifeos.platform.loadImageAsset
+import com.alekpeed.lifeos.system.smartScan
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -118,6 +120,7 @@ fun NexusHome() {
     }
 
     val modules = remember { lifeOsModules() }
+    val scope = rememberCoroutineScope()
     var openDomain by remember { mutableStateOf("") }
 
     // Live clock — the art leaves these two slots empty on purpose.
@@ -163,11 +166,11 @@ fun NexusHome() {
                     for ((id, e) in ELLIPSES) {
                         val nx = (ax - e[0]) / e[2]
                         val ny = (ay - e[1]) / e[3]
-                        if (nx * nx + ny * ny <= 1f) { act(id); return@detectTapGestures }
+                        if (nx * nx + ny * ny <= 1f) { act(id, scope); return@detectTapGestures }
                     }
                     for ((id, r) in RECTS) {
                         if (ax >= r[0] && ax <= r[0] + r[2] && ay >= r[1] && ay <= r[1] + r[3]) {
-                            act(id); return@detectTapGestures
+                            act(id, scope); return@detectTapGestures
                         }
                     }
                 }
@@ -189,16 +192,17 @@ fun NexusHome() {
     }
 }
 
-// Where a non-petal region goes. The wheel's center is left for a future easter egg,
-// and the round scan button is unassigned until Alek picks its action.
-private fun act(id: String) {
+// Where a non-petal region goes. The wheel's center is left for a future easter egg.
+private fun act(id: String, scope: kotlinx.coroutines.CoroutineScope) {
     when (id) {
         "bell" -> Nav.open("notifications")
         "btn-voice" -> Nav.open("command")
         "btn-note" -> Nav.open("ideas")
         "btn-scandoc" -> Nav.open("documents")
         "btn-ai" -> Nav.open("ai-assistant")
-        else -> {} // ring, core, btn-scan-center: not wired yet
+        // The big round button: scan anything and let Life OS work out what it is.
+        "btn-scan-center" -> smartScan(scope)
+        else -> {} // ring, core: not wired yet
     }
 }
 
