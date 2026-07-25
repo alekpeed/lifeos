@@ -54,6 +54,10 @@ expect object Native {
     // screen, so full-screen art can start just below it. 0 where there is none.
     fun cutoutTopPx(): Int
 
+    // Height in px of the system navigation / gesture area at the bottom, so a
+    // full-screen interface can keep its own controls out of the home-swipe lane.
+    fun navBottomPx(): Int
+
     // Cooking mode: keep the screen on while true.
     fun keepScreenAwake(on: Boolean)
 

@@ -57,8 +57,8 @@ import kotlin.math.roundToInt
 //
 // Tapping one of the eight wheel petals opens that domain; tapping a module in the
 // domain list routes through Nav, exactly like the built-in launcher. The artwork is
-// drawn cover-fit and every region goes through the same transform, so hit areas stay
-// aligned on any screen shape.
+// fitted into the safe area (below the cutout, above the gesture lane) and every region
+// goes through that same transform, so hit areas stay aligned on any screen shape.
 
 const val NEXUS = "nexus"
 private const val ART = "nexus-home.png"
@@ -202,9 +202,15 @@ fun NexusHome() {
         // vertical centering, so nothing drifts with screen shape. Re-read each
         // recomposition: insets can report 0 on the very first frame.
         val topInset = Native.cutoutTopPx().toFloat()
-        val scale = maxOf(vw / ART_W, (vh - topInset) / ART_H)
+        val bottomInset = Native.navBottomPx().toFloat()
+        // Fit the WHOLE artwork between the punch hole and the system gesture lane, so
+        // the bottom action bar sits clear of the home swipe and the top row stays clear
+        // of the camera. Fitting (not filling) means a thin letterbox at the sides — the
+        // art's edges are near-black, so it reads as bezel rather than a gap.
+        val safeH = (vh - topInset - bottomInset).coerceAtLeast(1f)
+        val scale = minOf(vw / ART_W, safeH / ART_H)
         val ox = (vw - ART_W * scale) / 2f
-        val oy = topInset
+        val oy = topInset + (safeH - ART_H * scale) / 2f
         val density = LocalDensity.current
 
         Canvas(

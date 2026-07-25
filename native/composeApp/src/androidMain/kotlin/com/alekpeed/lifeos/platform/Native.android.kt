@@ -104,10 +104,11 @@ actual object Native {
                     window.attributes = attrs
                 }
                 val c = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+                // Hide the STATUS bar only. Hiding the navigation bar too would mean the
+                // first swipe from the bottom just reveals the bars instead of going
+                // home, which fights the gesture rather than yielding to it.
                 if (on) {
-                    c.systemBarsBehavior =
-                        androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                    c.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                    c.hide(androidx.core.view.WindowInsetsCompat.Type.statusBars())
                 } else {
                     c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
                 }
@@ -122,6 +123,16 @@ actual object Native {
             NativeHost.activity?.window?.decorView?.rootWindowInsets
                 ?.displayCutout?.safeInsetTop ?: 0
         } else 0
+    } catch (e: Exception) {
+        0
+    }
+
+    actual fun navBottomPx(): Int = try {
+        val v = NativeHost.activity?.window?.decorView
+        val insets = if (v != null) androidx.core.view.ViewCompat.getRootWindowInsets(v) else null
+        val nav = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val gest = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemGestures())?.bottom ?: 0
+        maxOf(nav, gest)
     } catch (e: Exception) {
         0
     }
