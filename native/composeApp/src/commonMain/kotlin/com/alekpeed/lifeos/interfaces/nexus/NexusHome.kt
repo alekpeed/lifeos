@@ -37,11 +37,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.HomeScreen
 import com.alekpeed.lifeos.Nav
+import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.lifeOsModules
+import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.loadImageAsset
 import com.alekpeed.lifeos.system.scanCode
 import com.alekpeed.lifeos.system.scanWithCamera
+import com.alekpeed.lifeos.tasks.loadTasks
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -95,6 +98,7 @@ private val ELLIPSES: List<Pair<String, FloatArray>> = listOf(
 // Text slots left empty in the art: (x, y, w, h) in trace space.
 private val SLOT_CLOCK = floatArrayOf(359f, 17f, 138f, 35f)
 private val SLOT_DATE = floatArrayOf(359f, 52f, 138f, 35f)
+private val SLOT_RING = floatArrayOf(695f, 17f, 55f, 55f)
 
 // The Figma trace and the artwork disagree slightly: the image layer had moved (and
 // scaled ~1%) between tracing and reading its position, so every mapped shape sat
@@ -112,6 +116,7 @@ private fun traceToArt(r: FloatArray) = floatArrayOf(
 
 private val SLOT_CLOCK_ART = traceToArt(SLOT_CLOCK)
 private val SLOT_DATE_ART = traceToArt(SLOT_DATE)
+private val SLOT_RING_ART = traceToArt(SLOT_RING)
 
 private val MONTHS = listOf(
     "January", "February", "March", "April", "May", "June",
@@ -155,6 +160,9 @@ fun NexusHome() {
     // Live clock — the art leaves these two slots empty on purpose.
     var clock by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("") }
+    // The ring: how much of today you've actually cleared — everything due today or
+    // overdue, plus today's habits. "—" when there's nothing to measure.
+    var ringText by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
         while (true) {
             runCatching {
@@ -167,6 +175,19 @@ fun NexusHome() {
                 val mm = now.minute.toString().padStart(2, '0')
                 clock = "$h12:$mm ${if (now.hour < 12) "AM" else "PM"}"
                 date = "${MONTHS[now.monthNumber - 1]} ${now.dayOfMonth}, ${now.year}"
+            }
+            // Read the day's real state on the same beat as the clock. Guarded: a bad
+            // record must never keep the home from drawing.
+            runCatching {
+                val allTasks = loadTasks()
+                val due = allTasks.filter { !it.done }
+                    .count { val d = it.dueDate(); d != null && d <= today() }
+                val doneToday = allTasks.count { it.done && it.completedDate == today().toString() }
+                val habits = loadHabits()
+                val habitsDone = habits.count { it.checkedInToday }
+                val total = due + doneToday + habits.size
+                val cleared = doneToday + habitsDone
+                ringText = if (total <= 0) "—" else "${cleared * 100 / total}%"
             }
             delay(20_000)
         }
@@ -214,6 +235,7 @@ fun NexusHome() {
         // Live values printed into the slots the art leaves empty.
         SlotText(clock, SLOT_CLOCK_ART, ox, oy, scale, density, Color(0xFFF2F4F6), 26f, FontWeight.Medium)
         SlotText(date, SLOT_DATE_ART, ox, oy, scale, density, Color(0xFFE0708F), 19f, FontWeight.Normal)
+        SlotText(ringText, SLOT_RING_ART, ox, oy, scale, density, Color(0xFFF2F4F6), 21f, FontWeight.SemiBold)
 
         if (openDomain.isNotBlank()) {
             DomainSheet(

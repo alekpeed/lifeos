@@ -90,6 +90,10 @@ fun TasksScreen() {
     var hideDone by remember { mutableStateOf(false) }
     var showSnoozed by remember { mutableStateOf(false) }
     var sortByPriority by remember { mutableStateOf(false) }
+    // The row checkbox SELECTS; completing and deleting are done to the selection from
+    // one universal bar. Keeps the checkbox meaning one thing and makes both actions
+    // work on many rows at once.
+    var selected by remember { mutableStateOf(setOf<Long>()) }
 
     fun update(id: Long, f: (Task) -> Task) {
         val i = tasks.indexOfFirst { it.id == id }
@@ -109,7 +113,36 @@ fun TasksScreen() {
         // Stamp/clear the completion date so the yearly recap can count real years.
         update(task.id) { it.copy(status = newStatus, completedDate = if (newStatus == "done") today().toString() else "") }
     }
-    fun toggleDone(task: Task) = moveStatus(task, if (task.status == "done") "not_started" else "done")
+    // Complete the selection — or reopen it, if every selected task is already done, so a
+    // mis-complete is undone the same way it was made.
+    fun completeSelected() {
+        val picked = tasks.filter { it.id in selected }
+        if (picked.isEmpty()) return
+        val reopen = picked.all { it.done }
+        picked.forEach { task ->
+            if (!reopen && !task.done && task.recur.isNotEmpty()) spawnRecurrence(task)
+            val i = tasks.indexOfFirst { it.id == task.id }
+            if (i >= 0) {
+                tasks[i] = tasks[i].copy(
+                    status = if (reopen) "not_started" else "done",
+                    completedDate = if (reopen) "" else today().toString(),
+                )
+            }
+        }
+        saveTasks(tasks)
+        SaveToast.show(if (reopen) "Reopened ${picked.size}" else "Completed ${picked.size}")
+        selected = emptySet()
+    }
+
+    fun deleteSelected() {
+        val n = tasks.count { it.id in selected }
+        if (n == 0) return
+        tasks.removeAll { it.id in selected }
+        if (expandedId in selected) expandedId = null
+        saveTasks(tasks)
+        SaveToast.show(if (n == 1) "Deleted 1 task" else "Deleted $n tasks")
+        selected = emptySet()
+    }
 
     val projects = tasks.map { it.project.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
     fun visible(list: List<Task>) = list.filter { projectFilter == null || it.project.trim() == projectFilter }
@@ -155,6 +188,20 @@ fun TasksScreen() {
         }
         Spacer(Modifier.height(12.dp))
 
+        // One bar for the whole selection: complete (or reopen) and delete.
+        if (!board && selected.isNotEmpty()) {
+            val shownIds = visible(tasks).map { it.id }.toSet()
+            SelectionBar(
+                count = selected.size,
+                allShownPicked = shownIds.isNotEmpty() && shownIds.all { it in selected },
+                onComplete = { completeSelected() },
+                onDelete = { deleteSelected() },
+                onSelectAll = { selected = if (shownIds.all { it in selected }) emptySet() else shownIds },
+                onClear = { selected = emptySet() },
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+
         if (board) {
             TaskBoard(
                 tasks = visible(tasks),
@@ -177,8 +224,11 @@ fun TasksScreen() {
                     TaskRow(
                         task = task,
                         expanded = expandedId == task.id,
+                        picked = task.id in selected,
+                        onPick = { on ->
+                            selected = if (on) selected + task.id else selected - task.id
+                        },
                         onToggleExpand = { expandedId = if (expandedId == task.id) null else task.id },
-                        onToggleDone = { toggleDone(task) },
                         update = { id, f -> update(id, f) },
                         onDelete = { tasks.removeAll { it.id == task.id }; expandedId = null; persist() },
                     )
@@ -193,14 +243,16 @@ fun TasksScreen() {
 private fun TaskRow(
     task: Task,
     expanded: Boolean,
+    picked: Boolean,
+    onPick: (Boolean) -> Unit,
     onToggleExpand: () -> Unit,
-    onToggleDone: () -> Unit,
     update: (Long, (Task) -> Task) -> Unit,
     onDelete: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().clickable { onToggleExpand() }.padding(vertical = 4.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = task.done, onCheckedChange = { onToggleDone() })
+            // Selects, never completes — completing is done from the selection bar.
+            Checkbox(checked = picked, onCheckedChange = { onPick(it) })
             priorityColor(task.priority)?.let { c ->
                 Text("●", color = c, modifier = Modifier.padding(end = 6.dp))
             }
@@ -422,4 +474,35 @@ private fun EditField(value: String, placeholder: String, singleLine: Boolean = 
         value = value, onValueChange = onChange, modifier = Modifier.fillMaxWidth(),
         singleLine = singleLine, placeholder = { Text(placeholder) },
     )
+}
+
+// The universal selection bar: acts on every checked task at once. Only shown when
+// something is selected, so it stays out of the way the rest of the time.
+@Composable
+private fun SelectionBar(
+    count: Int,
+    allShownPicked: Boolean,
+    onComplete: () -> Unit,
+    onDelete: () -> Unit,
+    onSelectAll: () -> Unit,
+    onClear: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "$count selected",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(6.dp))
+        TextButton(onClick = onSelectAll) { Text(if (allShownPicked) "None" else "All") }
+        Spacer(Modifier.weight(1f))
+        TextButton(onClick = onComplete) { Text("✓ Complete") }
+        TextButton(onClick = onDelete) { Text("🗑 Delete", color = Color(0xFFD64545)) }
+        TextButton(onClick = onClear) { Text("×") }
+    }
 }
