@@ -91,6 +91,18 @@ actual object Native {
             try {
                 val window = act.window
                 androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, !on)
+                // Hiding the bars isn't enough: Android still letterboxes content away
+                // from a notch / punch-hole unless we opt into the short edges, which
+                // leaves a black band at the top and shifts the artwork down.
+                if (android.os.Build.VERSION.SDK_INT >= 28) {
+                    val attrs = window.attributes
+                    attrs.layoutInDisplayCutoutMode = if (on) {
+                        android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    } else {
+                        android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+                    }
+                    window.attributes = attrs
+                }
                 val c = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
                 if (on) {
                     c.systemBarsBehavior =
