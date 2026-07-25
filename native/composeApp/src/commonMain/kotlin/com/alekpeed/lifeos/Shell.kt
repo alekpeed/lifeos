@@ -34,6 +34,7 @@ import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.interfaces.nexus.registerNexus
 import com.alekpeed.lifeos.platform.SystemBackHandler
 import com.alekpeed.lifeos.system.ScanConfirmSheet
+import com.alekpeed.lifeos.timemachine.recordBirths
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.delay
 
@@ -48,6 +49,11 @@ fun Shell() {
 
     // Run the opt-in automation rules once on app open (no-op unless enabled).
     LaunchedEffect(Unit) { runAutomations() }
+
+    // Note the arrival date of any record the census hasn't seen. Done at app open so a
+    // record's "added on" date is the day it actually turned up, not the day the Time
+    // Machine happens to get opened. Writes only when something is new.
+    LaunchedEffect(Unit) { runCatching { recordBirths() } }
 
     // A deep link / app shortcut / NFC tag / shared item can request a module by id.
     LaunchedEffect(Nav.pendingModuleId) {

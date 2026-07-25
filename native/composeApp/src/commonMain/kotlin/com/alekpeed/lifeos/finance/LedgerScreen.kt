@@ -175,6 +175,11 @@ data class PaymentPoint(val date: String, val amount: Double)
 fun financeBillPayments(): List<PaymentPoint> =
     loadData().bills.flatMap { b -> b.paymentHistory.map { PaymentPoint(it.date, it.amount) } }
 
+// Ids and names of bills and subscriptions, for the Time Machine's record census —
+// it needs a stable key per record without the private models leaking out.
+fun financeBillStubs(): List<Pair<Long, String>> = loadData().bills.map { it.id to it.name }
+fun financeSubStubs(): List<Pair<Long, String>> = loadData().subscriptions.map { it.id to it.name }
+
 // Create a bill from outside (the Command bar). Monthly by default; schedules
 // the due reminder like the Bills tab does.
 fun financeAddBill(name: String, amount: Double, dueDate: String) {
