@@ -64,6 +64,8 @@ fun BriefingScreen() {
     val lines = remember(tick) {
         val now = today()
         val soon = now.plusDays(7)
+        // Bills use the Settings horizon; everything else stays on the week ahead.
+        val billSoon = now.plusDays(com.alekpeed.lifeos.settings.billDueSoonDays())
         val tasks = loadTasks()
         val habits = loadHabits()
         val out = mutableListOf<BriefLine>()
@@ -95,7 +97,7 @@ fun BriefingScreen() {
             }
         financeBills().filter { !it.settled }.forEach { b ->
             val due = parseDateOrNull(b.dueDate) ?: return@forEach
-            if (due <= soon) out.add(BriefLine("b${b.name}", b.name, relativeLabel(due) + if (b.autopay) " · autopay" else "", "finance"))
+            if (due <= billSoon) out.add(BriefLine("b${b.name}", b.name, relativeLabel(due) + if (b.autopay) " · autopay" else "", "finance"))
         }
         loadEducation().assignments.filter { !it.done }.forEach { a ->
             val due = parseDateOrNull(a.dueDate) ?: return@forEach

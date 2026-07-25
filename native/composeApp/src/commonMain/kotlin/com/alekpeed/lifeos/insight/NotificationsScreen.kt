@@ -62,6 +62,8 @@ private data class Attention(
 private fun buildAttention(): List<Attention> {
     val now = today()
     val soon = now.plusDays(7)
+    // Bills have their own horizon, set in Settings — a week is only the default.
+    val billSoon = now.plusDays(com.alekpeed.lifeos.settings.billDueSoonDays())
     val out = mutableListOf<Attention>()
 
     loadTasks().filter { !it.done }.forEach { t ->
@@ -72,7 +74,7 @@ private fun buildAttention(): List<Attention> {
     }
     financeBills().filter { !it.settled }.forEach { b ->
         val due = parseDateOrNull(b.dueDate) ?: return@forEach
-        if (due > soon) return@forEach
+        if (due > billSoon) return@forEach
         val label = (if (due < now) relativeLabel(due) else "due ${relativeLabel(due)}") + if (b.autopay) " · autopay" else ""
         out.add(Attention("💵", b.name, label, "finance", due < now && !b.autopay, due.toString()))
     }

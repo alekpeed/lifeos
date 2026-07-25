@@ -33,6 +33,8 @@ import com.alekpeed.lifeos.core.runAutomations
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.interfaces.nexus.registerNexus
 import com.alekpeed.lifeos.platform.SystemBackHandler
+import com.alekpeed.lifeos.settings.LockScreen
+import com.alekpeed.lifeos.settings.appLockEnabled
 import com.alekpeed.lifeos.system.ScanConfirmSheet
 import com.alekpeed.lifeos.timemachine.recordBirths
 import com.alekpeed.lifeos.ui.SaveToast
@@ -43,6 +45,14 @@ import kotlinx.coroutines.delay
 fun Shell() {
     val modules = remember { lifeOsModules() }
     var current by remember { mutableStateOf<Module?>(null) }
+
+    // The PIN gate, when one is set: nothing else renders until it's entered. Checked
+    // before any module so a deep link can't route around it.
+    var locked by remember { mutableStateOf(appLockEnabled()) }
+    if (locked) {
+        LockScreen { locked = false }
+        return
+    }
 
     // Make the graphical interfaces available for selection in Settings.
     remember { registerNexus() }

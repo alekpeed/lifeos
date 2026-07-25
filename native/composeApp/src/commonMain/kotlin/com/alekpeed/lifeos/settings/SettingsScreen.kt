@@ -1,6 +1,7 @@
 package com.alekpeed.lifeos.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +32,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.AppTheme
@@ -41,7 +44,10 @@ import com.alekpeed.lifeos.ai.DEFAULT_GEMINI_MODEL
 import com.alekpeed.lifeos.ai.DEFAULT_OPENAI_MODEL
 import com.alekpeed.lifeos.data.DATA_SOURCES
 import com.alekpeed.lifeos.data.countOf
+import com.alekpeed.lifeos.documents.docExpiryDays
+import com.alekpeed.lifeos.documents.setDocExpiryDays
 import com.alekpeed.lifeos.integrations.TelegramClient
+import com.alekpeed.lifeos.integrations.TelegramLink
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.sync.SupabaseAuth
@@ -84,6 +90,14 @@ fun SettingsScreen() {
     var tgToken by remember { mutableStateOf(Storage.read("TgToken") ?: "") }
     var tgChat by remember { mutableStateOf(Storage.read("TgChatId") ?: "") }
     var tgMsg by remember { mutableStateOf("") }
+    var tgLink by remember { mutableStateOf<TelegramLink.State?>(null) }
+    var tgLinkMsg by remember { mutableStateOf("") }
+    var tgBusy by remember { mutableStateOf(false) }
+    var pin by remember { mutableStateOf("") }
+    var pinMsg by remember { mutableStateOf("") }
+    var lockOn by remember { mutableStateOf(appLockEnabled()) }
+    var billDays by remember { mutableStateOf(billDueSoonDays().toString()) }
+    var expiryDays by remember { mutableStateOf(docExpiryDays().toString()) }
     // Pre-fill from a QR-Sync pairing scan ("__pair_email") when not already signed in.
     var sbEmail by remember { mutableStateOf(SupabaseAuth.email() ?: Storage.read("__pair_email")?.ifBlank { null } ?: "") }
     var sbPassword by remember { mutableStateOf("") }
@@ -402,6 +416,77 @@ fun SettingsScreen() {
             Text(tgMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
 
+        // Two-way chat. The bot lives server-side, so this only links a chat to the
+        // account and hands over the link that starts it.
+        Spacer(Modifier.height(16.dp))
+        Text("Two-way chat", style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Text your bot to capture ideas and tasks, or ask what's due — from anywhere, even with the app closed. " +
+                "It replies and files things straight into Life OS. Needs the bot token above and an account you're signed into.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        LaunchedEffect(sbSignedIn, tgToken) {
+            if (tgToken.isNotBlank() && sbSignedIn) {
+                tgLink = runCatching { TelegramLink.state() }.getOrNull()
+            }
+        }
+        when {
+            tgToken.isBlank() -> Text(
+                "Add your bot token above to connect.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            !sbSignedIn -> Text(
+                "Sign in below (Sync) to connect — the link belongs to the account, not the device.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            tgLink?.linked == true -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        enabled = !tgBusy,
+                        onClick = {
+                            tgBusy = true
+                            scope.launch {
+                                val r = TelegramLink.unlink()
+                                tgBusy = false
+                                tgLinkMsg = if (r.isSuccess) "Disconnected." else (r.exceptionOrNull()?.message ?: "Couldn't disconnect")
+                                tgLink = runCatching { TelegramLink.state() }.getOrNull()
+                            }
+                        },
+                    ) { Text("Disconnect") }
+                    Text(
+                        "Connected — text your bot /help to see what it can do.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            else -> {
+                OutlinedButton(
+                    enabled = !tgBusy,
+                    onClick = {
+                        tgBusy = true
+                        tgLinkMsg = "Generating link…"
+                        scope.launch {
+                            val r = TelegramLink.createDeepLink()
+                            tgBusy = false
+                            r.fold(
+                                onSuccess = { url ->
+                                    tgLinkMsg = "Opening your bot — tap Start there to finish connecting."
+                                    Native.openUrl(url)
+                                },
+                                onFailure = { tgLinkMsg = it.message ?: "Couldn't create the link" },
+                            )
+                        }
+                    },
+                ) { Text(if (tgBusy) "Working…" else "Connect Telegram") }
+            }
+        }
+        if (tgLinkMsg.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(tgLinkMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        }
+
         Spacer(Modifier.height(24.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
         Spacer(Modifier.height(24.dp))
@@ -551,6 +636,87 @@ fun SettingsScreen() {
             "Logs a milestone at habit-streak marks (7 / 30 / 100 / 365) and creates a “Renew” task for expiring documents. Off by default; idempotent — it never double-fires.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.height(24.dp))
+
+        Text("ALERTS", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "How far ahead counts as \"due soon\" — used by Notifications, the Briefing and the Daily Paper.",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = billDays,
+            onValueChange = { v ->
+                billDays = v.filter { it.isDigit() }.take(2)
+                billDays.toIntOrNull()?.let { setBillDueSoonDays(it) }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            label = { Text("Bill due-soon alert (days)") },
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = expiryDays,
+            onValueChange = { v ->
+                expiryDays = v.filter { it.isDigit() }.take(3)
+                expiryDays.toIntOrNull()?.let { setDocExpiryDays(it) }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            label = { Text("Document expiry alert (days)") },
+        )
+        Text(
+            "Bills: 1–90 days. Documents: 1–365. Blank or out of range falls back to 7 and 30.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.height(24.dp))
+
+        Text("APP LOCK", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Ask for a PIN when the app starts. Keeps someone holding your unlocked phone out of your documents, " +
+                "contacts and finances. It is not encryption — the data on the device is not scrambled, and anyone " +
+                "able to read the device's storage directly could still get at it.",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(10.dp))
+        if (lockOn) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = { clearAppLock(); lockOn = false; pin = ""; pinMsg = "PIN removed." }) { Text("Turn off") }
+                Text("On — asked for at every start.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            OutlinedTextField(
+                value = pin,
+                onValueChange = { v -> pin = v.filter { it.isDigit() }.take(12); pinMsg = "" },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                label = { Text("New PIN (4+ digits)") },
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                enabled = pin.length >= 4,
+                onClick = {
+                    if (setAppLockPin(pin)) { lockOn = true; pin = ""; pinMsg = "PIN set — it's asked for next time the app starts." }
+                    else pinMsg = "Use at least 4 digits."
+                },
+            ) { Text("Set PIN") }
+        }
+        if (pinMsg.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(pinMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        }
 
         Spacer(Modifier.height(24.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
