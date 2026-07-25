@@ -21,6 +21,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -30,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +42,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -82,7 +89,8 @@ private fun taskMetas(task: Task): List<String> = buildList {
 fun TasksScreen() {
     val tasks = remember { mutableStateListOf<Task>().apply { addAll(loadTasks()) } }
     fun persist() { saveTasks(tasks); SaveToast.show() }
-    var input by remember { mutableStateOf("") }
+    // Adding starts from the button, not the keyboard: hit Add and the prompt comes up.
+    var adding by remember { mutableStateOf(false) }
     var nextId by remember { mutableStateOf((tasks.maxOfOrNull { it.id } ?: 0L) + 1) }
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var board by remember { mutableStateOf(false) }
@@ -151,19 +159,8 @@ fun TasksScreen() {
         Text("Tasks", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(14.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = input, onValueChange = { input = it },
-                modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New task") },
-            )
-            Spacer(Modifier.width(10.dp))
-            Button(onClick = {
-                val t = input.trim().replace("\n", " ")
-                if (t.isNotEmpty()) {
-                    // Adding while filtered to a project drops the new task into that project.
-                    tasks.add(Task(nextId, t, project = projectFilter ?: "")); nextId += 1; persist(); input = ""
-                }
-            }) { Text("Add") }
+        Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("+ Add task")
         }
         Spacer(Modifier.height(10.dp))
 
@@ -200,6 +197,20 @@ fun TasksScreen() {
                 onClear = { selected = emptySet() },
             )
             Spacer(Modifier.height(10.dp))
+        }
+
+        if (adding) {
+            AddTaskPrompt(
+                // Adding while filtered to a project drops the new task into that project.
+                project = projectFilter,
+                onDismiss = { adding = false },
+                onAdd = { title, due ->
+                    tasks.add(Task(nextId, title, due = due, project = projectFilter ?: ""))
+                    nextId += 1
+                    persist()
+                    adding = false
+                },
+            )
         }
 
         if (board) {
@@ -505,4 +516,64 @@ private fun SelectionBar(
         TextButton(onClick = onDelete) { Text("🗑 Delete", color = Color(0xFFD64545)) }
         TextButton(onClick = onClear) { Text("×") }
     }
+}
+
+// The add prompt: hit Add and this comes up ready to type, so a new task never starts
+// with hunting for a text box. Title is all that's required; the due chips save opening
+// the task afterwards just to say "today".
+@Composable
+private fun AddTaskPrompt(
+    project: String?,
+    onDismiss: () -> Unit,
+    onAdd: (title: String, due: String) -> Unit,
+) {
+    var title by remember { mutableStateOf("") }
+    var due by remember { mutableStateOf("") }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+
+    fun submit() {
+        val t = title.trim().replace("\n", " ")
+        if (t.isNotEmpty()) onAdd(t, due)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (project != null) "New task in $project" else "New task") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    singleLine = true,
+                    placeholder = { Text("What needs doing?") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Due",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(
+                        "Today" to today().toString(),
+                        "Tomorrow" to today().plusDays(1).toString(),
+                        "Next week" to today().plusDays(7).toString(),
+                    ).forEach { (label, value) ->
+                        FilterChip(
+                            selected = due == value,
+                            onClick = { due = if (due == value) "" else value },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { submit() }) { Text("Add") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
