@@ -1,5 +1,13 @@
 package com.alekpeed.lifeos.interfaces.nexus
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,7 +34,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -46,9 +64,11 @@ import com.alekpeed.lifeos.system.scanCode
 import com.alekpeed.lifeos.system.scanWithCamera
 import com.alekpeed.lifeos.tasks.loadTasks
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // NEXUS — a graphical home for Life OS. The artwork is a single bundled image; every
@@ -137,6 +157,113 @@ private fun inPolygon(poly: FloatArray, px: Float, py: Float): Boolean {
     return inside
 }
 
+// ── Light ────────────────────────────────────────────────────────────────────────
+// The artwork is a still image, so everything that moves is drawn over it in the same
+// coordinate space as the hit testing. Light is the whole vocabulary: a region lights up
+// when you touch it, the wheel lights up petal by petal on open, the core breathes, and
+// the ring fills to the real number. Nothing here changes the art — pull the overlay and
+// the screen still works.
+
+private val LIGHT = Color(0xFFE0708F) // the art's accent — glow has to look native to it
+private val LIGHT_HOT = Color(0xFFFFC2D6) // the brighter core of a fresh tap
+
+// Glow is additive: layered strokes from wide-and-faint to tight-and-bright, so the edge
+// reads as light bleeding off the shape rather than a flat outline sitting on top of it.
+private val HALO_W = floatArrayOf(15f, 10f, 6f, 2.5f)
+private val HALO_A = floatArrayOf(0.09f, 0.15f, 0.26f, 0.62f)
+
+private fun DrawScope.glow(path: Path, amount: Float, scale: Float, fill: Float = 0.20f) {
+    if (amount <= 0.01f) return
+    val a = amount.coerceAtMost(1f)
+    if (fill > 0f) {
+        drawPath(path, LIGHT.copy(alpha = fill * a), blendMode = BlendMode.Plus)
+    }
+    for (i in HALO_W.indices) {
+        drawPath(
+            path,
+            (if (i == HALO_W.lastIndex) LIGHT_HOT else LIGHT).copy(alpha = HALO_A[i] * a),
+            style = Stroke(width = HALO_W[i] * scale),
+            blendMode = BlendMode.Plus,
+        )
+    }
+}
+
+// Trace-space point -> screen, via the same art mapping every region uses.
+private fun sx(x: Float, ox: Float, scale: Float) = ox + (x * MAP_SX + MAP_TX) * scale
+private fun sy(y: Float, oy: Float, scale: Float) = oy + (y * MAP_SY + MAP_TY) * scale
+
+private fun polyPath(poly: FloatArray, ox: Float, oy: Float, scale: Float): Path {
+    val p = Path()
+    for (i in 0 until poly.size / 2) {
+        val x = sx(poly[i * 2], ox, scale)
+        val y = sy(poly[i * 2 + 1], oy, scale)
+        if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
+    }
+    p.close()
+    return p
+}
+
+private fun rectPath(r: FloatArray, ox: Float, oy: Float, scale: Float): Path {
+    val a = traceToArt(r)
+    val p = Path()
+    p.addRoundRect(
+        RoundRect(
+            Rect(
+                Offset(ox + a[0] * scale, oy + a[1] * scale),
+                Size(a[2] * scale, a[3] * scale),
+            ),
+            CornerRadius(18f * scale, 18f * scale),
+        ),
+    )
+    return p
+}
+
+private fun ovalPath(e: FloatArray, ox: Float, oy: Float, scale: Float, inset: Float = 1f): Path {
+    val cx = sx(e[0], ox, scale)
+    val cy = sy(e[1], oy, scale)
+    val rx = e[2] * MAP_SX * scale * inset
+    val ry = e[3] * MAP_SY * scale * inset
+    val p = Path()
+    p.addOval(Rect(cx - rx, cy - ry, cx + rx, cy + ry))
+    return p
+}
+
+private val RING_E = ELLIPSES.first { it.first == "ring" }.second
+
+// The top-right ring, lit clockwise from 12 o'clock to today's fraction. The art draws the
+// ring itself; this is the lit part of it, so the number inside and the light agree.
+private fun DrawScope.drawRingArc(frac: Float, ox: Float, oy: Float, scale: Float) {
+    if (frac <= 0.005f) return
+    val cx = sx(RING_E[0], ox, scale)
+    val cy = sy(RING_E[1], oy, scale)
+    val rx = RING_E[2] * MAP_SX * scale * 0.84f
+    val ry = RING_E[3] * MAP_SY * scale * 0.84f
+    val topLeft = Offset(cx - rx, cy - ry)
+    val size = Size(rx * 2f, ry * 2f)
+    val sweep = 360f * frac.coerceIn(0f, 1f)
+    val widths = floatArrayOf(11f, 7f, 3.4f)
+    val alphas = floatArrayOf(0.15f, 0.28f, 0.85f)
+    for (i in widths.indices) {
+        drawArc(
+            if (i == widths.lastIndex) LIGHT_HOT else LIGHT,
+            -90f, sweep, false, topLeft, size,
+            alpha = alphas[i],
+            style = Stroke(width = widths[i] * scale, cap = StrokeCap.Round),
+            blendMode = BlendMode.Plus,
+        )
+    }
+}
+
+// The boot sweep: each petal gets a short window of light as the sweep passes it, so the
+// wheel comes on clockwise from the top instead of all at once.
+private fun sweepAt(t: Float, i: Int, n: Int): Float {
+    if (t <= 0f || t >= 1f) return 0f
+    val center = (i + 0.5f) / n * 0.78f
+    val d = abs(t - center)
+    val w = 0.13f
+    return ((1f - d / w).coerceAtLeast(0f)) * 0.85f
+}
+
 @Composable
 fun NexusHome() {
     val art = remember { loadImageAsset(ART) }
@@ -163,6 +290,9 @@ fun NexusHome() {
     // The ring: how much of today you've actually cleared — everything due today or
     // overdue, plus today's habits. "—" when there's nothing to measure.
     var ringText by remember { mutableStateOf("") }
+    // Same number as the ring text, as a 0..1 fraction, so the arc drawn around the ring
+    // and the printed percentage can never disagree.
+    var ringPct by remember { mutableStateOf(-1f) }
     LaunchedEffect(Unit) {
         while (true) {
             runCatching {
@@ -188,9 +318,34 @@ fun NexusHome() {
                 val total = due + doneToday + habits.size
                 val cleared = doneToday + habitsDone
                 ringText = if (total <= 0) "—" else "${cleared * 100 / total}%"
+                ringPct = if (total <= 0) -1f else (cleared.toFloat() / total).coerceIn(0f, 1f)
             }
             delay(20_000)
         }
+    }
+
+    // Tap light. One region at a time: the id that was hit, and how bright it is right now.
+    var litId by remember { mutableStateOf("") }
+    val lit = remember { Animatable(0f) }
+
+    // The wheel lighting up petal by petal when the home appears.
+    val boot = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { boot.animateTo(1f, tween(1600, easing = LinearEasing)) }
+
+    // The core breathes so the screen never looks frozen.
+    val breath = rememberInfiniteTransition().animateFloat(
+        initialValue = 0.10f,
+        targetValue = 0.34f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+    )
+
+    // The ring arc counts up to today's real number rather than snapping to it.
+    val ringArc = remember { Animatable(0f) }
+    LaunchedEffect(ringPct) {
+        if (ringPct >= 0f) ringArc.animateTo(ringPct, tween(1100, easing = FastOutSlowInEasing))
     }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF07080C))) {
@@ -213,16 +368,36 @@ fun NexusHome() {
         val oy = topInset + (safeH - ART_H * scale) / 2f
         val density = LocalDensity.current
 
+        // Every lightable region as a screen-space path, built from the same mapped shapes
+        // the taps test against — so what lights up is exactly what you pressed. Rebuilt
+        // only when the fit changes (rotation, insets settling), not per frame.
+        val paths = remember(scale, ox, oy) {
+            buildMap<String, Path> {
+                PETALS.forEach { (id, poly) -> put(DOMAIN_PREFIX + id, polyPath(poly, ox, oy, scale)) }
+                RECTS.forEach { (id, r) -> put(id, rectPath(r, ox, oy, scale)) }
+                ELLIPSES.forEach { (id, e) -> put(id, ovalPath(e, ox, oy, scale, inset = 0.94f)) }
+            }
+        }
+
         Canvas(
             modifier = Modifier.fillMaxSize().pointerInput(scale, ox, oy) {
                 detectTapGestures { tap ->
-                    when (val hit = regionAt(tap, ox, oy, scale)) {
-                        null -> {}
-                        else -> if (hit.startsWith(DOMAIN_PREFIX)) {
+                    val hit = regionAt(tap, ox, oy, scale) ?: return@detectTapGestures
+                    // The ring and the core are readouts, not buttons — don't light them
+                    // on touch and promise something that isn't there.
+                    if (hit == "ring" || hit == "core") return@detectTapGestures
+                    scope.launch {
+                        litId = hit
+                        lit.snapTo(1f)
+                        // Let the light land before the screen changes underneath it.
+                        delay(70)
+                        if (hit.startsWith(DOMAIN_PREFIX)) {
                             openDomain = hit.removePrefix(DOMAIN_PREFIX)
                         } else {
                             act(hit, scope)
                         }
+                        lit.animateTo(0f, tween(420, easing = LinearEasing))
+                        if (litId == hit) litId = ""
                     }
                 }
             },
@@ -236,6 +411,24 @@ fun NexusHome() {
                 dstOffset = IntOffset(ox.roundToInt(), oy.roundToInt()),
                 dstSize = IntSize((ART_W * scale).roundToInt(), (ART_H * scale).roundToInt()),
             )
+
+            // Opening sweep: light runs clockwise around the wheel once, then stops.
+            val t = boot.value
+            if (t < 1f) {
+                PETALS.forEachIndexed { i, (id, _) ->
+                    val a = sweepAt(t, i, PETALS.size)
+                    if (a > 0.01f) paths[DOMAIN_PREFIX + id]?.let { glow(it, a, scale, fill = 0.11f) }
+                }
+            }
+
+            // The core breathing, always.
+            paths["core"]?.let { glow(it, breath.value, scale, fill = 0.05f) }
+
+            // The ring filling to today's real number.
+            drawRingArc(ringArc.value, ox, oy, scale)
+
+            // Whatever you just pressed, brightest and on top.
+            if (litId.isNotEmpty()) paths[litId]?.let { glow(it, lit.value, scale, fill = 0.26f) }
         }
 
         // Live values printed into the slots the art leaves empty.
