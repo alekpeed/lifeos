@@ -65,8 +65,6 @@ fun EducationScreen() {
     var courseId by remember { mutableStateOf<Long?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Education", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = tab == "coursework", onClick = { tab = "coursework" }, label = { Text("Coursework") })
             FilterChip(selected = tab == "summary", onClick = { tab = "summary" }, label = { Text("GPA & Time") })

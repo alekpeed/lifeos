@@ -69,7 +69,6 @@ private fun ListsOverview(data: PackingData, save: (PackingData) -> Unit, freshI
     var name by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("") }
 
-    Text("Trip Packing Lists", style = MaterialTheme.typography.headlineMedium)
     Text("One checklist per trip, with templates to get started fast.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(12.dp))
 

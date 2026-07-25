@@ -55,7 +55,6 @@ fun ToolsScreen() {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Tools", style = MaterialTheme.typography.headlineMedium)
         Text(
             "Weather, currency, and markets fetch live (keyless, on tap); the unit converter and timezones are offline.",
             style = MaterialTheme.typography.bodyMedium,
@@ -333,6 +332,58 @@ private fun CurrencyCard() {
                     },
                     enabled = !loading,
                 ) { Text("Refresh") }
+            }
+
+            // Hand-set a rate. The feed is right almost always; when it isn't — a
+            // currency it doesn't carry, or the rate you actually got at a counter —
+            // this pins your number until the next refresh overwrites it.
+            Spacer(Modifier.height(10.dp))
+            var editRates by remember { mutableStateOf(false) }
+            TextButton(onClick = { editRates = !editRates }) {
+                Text(if (editRates) "Hide rate editor" else "Set a rate by hand")
+            }
+            if (editRates) {
+                var code by remember { mutableStateOf(to) }
+                var manual by remember { mutableStateOf(CurrencyClient.rateOf(to)?.toString() ?: "") }
+                var rateMsg by remember { mutableStateOf("") }
+                Text(
+                    "Rates are per 1 USD. Refreshing from the feed replaces anything set here.",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = code,
+                        onValueChange = { v -> code = v.uppercase().filter { it.isLetter() }.take(5); rateMsg = "" },
+                        modifier = Modifier.width(110.dp),
+                        singleLine = true,
+                        label = { Text("Code") },
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = manual,
+                        onValueChange = { v -> manual = v.filter { it.isDigit() || it == '.' }.take(14); rateMsg = "" },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        label = { Text("Rate per 1 USD") },
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = {
+                        val v = manual.toDoubleOrNull()
+                        rateMsg = if (v != null && CurrencyClient.setRate(code, v)) {
+                            ratesTick += 1
+                            "Saved — 1 USD = $v $code"
+                        } else {
+                            "Enter a currency code and a rate above zero."
+                        }
+                    }) { Text("Save rate") }
+                    if (rateMsg.isNotEmpty()) {
+                        Spacer(Modifier.width(10.dp))
+                        Text(rateMsg, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
             }
         }
     }

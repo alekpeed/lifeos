@@ -97,8 +97,6 @@ fun AskScreen() {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Ask", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(6.dp))
 
         if (hasKey || canEmbed) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

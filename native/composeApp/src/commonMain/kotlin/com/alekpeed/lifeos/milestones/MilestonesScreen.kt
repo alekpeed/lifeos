@@ -68,8 +68,6 @@ fun MilestonesScreen() {
     var input by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Milestones", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = tab == "timeline", onClick = { tab = "timeline" }, label = { Text("Timeline") })
             FilterChip(selected = tab == "recap", onClick = { tab = "recap"; selected = null }, label = { Text("Yearly recap") })
@@ -224,6 +222,12 @@ private fun Recap(data: MilestonesData) {
     val healthLogs = health.logs.count { it.date.startsWith(y) }
     val sleeps = health.logs.filter { it.date.startsWith(y) }.mapNotNull { it.sleepHours }
     val workoutsLogged = health.workouts.count { it.date.startsWith(y) }
+    // Documents and contacts have no date of their own; the record census knows when
+    // each one turned up, which is exactly what the web recap counts. Records that
+    // predate the census read as LEGACY and so aren't attributed to any year.
+    val births = remember(y) { com.alekpeed.lifeos.timemachine.loadBirths() }
+    val docsAdded = births.born.count { (k, v) -> k.startsWith("Documents#") && v.startsWith(y) }
+    val contactsAdded = births.born.count { (k, v) -> k.startsWith("Contacts#") && v.startsWith(y) }
     val ms = data.milestones.filter { it.date.startsWith(y) }.sortedBy { it.date }
     val stats = buildList {
         add("Milestones" to ms.size.toString())
@@ -234,6 +238,8 @@ private fun Recap(data: MilestonesData) {
         add("Pages read" to pagesRead.toString())
         add("Recipes cooked" to "$recipesCooked recipes, $cookSessions sessions")
         add("Bills paid" to "$" + ((billsPaid * 100).toLong() / 100.0).toString())
+        add("Documents added" to docsAdded.toString())
+        add("Contacts added" to contactsAdded.toString())
         add("Habit check-ins" to habitCheckins.toString())
         add("Workouts logged" to workoutsLogged.toString())
         add("Health logs" to healthLogs.toString())

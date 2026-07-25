@@ -67,7 +67,6 @@ private fun Overview(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fre
     val active = data.holes.filter { it.status != "resolved" }
     val resolved = data.holes.filter { it.status == "resolved" }
 
-    Text("Rabbit Hole Journal", style = MaterialTheme.typography.headlineMedium)
     Text("Track what you went down a hole researching.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(12.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {

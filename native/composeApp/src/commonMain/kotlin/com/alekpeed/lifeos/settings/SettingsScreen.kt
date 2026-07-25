@@ -112,8 +112,6 @@ fun SettingsScreen() {
     )
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Text("Settings", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(20.dp))
 
         Text("INTERFACE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))

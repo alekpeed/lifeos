@@ -71,8 +71,6 @@ fun HealthScreen() {
     var tab by remember { mutableStateOf("daily") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Health", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(10.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("daily" to "Daily", "workouts" to "Workouts", "metrics" to "Metrics", "import" to "Import").forEach { (v, lbl) ->
                 FilterChip(selected = tab == v, onClick = { tab = v }, label = { Text(lbl) })

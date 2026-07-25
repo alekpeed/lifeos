@@ -75,8 +75,6 @@ fun EntropyScreen() {
     val overall = if (known.isNotEmpty()) known.average().roundToInt() else null
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Entropy", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(6.dp))
         Text(
             "How long since each area was last touched — most neglected first.",
             style = MaterialTheme.typography.bodyMedium,

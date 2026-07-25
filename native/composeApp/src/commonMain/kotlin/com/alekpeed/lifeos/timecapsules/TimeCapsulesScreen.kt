@@ -56,7 +56,6 @@ fun TimeCapsulesScreen() {
     val opened = data.capsules.filter { !isSealed(it) }.sortedByDescending { it.sealedUntil.ifBlank { it.createdAt } }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Time Capsules", style = MaterialTheme.typography.headlineMedium)
         Text("Write a note now, seal it until a future date, and it surfaces on its own.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
 

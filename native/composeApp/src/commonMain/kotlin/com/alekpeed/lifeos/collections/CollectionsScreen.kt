@@ -68,7 +68,6 @@ private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, fre
     var name by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
 
-    Text("Collections", style = MaterialTheme.typography.headlineMedium)
     Text("Track any collection you keep — records, cards, whatever.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(12.dp))
     OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Collection name (e.g. Vinyl records)") })

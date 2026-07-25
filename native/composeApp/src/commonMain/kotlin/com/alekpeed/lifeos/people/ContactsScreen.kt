@@ -64,8 +64,6 @@ fun ContactsScreen() {
     var tagFilter by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Contacts", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(input, { input = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New contact") })

@@ -163,8 +163,6 @@ fun BooksScreen() {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Books", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         FlowRowTabs(
             listOf("reading" to "Reading", "to_read" to "To read", "finished" to "Finished", "shelf" to "Shelf", "stats" to "Stats"),
             tab,

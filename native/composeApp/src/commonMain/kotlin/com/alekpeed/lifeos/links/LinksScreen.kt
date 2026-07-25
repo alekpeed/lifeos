@@ -59,8 +59,6 @@ fun LinksScreen() {
     var input by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Links", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             FilterChip(selected = tab == "video", onClick = { tab = "video"; selected = null }, label = { Text("YouTube") })
             Spacer(Modifier.width(8.dp))

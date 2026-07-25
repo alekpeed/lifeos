@@ -163,8 +163,6 @@ fun CommandScreen() {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Command", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(6.dp))
         Text("Capture once, send it where it belongs.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
 

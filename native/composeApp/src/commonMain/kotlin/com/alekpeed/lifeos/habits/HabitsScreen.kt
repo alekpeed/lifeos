@@ -48,8 +48,6 @@ fun HabitsScreen() {
     var expanded by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Habits", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(14.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(

@@ -70,8 +70,6 @@ fun RecipesScreen() {
     var input by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Recipes", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = tab == "recipes", onClick = { tab = "recipes" }, label = { Text("Recipes") })
             FilterChip(selected = tab == "grocery", onClick = { tab = "grocery"; selected = null }, label = { Text("Grocery list") })

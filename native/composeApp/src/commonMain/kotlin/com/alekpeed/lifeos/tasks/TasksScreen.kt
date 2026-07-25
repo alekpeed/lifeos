@@ -156,8 +156,6 @@ fun TasksScreen() {
     fun visible(list: List<Task>) = list.filter { projectFilter == null || it.project.trim() == projectFilter }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Tasks", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(14.dp))
 
         Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) {
             Text("+ Add task")

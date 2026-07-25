@@ -61,8 +61,6 @@ fun QrSyncScreen() {
     var status by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("QR Sync", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(6.dp))
         Text(
             "Sync happens through your account: sign into the same email on each device and your data merges automatically. This makes pairing a new device one scan.",
             style = MaterialTheme.typography.bodyMedium,

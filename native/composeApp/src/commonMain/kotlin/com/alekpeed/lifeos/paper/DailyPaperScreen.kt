@@ -93,16 +93,26 @@ private fun buildEditorialContext(
 }
 
 // One want-to-go place / unread book / untried recipe, chosen stably for the day.
-private fun computeEditorsPick(): String {
+// The day's suggestion, picked from what you've said you want to get to. Stable for a
+// given day (so it doesn't shuffle while you read) unless you ask for another, which
+// walks the list by `offset` — the same order every time, just further along.
+private fun computeEditorsPick(offset: Int = 0): String {
     val cands = buildList {
         loadPlaces().places.filter { it.listType == "wantToGo" }.forEach { add("visit ${it.name}") }
         loadBooks().books.filter { it.status == "to_read" }.forEach { add("start reading ${it.title}") }
         loadRecipes().recipes.filter { it.cookLogs.isEmpty() }.forEach { add("cook ${it.title}") }
     }.filter { it.isNotBlank() }
     if (cands.isEmpty()) return ""
-    val idx = (today().toEpochDays().mod(cands.size))
+    val idx = ((today().toEpochDays() + offset).mod(cands.size))
     return cands[idx]
 }
+
+// How many candidates there are, so the re-roll can be hidden when there's nothing else
+// to offer.
+private fun editorsPickCount(): Int =
+    loadPlaces().places.count { it.listType == "wantToGo" } +
+        loadBooks().books.count { it.status == "to_read" } +
+        loadRecipes().recipes.count { it.cookLogs.isEmpty() }
 
 private fun loadTodaysEditorial(): String {
     val raw = Storage.read("PaperEditorial") ?: return ""
@@ -126,10 +136,13 @@ private fun saveTodaysEditorial(text: String) {
 private data class Docket(val kind: String, val title: String, val date: String, val overdue: Boolean, val key: String)
 private data class OnThisDay(val kind: String, val title: String, val year: String)
 
-// The next 7 days of dated obligations: tasks, assignments, and document expiries.
+// The next 7 days of dated obligations: tasks, assignments, bills, and document
+// expiries. Bills use the Settings due-soon window, since that's the horizon the rest
+// of the app flags them on.
 private fun computeDocket(): List<Docket> {
     val now = today()
     val horizon = now.plusDays(7)
+    val billHorizon = now.plusDays(com.alekpeed.lifeos.settings.billDueSoonDays())
     fun soon(d: LocalDate?) = d != null && d <= horizon
     val out = mutableListOf<Docket>()
     loadTasksSafe().forEach { (id, title, due, done) ->
@@ -139,6 +152,13 @@ private fun computeDocket(): List<Docket> {
     loadEducation().assignments.forEach { a ->
         val d = parseDateOrNull(a.dueDate)
         if (!a.done && soon(d)) out.add(Docket("Assignment", a.title, a.dueDate, d!! < now, "asg:${a.id}"))
+    }
+    com.alekpeed.lifeos.finance.financeBills().filter { !it.settled }.forEach { b ->
+        val d = parseDateOrNull(b.dueDate)
+        if (d != null && d <= billHorizon) {
+            val label = if (b.autopay) "${b.name} (autopay)" else b.name
+            out.add(Docket("Bill", label, b.dueDate, d < now, "bill:${b.name}"))
+        }
     }
     loadDocuments().documents.forEach { doc ->
         val d = parseDateOrNull(doc.expiryDate)
@@ -181,7 +201,9 @@ fun DailyPaperScreen() {
     var checked by remember { mutableStateOf(loadChecklist()) }
     val docket = remember { computeDocket() }
     val onThisDay = remember { computeOnThisDay() }
-    val editorsPick = remember { computeEditorsPick() }
+    var pickOffset by remember { mutableStateOf(0) }
+    val editorsPick = remember(pickOffset) { computeEditorsPick(pickOffset) }
+    val pickChoices = remember { editorsPickCount() }
     val almanac = remember { DATA_SOURCES.map { it.label to countOf(it.key) }.filter { it.second > 0 }.sortedByDescending { it.second }.take(8) }
 
     val scope = rememberCoroutineScope()
@@ -293,7 +315,13 @@ fun DailyPaperScreen() {
             }
             if (editorsPick.isNotBlank()) {
                 item { Head("Editor's Pick") }
-                item { Text("Maybe today: $editorsPick.", style = MaterialTheme.typography.bodyMedium) }
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Maybe today: $editorsPick.", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        // Not in the mood for that one — walk to the next candidate.
+                        if (pickChoices > 1) TextButton(onClick = { pickOffset += 1 }) { Text("Another") }
+                    }
+                }
             }
 
             item { Head("On the Docket") }

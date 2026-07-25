@@ -121,7 +121,6 @@ fun TimeMachineScreen() {
     LazyColumn(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         item {
             Column {
-                Text("Time Machine", style = MaterialTheme.typography.headlineMedium)
                 Text(
                     if (totalDays > 0) {
                         "Scrub back through $totalDays day${if (totalDays == 1) "" else "s"} of recorded life and see what the app knew on any given day."

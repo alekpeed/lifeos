@@ -54,7 +54,6 @@ fun SkillTreesScreen() {
     val totalLevel = skills.sumOf { levelOf(it.xp) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Skill Trees", style = MaterialTheme.typography.headlineMedium)
         Text("Character level $totalLevel — computed from what you've actually been doing.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
         skills.forEach { SkillBar(it) }

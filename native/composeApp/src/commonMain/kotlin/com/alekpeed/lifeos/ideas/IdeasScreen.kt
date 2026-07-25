@@ -50,8 +50,6 @@ fun IdeasScreen() {
         .filter { tagFilter == null || tagFilter in it.tags }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Ideas", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
 
         OutlinedTextField(input, { input = it }, modifier = Modifier.fillMaxWidth(), singleLine = false, placeholder = { Text("New idea") })
         if (com.alekpeed.lifeos.platform.Native.supportsDictation) {

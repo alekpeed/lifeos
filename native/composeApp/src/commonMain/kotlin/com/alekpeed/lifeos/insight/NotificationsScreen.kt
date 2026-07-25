@@ -137,8 +137,6 @@ fun NotificationsScreen() {
     val attention = remember { buildAttention() }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Notifications", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(14.dp))
 
         // Needs attention — tap a row to jump to its module.
         if (attention.isNotEmpty()) {

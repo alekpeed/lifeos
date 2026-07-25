@@ -67,8 +67,6 @@ fun PlacesScreen() {
     var nearby by remember { mutableStateOf<List<NearbyNudge>?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Places", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("visited" to "Visited", "wantToGo" to "Want to go", "map" to "Map", "bucket" to "Bucket list").forEach { (v, lbl) ->
                 FilterChip(selected = tab == v, onClick = { tab = v; selected = null }, label = { Text(lbl) })

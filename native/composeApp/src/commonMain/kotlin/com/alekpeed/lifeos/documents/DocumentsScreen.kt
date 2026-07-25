@@ -152,8 +152,6 @@ fun DocumentsScreen() {
     val categories = data.documents.mapNotNull { it.category.ifBlank { null } }.distinct()
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Documents", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(input, { input = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New document") })

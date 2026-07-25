@@ -69,8 +69,6 @@ fun PhotosScreen() {
 private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: () -> Long, onOpen: (Long) -> Unit) {
     var input by remember { mutableStateOf("") }
 
-    Text("Photos", style = MaterialTheme.typography.headlineMedium)
-    Spacer(Modifier.height(12.dp))
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(input, { input = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New album") })

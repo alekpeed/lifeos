@@ -165,7 +165,6 @@ fun AlmanacScreen() {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("The Almanac", style = MaterialTheme.typography.headlineMedium)
         Text("Patterns over your real logged history — nothing shows until there's enough data to mean something.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(14.dp))
 
