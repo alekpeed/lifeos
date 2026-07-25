@@ -188,23 +188,16 @@ fun NexusHome() {
 
         Canvas(
             modifier = Modifier.fillMaxSize().pointerInput(scale, ox, oy) {
-                detectTapGestures(
-                    onTap = { tap ->
-                        when (val hit = regionAt(tap, ox, oy, scale)) {
-                            null -> {}
-                            else -> if (hit.startsWith(DOMAIN_PREFIX)) {
-                                openDomain = hit.removePrefix(DOMAIN_PREFIX)
-                            } else {
-                                act(hit, scope)
-                            }
+                detectTapGestures { tap ->
+                    when (val hit = regionAt(tap, ox, oy, scale)) {
+                        null -> {}
+                        else -> if (hit.startsWith(DOMAIN_PREFIX)) {
+                            openDomain = hit.removePrefix(DOMAIN_PREFIX)
+                        } else {
+                            act(hit, scope)
                         }
-                    },
-                    // Long-press the round button for a hard code scan (QR / barcode);
-                    // a plain tap is the camera.
-                    onLongPress = { tap ->
-                        if (regionAt(tap, ox, oy, scale) == "btn-scan-center") scanCode(scope)
-                    },
-                )
+                    }
+                }
             },
         ) {
             // Drawn with the exact same transform the hit testing uses, so the tap
@@ -264,10 +257,11 @@ private fun act(id: String, scope: kotlinx.coroutines.CoroutineScope) {
         "bell" -> Nav.open("notifications")
         "btn-voice" -> Nav.open("command")
         "btn-note" -> Nav.open("ideas")
-        "btn-scandoc" -> Nav.open("documents")
+        // SCAN DOC: the precise scanner — decodes a QR or barcode exactly and files it.
+        "btn-scandoc" -> scanCode(scope)
         "btn-ai" -> Nav.open("ai-assistant")
         // The big round button IS the camera: shoot anything, and Life OS reads what is
-        // on it and proposes where it goes (long-press instead for a hard code scan).
+        // on it and proposes where it goes.
         "btn-scan-center" -> scanWithCamera(scope)
         else -> {} // ring, core: not wired yet
     }
