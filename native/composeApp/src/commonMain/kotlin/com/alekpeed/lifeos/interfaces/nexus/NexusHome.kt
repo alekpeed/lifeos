@@ -288,6 +288,7 @@ private const val WHEEL_R_IN = 148f
 private const val WHEEL_R_OUT = 360f
 private const val SWEEP_TAIL_DEG = 155f
 private const val SWEEP_SEGS = 40
+private const val SWEEP_FADE_FROM = 0.62f // point in the turn where the ray starts dying out
 
 private fun DrawScope.drawSweep(t: Float, wheel: Path, ox: Float, oy: Float, scale: Float) {
     if (t <= 0f || t >= 1f) return
@@ -299,8 +300,16 @@ private fun DrawScope.drawSweep(t: Float, wheel: Path, ox: Float, oy: Float, sca
     val band = rOut - rIn
     val topLeft = Offset(cx - rMid, cy - rMid)
     val size = Size(rMid * 2f, rMid * 2f)
-    // A full turn plus the tail, so the tail has passed the starting point before it ends.
-    val head = -90f + t * (360f + SWEEP_TAIL_DEG)
+    // Exactly one turn, finishing back at the top where it began. The tail would still be
+    // lit at that moment, so the whole ray dims over the last stretch of the turn — it
+    // arrives home and goes out, instead of running on past the start to clear itself.
+    val head = -90f + t * 360f
+    val envelope = if (t < SWEEP_FADE_FROM) {
+        1f
+    } else {
+        val f = (t - SWEEP_FADE_FROM) / (1f - SWEEP_FADE_FROM)
+        0.5f + 0.5f * cos(PI.toFloat() * f)
+    }
     val seg = SWEEP_TAIL_DEG / SWEEP_SEGS
     clipPath(wheel) {
         for (i in 0 until SWEEP_SEGS) {
@@ -314,7 +323,7 @@ private fun DrawScope.drawSweep(t: Float, wheel: Path, ox: Float, oy: Float, sca
                 false,
                 topLeft,
                 size,
-                alpha = (0.62f * fade * fade).coerceIn(0f, 1f),
+                alpha = (0.62f * fade * fade * envelope).coerceIn(0f, 1f),
                 style = Stroke(width = band),
                 blendMode = BlendMode.Plus,
             )
