@@ -95,12 +95,18 @@ private val PETALS: List<Pair<String, FloatArray>> = listOf(
 )
 
 // Rectangular tap regions: id to (x, y, w, h).
+//
+// The four action buttons are measured from the artwork's own pixels, not traced: each
+// icon sits at art y 1648-1695 with its label at 1723-1738, while the traced box started
+// 22px above the icon and cut off below the label — so the light landed high and the word
+// fell outside it. These cover icon and label together, which also means tapping the word
+// works. Expressed in trace space like everything else so one transform still rules.
 private val RECTS: List<Pair<String, FloatArray>> = listOf(
     "bell" to floatArrayOf(657f, 17f, 49f, 51f),
-    "btn-voice" to floatArrayOf(60f, 1601f, 106f, 103f),
-    "btn-note" to floatArrayOf(208f, 1601f, 106f, 103f),
-    "btn-scandoc" to floatArrayOf(534f, 1601f, 106f, 103f),
-    "btn-ai" to floatArrayOf(680f, 1601f, 106f, 103f),
+    "btn-voice" to floatArrayOf(52.7f, 1613.1f, 116.8f, 111.1f),
+    "btn-note" to floatArrayOf(202.2f, 1613.1f, 116.8f, 111.1f),
+    "btn-scandoc" to floatArrayOf(526.8f, 1613.1f, 116.8f, 111.1f),
+    "btn-ai" to floatArrayOf(678.7f, 1613.1f, 116.8f, 111.1f),
 )
 
 // Elliptical tap regions: id to (cx, cy, rx, ry).
