@@ -1,13 +1,5 @@
 package com.alekpeed.lifeos.interfaces.nexus
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,7 +61,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.roundToInt
 
 // NEXUS — a graphical home for Life OS. The artwork is a single bundled image; every
@@ -166,6 +161,13 @@ private fun inPolygon(poly: FloatArray, px: Float, py: Float): Boolean {
 
 private val LIGHT = Color(0xFFE0708F) // the art's accent — glow has to look native to it
 private val LIGHT_HOT = Color(0xFFFFC2D6) // the brighter core of a fresh tap
+
+// All timing in milliseconds, measured off the frame clock.
+private const val BOOT_DELAY_MS = 350f
+private const val BOOT_MS = 2000f
+private const val BREATH_MS = 4200f // a full breath, in and back out
+private const val TAP_HOLD_MS = 210
+private const val TAP_FADE_MS = 420f
 
 // Glow is additive: layered strokes from wide-and-faint to tight-and-bright, so the edge
 // reads as light bleeding off the shape rather than a flat outline sitting on top of it.
@@ -324,42 +326,51 @@ fun NexusHome() {
         }
     }
 
-    // Tap light. One region at a time: the id that was hit, and how bright it is right now.
-    var litId by remember { mutableStateOf("") }
-    val lit = remember { Animatable(0f) }
-
-    // The wheel lighting up petal by petal when the home appears. Held off a moment so it
-    // isn't spent behind the launch animation.
-    val boot = remember { Animatable(0f) }
+    // Milliseconds since this home appeared, ticked from the raw frame callback.
+    //
+    // Every light effect is computed from this number instead of from Compose's animation
+    // API on purpose: animateTo and infiniteRepeatable are multiplied by the OS animator
+    // duration scale, so on a device with animations switched off they jump straight to
+    // their end value — the sweep is over before the first frame, the breath is pinned,
+    // the ring snaps. A tap still lights up, because setting a value isn't an animation.
+    // Frame callbacks are not scaled, so time-driven light runs either way. Reading the
+    // clock here, in composition, is also what forces the canvas to redraw each frame.
+    val clock = remember { mutableStateOf(0f) }
     LaunchedEffect(Unit) {
-        delay(350)
-        boot.animateTo(1f, tween(2000, easing = LinearEasing))
+        val t0 = withFrameNanos { it }
+        while (true) {
+            withFrameNanos { t -> clock.value = (t - t0) / 1_000_000f }
+        }
+    }
+    val nowMs = clock.value
+
+    // Tap light: which region was hit, and when. Held in MutableState (not a delegated var)
+    // because the gesture lambda is remembered — it has to read the live clock, not the
+    // value from the composition that created it.
+    val litId = remember { mutableStateOf("") }
+    val litAt = remember { mutableStateOf(-1e9f) }
+
+    // The wheel lighting up petal by petal, once, held off a moment so it isn't spent
+    // behind the launch animation.
+    val bootT = ((nowMs - BOOT_DELAY_MS) / BOOT_MS).coerceIn(0f, 1f)
+
+    // The core breathing: a cosine so it eases at both ends instead of ping-ponging.
+    val breathT = run {
+        val p = (nowMs % BREATH_MS) / BREATH_MS
+        0.22f + 0.58f * (0.5f - 0.5f * cos(2f * PI.toFloat() * p))
     }
 
-    // The core breathes so the screen never looks frozen.
-    val breath = rememberInfiniteTransition().animateFloat(
-        initialValue = 0.20f,
-        targetValue = 0.78f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-    )
+    // The ring counts up to today's real number rather than appearing at it.
+    val ringT = ringPct.coerceAtLeast(0f) * ((nowMs - 500f) / 1100f).coerceIn(0f, 1f)
 
-    // The ring arc counts up to today's real number rather than snapping to it.
-    val ringArc = remember { Animatable(0f) }
-    LaunchedEffect(ringPct) {
-        if (ringPct >= 0f) ringArc.animateTo(ringPct, tween(1100, easing = FastOutSlowInEasing))
+    // Tap: full brightness while the screen changes underneath, then fade.
+    val litNow = litId.value
+    val litAge = nowMs - litAt.value
+    val litT = when {
+        litNow.isEmpty() -> 0f
+        litAge < TAP_HOLD_MS -> 1f
+        else -> (1f - (litAge - TAP_HOLD_MS) / TAP_FADE_MS).coerceAtLeast(0f)
     }
-
-    // Read every animated value HERE, in composition, and hand the numbers to the canvas.
-    // Reading them only inside the draw lambda left the screen static — nothing redrew
-    // between frames unless something else happened to recompose.
-    val bootT = boot.value
-    val breathT = breath.value
-    val ringT = ringArc.value
-    val litT = lit.value
-    val litNow = litId
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF07080C))) {
         val vw = constraints.maxWidth.toFloat()
@@ -399,19 +410,17 @@ fun NexusHome() {
                     // The ring and the core are readouts, not buttons — don't light them
                     // on touch and promise something that isn't there.
                     if (hit == "ring" || hit == "core") return@detectTapGestures
+                    litId.value = hit
+                    litAt.value = clock.value
                     scope.launch {
-                        litId = hit
-                        lit.snapTo(1f)
                         // Let the light actually land before the screen changes underneath
                         // it — a button that opens a module is gone too fast to see at 70ms.
-                        delay(210)
+                        delay(TAP_HOLD_MS.toLong())
                         if (hit.startsWith(DOMAIN_PREFIX)) {
                             openDomain = hit.removePrefix(DOMAIN_PREFIX)
                         } else {
                             act(hit, scope)
                         }
-                        lit.animateTo(0f, tween(420, easing = LinearEasing))
-                        if (litId == hit) litId = ""
                     }
                 }
             },
