@@ -93,7 +93,7 @@ object ScanFlow {
 private const val READ_SYSTEM =
     "You look at one photo and extract what is on it so an app can file it. Respond with " +
         "ONLY a JSON object, no prose and no code fences:\n" +
-        "{\"kind\":\"tasklist|shoppinglist|recipe|contact|book|receipt|document|note|other\"," +
+        "{\"kind\":\"tasklist|shoppinglist|inventory|recipe|contact|book|receipt|document|note|other\"," +
         "\"title\":\"short label, max 60 chars\"," +
         "\"items\":[\"one entry per line item, in order\"]," +
         "\"text\":\"all readable text, verbatim\"," +
@@ -103,16 +103,22 @@ private const val READ_SYSTEM =
         "Rules: use \"tasklist\" for anything that reads as jobs to do, chores, or a " +
         "checklist of actions — put EACH job in items, cleaned up into a short " +
         "imperative (\"Call the plumber\"), and do not include headings or numbering. " +
-        "Use \"shoppinglist\" for things to buy, each item in items. Use \"recipe\" with " +
-        "the ingredients in items. Use \"contact\" for a business card and fill fields. " +
-        "Use \"receipt\" for a shop or restaurant receipt and fill merchant/total/date. " +
-        "Use \"document\" for official paper (letter, bill, policy, ID, form, contract). " +
-        "Use \"note\" for handwriting or a whiteboard that isn't a list. Leave items empty " +
-        "when nothing is list-shaped."
+        "Use \"shoppinglist\" for things to buy, each item in items. " +
+        "Use \"inventory\" for a photo of REAL PHYSICAL THINGS rather than text — a shelf, " +
+        "rack, pantry, fridge, garage, closet or drawer: list the distinct items you can " +
+        "actually identify, ONE PER ENTRY in items, with short names (\"Paper towels\", " +
+        "\"Olive oil\"), no quantities, and never guess at something you cannot see. " +
+        "Use \"recipe\" with the ingredients in items. Use \"contact\" for a business card " +
+        "and fill fields. Use \"receipt\" for a shop or restaurant receipt and fill " +
+        "merchant/total/date. Use \"document\" for official paper (letter, bill, policy, " +
+        "ID, form, contract). Use \"note\" for handwriting or a whiteboard that isn't a " +
+        "list. items is where the CONTENTS go — whenever the photo holds several " +
+        "distinct things, whether written down or physically present, enumerate them " +
+        "there. Only leave items empty when the photo really is one single thing."
 
 private fun destFor(kind: String): ScanDest = when (kind) {
     "tasklist" -> ScanDest.TASKS
-    "shoppinglist" -> ScanDest.QUARTERMASTER
+    "shoppinglist", "inventory" -> ScanDest.QUARTERMASTER
     "recipe" -> ScanDest.RECIPES
     "contact" -> ScanDest.CONTACTS
     "book" -> ScanDest.BOOKS

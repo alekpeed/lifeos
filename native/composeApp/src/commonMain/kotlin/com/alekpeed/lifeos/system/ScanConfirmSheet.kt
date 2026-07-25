@@ -49,6 +49,7 @@ fun ScanConfirmSheet() {
     val kindLabel = when (p.kind) {
         "tasklist" -> "A list of things to do"
         "shoppinglist" -> "A shopping list"
+        "inventory" -> "A shelf of things"
         "recipe" -> "A recipe"
         "contact" -> "A business card"
         "book" -> "A book"
@@ -82,10 +83,18 @@ fun ScanConfirmSheet() {
                         }
                     }
                 }
-            } else if (p.summary.isNotBlank()) {
+            } else {
+                if (p.summary.isNotBlank()) {
+                    Text(
+                        p.summary, color = TEXT, fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 10.dp), maxLines = 5,
+                    )
+                }
+                // No separate items came back, so this saves as a single entry. Say it
+                // plainly rather than quietly filing one record named after the title.
                 Text(
-                    p.summary, color = TEXT, fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 10.dp), maxLines = 5,
+                    "Nothing itemized — saves as one entry.",
+                    color = MUTED, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp),
                 )
             }
 
