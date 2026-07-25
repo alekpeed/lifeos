@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -160,7 +161,7 @@ private fun inPolygon(poly: FloatArray, px: Float, py: Float): Boolean {
 // ── Light ────────────────────────────────────────────────────────────────────────
 // The artwork is a still image, so everything that moves is drawn over it in the same
 // coordinate space as the hit testing. Light is the whole vocabulary: a region lights up
-// when you touch it, the wheel lights up petal by petal on open, the core breathes, and
+// when you touch it, a ray sweeps the wheel on open, the core breathes, and
 // the ring fills to the real number. Nothing here changes the art — pull the overlay and
 // the screen still works.
 
@@ -169,7 +170,7 @@ private val LIGHT_HOT = Color(0xFFFFC2D6) // the brighter core of a fresh tap
 
 // All timing in milliseconds, measured off the frame clock.
 private const val BOOT_DELAY_MS = 350f
-private const val BOOT_MS = 2600f // the head travels past the last petal within this
+private const val BOOT_MS = 1000f // one turn of the ray — fast is what makes it read as one
 private const val BREATH_MS = 4200f // a full breath, in and back out
 private const val TAP_HOLD_MS = 210
 private const val TAP_FADE_MS = 420f
@@ -271,25 +272,54 @@ private fun DrawScope.drawRingArc(frac: Float, ox: Float, oy: Float, scale: Floa
     }
 }
 
-// The boot sweep, as one light travelling the wheel rather than eight lamps switching on.
+// The opening sweep: one ray of light turning around the wheel.
 //
-// A head moves clockwise through the petals; each petal's brightness is its distance from
-// that head, with a short lead-in ahead of it and a long tail behind. The falloff is a
-// cosine, so there are no corners in the ramp, and the lead and tail are both wider than
-// the gap between petals — three or four are always lit at once, which is what makes it
-// read as continuous motion instead of a sequence.
-private const val SWEEP_LEAD = 1.25f // petals lit ahead of the head
-private const val SWEEP_TAIL = 3.2f // petals still glowing behind it
+// Brightening petals one at a time can't be smooth — the smallest thing it can light is a
+// whole petal, so it steps no matter how the timing is shaped. This instead rotates a wedge
+// of light about the wheel's centre and clips it to the petals, so the light moves by angle
+// and the petal edges are just what it happens to be crossing. The wedge is drawn as a run
+// of overlapping arc segments whose brightness falls off behind the head, which is what
+// gives it a comet's tail instead of a hard leading edge.
+private val WHEEL_C = floatArrayOf(426f, 697f) // wheel centre, trace space (same as the core)
+// Deliberately a little wider than the petals themselves (which run ~159 to ~345 from the
+// centre): the ray is clipped to the petals anyway, so overshooting guarantees it covers
+// them to the edge instead of leaving an unlit rim.
+private const val WHEEL_R_IN = 148f
+private const val WHEEL_R_OUT = 360f
+private const val SWEEP_TAIL_DEG = 155f
+private const val SWEEP_SEGS = 40
 
-private fun sweepAt(t: Float, i: Int, n: Int): Float {
-    if (t <= 0f || t >= 1f) return 0f
-    // Run the head from before the first petal to well past the last, so the tail has
-    // faded to nothing by the time the sweep ends — no cut-off at the finish.
-    val head = t * (n + SWEEP_TAIL + SWEEP_LEAD) - SWEEP_LEAD
-    val d = head - i
-    val x = if (d >= 0f) d / SWEEP_TAIL else -d / SWEEP_LEAD
-    if (x >= 1f) return 0f
-    return 0.5f + 0.5f * cos(PI.toFloat() * x)
+private fun DrawScope.drawSweep(t: Float, wheel: Path, ox: Float, oy: Float, scale: Float) {
+    if (t <= 0f || t >= 1f) return
+    val cx = sx(WHEEL_C[0], ox, scale)
+    val cy = sy(WHEEL_C[1], oy, scale)
+    val rIn = WHEEL_R_IN * MAP_SX * scale
+    val rOut = WHEEL_R_OUT * MAP_SX * scale
+    val rMid = (rIn + rOut) / 2f
+    val band = rOut - rIn
+    val topLeft = Offset(cx - rMid, cy - rMid)
+    val size = Size(rMid * 2f, rMid * 2f)
+    // A full turn plus the tail, so the tail has passed the starting point before it ends.
+    val head = -90f + t * (360f + SWEEP_TAIL_DEG)
+    val seg = SWEEP_TAIL_DEG / SWEEP_SEGS
+    clipPath(wheel) {
+        for (i in 0 until SWEEP_SEGS) {
+            val f = i / SWEEP_SEGS.toFloat() // 0 at the head, 1 at the end of the tail
+            val fade = 0.5f + 0.5f * cos(PI.toFloat() * f)
+            drawArc(
+                if (i == 0) LIGHT_HOT else LIGHT,
+                head - (i + 1) * seg,
+                // Overlap each segment into the next so there is no seam between them.
+                seg * 1.35f,
+                false,
+                topLeft,
+                size,
+                alpha = (0.62f * fade * fade).coerceIn(0f, 1f),
+                style = Stroke(width = band),
+                blendMode = BlendMode.Plus,
+            )
+        }
+    }
 }
 
 @Composable
@@ -376,8 +406,8 @@ fun NexusHome() {
     val litId = remember { mutableStateOf("") }
     val litAt = remember { mutableStateOf(-1e9f) }
 
-    // The wheel lighting up petal by petal, once, held off a moment so it isn't spent
-    // behind the launch animation.
+    // The ray's one turn around the wheel, held off a moment so it isn't spent behind the
+    // launch animation.
     val bootT = ((nowMs - BOOT_DELAY_MS) / BOOT_MS).coerceIn(0f, 1f)
 
     // The core breathing: a cosine so it eases at both ends instead of ping-ponging, and a
@@ -430,6 +460,12 @@ fun NexusHome() {
             }
         }
 
+        // All eight petals as one shape, used to clip the sweeping ray so light only lands
+        // on the wheel and not in the gaps between petals.
+        val wheel = remember(scale, ox, oy) {
+            Path().also { p -> PETALS.forEach { (_, poly) -> p.addPath(polyPath(poly, ox, oy, scale)) } }
+        }
+
         Canvas(
             modifier = Modifier.fillMaxSize().pointerInput(scale, ox, oy) {
                 detectTapGestures { tap ->
@@ -462,17 +498,8 @@ fun NexusHome() {
                 dstSize = IntSize((ART_W * scale).roundToInt(), (ART_H * scale).roundToInt()),
             )
 
-            // Opening sweep: light runs clockwise around the wheel once, then stops.
-            if (bootT < 1f) {
-                PETALS.forEachIndexed { i, (id, _) ->
-                    val a = sweepAt(bootT, i, PETALS.size)
-                    // A wider halo on the sweep so neighbouring petals' light overlaps and
-                    // the seams between them disappear.
-                    if (a > 0.01f) {
-                        paths[DOMAIN_PREFIX + id]?.let { glow(it, a, scale, fill = 0.15f, spread = 1.6f, gain = 1.15f) }
-                    }
-                }
-            }
+            // Opening sweep: one ray turns around the wheel, once.
+            drawSweep(bootT, wheel, ox, oy, scale)
 
             // The core breathing, always — a wide, bright bloom rather than a faint outline.
             paths["core"]?.let { glow(it, breathT, scale, fill = 0.28f, spread = 2.6f, gain = 2.4f) }
