@@ -341,14 +341,14 @@ fun NexusHome() {
     // the ring snaps. A tap still lights up, because setting a value isn't an animation.
     // Frame callbacks are not scaled, so time-driven light runs either way. Reading the
     // clock here, in composition, is also what forces the canvas to redraw each frame.
-    val clock = remember { mutableStateOf(0f) }
+    val frameMs = remember { mutableStateOf(0f) }
     LaunchedEffect(Unit) {
         val t0 = withFrameNanos { it }
         while (true) {
-            withFrameNanos { t -> clock.value = (t - t0) / 1_000_000f }
+            withFrameNanos { t -> frameMs.value = (t - t0) / 1_000_000f }
         }
     }
-    val nowMs = clock.value
+    val nowMs = frameMs.value
 
     // Tap light: which region was hit, and when. Held in MutableState (not a delegated var)
     // because the gesture lambda is remembered — it has to read the live clock, not the
@@ -417,7 +417,7 @@ fun NexusHome() {
                     // on touch and promise something that isn't there.
                     if (hit == "ring" || hit == "core") return@detectTapGestures
                     litId.value = hit
-                    litAt.value = clock.value
+                    litAt.value = frameMs.value
                     scope.launch {
                         // Let the light actually land before the screen changes underneath
                         // it — a button that opens a module is gone too fast to see at 70ms.
