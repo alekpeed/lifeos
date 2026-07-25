@@ -35,7 +35,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -49,14 +48,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.HomeScreen
 import com.alekpeed.lifeos.Nav
-import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.lifeOsModules
-import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.loadImageAsset
 import com.alekpeed.lifeos.system.scanCode
 import com.alekpeed.lifeos.system.scanWithCamera
-import com.alekpeed.lifeos.tasks.loadTasks
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -112,19 +108,17 @@ private val RECTS: List<Pair<String, FloatArray>> = listOf(
 // Elliptical tap regions: id to (cx, cy, rx, ry).
 private val ELLIPSES: List<Pair<String, FloatArray>> = listOf(
     "btn-scan-center" to floatArrayOf(423.5f, 1652f, 63.5f, 68f),
-    "ring" to floatArrayOf(783f, 43f, 41f, 43f),
     "core" to floatArrayOf(426f, 697f, 149f, 154f),
 )
 
 // Text slots left empty in the art: (x, y, w, h) in trace space.
 private val SLOT_CLOCK = floatArrayOf(359f, 17f, 138f, 35f)
 private val SLOT_DATE = floatArrayOf(359f, 52f, 138f, 35f)
-private val SLOT_RING = floatArrayOf(695f, 17f, 55f, 55f)
 
 // The Figma trace and the artwork disagree slightly: the image layer had moved (and
 // scaled ~1%) between tracing and reading its position, so every mapped shape sat
 // ~41px high at the top of the art and ~24px high at the bottom. Measured against
-// the artwork's own pixels (the top-right ring and the scan-button ring):
+// the artwork's own pixels (the top-right dial and the scan-button ring):
 //   art = trace * MAP_S + MAP_T, per axis.
 private const val MAP_SX = 0.9936f
 private const val MAP_TX = 1.1f
@@ -137,7 +131,6 @@ private fun traceToArt(r: FloatArray) = floatArrayOf(
 
 private val SLOT_CLOCK_ART = traceToArt(SLOT_CLOCK)
 private val SLOT_DATE_ART = traceToArt(SLOT_DATE)
-private val SLOT_RING_ART = traceToArt(SLOT_RING)
 
 private val MONTHS = listOf(
     "January", "February", "March", "April", "May", "June",
@@ -161,9 +154,8 @@ private fun inPolygon(poly: FloatArray, px: Float, py: Float): Boolean {
 // ── Light ────────────────────────────────────────────────────────────────────────
 // The artwork is a still image, so everything that moves is drawn over it in the same
 // coordinate space as the hit testing. Light is the whole vocabulary: a region lights up
-// when you touch it, a ray sweeps the wheel on open, the core breathes, and
-// the ring fills to the real number. Nothing here changes the art — pull the overlay and
-// the screen still works.
+// when you touch it, a ray sweeps the wheel on open, and the core breathes. Nothing here
+// changes the art — pull the overlay and the screen still works.
 
 private val LIGHT = Color(0xFFE0708F) // the art's accent — glow has to look native to it
 private val LIGHT_HOT = Color(0xFFFFC2D6) // the brighter core of a fresh tap
@@ -244,32 +236,6 @@ private fun ovalPath(e: FloatArray, ox: Float, oy: Float, scale: Float, inset: F
     val p = Path()
     p.addOval(Rect(cx - rx, cy - ry, cx + rx, cy + ry))
     return p
-}
-
-private val RING_E = ELLIPSES.first { it.first == "ring" }.second
-
-// The top-right ring, lit clockwise from 12 o'clock to today's fraction. The art draws the
-// ring itself; this is the lit part of it, so the number inside and the light agree.
-private fun DrawScope.drawRingArc(frac: Float, ox: Float, oy: Float, scale: Float) {
-    if (frac <= 0.005f) return
-    val cx = sx(RING_E[0], ox, scale)
-    val cy = sy(RING_E[1], oy, scale)
-    val rx = RING_E[2] * MAP_SX * scale * 0.84f
-    val ry = RING_E[3] * MAP_SY * scale * 0.84f
-    val topLeft = Offset(cx - rx, cy - ry)
-    val size = Size(rx * 2f, ry * 2f)
-    val sweep = 360f * frac.coerceIn(0f, 1f)
-    val widths = floatArrayOf(14f, 8f, 4f)
-    val alphas = floatArrayOf(0.22f, 0.40f, 0.95f)
-    for (i in widths.indices) {
-        drawArc(
-            if (i == widths.lastIndex) LIGHT_HOT else LIGHT,
-            -90f, sweep, false, topLeft, size,
-            alpha = alphas[i],
-            style = Stroke(width = widths[i] * scale, cap = StrokeCap.Round),
-            blendMode = BlendMode.Plus,
-        )
-    }
 }
 
 // The opening sweep: one ray of light turning around the wheel.
@@ -354,12 +320,6 @@ fun NexusHome() {
     // Live clock — the art leaves these two slots empty on purpose.
     var clock by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("") }
-    // The ring: how much of today you've actually cleared — everything due today or
-    // overdue, plus today's habits. "—" when there's nothing to measure.
-    var ringText by remember { mutableStateOf("") }
-    // Same number as the ring text, as a 0..1 fraction, so the arc drawn around the ring
-    // and the printed percentage can never disagree.
-    var ringPct by remember { mutableStateOf(-1f) }
     LaunchedEffect(Unit) {
         while (true) {
             runCatching {
@@ -373,20 +333,6 @@ fun NexusHome() {
                 clock = "$h12:$mm ${if (now.hour < 12) "AM" else "PM"}"
                 date = "${MONTHS[now.monthNumber - 1]} ${now.dayOfMonth}, ${now.year}"
             }
-            // Read the day's real state on the same beat as the clock. Guarded: a bad
-            // record must never keep the home from drawing.
-            runCatching {
-                val allTasks = loadTasks()
-                val due = allTasks.filter { !it.done }
-                    .count { val d = it.dueDate(); d != null && d <= today() }
-                val doneToday = allTasks.count { it.done && it.completedDate == today().toString() }
-                val habits = loadHabits()
-                val habitsDone = habits.count { it.checkedInToday }
-                val total = due + doneToday + habits.size
-                val cleared = doneToday + habitsDone
-                ringText = if (total <= 0) "—" else "${cleared * 100 / total}%"
-                ringPct = if (total <= 0) -1f else (cleared.toFloat() / total).coerceIn(0f, 1f)
-            }
             delay(20_000)
         }
     }
@@ -396,8 +342,8 @@ fun NexusHome() {
     // Every light effect is computed from this number instead of from Compose's animation
     // API on purpose: animateTo and infiniteRepeatable are multiplied by the OS animator
     // duration scale, so on a device with animations switched off they jump straight to
-    // their end value — the sweep is over before the first frame, the breath is pinned,
-    // the ring snaps. A tap still lights up, because setting a value isn't an animation.
+    // their end value — the sweep is over before the first frame and the breath is
+    // pinned. A tap still lights up, because setting a value isn't an animation.
     // Frame callbacks are not scaled, so time-driven light runs either way. Reading the
     // clock here, in composition, is also what forces the canvas to redraw each frame.
     val frameMs = remember { mutableStateOf(0f) }
@@ -425,9 +371,6 @@ fun NexusHome() {
         val p = (nowMs % BREATH_MS) / BREATH_MS
         0.16f + 0.84f * (0.5f - 0.5f * cos(2f * PI.toFloat() * p))
     }
-
-    // The ring counts up to today's real number rather than appearing at it.
-    val ringT = ringPct.coerceAtLeast(0f) * ((nowMs - 500f) / 1100f).coerceIn(0f, 1f)
 
     // Tap: full brightness while the screen changes underneath, then fade.
     val litNow = litId.value
@@ -479,9 +422,9 @@ fun NexusHome() {
             modifier = Modifier.fillMaxSize().pointerInput(scale, ox, oy) {
                 detectTapGestures { tap ->
                     val hit = regionAt(tap, ox, oy, scale) ?: return@detectTapGestures
-                    // The ring and the core are readouts, not buttons — don't light them
-                    // on touch and promise something that isn't there.
-                    if (hit == "ring" || hit == "core") return@detectTapGestures
+                    // The wheel's centre isn't a button — don't light it on touch and
+                    // promise something that isn't there.
+                    if (hit == "core") return@detectTapGestures
                     litId.value = hit
                     litAt.value = frameMs.value
                     scope.launch {
@@ -513,14 +456,6 @@ fun NexusHome() {
             // The core breathing, always — a wide, bright bloom rather than a faint outline.
             paths["core"]?.let { glow(it, breathT, scale, fill = 0.28f, spread = 2.6f, gain = 2.4f) }
 
-            // The ring: filling to today's real number, or breathing on standby when there
-            // is nothing to measure yet, so it never reads as a dead circle.
-            if (ringPct >= 0f) {
-                drawRingArc(ringT, ox, oy, scale)
-            } else {
-                paths["ring"]?.let { glow(it, breathT * 0.4f, scale, fill = 0f) }
-            }
-
             // Whatever you just pressed, brightest and on top.
             if (litNow.isNotEmpty()) paths[litNow]?.let { glow(it, litT, scale, fill = 0.30f) }
         }
@@ -528,7 +463,6 @@ fun NexusHome() {
         // Live values printed into the slots the art leaves empty.
         SlotText(clock, SLOT_CLOCK_ART, ox, oy, scale, density, Color(0xFFF2F4F6), 26f, FontWeight.Medium)
         SlotText(date, SLOT_DATE_ART, ox, oy, scale, density, Color(0xFFE0708F), 19f, FontWeight.Normal)
-        SlotText(ringText, SLOT_RING_ART, ox, oy, scale, density, Color(0xFFF2F4F6), 21f, FontWeight.SemiBold)
 
         if (openDomain.isNotBlank()) {
             DomainSheet(
@@ -578,7 +512,7 @@ private fun act(id: String, scope: kotlinx.coroutines.CoroutineScope) {
         // The big round button IS the camera: shoot anything, and Life OS reads what is
         // on it and proposes where it goes.
         "btn-scan-center" -> scanWithCamera(scope)
-        else -> {} // ring, core: not wired yet
+        else -> {} // core: reserved
     }
 }
 
