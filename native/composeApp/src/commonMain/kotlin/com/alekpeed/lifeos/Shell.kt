@@ -33,6 +33,7 @@ import com.alekpeed.lifeos.core.runAutomations
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.interfaces.nexus.registerNexus
 import com.alekpeed.lifeos.platform.SystemBackHandler
+import com.alekpeed.lifeos.system.ScanConfirmSheet
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.delay
 
@@ -92,6 +93,8 @@ fun Shell() {
                 }
             }
         }
+        // A finished scan asks where it goes, over whatever interface is active.
+        ScanConfirmSheet()
         SnackbarHost(snackHost, Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp))
     }
 }

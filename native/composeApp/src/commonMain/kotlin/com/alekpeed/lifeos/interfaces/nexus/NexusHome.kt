@@ -40,7 +40,8 @@ import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.lifeOsModules
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.loadImageAsset
-import com.alekpeed.lifeos.system.smartScan
+import com.alekpeed.lifeos.system.scanCode
+import com.alekpeed.lifeos.system.scanWithCamera
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -187,24 +188,23 @@ fun NexusHome() {
 
         Canvas(
             modifier = Modifier.fillMaxSize().pointerInput(scale, ox, oy) {
-                detectTapGestures { tap ->
-                    // Screen -> artwork px -> trace space (undo the trace's offset and
-                    // ~1% scale), so every mapped region tests unchanged.
-                    val ax = ((tap.x - ox) / scale - MAP_TX) / MAP_SX
-                    val ay = ((tap.y - oy) / scale - MAP_TY) / MAP_SY
-                    val petal = PETALS.firstOrNull { inPolygon(it.second, ax, ay) }
-                    if (petal != null) { openDomain = petal.first; return@detectTapGestures }
-                    for ((id, e) in ELLIPSES) {
-                        val nx = (ax - e[0]) / e[2]
-                        val ny = (ay - e[1]) / e[3]
-                        if (nx * nx + ny * ny <= 1f) { act(id, scope); return@detectTapGestures }
-                    }
-                    for ((id, r) in RECTS) {
-                        if (ax >= r[0] && ax <= r[0] + r[2] && ay >= r[1] && ay <= r[1] + r[3]) {
-                            act(id, scope); return@detectTapGestures
+                detectTapGestures(
+                    onTap = { tap ->
+                        when (val hit = regionAt(tap, ox, oy, scale)) {
+                            null -> {}
+                            else -> if (hit.startsWith(DOMAIN_PREFIX)) {
+                                openDomain = hit.removePrefix(DOMAIN_PREFIX)
+                            } else {
+                                act(hit, scope)
+                            }
                         }
-                    }
-                }
+                    },
+                    // Long-press the round button for a hard code scan (QR / barcode);
+                    // a plain tap is the camera.
+                    onLongPress = { tap ->
+                        if (regionAt(tap, ox, oy, scale) == "btn-scan-center") scanCode(scope)
+                    },
+                )
             },
         ) {
             // Drawn with the exact same transform the hit testing uses, so the tap
@@ -233,6 +233,31 @@ fun NexusHome() {
     }
 }
 
+private const val DOMAIN_PREFIX = "domain:"
+
+// Screen point -> which mapped region it landed in, or null. Converts screen -> artwork
+// px -> trace space (undoing the trace's offset and ~1% scale) so every mapped region
+// tests unchanged. Shared by tap and long-press so they can never disagree.
+private fun regionAt(
+    tap: androidx.compose.ui.geometry.Offset,
+    ox: Float,
+    oy: Float,
+    scale: Float,
+): String? {
+    val ax = ((tap.x - ox) / scale - MAP_TX) / MAP_SX
+    val ay = ((tap.y - oy) / scale - MAP_TY) / MAP_SY
+    PETALS.firstOrNull { inPolygon(it.second, ax, ay) }?.let { return DOMAIN_PREFIX + it.first }
+    for ((id, e) in ELLIPSES) {
+        val nx = (ax - e[0]) / e[2]
+        val ny = (ay - e[1]) / e[3]
+        if (nx * nx + ny * ny <= 1f) return id
+    }
+    for ((id, r) in RECTS) {
+        if (ax >= r[0] && ax <= r[0] + r[2] && ay >= r[1] && ay <= r[1] + r[3]) return id
+    }
+    return null
+}
+
 // Where a non-petal region goes. The wheel's center is left for a future easter egg.
 private fun act(id: String, scope: kotlinx.coroutines.CoroutineScope) {
     when (id) {
@@ -241,8 +266,9 @@ private fun act(id: String, scope: kotlinx.coroutines.CoroutineScope) {
         "btn-note" -> Nav.open("ideas")
         "btn-scandoc" -> Nav.open("documents")
         "btn-ai" -> Nav.open("ai-assistant")
-        // The big round button: scan anything and let Life OS work out what it is.
-        "btn-scan-center" -> smartScan(scope)
+        // The big round button IS the camera: shoot anything, and Life OS reads what is
+        // on it and proposes where it goes (long-press instead for a hard code scan).
+        "btn-scan-center" -> scanWithCamera(scope)
         else -> {} // ring, core: not wired yet
     }
 }
