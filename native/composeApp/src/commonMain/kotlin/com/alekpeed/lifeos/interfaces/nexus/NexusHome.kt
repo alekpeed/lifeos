@@ -62,7 +62,6 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.PI
-import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToInt
 
@@ -170,7 +169,7 @@ private val LIGHT_HOT = Color(0xFFFFC2D6) // the brighter core of a fresh tap
 
 // All timing in milliseconds, measured off the frame clock.
 private const val BOOT_DELAY_MS = 350f
-private const val BOOT_MS = 2000f
+private const val BOOT_MS = 2600f // the head travels past the last petal within this
 private const val BREATH_MS = 4200f // a full breath, in and back out
 private const val TAP_HOLD_MS = 210
 private const val TAP_FADE_MS = 420f
@@ -180,17 +179,27 @@ private const val TAP_FADE_MS = 420f
 private val HALO_W = floatArrayOf(20f, 13f, 7f, 3f)
 private val HALO_A = floatArrayOf(0.13f, 0.21f, 0.34f, 0.80f)
 
-private fun DrawScope.glow(path: Path, amount: Float, scale: Float, fill: Float = 0.20f) {
+// spread widens the halo, gain brightens it — together they take the same shape from a
+// touch highlight to a full bloom without needing a second set of constants.
+private fun DrawScope.glow(
+    path: Path,
+    amount: Float,
+    scale: Float,
+    fill: Float = 0.20f,
+    spread: Float = 1f,
+    gain: Float = 1f,
+) {
     if (amount <= 0.01f) return
-    val a = amount.coerceAtMost(1f)
+    val a = amount.coerceIn(0f, 1f)
     if (fill > 0f) {
-        drawPath(path, LIGHT.copy(alpha = fill * a), blendMode = BlendMode.Plus)
+        drawPath(path, LIGHT.copy(alpha = (fill * a).coerceAtMost(1f)), blendMode = BlendMode.Plus)
     }
     for (i in HALO_W.indices) {
         drawPath(
             path,
-            (if (i == HALO_W.lastIndex) LIGHT_HOT else LIGHT).copy(alpha = HALO_A[i] * a),
-            style = Stroke(width = HALO_W[i] * scale),
+            (if (i == HALO_W.lastIndex) LIGHT_HOT else LIGHT)
+                .copy(alpha = (HALO_A[i] * a * gain).coerceAtMost(1f)),
+            style = Stroke(width = HALO_W[i] * spread * scale),
             blendMode = BlendMode.Plus,
         )
     }
@@ -262,14 +271,25 @@ private fun DrawScope.drawRingArc(frac: Float, ox: Float, oy: Float, scale: Floa
     }
 }
 
-// The boot sweep: each petal gets a short window of light as the sweep passes it, so the
-// wheel comes on clockwise from the top instead of all at once.
+// The boot sweep, as one light travelling the wheel rather than eight lamps switching on.
+//
+// A head moves clockwise through the petals; each petal's brightness is its distance from
+// that head, with a short lead-in ahead of it and a long tail behind. The falloff is a
+// cosine, so there are no corners in the ramp, and the lead and tail are both wider than
+// the gap between petals — three or four are always lit at once, which is what makes it
+// read as continuous motion instead of a sequence.
+private const val SWEEP_LEAD = 1.25f // petals lit ahead of the head
+private const val SWEEP_TAIL = 3.2f // petals still glowing behind it
+
 private fun sweepAt(t: Float, i: Int, n: Int): Float {
     if (t <= 0f || t >= 1f) return 0f
-    val center = (i + 0.5f) / n * 0.76f
-    val d = abs(t - center)
-    val w = 0.16f
-    return (1f - d / w).coerceAtLeast(0f)
+    // Run the head from before the first petal to well past the last, so the tail has
+    // faded to nothing by the time the sweep ends — no cut-off at the finish.
+    val head = t * (n + SWEEP_TAIL + SWEEP_LEAD) - SWEEP_LEAD
+    val d = head - i
+    val x = if (d >= 0f) d / SWEEP_TAIL else -d / SWEEP_LEAD
+    if (x >= 1f) return 0f
+    return 0.5f + 0.5f * cos(PI.toFloat() * x)
 }
 
 @Composable
@@ -360,10 +380,11 @@ fun NexusHome() {
     // behind the launch animation.
     val bootT = ((nowMs - BOOT_DELAY_MS) / BOOT_MS).coerceIn(0f, 1f)
 
-    // The core breathing: a cosine so it eases at both ends instead of ping-ponging.
+    // The core breathing: a cosine so it eases at both ends instead of ping-ponging, and a
+    // near-full swing so the bloom clearly grows and recedes rather than flickering.
     val breathT = run {
         val p = (nowMs % BREATH_MS) / BREATH_MS
-        0.22f + 0.58f * (0.5f - 0.5f * cos(2f * PI.toFloat() * p))
+        0.16f + 0.84f * (0.5f - 0.5f * cos(2f * PI.toFloat() * p))
     }
 
     // The ring counts up to today's real number rather than appearing at it.
@@ -445,19 +466,23 @@ fun NexusHome() {
             if (bootT < 1f) {
                 PETALS.forEachIndexed { i, (id, _) ->
                     val a = sweepAt(bootT, i, PETALS.size)
-                    if (a > 0.01f) paths[DOMAIN_PREFIX + id]?.let { glow(it, a, scale, fill = 0.16f) }
+                    // A wider halo on the sweep so neighbouring petals' light overlaps and
+                    // the seams between them disappear.
+                    if (a > 0.01f) {
+                        paths[DOMAIN_PREFIX + id]?.let { glow(it, a, scale, fill = 0.15f, spread = 1.6f, gain = 1.15f) }
+                    }
                 }
             }
 
-            // The core breathing, always.
-            paths["core"]?.let { glow(it, breathT, scale, fill = 0.09f) }
+            // The core breathing, always — a wide, bright bloom rather than a faint outline.
+            paths["core"]?.let { glow(it, breathT, scale, fill = 0.28f, spread = 2.6f, gain = 2.4f) }
 
             // The ring: filling to today's real number, or breathing on standby when there
             // is nothing to measure yet, so it never reads as a dead circle.
             if (ringPct >= 0f) {
                 drawRingArc(ringT, ox, oy, scale)
             } else {
-                paths["ring"]?.let { glow(it, breathT * 0.55f, scale, fill = 0f) }
+                paths["ring"]?.let { glow(it, breathT * 0.4f, scale, fill = 0f) }
             }
 
             // Whatever you just pressed, brightest and on top.
