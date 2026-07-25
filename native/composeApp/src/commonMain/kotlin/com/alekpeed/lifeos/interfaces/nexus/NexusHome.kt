@@ -169,8 +169,8 @@ private val LIGHT_HOT = Color(0xFFFFC2D6) // the brighter core of a fresh tap
 
 // Glow is additive: layered strokes from wide-and-faint to tight-and-bright, so the edge
 // reads as light bleeding off the shape rather than a flat outline sitting on top of it.
-private val HALO_W = floatArrayOf(15f, 10f, 6f, 2.5f)
-private val HALO_A = floatArrayOf(0.09f, 0.15f, 0.26f, 0.62f)
+private val HALO_W = floatArrayOf(20f, 13f, 7f, 3f)
+private val HALO_A = floatArrayOf(0.13f, 0.21f, 0.34f, 0.80f)
 
 private fun DrawScope.glow(path: Path, amount: Float, scale: Float, fill: Float = 0.20f) {
     if (amount <= 0.01f) return
@@ -241,8 +241,8 @@ private fun DrawScope.drawRingArc(frac: Float, ox: Float, oy: Float, scale: Floa
     val topLeft = Offset(cx - rx, cy - ry)
     val size = Size(rx * 2f, ry * 2f)
     val sweep = 360f * frac.coerceIn(0f, 1f)
-    val widths = floatArrayOf(11f, 7f, 3.4f)
-    val alphas = floatArrayOf(0.15f, 0.28f, 0.85f)
+    val widths = floatArrayOf(14f, 8f, 4f)
+    val alphas = floatArrayOf(0.22f, 0.40f, 0.95f)
     for (i in widths.indices) {
         drawArc(
             if (i == widths.lastIndex) LIGHT_HOT else LIGHT,
@@ -258,10 +258,10 @@ private fun DrawScope.drawRingArc(frac: Float, ox: Float, oy: Float, scale: Floa
 // wheel comes on clockwise from the top instead of all at once.
 private fun sweepAt(t: Float, i: Int, n: Int): Float {
     if (t <= 0f || t >= 1f) return 0f
-    val center = (i + 0.5f) / n * 0.78f
+    val center = (i + 0.5f) / n * 0.76f
     val d = abs(t - center)
-    val w = 0.13f
-    return ((1f - d / w).coerceAtLeast(0f)) * 0.85f
+    val w = 0.16f
+    return (1f - d / w).coerceAtLeast(0f)
 }
 
 @Composable
@@ -328,16 +328,20 @@ fun NexusHome() {
     var litId by remember { mutableStateOf("") }
     val lit = remember { Animatable(0f) }
 
-    // The wheel lighting up petal by petal when the home appears.
+    // The wheel lighting up petal by petal when the home appears. Held off a moment so it
+    // isn't spent behind the launch animation.
     val boot = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { boot.animateTo(1f, tween(1600, easing = LinearEasing)) }
+    LaunchedEffect(Unit) {
+        delay(350)
+        boot.animateTo(1f, tween(2000, easing = LinearEasing))
+    }
 
     // The core breathes so the screen never looks frozen.
     val breath = rememberInfiniteTransition().animateFloat(
-        initialValue = 0.10f,
-        targetValue = 0.34f,
+        initialValue = 0.20f,
+        targetValue = 0.78f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2600, easing = FastOutSlowInEasing),
+            animation = tween(2400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
     )
@@ -347,6 +351,15 @@ fun NexusHome() {
     LaunchedEffect(ringPct) {
         if (ringPct >= 0f) ringArc.animateTo(ringPct, tween(1100, easing = FastOutSlowInEasing))
     }
+
+    // Read every animated value HERE, in composition, and hand the numbers to the canvas.
+    // Reading them only inside the draw lambda left the screen static — nothing redrew
+    // between frames unless something else happened to recompose.
+    val bootT = boot.value
+    val breathT = breath.value
+    val ringT = ringArc.value
+    val litT = lit.value
+    val litNow = litId
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF07080C))) {
         val vw = constraints.maxWidth.toFloat()
@@ -389,8 +402,9 @@ fun NexusHome() {
                     scope.launch {
                         litId = hit
                         lit.snapTo(1f)
-                        // Let the light land before the screen changes underneath it.
-                        delay(70)
+                        // Let the light actually land before the screen changes underneath
+                        // it — a button that opens a module is gone too fast to see at 70ms.
+                        delay(210)
                         if (hit.startsWith(DOMAIN_PREFIX)) {
                             openDomain = hit.removePrefix(DOMAIN_PREFIX)
                         } else {
@@ -413,22 +427,26 @@ fun NexusHome() {
             )
 
             // Opening sweep: light runs clockwise around the wheel once, then stops.
-            val t = boot.value
-            if (t < 1f) {
+            if (bootT < 1f) {
                 PETALS.forEachIndexed { i, (id, _) ->
-                    val a = sweepAt(t, i, PETALS.size)
-                    if (a > 0.01f) paths[DOMAIN_PREFIX + id]?.let { glow(it, a, scale, fill = 0.11f) }
+                    val a = sweepAt(bootT, i, PETALS.size)
+                    if (a > 0.01f) paths[DOMAIN_PREFIX + id]?.let { glow(it, a, scale, fill = 0.16f) }
                 }
             }
 
             // The core breathing, always.
-            paths["core"]?.let { glow(it, breath.value, scale, fill = 0.05f) }
+            paths["core"]?.let { glow(it, breathT, scale, fill = 0.09f) }
 
-            // The ring filling to today's real number.
-            drawRingArc(ringArc.value, ox, oy, scale)
+            // The ring: filling to today's real number, or breathing on standby when there
+            // is nothing to measure yet, so it never reads as a dead circle.
+            if (ringPct >= 0f) {
+                drawRingArc(ringT, ox, oy, scale)
+            } else {
+                paths["ring"]?.let { glow(it, breathT * 0.55f, scale, fill = 0f) }
+            }
 
             // Whatever you just pressed, brightest and on top.
-            if (litId.isNotEmpty()) paths[litId]?.let { glow(it, lit.value, scale, fill = 0.26f) }
+            if (litNow.isNotEmpty()) paths[litNow]?.let { glow(it, litT, scale, fill = 0.30f) }
         }
 
         // Live values printed into the slots the art leaves empty.
