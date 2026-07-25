@@ -1,6 +1,5 @@
 package com.alekpeed.lifeos.places
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,13 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -38,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.parseDateOrNull
@@ -46,8 +42,6 @@ import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.integrations.WeatherClient
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
-import com.alekpeed.lifeos.platform.loadBlobImage
-import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
@@ -208,16 +202,6 @@ private fun PlaceList(
 private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Place, onClose: () -> Unit) {
     fun patch(f: (Place) -> Place) = save(data.copy(places = data.places.map { if (it.id == place.id) f(it) else it }))
     var newNote by remember { mutableStateOf("") }
-    var showSource by remember { mutableStateOf(false) }
-
-    // Attach/replace the photo: save the new blob, drop the old one, point the
-    // record at the new id.
-    fun onAttach(b64: String?) {
-        if (b64.isNullOrEmpty()) return
-        val id = saveBlob(b64) ?: return
-        deleteBlob(place.photoBlob)
-        patch { it.copy(photoBlob = id) }
-    }
 
     Panel {
         Label("Name")
@@ -355,43 +339,25 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
             )
         }
 
-        Label("Photo")
-        val photo = remember(place.photoBlob) { loadBlobImage(place.photoBlob) }
-        if (place.photoBlob.isNotBlank()) {
-            if (photo != null) {
-                Image(
-                    bitmap = photo,
-                    contentDescription = "Attached photo",
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Fit,
-                )
-            } else {
-                Text("Photo attached (no preview available).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
-                TextButton(onClick = { deleteBlob(place.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
-            }
-        } else if (Native.supportsCamera) {
-            OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
-        } else {
-            Text("Photo attachments need a camera.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        // A place is a place you saw — one photo per place was the wrong shape. Every
+        // photo shows as a thumbnail here, the first tile being the primary one the list
+        // row uses, and non-image files stay in their own list below.
+        Label("Photos")
+        com.alekpeed.lifeos.attach.PhotoGrid(
+            attachments = place.attachments,
+            onChange = { list -> patch { it.copy(attachments = list) } },
+            label = "Photos of this place",
+            primaryBlob = place.photoBlob,
+            onPrimaryChange = { v -> patch { it.copy(photoBlob = v) } },
+        )
 
-        Label("Files")
-        com.alekpeed.lifeos.attach.AttachmentsSection(place.attachments, { list -> patch { it.copy(attachments = list) } }, label = "More photos & files")
-
-        if (showSource) {
-            AlertDialog(
-                onDismissRequest = { showSource = false },
-                title = { Text("Attach a photo") },
-                text = { Text("Take a new photo, or choose one from your library.") },
-                confirmButton = {
-                    TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") }
-                },
+        val files = place.attachments.filterNot { it.isImage }
+        if (files.isNotEmpty() || Native.supportsFilePick) {
+            Label("Files")
+            com.alekpeed.lifeos.attach.AttachmentsSection(
+                place.attachments,
+                { list -> patch { it.copy(attachments = list) } },
+                label = "Files",
             )
         }
 
