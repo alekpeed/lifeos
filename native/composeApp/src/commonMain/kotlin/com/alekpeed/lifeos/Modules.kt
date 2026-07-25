@@ -59,7 +59,7 @@ data class Module(
 // The eight domains, in wheel order. These group the modules on the home screen
 // and in any graphical interface's navigation.
 val MODULE_GROUPS = listOf(
-    "Operations", "Archive", "Navigation", "Discovery",
+    "Operations", "Archive", "Logistics", "Discovery",
     "Management", "Intelligence", "People", "System",
 )
 
@@ -81,11 +81,11 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("time-capsules", "⏳", "Time Capsules", "Archive", true) { TimeCapsulesScreen() },
     Module("milestones", "🏆", "Milestones", "Archive", true) { MilestonesScreen() },
     Module("ghost-days", "👻", "Ghost Days", "Archive", true) { GhostDaysScreen() },
-    // Navigation — places & things in motion
-    Module("places", "📍", "Places", "Navigation", true) { PlacesScreen() },
-    Module("orrery", "🪐", "Orrery", "Navigation", true) { OrreryScreen() },
-    Module("quartermaster", "📦", "Quartermaster", "Navigation", true) { QuartermasterScreen() },
-    Module("packing", "🧳", "Packing Lists", "Navigation", true) { PackingScreen() },
+    // Logistics — places, supply & trips
+    Module("places", "📍", "Places", "Logistics", true) { PlacesScreen() },
+    Module("orrery", "🪐", "Orrery", "Logistics", true) { OrreryScreen() },
+    Module("quartermaster", "📦", "Quartermaster", "Logistics", true) { QuartermasterScreen() },
+    Module("packing", "🧳", "Packing Lists", "Logistics", true) { PackingScreen() },
     // Discovery — learning & curiosity
     Module("education", "🎓", "Education", "Discovery", true) { EducationScreen() },
     Module("skill-trees", "🌳", "Skill Trees", "Discovery", true) { SkillTreesScreen() },
