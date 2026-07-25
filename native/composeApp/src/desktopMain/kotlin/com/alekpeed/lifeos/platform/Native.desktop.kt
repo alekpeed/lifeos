@@ -41,6 +41,9 @@ actual object Native {
         null
     }
 
+    actual fun setImmersive(on: Boolean) {}
+
+
     actual fun keepScreenAwake(on: Boolean) {}
     actual fun importContacts(): List<PhoneContact> = emptyList()
     actual fun postReminder(title: String, body: String) {}

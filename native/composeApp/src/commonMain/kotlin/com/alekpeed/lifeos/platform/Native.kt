@@ -45,6 +45,11 @@ expect object Native {
     // mic button on supportsDictation.
     fun dictate(onResult: (String?) -> Unit)
 
+    // Full-screen (immersive) mode: hide the system status and navigation bars so a
+    // graphical interface with its own top row owns the whole screen. Swiping from an
+    // edge still reveals the system bars temporarily. No-op where unsupported.
+    fun setImmersive(on: Boolean)
+
     // Cooking mode: keep the screen on while true.
     fun keepScreenAwake(on: Boolean)
 

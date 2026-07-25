@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.HomeScreen
 import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.lifeOsModules
+import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.loadImageAsset
 import com.alekpeed.lifeos.system.smartScan
 import kotlinx.coroutines.delay
@@ -121,6 +123,13 @@ fun NexusHome() {
 
     val modules = remember { lifeOsModules() }
     val scope = rememberCoroutineScope()
+
+    // The artwork has its own clock, date and status row, so the system bars would sit
+    // on top of it. Go full screen while this home is showing, and restore on the way out.
+    DisposableEffect(Unit) {
+        Native.setImmersive(true)
+        onDispose { Native.setImmersive(false) }
+    }
     var openDomain by remember { mutableStateOf("") }
 
     // Live clock — the art leaves these two slots empty on purpose.
@@ -178,8 +187,8 @@ fun NexusHome() {
         )
 
         // Live values printed into the slots the art leaves empty.
-        SlotText(clock, SLOT_CLOCK, ox, oy, scale, density, Color(0xFFF2F4F6), 30f, FontWeight.Medium)
-        SlotText(date, SLOT_DATE, ox, oy, scale, density, Color(0xFFE0708F), 24f, FontWeight.Normal)
+        SlotText(clock, SLOT_CLOCK, ox, oy, scale, density, Color(0xFFF2F4F6), 26f, FontWeight.Medium)
+        SlotText(date, SLOT_DATE, ox, oy, scale, density, Color(0xFFE0708F), 19f, FontWeight.Normal)
 
         if (openDomain.isNotBlank()) {
             DomainSheet(
@@ -219,6 +228,9 @@ private fun SlotText(
     weight: FontWeight,
 ) {
     if (text.isBlank()) return
+    // Give the text room either side of the slot and center it on the slot's middle, so a
+    // long value (a full date) is never clipped by the traced box.
+    val pad = slot[2] * 1.2f
     with(density) {
         Text(
             text,
@@ -228,8 +240,11 @@ private fun SlotText(
             textAlign = TextAlign.Center,
             maxLines = 1,
             modifier = Modifier
-                .offset(x = (ox + slot[0] * scale).toDp(), y = (oy + slot[1] * scale).toDp())
-                .width((slot[2] * scale).toDp()),
+                .offset(
+                    x = (ox + (slot[0] - pad / 2f) * scale).toDp(),
+                    y = (oy + slot[1] * scale).toDp(),
+                )
+                .width(((slot[2] + pad) * scale).toDp()),
         )
     }
 }

@@ -85,6 +85,26 @@ actual object Native {
         return clip.getItemAt(0).coerceToText(ctx)?.toString()?.ifBlank { null }
     }
 
+    actual fun setImmersive(on: Boolean) {
+        val act = NativeHost.activity ?: return
+        act.runOnUiThread {
+            try {
+                val window = act.window
+                androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, !on)
+                val c = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+                if (on) {
+                    c.systemBarsBehavior =
+                        androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    c.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                } else {
+                    c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                }
+            } catch (e: Exception) {
+                // best-effort
+            }
+        }
+    }
+
     actual fun keepScreenAwake(on: Boolean) {
         val act = NativeHost.activity ?: return
         act.runOnUiThread {
