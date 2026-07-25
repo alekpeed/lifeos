@@ -50,6 +50,10 @@ expect object Native {
     // edge still reveals the system bars temporarily. No-op where unsupported.
     fun setImmersive(on: Boolean)
 
+    // Height in px of the display cutout (notch / punch hole) at the top of the
+    // screen, so full-screen art can start just below it. 0 where there is none.
+    fun cutoutTopPx(): Int
+
     // Cooking mode: keep the screen on while true.
     fun keepScreenAwake(on: Boolean)
 

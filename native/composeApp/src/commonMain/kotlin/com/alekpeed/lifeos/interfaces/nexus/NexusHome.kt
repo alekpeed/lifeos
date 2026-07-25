@@ -1,6 +1,6 @@
 package com.alekpeed.lifeos.interfaces.nexus
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -28,10 +28,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.HomeScreen
@@ -44,6 +45,7 @@ import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.roundToInt
 
 // NEXUS — a graphical home for Life OS. The artwork is a single bundled image; every
 // interactive area is a region mapped onto it (traced in Figma against the 852x1846
@@ -155,17 +157,19 @@ fun NexusHome() {
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF07080C))) {
         val vw = constraints.maxWidth.toFloat()
         val vh = constraints.maxHeight.toFloat()
-        // Cover-fit: scale so the art fills the screen, centered (may crop edges).
-        val scale = maxOf(vw / ART_W, vh / ART_H)
+        // The artwork carries its own status row at its very top, so it must clear the
+        // display cutout: fill the width, TOP-ALIGN just below the punch hole, and let
+        // any overflow crop off the bottom (empty dais margin) — never the top. No
+        // vertical centering, so nothing drifts with screen shape. Re-read each
+        // recomposition: insets can report 0 on the very first frame.
+        val topInset = Native.cutoutTopPx().toFloat()
+        val scale = maxOf(vw / ART_W, (vh - topInset) / ART_H)
         val ox = (vw - ART_W * scale) / 2f
-        val oy = (vh - ART_H * scale) / 2f
+        val oy = topInset
         val density = LocalDensity.current
 
-        Image(
-            bitmap = art,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+        Canvas(
+            modifier = Modifier.fillMaxSize().pointerInput(scale, ox, oy) {
                 detectTapGestures { tap ->
                     // Screen -> artwork space, then test every region.
                     val ax = (tap.x - ox) / scale
@@ -184,7 +188,17 @@ fun NexusHome() {
                     }
                 }
             },
-        )
+        ) {
+            // Drawn with the exact same transform the hit testing uses, so the tap
+            // zones can never drift from the pixels.
+            drawImage(
+                image = art,
+                srcOffset = IntOffset.Zero,
+                srcSize = IntSize(art.width, art.height),
+                dstOffset = IntOffset(ox.roundToInt(), oy.roundToInt()),
+                dstSize = IntSize((ART_W * scale).roundToInt(), (ART_H * scale).roundToInt()),
+            )
+        }
 
         // Live values printed into the slots the art leaves empty.
         SlotText(clock, SLOT_CLOCK, ox, oy, scale, density, Color(0xFFF2F4F6), 26f, FontWeight.Medium)

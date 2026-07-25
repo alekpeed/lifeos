@@ -117,6 +117,15 @@ actual object Native {
         }
     }
 
+    actual fun cutoutTopPx(): Int = try {
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            NativeHost.activity?.window?.decorView?.rootWindowInsets
+                ?.displayCutout?.safeInsetTop ?: 0
+        } else 0
+    } catch (e: Exception) {
+        0
+    }
+
     actual fun keepScreenAwake(on: Boolean) {
         val act = NativeHost.activity ?: return
         act.runOnUiThread {
