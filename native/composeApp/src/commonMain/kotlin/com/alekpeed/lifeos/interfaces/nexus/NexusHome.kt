@@ -170,7 +170,7 @@ private val LIGHT_HOT = Color(0xFFFFC2D6) // the brighter core of a fresh tap
 
 // All timing in milliseconds, measured off the frame clock.
 private const val BOOT_DELAY_MS = 350f
-private const val BOOT_MS = 1000f // one turn of the ray — fast is what makes it read as one
+private const val BOOT_MS = 1500f // one full turn of the ray
 private const val BREATH_MS = 4200f // a full breath, in and back out
 private const val TAP_HOLD_MS = 210
 private const val TAP_FADE_MS = 420f
