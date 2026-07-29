@@ -1,8 +1,11 @@
 name: Build Native App
 
 # Real native Life OS — Kotlin + Compose Multiplatform. One codebase builds a
-# native Android APK and a native Windows desktop app (no WebView). Built
-# entirely in the cloud, no local machine — same as the rest of the project.
+# native Android APK, a native Windows desktop app, and a Linux .deb (no WebView).
+# Built entirely in the cloud, no local machine — same as the rest of the project.
+#
+# The .deb is the same binary as Windows; it installs two launchers, the full app
+# and the helper window (`lifeos --helper`), so one build serves both.
 
 on:
   push:
@@ -75,4 +78,36 @@ jobs:
         with:
           name: lifeos-native-windows
           path: native/composeApp/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+
+  linux:
+    name: Native Linux App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      # jpackage builds the .deb; fakeroot and dpkg-dev are what it shells out to.
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y fakeroot dpkg-dev binutils
+
+      - name: Package native Linux app (.deb)
+        working-directory: native
+        run: gradle :composeApp:packageDeb --no-daemon --stacktrace
+
+      - name: Upload Linux package
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifeos-native-linux
+          path: native/composeApp/build/compose/binaries/main/deb/*.deb
           if-no-files-found: error

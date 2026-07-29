@@ -136,6 +136,18 @@ expect object Native {
     // runs to hundreds of MB — the whole file never sits in memory at once.
     fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit)
 
+    // Can this platform grab a picture of the screen? Desktop can (AWT Robot); the
+    // phone can't without a foreground-service dance nobody asked for.
+    val supportsScreenshot: Boolean
+
+    // A PNG of the whole screen as base64, or null. The single most useful thing a
+    // non-technical person can send when something is wrong.
+    fun captureScreen(onResult: (String?) -> Unit)
+
+    // One line describing the machine — OS, architecture, free disk, memory. Attached to
+    // a help request so the first round of "what are you running" is already answered.
+    fun machineSummary(): String
+
     // Pick an ebook (EPUB or .txt) and hand back its readable plain text in
     // reading order, or null if cancelled / unsupported. Backs the Books reader.
     fun pickEbook(onResult: (String?) -> Unit)

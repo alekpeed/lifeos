@@ -465,6 +465,11 @@ actual object Native {
         }
     }
 
+    actual val supportsScreenshot = false
+    actual fun captureScreen(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun machineSummary(): String =
+        "Android ${android.os.Build.VERSION.RELEASE} · ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+
     actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) {
         val launcher = NativeHost.filePickLauncher
         if (launcher == null) { onResult(null, null); return }

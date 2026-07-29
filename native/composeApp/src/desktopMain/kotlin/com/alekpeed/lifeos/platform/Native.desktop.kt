@@ -19,7 +19,7 @@ actual object Native {
     actual val supportsQrScan = false
     actual val supportsLocation = false
     actual val supportsCamera = false
-    actual val supportsFilePick = false
+    actual val supportsFilePick = true
     actual val supportsDictation = false
     actual val supportsPdfExport = false
 
@@ -68,10 +68,56 @@ actual object Native {
     actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) { onResult(null, null) }
     actual fun takePhoto(onResult: (String?) -> Unit) { onResult(null) }
     actual fun capturePhoto(onResult: (String?) -> Unit) { onResult(null) }
-    actual fun pickTextFile(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun pickTextFile(onResult: (String?) -> Unit) {
+        try {
+            val chooser = javax.swing.JFileChooser()
+            chooser.dialogTitle = "Choose a file"
+            if (chooser.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) { onResult(null); return }
+            val f = chooser.selectedFile
+            onResult(if (f != null && f.exists() && f.length() <= 4_000_000) f.readText() else null)
+        } catch (e: Exception) {
+            onResult(null)
+        }
+    }
     actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
     actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) { onResult(null, null) }
+
+    actual val supportsScreenshot = true
+
+    // The whole screen as a PNG. On X11 (Mint's default session) this is exactly what
+    // you see; under a Wayland session the compositor may hand back a black frame, in
+    // which case the caller just sends the request without a picture.
+    actual fun captureScreen(onResult: (String?) -> Unit) {
+        try {
+            val size = Toolkit.getDefaultToolkit().screenSize
+            val shot = java.awt.Robot().createScreenCapture(java.awt.Rectangle(0, 0, size.width, size.height))
+            val bytes = java.io.ByteArrayOutputStream()
+            javax.imageio.ImageIO.write(shot, "png", bytes)
+            val b = bytes.toByteArray()
+            onResult(if (b.isEmpty()) null else java.util.Base64.getEncoder().encodeToString(b))
+        } catch (e: Exception) {
+            onResult(null)
+        }
+    }
+
+    // What machine this is, in one line — so a help request doesn't start with three
+    // rounds of "what version are you running".
+    actual fun machineSummary(): String = try {
+        val os = runCatching {
+            java.io.File("/etc/os-release").takeIf { it.exists() }?.readLines()
+                ?.firstOrNull { it.startsWith("PRETTY_NAME=") }
+                ?.substringAfter('=')?.trim('"')
+        }.getOrNull() ?: "${System.getProperty("os.name")} ${System.getProperty("os.version")}"
+        val home = java.io.File(System.getProperty("user.home"))
+        val freeGb = (home.usableSpace / 1_000_000_000.0)
+        val ramGb = (Runtime.getRuntime().maxMemory() / 1_000_000_000.0)
+        val disk = ((freeGb * 10).toLong() / 10.0)
+        val ram = ((ramGb * 10).toLong() / 10.0)
+        "$os · ${System.getProperty("os.arch")} · ${disk}GB free · app RAM ${ram}GB"
+    } catch (e: Exception) {
+        ""
+    }
     actual fun dictate(onResult: (String?) -> Unit) { onResult(null) }
 
     actual fun openUrl(url: String) {
@@ -92,7 +138,26 @@ actual object Native {
         }
     }
 
-    actual fun pickAttachment(onResult: (String?, String?, String?) -> Unit) { onResult(null, null, null) }
+    // A real file chooser, so attachments, Sharebox files and book files work here too.
+    // Runs on the caller's thread: Swing's modal chooser blocks until it's dismissed,
+    // which is the behavior every caller already expects from the Android side.
+    actual fun pickAttachment(onResult: (String?, String?, String?) -> Unit) {
+        try {
+            val chooser = javax.swing.JFileChooser()
+            chooser.dialogTitle = "Choose a file"
+            if (chooser.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) {
+                onResult(null, null, null); return
+            }
+            val f = chooser.selectedFile
+            if (f == null || !f.exists()) { onResult(null, null, null); return }
+            // Same cap as Android: a huge file would blow up as base64 in memory.
+            if (f.length() > 25_000_000) { onResult(f.name, null, null); return }
+            val mime = runCatching { java.nio.file.Files.probeContentType(f.toPath()) }.getOrNull()
+            onResult(f.name, mime, java.util.Base64.getEncoder().encodeToString(f.readBytes()))
+        } catch (e: Exception) {
+            onResult(null, null, null)
+        }
+    }
 
     // Best-effort: write the bytes to a temp file and hand it to the system opener.
     actual fun openAttachment(base64: String, name: String, mime: String) {
