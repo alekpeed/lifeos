@@ -1,6 +1,10 @@
 package com.alekpeed.lifeos.data
 
 import com.alekpeed.lifeos.Storage
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.offsetAt
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -145,8 +149,8 @@ fun allRecords(): List<SearchHit> {
 // makes every "what time is it in Tokyo", "how long until Friday" and "is that overdue"
 // answerable. Cheap enough to include in every prompt.
 private fun nowLine(): String = runCatching {
-    val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
-    val now = kotlinx.datetime.Clock.System.now()
+    val tz = TimeZone.currentSystemDefault()
+    val now = Clock.System.now()
     val local = now.toLocalDateTime(tz)
     val hh = local.hour.toString().padStart(2, '0')
     val mm = local.minute.toString().padStart(2, '0')
