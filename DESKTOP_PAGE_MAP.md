@@ -70,7 +70,7 @@ NAV
 ├── DISCOVERY       5
 ├── MANAGEMENT      4
 ├── INTELLIGENCE    6
-├── PEOPLE          3
+├── PEOPLE          2
 ├── SYSTEM          3
 └── Sync status / account          pinned to the bottom
 ```
@@ -130,25 +130,30 @@ And every page has:
 
 ---
 
-## 4. What the hardware can't do here
+## 4. What simply isn't here
 
-The phone build leans on hardware this machine doesn't have. Every one of these needs
-a designed desktop substitute rather than a disabled button:
+This machine has no camera, no barcode scanner, no microphone, no GPS, and no way to
+fire an alert when the app is closed. Those features are **absent from this build** —
+not disabled, not explained, not replaced with an apology. The button isn't drawn.
 
-| Missing | Affects | What replaces it |
-|---|---|---|
-| Camera | Documents, Books, Places, Photos, Quartermaster, Finance, Recipes, Milestones | Import a file, or drag one in. The AI reading of that image works identically once it has bytes. |
-| Barcode / QR scanning | Books (ISBN), QR Sync | Type the ISBN. QR Sync can *show* a code but not read one — pairing runs from the phone. |
-| Dictation and mic | Command, Ideas | Typing only. Don't draw a mic button that does nothing. |
-| Speech out | Today, Briefing, Daily Paper | No read-aloud control. |
-| Location and geofence | Places | Enter coordinates or search an address; no "check nearby", no arrival alerts. |
-| Device alarms and notifications | Notifications | Reminders exist as records and show in-app, but nothing fires when the app is closed. Say so plainly on the page. |
-| Keep screen awake | Recipes | Nothing needed — a desktop screen doesn't sleep mid-recipe the same way. |
-| Phone contact import | Contacts | Manual entry, or import a file. |
-| PDF export | Daily Paper | Print, or copy the text out. |
+| Not here | The page still does |
+|---|---|
+| Camera capture | Documents, Photos, Places, Quartermaster, Finance, Recipes, Milestones all take a file instead — pick one or drag it in. The AI reading of an image works identically once it has the bytes. |
+| Barcode / ISBN scanning | Books: type the ISBN, same lookup. |
+| Dictation | Command and Ideas are typed. |
+| Speech out | No read-aloud on Today, Briefing, or the Paper. |
+| Location and geofencing | Places keeps addresses and coordinates; no "nearby", no arrival alerts. |
+| Background alarms | Notifications is a list of what needs attention while the app is open. |
+| Keep-awake, phone contact import, PDF export | Gone. Recipes, Contacts and the Paper lose nothing else. |
 
-**What the desktop has instead**, which the phone build has no use for: a real file
-picker, drag-and-drop, screen capture, a resizable window, and a keyboard.
+**Modules worth leaving out entirely:** *QR Sync* exists to scan a code, and this build
+can't. It can only display one — which the phone can already do in the other
+direction. Cut it unless a use for it turns up; it's three lines to put back.
+
+That leaves **39 modules** on the desktop.
+
+**What this build has that the phone doesn't:** a real file picker, drag-and-drop,
+screen capture, a resizable window, and a keyboard.
 
 ---
 
@@ -194,7 +199,6 @@ Where a page differs from the phone, that's noted.
 **Notifications** — *what's overdue, expiring, or due soon.*
 - List: the attention feed, each row jumping to its record.
 - Toolbar: set a reminder, with quick offsets.
-- Must state, on the page, that reminders only appear while the app is running here.
 
 ### Archive
 
@@ -246,7 +250,6 @@ Where a page differs from the phone, that's noted.
 - Detail: name, category, address, coordinates, rating, visit dates, linked people,
   notes, notes-to-self, a photo grid, files.
 - Map tab replaces both panes with the map; clicking a pin selects that place.
-- No location services here — coordinates are entered or looked up.
 
 **Orrery** — *your life as an orbital system; neglect as drift.*
 - One surface, the diagram is the page. Bodies are modules, distance is how long since
@@ -334,10 +337,6 @@ Where a page differs from the phone, that's noted.
 - List: the feed. Composer for a link, a note, or a file, with urgency.
 - Drag a file onto the window to share it.
 - New items arrive on their own; nothing needs refreshing.
-
-**QR Sync** — *pair another device.*
-- Shows this device's code, large enough to scan from a phone held in front of the
-  monitor. Cannot scan — say so, and point at the phone for that direction.
 
 ### System
 
