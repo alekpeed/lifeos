@@ -82,7 +82,12 @@ jobs:
 
   linux:
     name: Native Linux App
-    runs-on: ubuntu-latest
+    # Built on the OLDEST supported base on purpose. jpackage writes the runner's own
+    # library names into the package's dependency list, and 24.04 names them with the
+    # 64-bit time_t suffix (libasound2t64, libpng16-16t64). Those package names don't
+    # exist on 22.04 or on Mint 21.x, so a .deb built on 24.04 refuses to install
+    # there. Building on 22.04 produces a package that installs on 22.04 and newer.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
