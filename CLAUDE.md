@@ -62,6 +62,14 @@ Deploy: `main` branch via GitHub Pages. Routine convention this session:
 commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
 `main`, push `main`, checkout back to the dev branch.
 
+## Build delivery (2026-08-04)
+
+**Always give the direct GitHub download link for a build — don't attach the file.**
+Per-artifact form, which downloads on click when signed in:
+`github.com/alekpeed/lifeos/actions/runs/<run_id>/artifacts/<artifact_id>`
+(get both ids from the artifacts listing for the run). Attaching APKs/debs here is
+size-capped and clumsy; the link always works. Standing preference, every build.
+
 **GitHub links: always link to a directory when possible**, not just the
 bare repo root — e.g. `github.com/alekpeed/lifeos/tree/<branch>` (or a
 deeper path within it) rather than `github.com/alekpeed/lifeos` alone.
