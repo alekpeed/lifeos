@@ -1,4 +1,7 @@
-# Life OS — Page Map & Interface Art Brief
+# Life OS — Page Map & Interface Art Brief (phone)
+
+> This is the **Android** build. The desktop/Ubuntu build is a separate interface with
+> no shared visual language — see `DESKTOP_PAGE_MAP.md`.
 
 **What this is:** the complete inventory of screens in Life OS, and what each one has
 to contain, written for an image generator that is drawing the interface art.
