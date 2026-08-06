@@ -80,7 +80,7 @@ private fun Overview(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fre
             val t = topic.trim().replace("\n", " ")
             if (t.isNotEmpty()) {
                 val id = freshId()
-                save(data.copy(holes = data.holes + RabbitHole(id, t, startedDate = today().toString())))
+                save(data.copy(holes = data.holes + RabbitHole(id, t, startedDate = today().toString(), touchedDate = today().toString())))
                 topic = ""; onOpen(id)
             }
         }) { Text("Start") }
@@ -129,13 +129,25 @@ private fun HoleRow(hole: RabbitHole, bulk: BulkState, onClick: () -> Unit) {
     ) {
         BulkTick(bulk, hole.id)
         Text(hole.topic.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        val cold = if (hole.status == "resolved") null else daysCold(hole)?.takeIf { it >= COLD_AFTER_DAYS }
+        if (cold != null) {
+            Text(
+                "cold ${cold}d",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+        }
         Text("${hole.links.size} link${if (hole.links.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun Detail(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, freshId: () -> Long, hole: RabbitHole, onBack: () -> Unit) {
-    fun patch(f: (RabbitHole) -> RabbitHole) = save(data.copy(holes = data.holes.map { if (it.id == hole.id) f(it) else it }))
+    // Every edit counts as touching the hole, which is what keeps it out of the
+    // Briefing's cold list while you're still working on it.
+    fun patch(f: (RabbitHole) -> RabbitHole) =
+        save(data.copy(holes = data.holes.map { if (it.id == hole.id) touched(f(it)) else it }))
     var showSource by remember { mutableStateOf(false) }
     fun onAttach(b64: String?) {
         if (b64.isNullOrEmpty()) return

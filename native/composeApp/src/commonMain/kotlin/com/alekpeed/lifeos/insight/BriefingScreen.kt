@@ -36,6 +36,10 @@ import com.alekpeed.lifeos.finance.financeBills
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.habits.saveHabits
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.rabbitholes.COLD_AFTER_DAYS
+import com.alekpeed.lifeos.rabbitholes.daysCold
+import com.alekpeed.lifeos.rabbitholes.loadHoles
+import com.alekpeed.lifeos.rabbitholes.saveHoles
 import com.alekpeed.lifeos.tasks.loadTasks
 import com.alekpeed.lifeos.tasks.saveTasks
 
@@ -121,6 +125,31 @@ fun BriefingScreen() {
                 else -> {}
             }
         }
+        // Open threads you've stopped pulling on. Last in the list on purpose: this
+        // is the "you left this half-finished" nudge, not something due. Resolving
+        // one from here is a real answer — an abandoned thread you're never going
+        // back to should be closed, not nagged about forever.
+        fun resolveHole(id: Long) {
+            val holes = loadHoles()
+            saveHoles(holes.copy(holes = holes.holes.map { if (it.id == id) it.copy(status = "resolved") else it }))
+            tick += 1
+        }
+        loadHoles().holes
+            .filter { it.status != "resolved" }
+            .mapNotNull { h -> daysCold(h)?.takeIf { it >= COLD_AFTER_DAYS }?.let { h to it } }
+            .sortedByDescending { it.second }
+            .forEach { (h, days) ->
+                out.add(
+                    BriefLine(
+                        "h${h.id}",
+                        h.topic.ifBlank { "(untitled thread)" },
+                        "gone cold — untouched $days days",
+                        "rabbit-holes",
+                        "Resolve",
+                        { resolveHole(h.id) },
+                    ),
+                )
+            }
         out
     }
 
