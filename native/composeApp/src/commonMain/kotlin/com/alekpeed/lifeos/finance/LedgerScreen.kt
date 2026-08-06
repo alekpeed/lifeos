@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.AiClient
@@ -61,6 +62,10 @@ import com.alekpeed.lifeos.platform.saveBlob
 import androidx.compose.ui.layout.ContentScale
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -444,9 +449,35 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
             )
         }
 
+        // A spend log gets long fast, so ticking a run of entries and clearing them
+        // together is the whole point here.
+        val bulk = rememberBulk()
+        BulkBar(
+            bulk = bulk,
+            ids = entries.map { it.id },
+            noun = "entry",
+            onDelete = { ids ->
+                entries.filter { it.id in ids }.forEach { e ->
+                    if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
+                    if (e.photoBlob.isNotBlank()) deleteBlob(e.photoBlob)
+                }
+                persist(entries.filterNot { it.id in ids })
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             items(entries, key = { it.id }) { e ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .background(
+                            if (bulk.has(e.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            else Color.Transparent,
+                        )
+                        .bulkClickable(bulk, e.id) {}
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BulkTick(bulk, e.id)
                     if (e.photoBlob.isNotBlank()) {
                         val thumb = remember(e.photoBlob) { loadBlobImage(e.photoBlob) }
                         if (thumb != null) {
@@ -469,11 +500,13 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                         )
                     }
                     Text(fmt(e.amount), style = MaterialTheme.typography.bodyLarge, color = if (e.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-                    TextButton(onClick = {
-                        if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
-                        if (e.photoBlob.isNotBlank()) deleteBlob(e.photoBlob)
-                        persist(entries.filterNot { it.id == e.id })
-                    }) { Text("✕") }
+                    if (!bulk.on) {
+                        TextButton(onClick = {
+                            if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
+                            if (e.photoBlob.isNotBlank()) deleteBlob(e.photoBlob)
+                            persist(entries.filterNot { it.id == e.id })
+                        }) { Text("✕") }
+                    }
                 }
             }
         }

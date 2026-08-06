@@ -32,6 +32,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val URGENT = Color(0xFFD64545)
@@ -120,13 +124,27 @@ private fun LocalShareboxTab() {
             Text("Nothing shared yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             return
         }
+        val bulk = rememberBulk()
+        BulkBar(
+            bulk = bulk,
+            ids = sorted.map { it.id },
+            noun = "item",
+            onDelete = { ids -> save(data.copy(items = data.items.filterNot { it.id in ids })) },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(sorted, key = { it.id }) { item ->
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp),
+                        .background(
+                            if (bulk.has(item.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        .bulkClickable(bulk, item.id) {}
+                        .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    BulkTick(bulk, item.id)
                     Text(if (item.kind == "link") "🔗" else "📝", modifier = Modifier.padding(end = 10.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
@@ -138,10 +156,12 @@ private fun LocalShareboxTab() {
                     }
                     val uColor = when (item.urgency) { "urgent" -> URGENT; "soon" -> SOON; else -> MaterialTheme.colorScheme.onSurfaceVariant }
                     Text(item.urgency, style = MaterialTheme.typography.labelSmall, color = uColor, modifier = Modifier.padding(end = 6.dp))
-                    if (item.kind == "link") {
-                        TextButton(onClick = { Native.shareText(if (item.title.isNotBlank()) "${item.title} — ${item.url}" else item.url) }) { Text("↗") }
+                    if (!bulk.on) {
+                        if (item.kind == "link") {
+                            TextButton(onClick = { Native.shareText(if (item.title.isNotBlank()) "${item.title} — ${item.url}" else item.url) }) { Text("↗") }
+                        }
+                        TextButton(onClick = { save(data.copy(items = data.items.filterNot { it.id == item.id })) }) { Text("×") }
                     }
-                    TextButton(onClick = { save(data.copy(items = data.items.filterNot { it.id == item.id })) }) { Text("×") }
                 }
             }
         }
