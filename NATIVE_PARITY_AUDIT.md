@@ -1,4 +1,17 @@
-# Native vs Web — parity audit (2026-07-21, fresh source read)
+# Native vs Web — parity audit (2026-07-21) — HISTORICAL
+
+> **Superseded. Do not read this as current state.** It was written on 2026-07-21
+> against branch `claude/lifeos-dev-setup-dpipr6`, and dozens of features have landed
+> since — the map, multi-select, Whisper dictation, the Briefing's cold-thread nudge,
+> and more. It also frames the native app as chasing the web build, which is backwards:
+> native is the product and the web source is only a reference to port behaviour from.
+>
+> For current state use **`NATIVE_FEATURES.md`** (what the app asks of each machine,
+> per-platform, plus the real gaps) and **`LIFE_OS.md`** / **`ANDROID_APP.md`** (what
+> each module is and holds). Kept here as the record of where the port stood at that
+> date.
+
+## Original document follows
 
 Branch `claude/lifeos-dev-setup-dpipr6`. Native = Kotlin/Compose screens under
 `native/composeApp/src/commonMain/.../<area>/`; Web = the reference

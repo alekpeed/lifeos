@@ -132,19 +132,24 @@ And every page has:
 
 ## 4. What simply isn't here
 
-This machine has no camera, no barcode scanner, no microphone, no GPS, and no way to
-fire an alert when the app is closed. Those features are **absent from this build** —
-not disabled, not explained, not replaced with an apology. The button isn't drawn.
+This machine has no camera, no barcode scanner, no GPS, and no way to fire an alert
+when the app is closed. Those features are **absent from this build** — not disabled,
+not explained, not replaced with an apology. The button isn't drawn.
+
+**It does have a microphone**, which it didn't when this document was first written.
+Dictation works here: the app records until you say you're finished, then transcribes.
+That makes the mic button one of the few controls this build shares with the phone —
+see `NATIVE_FEATURES.md`.
 
 | Not here | The page still does |
 |---|---|
 | Camera capture | Documents, Photos, Places, Quartermaster, Finance, Recipes, Milestones all take a file instead — pick one or drag it in. The AI reading of an image works identically once it has the bytes. |
 | Barcode / ISBN scanning | Books: type the ISBN, same lookup. |
-| Dictation | Command and Ideas are typed. |
 | Speech out | No read-aloud on Today, Briefing, or the Paper. |
 | Location and geofencing | Places keeps addresses and coordinates; no "nearby", no arrival alerts. |
 | Background alarms | Notifications is a list of what needs attention while the app is open. |
 | Keep-awake, phone contact import, PDF export | Gone. Recipes, Contacts and the Paper lose nothing else. |
+| Ebook import, Apple Health import | Both are **unfinished rather than impossible** — this machine has a working file picker and the parsing is shared code. Books holds records but can't open one; Health takes Garmin CSV but not the Apple export. |
 
 **Modules worth leaving out entirely:** *QR Sync* exists to scan a code, and this build
 can't. It can only display one — which the phone can already do in the other
@@ -154,6 +159,12 @@ That leaves **39 modules** on the desktop.
 
 **What this build has that the phone doesn't:** a real file picker, drag-and-drop,
 screen capture, a resizable window, and a keyboard.
+
+**Already built, not just specified.** Two things this document asked for are now real
+in shared code, so the desktop gets them for free: **multi-select** on every list (with
+a bar carrying Delete and the per-list bulk action), and **drag-and-drop on the Tasks
+board** between status columns. The Places map is real OpenStreetMap tiles with cached
+offline coverage, not a drawn outline.
 
 ---
 

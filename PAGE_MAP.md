@@ -101,6 +101,20 @@ reused:
 
 Everything between those two bands is the page's own business.
 
+### Two overlays the app draws on top of your art
+
+Neither is per-page. Both appear over whatever page you're on, so **don't draw them**,
+and don't put anything load-bearing where they land:
+
+3. **The selection bar.** Every list page supports multi-select. When rows are ticked, a
+   strip appears directly above the list showing the count, `All`, the page's bulk
+   action, `Delete` and `Done`. When nothing is selected a quiet `☑ Select` sits at the
+   top-right of the list area. Keep the top of every LIVE list region clear enough that
+   a one-line strip can appear there without covering a heading.
+4. **The mic sheet.** Any page with a text input can raise a centred dialog while it
+   listens — a level meter, a timer, `Done` and `Cancel`. It's a modal panel over a
+   dimmed page, so it needs nothing from the art.
+
 ---
 
 ## 3. Naming, so the art can be wired up
@@ -225,7 +239,13 @@ Each block is one prompt. Format is the same throughout:
   are picked, so draw it as its own strip.
 - **LIVE:** the task list (each row is a checkbox, a title, and small chips), and the
   board columns.
-- **Empty state:** "Nothing here yet."
+- **Board:** cards are dragged between columns, so a card needs to read as liftable —
+  and the art must not imply a fixed grid the app can't move things within. While a drag
+  is in progress the app tints the target column and dims the card's old position.
+- **Due date:** the editor and the add dialog both carry a typed/picked date field under
+  the `Today` / `Tomorrow` / `Next week` chips. Leave room for it.
+- **Empty state:** "Nothing on the list. Add a task above." — the app ships with no
+  example tasks, so this is what a first run actually shows.
 
 #### `command` — Command ⌘
 - **Purpose:** type or speak one line and the app files it in the right module.
@@ -337,7 +357,13 @@ Each block is one prompt. Format is the same throughout:
   `Rating`, `Visit dates`, `Notes`, `Notes-to-self`, `Photos`, `Files`; buttons
   `Find on map`, `Use my location`, `📍 Remind me when I'm back here`.
 - **LIVE:** the place list; the photo grid inside a place (3 across); and on the Map
-  tab **the whole map area** — the app draws the world map and its pins.
+  tab **the whole map area** — the app draws real OpenStreetMap tiles and its pins.
+- **Map tab, important for the art:** the map is photographic in effect — actual street
+  tiles, not a drawn illustration — so give the Map tab an empty full-bleed region and
+  nothing else. The app paints its own chrome *over* the tiles: a selected-pin chip with
+  `Open place` and `Directions ↗` at the top-left, `+` / `−` at the centre-right, and the
+  `© OpenStreetMap contributors` credit bottom-left. Don't draw any of those, and don't
+  put art where they sit — the credit is a licence requirement and can't be covered.
 
 #### `orrery` — Orrery 🪐
 - **Purpose:** your life as an orbital system — modules as bodies, neglect as drift.
