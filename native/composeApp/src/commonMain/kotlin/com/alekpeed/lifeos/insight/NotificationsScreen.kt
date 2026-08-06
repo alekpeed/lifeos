@@ -108,9 +108,12 @@ private fun save(items: List<Reminder>) {
 }
 
 // Reminders backed by real device scheduling: "Now" posts immediately, or pick a
-// quick time and it fires later via AlarmManager, even if the app is closed
-// (desktop: saved, but nothing fires — no scheduler there). Any item can also be
-// pinned as the ongoing "next up" ticker.
+// quick time and it fires later — Android via AlarmManager, even with the app fully
+// closed; desktop via a background timer plus the system tray, which only fires
+// while this process is alive (closing the window minimizes to the tray rather than
+// quitting, for exactly this reason). Any item can also be pinned as the ongoing
+// "next up" ticker — the tray tooltip on desktop, a persistent notification on
+// Android.
 @Composable
 fun NotificationsScreen() {
     val items = remember { mutableStateListOf<Reminder>().apply { addAll(loadReminders()) } }

@@ -67,9 +67,13 @@ All 40 modules are built and compile; the desktop build runs. What remains is sh
   an animated character planned for the app gets built.
 - **Two small gaps** — projects in Tasks are a text field rather than first-class
   records, and weather is by named city.
-- **Six platform gaps**, all on the desktop side and all listed with their causes in
-  `NATIVE_FEATURES.md` — the notable ones being no ebook import, no Apple Health
-  import, and no notifications when the app is closed.
+
+The desktop build's six platform gaps (no ebook import, no Apple Health import, no
+read-aloud, no PDF export, no notifications, no self-screenshot on Android) are
+closed — see `NATIVE_FEATURES.md` for what each one actually does now, including the
+one that's a real capability with an honest asterisk: desktop notifications only fire
+while the app is running (including minimized to the tray, which is what closing the
+window does now instead of quitting), not after a genuine quit.
 
 
 ## Across every module

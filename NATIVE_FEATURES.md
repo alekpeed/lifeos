@@ -37,8 +37,8 @@ if neither exists, so its callers never test a flag themselves.
 
 | Flag | Android | Desktop (Linux / Windows) |
 |---|---|---|
-| `supportsTts` | ✅ | ❌ |
-| `supportsNotifications` | ✅ | ❌ |
+| `supportsTts` | ✅ | ✅ *(checked live: a speech command must exist)* |
+| `supportsNotifications` | ✅ | ✅ *(checked live: a system tray must exist)* |
 | `supportsContacts` | ✅ | ❌ |
 | `supportsKeepAwake` | ✅ | ❌ |
 | `supportsWakeWord` | ✅ | ❌ |
@@ -48,13 +48,14 @@ if neither exists, so its callers never test a flag themselves.
 | `supportsLocation` | ✅ | ❌ |
 | `supportsCamera` | ✅ | ❌ |
 | `supportsFilePick` | ✅ | ✅ |
-| `supportsPdfExport` | ✅ | ❌ |
+| `supportsPdfExport` | ✅ | ✅ |
 | `supportsDictation` | ✅ | ❌ *(no system dictation dialog — see Whisper below)* |
 | `supportsRecording` | ✅ | ✅ *(checked live: an input line must exist)* |
-| `supportsScreenshot` | ❌ | ✅ |
+| `supportsScreenshot` | ✅ *(API 26+, this app's own window)* | ✅ *(the whole screen)* |
 
-Desktop's `supportsRecording` is the only flag evaluated on each read rather than
-fixed at startup, so plugging a microphone in after launch is noticed.
+`supportsRecording`, `supportsTts` and `supportsNotifications` are evaluated on each
+read rather than fixed at startup, so plugging in a microphone, installing a speech
+command, or a desktop environment gaining a tray is noticed without a restart.
 
 ---
 
@@ -76,7 +77,14 @@ free, but it stops at the first pause and won't punctuate. The fallback, not the
 default. Desktop has no equivalent and returns null.
 
 **Text to speech** — `speak` / `stopSpeaking`. Read-aloud on Today, Briefing and the
-Daily Paper. Android only.
+Daily Paper. Android uses the framework `TextToSpeech` engine. Desktop has none
+bundled with the JVM, so `SpeechEngine.kt` shells out to whatever the OS already has:
+`spd-say` (speech-dispatcher, what most Linux desktops already carry for
+accessibility) or `espeak`/`espeak-ng` as a fallback, probed once at first use; on
+Windows, PowerShell + `System.Speech`, which ships with every install so it's assumed
+rather than probed. `supportsTts` reports whichever was actually found — on a Linux
+machine with none of the three installed, this is honestly false rather than a silent
+no-op.
 
 **Wake word** — `setWakeWordEnabled`. A foreground service listening for a trigger
 phrase (configurable in Settings, default "hey life"), capturing what you say after
@@ -116,18 +124,29 @@ the current location and fires a notification when you next arrive there. Androi
 
 ## Notifications and alarms
 
-**Actionable reminder** — `postReminder`. Carries Done / Snooze actions on Android.
+**Actionable reminder** — `postReminder`. Carries Done / Snooze actions on Android; on
+desktop, a system tray balloon (`platform/Tray.kt`).
 
-**Pinned "next up"** — `setPinnedNextUp`. An ongoing notification showing what's next;
-`null` clears it.
+**Pinned "next up"** — `setPinnedNextUp`. An ongoing notification showing what's next
+on Android; the tray icon's tooltip on desktop. `null` clears it back to the default.
 
-**Scheduled reminder** — `scheduleReminder` / `cancelReminder`. Fires as a real
-notification at a future time with the app closed (AlarmManager, via
-`setAndAllowWhileIdle` — no exact-alarm permission needed, so Android may shift it by
-a few minutes). Used by Finance for bills and by task reminders.
+**Scheduled reminder** — `scheduleReminder` / `cancelReminder`. On Android, a real
+notification at a future time with the app fully closed (AlarmManager, via
+`setAndAllowWhileIdle` — no exact-alarm permission needed, so it may shift by a few
+minutes). Used by Finance for bills and by task reminders.
 
-All three are Android only. On desktop, Notifications is a list of what needs
-attention while the app is open.
+**Desktop's version is honest but weaker: while running, not while closed.** A
+background `java.util.Timer` fires the reminder as a tray balloon — but only for as
+long as this JVM process is alive. There's no OS-level service behind it. To make
+"while running" cover what people actually mean by "I closed the window," closing the
+window **minimizes to the tray instead of quitting** (`Main.kt`) wherever a tray
+exists; the tray's own Quit item is the real exit. A genuine "fires even after you've
+quit" story needs a systemd user service or a Windows Task Scheduler entry — a
+separate, larger piece of work, not attempted here.
+
+**Not every desktop has a tray to carry any of this** — GNOME's default session
+famously doesn't, without an extension. `supportsNotifications` reports that
+honestly; where it's false, closing the window still just closes it, same as before.
 
 ---
 
@@ -138,13 +157,25 @@ attention while the app is open.
 | `pickTextFile` — text/CSV contents (bank CSV import) | ✅ document picker | ✅ `JFileChooser` |
 | `pickAttachment` — any file: name, mime, bytes | ✅ | ✅ |
 | `openAttachment` — hand a stored file to the OS to view | ✅ FileProvider + ACTION_VIEW | ✅ system opener |
-| `pickFilteredTextFile` — stream a huge file, keep matching lines | ✅ | ❌ **gap** |
-| `pickEbook` / `pickEbookNamed` — EPUB/TXT → readable text | ✅ | ❌ **gap** |
-| `exportTextAsPdf` — paginated PDF to the print/share sheet | ✅ | ❌ |
+| `pickFilteredTextFile` — stream a huge file, keep matching lines | ✅ | ✅ |
+| `pickEbook` / `pickEbookNamed` — EPUB/TXT → readable text | ✅ | ✅ |
+| `exportTextAsPdf` — paginated PDF to the print/share sheet | ✅ framework `PdfDocument` | ✅ hand-rolled writer |
 
 `pickFilteredTextFile` exists for the Apple Health export, whose `export.xml` runs to
 hundreds of megabytes — it streams and keeps only matching lines so the file never sits
-in memory at once.
+in memory at once. Both this and the EPUB/TXT parsing behind `pickEbook` are plain
+`java.io` / `java.util.zip` / regex with no Android API in sight, so they live in a
+`jvmShared` source set (`EbookParser.kt`, `FilteredTextReader.kt`) that Android and
+desktop both build against — one implementation, not two copies that could drift.
+
+`exportTextAsPdf` on desktop is a small hand-rolled PDF writer (`PdfWriter.kt`) rather
+than a bundled library: unembedded standard fonts (Helvetica / Helvetica-Bold, which
+every PDF viewer already has) and plain text operators are little enough format to
+write directly. Word-wrap uses Helvetica's real AFM character widths rather than
+measuring a locally-installed font, so wrapping is correct even on a CI runner with no
+fonts of its own. Verified by round-tripping generated output through a real PDF
+parser (structure, xref offsets, and extracted text all checked, including the
+hard-wrap path for a single word wider than the page) before this shipped.
 
 ---
 
@@ -157,11 +188,15 @@ them. Android only.
 
 **Keep awake** — `keepScreenAwake`. Cooking mode in Recipes. Android only.
 
-**Screen capture** — `captureScreen` (AWT Robot) and `machineSummary()` (OS,
-architecture, free disk, memory). **Desktop only** — the phone can't without a
-foreground-service dance nobody asked for. Both exist for the helper window: a
-screenshot plus one line about the machine is the most useful thing a non-technical
-person can send when something is wrong.
+**Screen capture** — `captureScreen`, plus `machineSummary()` (OS, architecture, free
+disk, memory) on every platform. Desktop grabs the whole physical screen via AWT
+`Robot` — exactly what's on it under X11; a Wayland session's compositor may hand back
+a black frame, in which case the request just goes out with no picture. Android
+captures its own window via `PixelCopy` (API 26+ only — below that, absent, same as
+before) — the app's content, not a photo of the whole phone screen, which is the other
+direction (a foreground-service `MediaProjection` dance) nobody asked for. Both exist
+for the helper window: a screenshot plus one line about the machine is the most useful
+thing a non-technical person can send when something is wrong.
 
 **Clipboard, share, browser** — `readClipboard`, `copyToClipboard`, `shareText`
 (system share sheet on Android, clipboard on desktop), `openUrl`. All platforms.
@@ -201,23 +236,45 @@ Cross-cutting behaviour that every module gets, implemented once in common code:
 
 ---
 
-## Known gaps
+## Closed since the first pass of this document
 
-Honest list of what a build asks for and doesn't get:
+All six platform gaps this document originally listed are now built:
 
-1. **Desktop can't import an ebook.** `pickEbook` / `pickEbookNamed` are no-ops on
-   desktop even though it has a working file picker and the EPUB/TXT parsing is
-   shared. Books on desktop can hold records but not read them.
-2. **Desktop can't import the Apple Health export.** `pickFilteredTextFile` is a
-   no-op there for the same reason.
-3. **Desktop has no notifications.** `postReminder`, `setPinnedNextUp` and
-   `scheduleReminder` all no-op, so nothing can reach you with the app closed.
-   `java.awt.SystemTray` could cover the in-session case.
-4. **Desktop has no read-aloud.** No TTS engine ships with the JVM.
-5. **Desktop can't export a PDF.** Android renders one and hands it to the print
-   sheet; desktop no-ops.
-6. **Android can't screenshot itself**, which is the one direction the helper flow
-   would want if the roles were ever reversed.
+1. **Desktop ebook import** — via the shared `EbookParser` (`jvmShared`) and a
+   `JFileChooser`. Books on desktop can now hold *and read* EPUB/TXT files, not just
+   store the record.
+2. **Desktop Apple Health import** — via the shared `FilteredTextReader`
+   (`jvmShared`) and the same picker.
+3. **Desktop notifications** — real, but honestly scoped: a system tray balloon and a
+   background timer, which only fire while the process is alive. Closing the window
+   now minimizes to the tray (where one exists) instead of quitting, specifically so
+   this has a chance to matter. See "Notifications and alarms" above for what this
+   does and doesn't cover — it is deliberately *not* the same guarantee Android's
+   AlarmManager gives.
+4. **Desktop read-aloud** — shells out to `spd-say` / `espeak(-ng)` on Linux, or
+   PowerShell's `System.Speech` on Windows. Best-effort: `supportsTts` is false on a
+   machine with none of those installed.
+5. **Desktop PDF export** — a small hand-rolled writer, since there's no bundled JVM
+   engine and a full PDF library was too heavy for "print some text."
+6. **Android self-screenshot** — via `PixelCopy` (API 26+), for the same helper-flow
+   reason desktop's screen capture exists.
 
-Items 1, 2 and 3 are the ones with a clear path — the platform can do them and the
-shared code already exists.
+## Remaining honest limits
+
+Not gaps in the sense above — things that were built to the platform's real ceiling,
+not left undone:
+
+- **Desktop notifications require a system tray**, which not every Linux desktop
+  environment provides (GNOME's default session doesn't, without an extension).
+  Where there's no tray, `supportsNotifications` is false and the window closing
+  means closing, same as before this work.
+- **Desktop notifications only fire while the process is running** — including
+  minimized to the tray, not including after a real quit. A guarantee like
+  Android's ("fires even if the app was never reopened") needs an OS-level
+  background service — a systemd user unit, a Windows Task Scheduler entry — which
+  is a distinct, larger piece of work, not attempted here.
+- **Desktop read-aloud depends on what's installed.** No engine ships with the JVM;
+  `SpeechEngine` probes for one and reports honestly if it finds none.
+- **The desktop PDF writer is plain text only** — no images, no custom fonts, no
+  layout beyond a title and wrapped paragraphs. It matches what `exportTextAsPdf`'s
+  callers (the Daily Paper's digest) actually send today.

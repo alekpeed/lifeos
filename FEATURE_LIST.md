@@ -218,6 +218,17 @@ capability inventory — including which build has what, and the gaps — is
 - **No seeded placeholder records** — Habits and Tasks used to ship example rows that
   looked like real data (and Tasks resurrected them whenever the list was emptied). Both
   start genuinely empty now, with a real empty state.
+- **The six desktop platform gaps, closed** — ebook import and the Apple Health
+  import now run through a shared `jvmShared` source set (`EbookParser.kt`,
+  `FilteredTextReader.kt`) so Android and desktop use the same parsing rather than two
+  copies; read-aloud shells out to whatever speech command the OS actually has;
+  exporting a PDF uses a small hand-rolled writer, since there's no bundled JVM engine
+  and a full library was too heavy for "print some text"; notifications ride a system
+  tray icon and a background timer, with closing the window now minimizing to the
+  tray instead of quitting — honestly scoped as "while the app is running," not the
+  same guarantee as Android's AlarmManager; and Android gained a self-screenshot via
+  `PixelCopy`. Full detail, including what's still genuinely out of reach (a true
+  closed-app notification needs an OS-level service), in `NATIVE_FEATURES.md`.
 
 ---
 

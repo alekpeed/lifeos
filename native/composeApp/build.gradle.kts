@@ -25,7 +25,17 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
             }
         }
+        // Code shared between exactly Android and desktop, but not expressible as
+        // commonMain because it's plain java.io / java.util.zip — APIs the common
+        // metadata compilation can't see even though both actual targets are JVM.
+        // Ebook (EPUB/TXT) parsing and the Apple Health export's streamed-and-filtered
+        // read live here so neither platform has its own copy of the same regex and
+        // zip-walking logic.
+        val jvmShared by creating {
+            dependsOn(commonMain)
+        }
         val androidMain by getting {
+            dependsOn(jvmShared)
             dependencies {
                 implementation("androidx.activity:activity-compose:1.8.2")
                 // WindowCompat / WindowInsetsControllerCompat — immersive full screen for
@@ -46,6 +56,7 @@ kotlin {
             }
         }
         val desktopMain by getting {
+            dependsOn(jvmShared)
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation("com.google.zxing:core:3.5.3")

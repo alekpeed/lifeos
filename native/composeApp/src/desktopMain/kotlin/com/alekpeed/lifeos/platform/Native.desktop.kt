@@ -4,13 +4,21 @@ import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 
-// Desktop capabilities. Clipboard works via AWT; the phone-only ones (TTS,
-// notifications, contacts, keep-awake) are no-ops so the shared UI can gate them
-// off via the supports* flags. Outbound "share" falls back to copying to the
-// clipboard, the most useful desktop equivalent.
+// Desktop capabilities. Clipboard works via AWT; TTS shells out to whatever the OS
+// has (SpeechEngine.kt) and notifications ride the system tray (Tray.kt) — both are
+// checked live rather than fixed, since whether they're actually available depends
+// on what's installed and what desktop environment this is. The remaining phone-only
+// ones (contacts, keep-awake, wake word, geofencing) are plain no-ops so the shared
+// UI can gate them off via the supports* flags. Outbound "share" falls back to
+// copying to the clipboard, the most useful desktop equivalent.
 actual object Native {
-    actual val supportsTts = false
-    actual val supportsNotifications = false
+    // Checked live, like supportsRecording: whichever speech command is on this
+    // machine might not be there (or might newly be there) between one read and the
+    // next, so this isn't a fixed constant.
+    actual val supportsTts: Boolean get() = SpeechEngine.available
+    // Backed by the system tray (Tray.kt), so this is true only where a tray exists
+    // to carry the notification — not every Linux desktop environment has one.
+    actual val supportsNotifications: Boolean get() = Tray.available
     actual val supportsContacts = false
     actual val supportsKeepAwake = false
     actual val supportsWakeWord = false
@@ -24,10 +32,10 @@ actual object Native {
     // No system dictation dialog on desktop, but there is a microphone — which is
     // what makes Whisper the only dictation this build has.
     actual val supportsRecording: Boolean get() = MicRecorder.available
-    actual val supportsPdfExport = false
+    actual val supportsPdfExport = true
 
-    actual fun speak(text: String) {}
-    actual fun stopSpeaking() {}
+    actual fun speak(text: String) = SpeechEngine.speak(text)
+    actual fun stopSpeaking() = SpeechEngine.stop()
 
     actual fun shareText(text: String) {
         try {
@@ -51,13 +59,14 @@ actual object Native {
 
     actual fun keepScreenAwake(on: Boolean) {}
     actual fun importContacts(): List<PhoneContact> = emptyList()
-    actual fun postReminder(title: String, body: String) {}
-    actual fun setPinnedNextUp(text: String?) {}
+    actual fun postReminder(title: String, body: String) = Tray.notify(title, body)
+    actual fun setPinnedNextUp(text: String?) = Tray.setTooltip(text)
     actual fun setWakeWordEnabled(on: Boolean) {}
     actual fun armArrivalHere(label: String) {}
     actual fun clearArrivals() {}
-    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) {}
-    actual fun cancelReminder(id: Int) {}
+    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) =
+        Tray.schedule(id, title, body, atEpochMillis)
+    actual fun cancelReminder(id: Int) = Tray.cancel(id)
 
     actual fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit) { onResult(false) }
     actual fun hasVoiceprint(): Boolean = false
@@ -82,9 +91,56 @@ actual object Native {
             onResult(null)
         }
     }
-    actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
-    actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
-    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) { onResult(null, null) }
+    // Same file streamed and kept-lines-filtered as Android — the shared
+    // FilteredTextReader (jvmShared) is what makes the Apple Health export importable
+    // here at all. The chooser blocks the caller like every other desktop picker; the
+    // read itself runs on a background thread since export.xml can run to hundreds of
+    // MB and the window shouldn't freeze while it streams.
+    actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) {
+        try {
+            val chooser = javax.swing.JFileChooser()
+            chooser.dialogTitle = "Choose the Apple Health export"
+            if (chooser.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) { onResult(null); return }
+            val f = chooser.selectedFile
+            if (f == null || !f.exists()) { onResult(null); return }
+            Thread {
+                val text = try {
+                    f.inputStream().use { raw -> FilteredTextReader.read(raw, substrings) }
+                } catch (e: Exception) {
+                    null
+                }
+                onResult(text)
+            }.start()
+        } catch (e: Exception) {
+            onResult(null)
+        }
+    }
+
+    actual fun pickEbook(onResult: (String?) -> Unit) = pickEbookInternal { _, text -> onResult(text) }
+
+    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) = pickEbookInternal(onResult)
+
+    // EPUB or .txt, via the shared EbookParser (jvmShared) — the same parsing Android
+    // uses, so a book reads identically on both. The unzip-and-regex work runs off the
+    // calling thread; an EPUB can be tens of MB and the window shouldn't freeze while
+    // it's picked apart.
+    private fun pickEbookInternal(onResult: (name: String?, text: String?) -> Unit) {
+        try {
+            val chooser = javax.swing.JFileChooser()
+            chooser.dialogTitle = "Choose an ebook"
+            chooser.fileFilter = javax.swing.filechooser.FileNameExtensionFilter("EPUB or text (.epub, .txt)", "epub", "txt")
+            if (chooser.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) { onResult(null, null); return }
+            val f = chooser.selectedFile
+            if (f == null || !f.exists()) { onResult(null, null); return }
+            if (f.length() > 40_000_000) { onResult(f.name, null); return }
+            Thread {
+                val text = try { EbookParser.parse(f.readBytes()) } catch (e: Exception) { null }
+                onResult(f.name, text)
+            }.start()
+        } catch (e: Exception) {
+            onResult(null, null)
+        }
+    }
 
     actual val supportsScreenshot = true
 
@@ -183,5 +239,18 @@ actual object Native {
             // best-effort open
         }
     }
-    actual fun exportTextAsPdf(title: String, text: String) {}
+    // Renders via PdfWriter (a small hand-rolled PDF, since there's no bundled JVM
+    // engine) and hands the file to the system opener — the desktop equivalent of
+    // Android's print/share sheet, which doesn't exist here.
+    actual fun exportTextAsPdf(title: String, text: String) {
+        try {
+            val bytes = PdfWriter.write(title, text)
+            val safe = title.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("").take(40).ifBlank { "lifeos" }
+            val file = java.io.File(System.getProperty("java.io.tmpdir"), "$safe.pdf")
+            file.writeBytes(bytes)
+            if (java.awt.Desktop.isDesktopSupported()) java.awt.Desktop.getDesktop().open(file)
+        } catch (e: Exception) {
+            // best-effort export
+        }
+    }
 }

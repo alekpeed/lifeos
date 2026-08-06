@@ -466,8 +466,44 @@ actual object Native {
         }
     }
 
-    actual val supportsScreenshot = false
-    actual fun captureScreen(onResult: (String?) -> Unit) { onResult(null) }
+    // PixelCopy's Window overload — the version that needs no foreground-service
+    // dance and no extra permission — only exists from API 26. Below that this is
+    // exactly as absent as it always was.
+    actual val supportsScreenshot: Boolean get() = Build.VERSION.SDK_INT >= 26
+
+    // A PNG of this app's own window, for the same reason desktop's version exists:
+    // the single most useful thing a non-technical person can send when something is
+    // wrong. Captures the current Activity's content only — not the whole physical
+    // screen, which is the other direction (a foreground-service MediaProjection
+    // dance) nobody asked for here.
+    actual fun captureScreen(onResult: (String?) -> Unit) {
+        val act = NativeHost.activity
+        if (act == null || Build.VERSION.SDK_INT < 26) { onResult(null); return }
+        try {
+            val decor = act.window.decorView
+            val w = decor.width
+            val h = decor.height
+            if (w <= 0 || h <= 0) { onResult(null); return }
+            val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+            android.view.PixelCopy.request(
+                act.window,
+                bmp,
+                { result ->
+                    if (result == android.view.PixelCopy.SUCCESS) {
+                        val out = java.io.ByteArrayOutputStream()
+                        bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                        val b = out.toByteArray()
+                        onResult(if (b.isEmpty()) null else android.util.Base64.encodeToString(b, android.util.Base64.NO_WRAP))
+                    } else {
+                        onResult(null)
+                    }
+                },
+                android.os.Handler(android.os.Looper.getMainLooper()),
+            )
+        } catch (e: Exception) {
+            onResult(null)
+        }
+    }
     actual fun machineSummary(): String =
         "Android ${android.os.Build.VERSION.RELEASE} · ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
 

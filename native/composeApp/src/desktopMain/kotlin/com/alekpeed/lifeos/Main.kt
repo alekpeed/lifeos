@@ -1,7 +1,12 @@
 package com.alekpeed.lifeos
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import com.alekpeed.lifeos.platform.Tray
 
 // Desktop entry point. Plain `lifeos` opens the full app; `lifeos --helper` opens the
 // helper window — same binary, so one build serves both and a fix reaches both.
@@ -24,7 +29,23 @@ fun main(args: Array<String>) {
         if (n.isNotEmpty()) AppMode.ownerName = n
     }
     application {
-        Window(onCloseRequest = ::exitApplication, title = "Life OS") {
+        // Where a system tray exists, closing the window hides it rather than
+        // quitting — a scheduled reminder can only ever fire while this process is
+        // alive, and "closed" the way most people mean it (clicked the X, didn't
+        // touch the tray) shouldn't kill that. The tray's Quit item is the real exit;
+        // on a desktop with no tray (some Linux sessions don't have one) this falls
+        // straight back to today's behavior of closing meaning closing.
+        var visible by remember { mutableStateOf(true) }
+        val hasTray = remember { Tray.ensure() }
+        if (hasTray) {
+            Tray.onOpen = { visible = true }
+            Tray.onQuit = { exitApplication() }
+        }
+        Window(
+            onCloseRequest = { if (hasTray) visible = false else exitApplication() },
+            title = "Life OS",
+            visible = visible,
+        ) {
             App()
         }
     }
