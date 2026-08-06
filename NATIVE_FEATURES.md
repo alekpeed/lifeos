@@ -233,6 +233,12 @@ Cross-cutting behaviour that every module gets, implemented once in common code:
   work with no connection. Settings shows the count and can clear it.
 - **Date entry** — `ui/DateField.kt`, typed or picked, on every date in the app.
 - **Save feedback** — `ui/SaveToast.kt`, one confirmation for every write.
+- **A build stamp, at the bottom of Settings.** `versionName` (Android) and
+  `packageVersion` (desktop) are hand-set constants that never change per build, so
+  two builds a month apart look identical by version number alone. A Gradle task
+  (`generateBuildInfo`) stamps the real commit SHA and build time into the app on
+  every CI build; Settings shows both, which is the actual answer to "did I get the
+  new one."
 
 ---
 

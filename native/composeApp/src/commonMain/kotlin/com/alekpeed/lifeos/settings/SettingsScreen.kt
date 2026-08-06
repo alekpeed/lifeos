@@ -36,6 +36,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.AppTheme
+import com.alekpeed.lifeos.BUILD_SHA
+import com.alekpeed.lifeos.BUILD_TIME
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.Whisper
 import com.alekpeed.lifeos.places.MapTiles
@@ -788,5 +790,15 @@ fun SettingsScreen() {
             Spacer(Modifier.height(6.dp))
             Text(backupMsg, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         }
+
+        // The version numbers elsewhere are hand-set constants that don't change per
+        // build, so this is the only honest answer to "is this actually the new one" —
+        // stamped fresh by :composeApp:generateBuildInfo every time CI builds.
+        Spacer(Modifier.height(24.dp))
+        Text(
+            "Build $BUILD_SHA · $BUILD_TIME",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

@@ -8,12 +8,43 @@ plugins {
     id("com.android.application")
 }
 
+// Both jpackage's packageVersion and Android's versionName below are hand-set
+// constants — they don't change per build, so two builds a month apart can look
+// identical in Settings with no way to tell which one is actually installed. This
+// stamps the real commit and build time into a generated source file every build,
+// read on the Settings screen, so that ambiguity has an actual answer.
+val generateBuildInfo = tasks.register("generateBuildInfo") {
+    val outputDir = layout.buildDirectory.dir("generated/buildinfo/kotlin")
+    outputs.dir(outputDir)
+    // Must reflect the commit actually being built, not a cached prior result.
+    outputs.upToDateWhen { false }
+    doLast {
+        val sha = runCatching {
+            val proc = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+                .directory(project.projectDir)
+                .start()
+            proc.waitFor()
+            proc.inputStream.bufferedReader().readText().trim()
+        }.getOrDefault("").ifBlank { "dev" }
+        val time = java.time.Instant.now().toString()
+        val pkgDir = outputDir.get().dir("com/alekpeed/lifeos").asFile
+        pkgDir.mkdirs()
+        java.io.File(pkgDir, "BuildInfo.kt").writeText(
+            "package com.alekpeed.lifeos\n\n" +
+                "// Generated at build time by :composeApp:generateBuildInfo — do not edit.\n" +
+                "const val BUILD_SHA = \"$sha\"\n" +
+                "const val BUILD_TIME = \"$time\"\n",
+        )
+    }
+}
+
 kotlin {
     androidTarget()
     jvm("desktop")
 
     sourceSets {
         val commonMain by getting {
+            kotlin.srcDir(generateBuildInfo.map { it.outputs.files.singleFile })
             dependencies {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
