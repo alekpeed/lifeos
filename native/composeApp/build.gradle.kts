@@ -1,4 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.io.File
+import java.time.Instant
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -26,10 +28,10 @@ val generateBuildInfo = tasks.register("generateBuildInfo") {
             proc.waitFor()
             proc.inputStream.bufferedReader().readText().trim()
         }.getOrDefault("").ifBlank { "dev" }
-        val time = java.time.Instant.now().toString()
+        val time = Instant.now().toString()
         val pkgDir = outputDir.get().dir("com/alekpeed/lifeos").asFile
         pkgDir.mkdirs()
-        java.io.File(pkgDir, "BuildInfo.kt").writeText(
+        File(pkgDir, "BuildInfo.kt").writeText(
             "package com.alekpeed.lifeos\n\n" +
                 "// Generated at build time by :composeApp:generateBuildInfo — do not edit.\n" +
                 "const val BUILD_SHA = \"$sha\"\n" +
