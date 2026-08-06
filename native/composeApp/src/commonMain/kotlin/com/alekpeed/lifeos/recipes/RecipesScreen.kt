@@ -38,6 +38,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.RECIPES_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
@@ -92,6 +95,8 @@ fun RecipesScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(recipes = data.recipes + Recipe(freshId(), t))); input = "" }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(RECIPES_MODULE, onImported = { data = loadRecipes() })
         }
         Spacer(Modifier.height(12.dp))
 
@@ -302,6 +307,7 @@ private fun RecipeDetail(
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(RECIPES_MODULE, recipe.id, recipe.title.ifBlank { "recipe" })
             TextButton(onClick = {
                 deleteBlob(recipe.photoBlob)
                 save(data.copy(recipes = data.recipes.filterNot { it.id == recipe.id }))

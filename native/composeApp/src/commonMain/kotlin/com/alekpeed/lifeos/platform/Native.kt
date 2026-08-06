@@ -190,4 +190,12 @@ expect object Native {
     // sheet (which offers "Save as PDF" and any installed printer). Android only;
     // desktop no-ops. Gate UI on supportsPdfExport.
     fun exportTextAsPdf(title: String, text: String)
+
+    // Let the user pick exactly where a generated file (a record export package)
+    // is saved, rather than firing it into a share sheet — the point is to end up
+    // somewhere you can find again to move to another device (a synced folder, a
+    // USB drive), not to send it anywhere right now. Android: the system's own
+    // document picker (Storage Access Framework). Desktop: a save dialog.
+    // onResult reports whether it was actually saved (false on cancel too).
+    fun exportPackageFile(suggestedName: String, base64: String, onResult: (Boolean) -> Unit)
 }

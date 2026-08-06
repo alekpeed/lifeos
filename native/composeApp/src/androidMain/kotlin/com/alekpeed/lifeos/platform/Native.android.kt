@@ -592,6 +592,20 @@ actual object Native {
         }
     }
 
+    actual fun exportPackageFile(suggestedName: String, base64: String, onResult: (Boolean) -> Unit) {
+        val launcher = NativeHost.exportLauncher
+        if (launcher == null) { onResult(false); return }
+        try {
+            NativeHost.exportPendingBytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+            NativeHost.exportCallback = onResult
+            launcher.launch(suggestedName)
+        } catch (e: Exception) {
+            NativeHost.exportPendingBytes = null
+            NativeHost.exportCallback = null
+            onResult(false)
+        }
+    }
+
     actual fun openAttachment(base64: String, name: String, mime: String) {
         val ctx = NativeHost.ctx() ?: return
         try {

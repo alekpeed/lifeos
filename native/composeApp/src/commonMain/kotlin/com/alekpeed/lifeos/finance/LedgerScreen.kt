@@ -47,6 +47,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.FINANCE_BILLS_MODULE
+import com.alekpeed.lifeos.attach.FINANCE_ENTRIES_MODULE
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.epochMillisAt
 import com.alekpeed.lifeos.data.minusDays
 import com.alekpeed.lifeos.data.parseDateOrNull
@@ -373,6 +377,8 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                     desc = ""; amount = ""; recurring = false
                 }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(FINANCE_ENTRIES_MODULE, onImported = { onChange(loadData()) })
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -501,6 +507,7 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                     }
                     Text(fmt(e.amount), style = MaterialTheme.typography.bodyLarge, color = if (e.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                     if (!bulk.on) {
+                        ExportRecordButton(FINANCE_ENTRIES_MODULE, e.id, e.desc.ifBlank { "entry" })
                         TextButton(onClick = {
                             if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
                             if (e.photoBlob.isNotBlank()) deleteBlob(e.photoBlob)
@@ -562,17 +569,21 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
         Spacer(Modifier.height(8.dp))
         com.alekpeed.lifeos.people.ContactField(contact, placeholder = "Linked contact (optional)") { contact = it }
         Spacer(Modifier.height(8.dp))
-        Button(onClick = {
-            val n = name.trim().replace("\n", " ")
-            val a = amount.trim().toDoubleOrNull()
-            if (n.isNotEmpty() && a != null) {
-                val bill = Bill(nextId, n, a, dueDate.trim(), cadence, autopay, remindDays, contact = contact.trim())
-                nextId += 1
-                persist(listOf(bill) + bills)
-                scheduleBill(bill)
-                name = ""; amount = ""; dueDate = today().toString(); cadence = "monthly"; autopay = false; remindDays = 3; contact = ""
-            }
-        }, modifier = Modifier.fillMaxWidth()) { Text("Add bill") }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(onClick = {
+                val n = name.trim().replace("\n", " ")
+                val a = amount.trim().toDoubleOrNull()
+                if (n.isNotEmpty() && a != null) {
+                    val bill = Bill(nextId, n, a, dueDate.trim(), cadence, autopay, remindDays, contact = contact.trim())
+                    nextId += 1
+                    persist(listOf(bill) + bills)
+                    scheduleBill(bill)
+                    name = ""; amount = ""; dueDate = today().toString(); cadence = "monthly"; autopay = false; remindDays = 3; contact = ""
+                }
+            }, modifier = Modifier.weight(1f)) { Text("Add bill") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(FINANCE_BILLS_MODULE, onImported = { onChange(loadData()) })
+        }
         Spacer(Modifier.height(14.dp))
 
         if (bills.isEmpty()) {
@@ -612,6 +623,7 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                             persist(bills.map { if (it.id == b.id) paid else it })
                             scheduleBill(paid)
                         }) { Text("Paid") }
+                        ExportRecordButton(FINANCE_BILLS_MODULE, b.id, b.name.ifBlank { "bill" })
                         TextButton(onClick = {
                             if (Native.supportsNotifications) Native.cancelReminder(billReminderId(b.name))
                             persist(bills.filterNot { it.id == b.id })

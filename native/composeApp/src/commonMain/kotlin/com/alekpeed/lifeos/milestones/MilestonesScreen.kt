@@ -40,6 +40,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.attach.MILESTONES_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.books.loadBooks
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
@@ -87,6 +90,8 @@ fun MilestonesScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(milestones = data.milestones + Milestone(freshId(), t, today().toString()))); input = "" }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(MILESTONES_MODULE, onImported = { data = loadMilestones() })
         }
         Spacer(Modifier.height(12.dp))
 
@@ -186,6 +191,7 @@ private fun MilestoneDetail(data: MilestonesData, save: (MilestonesData) -> Unit
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(MILESTONES_MODULE, m.id, m.title.ifBlank { "milestone" })
             TextButton(onClick = { deleteBlob(m.photoBlob); save(data.copy(milestones = data.milestones.filterNot { it.id == m.id })); onClose() }) { Text("Delete", color = DANGER) }
         }
     }

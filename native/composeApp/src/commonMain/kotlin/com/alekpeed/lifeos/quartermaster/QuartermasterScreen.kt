@@ -50,6 +50,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
 import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.ai.VisionBlock
+import com.alekpeed.lifeos.attach.QUARTERMASTER_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
@@ -176,6 +179,7 @@ fun QuartermasterScreen() {
                 }
                 OutlinedButton(onClick = { showStock = true }) { Text("📊 Stock") }
             }
+            ImportRecordButton(QUARTERMASTER_MODULE, onImported = { data = loadInventory() })
         }
         catalogError?.let {
             Spacer(Modifier.height(6.dp))
@@ -418,6 +422,7 @@ private fun ItemRow(
                 TextButton(onClick = { showSource = true }) { Text("📷 Photo") }
             }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(QUARTERMASTER_MODULE, item.id, item.name.ifBlank { "item" })
             TextButton(onClick = {
                 deleteBlob(item.photoBlob)
                 save(data.copy(items = data.items.filterNot { it.id == item.id }))

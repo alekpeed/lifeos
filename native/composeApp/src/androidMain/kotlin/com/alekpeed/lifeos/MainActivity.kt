@@ -166,6 +166,29 @@ class MainActivity : ComponentActivity() {
         }.start()
     }
 
+    // Save-file picker (Storage Access Framework): the user chooses exactly where a
+    // generated file lands — a synced folder, a USB drive — rather than it going
+    // through a share sheet. Native.exportPackageFile queues the bytes and a name;
+    // this writes them once a destination Uri comes back, or reports false on
+    // cancel / any write failure.
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        val cb = NativeHost.exportCallback
+        val bytes = NativeHost.exportPendingBytes
+        NativeHost.exportCallback = null
+        NativeHost.exportPendingBytes = null
+        if (uri == null || bytes == null) {
+            cb?.invoke(false)
+        } else {
+            val ok = try {
+                contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                true
+            } catch (e: Exception) {
+                false
+            }
+            cb?.invoke(ok)
+        }
+    }
+
     // Camera runtime permission (declared in the manifest, so it's enforced). On
     // grant, launch the camera; on deny, report cancel.
     // One-shot dictation: the system speech recognizer returns its transcript here.
@@ -229,6 +252,7 @@ class MainActivity : ComponentActivity() {
         NativeHost.cameraRequest = { requestCameraCapture() }
         NativeHost.filePickLauncher = openDocumentLauncher
         NativeHost.dictateLauncher = dictateLauncher
+        NativeHost.exportLauncher = exportLauncher
         NativeHost.ensureTts(applicationContext)
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         requestNeededPermissions()

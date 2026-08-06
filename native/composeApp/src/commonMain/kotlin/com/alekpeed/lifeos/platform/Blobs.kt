@@ -28,3 +28,14 @@ expect fun saveTextBlob(text: String): String?
 
 // Read a stored text blob back, or null if missing.
 expect fun readTextBlob(id: String): String?
+
+// Write a blob's bytes directly at a GIVEN id rather than minting a new one —
+// what importing a record package (attach/RecordPackage.kt) needs: the id came
+// from another device, and the record's JSON already references it, so nothing
+// should change except the bytes now also existing here. A no-op success if a
+// blob already sits at that id (re-importing the same package is harmless).
+// False only if the write itself failed.
+expect fun restoreBlob(id: String, bytes: ByteArray): Boolean
+
+// Same, for a text blob.
+expect fun restoreTextBlob(id: String, text: String): Boolean

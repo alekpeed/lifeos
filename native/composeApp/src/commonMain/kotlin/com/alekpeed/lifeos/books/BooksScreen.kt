@@ -60,6 +60,9 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.attach.BOOKS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.net.httpGet
 import com.alekpeed.lifeos.net.httpGetImageBase64
@@ -187,6 +190,8 @@ fun BooksScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(books = data.books + Book(freshId(), t, status = tab))); input = "" }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(BOOKS_MODULE, onImported = { data = loadBooks() })
         }
         if (Native.supportsQrScan) {
             Spacer(Modifier.height(6.dp))
@@ -480,6 +485,7 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(BOOKS_MODULE, book.id, book.title.ifBlank { "book" })
             TextButton(onClick = {
                 deleteBlob(book.photoBlob)
                 save(data.copy(books = data.books.filterNot { it.id == book.id }))

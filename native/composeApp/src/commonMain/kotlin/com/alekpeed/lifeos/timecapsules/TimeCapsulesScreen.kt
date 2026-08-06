@@ -30,6 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.TIME_CAPSULES_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
@@ -77,6 +80,10 @@ fun TimeCapsulesScreen() {
                 title = ""; body = ""; date = ""
             }
         }, modifier = Modifier.fillMaxWidth()) { Text("Seal it") }
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ImportRecordButton(TIME_CAPSULES_MODULE, onImported = { data = loadCapsules() })
+        }
         Spacer(Modifier.height(14.dp))
 
         val bulk = rememberBulk()
@@ -131,6 +138,7 @@ private fun Capsule(data: TimeCapsulesData, save: (TimeCapsulesData) -> Unit, c:
             BulkTick(bulk, c.id)
             Text(c.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             if (!bulk.on) {
+                ExportRecordButton(TIME_CAPSULES_MODULE, c.id, c.title.ifBlank { "capsule" })
                 TextButton(onClick = {
                     deleteBlob(c.photoBlob)
                     save(data.copy(capsules = data.capsules.filterNot { it.id == c.id }))

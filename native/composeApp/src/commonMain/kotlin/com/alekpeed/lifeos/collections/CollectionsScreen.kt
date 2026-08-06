@@ -35,6 +35,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.COLLECTIONS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
@@ -85,6 +88,8 @@ private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, fre
                 name = ""; desc = ""; onOpen(id)
             }
         }) { Text("Create") }
+        Spacer(Modifier.width(10.dp))
+        ImportRecordButton(COLLECTIONS_MODULE, onImported = { save(loadCollections()) })
     }
     Spacer(Modifier.height(14.dp))
     Text("Your collections (${data.collections.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -118,6 +123,7 @@ private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, fre
                     Text("${c.items.size} item${if (c.items.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
                 if (!bulk.on) {
+                    ExportRecordButton(COLLECTIONS_MODULE, c.id, c.name.ifBlank { "collection" })
                     TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(collections = data.collections.filterNot { it.id == c.id })) }) { Text("×") }
                 }
             }

@@ -33,6 +33,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.RABBIT_HOLES_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
@@ -84,6 +87,8 @@ private fun Overview(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fre
                 topic = ""; onOpen(id)
             }
         }) { Text("Start") }
+        Spacer(Modifier.width(10.dp))
+        ImportRecordButton(RABBIT_HOLES_MODULE, onImported = { save(loadHoles()) })
     }
     Spacer(Modifier.height(14.dp))
 
@@ -240,6 +245,7 @@ private fun Detail(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fresh
             OutlinedButton(onClick = { patch { it.copy(status = "resolved") } }) { Text("Mark resolved") }
         }
         Spacer(Modifier.weight(1f))
+        ExportRecordButton(RABBIT_HOLES_MODULE, hole.id, hole.topic.ifBlank { "thread" })
         TextButton(onClick = { deleteBlob(hole.photoBlob); save(data.copy(holes = data.holes.filterNot { it.id == hole.id })); onBack() }) { Text("Delete", color = DANGER) }
     }
 }

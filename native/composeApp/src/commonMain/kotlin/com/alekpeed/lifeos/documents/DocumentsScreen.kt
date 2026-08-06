@@ -40,6 +40,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.layout.ContentScale
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.attach.DOCUMENTS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
@@ -164,6 +167,8 @@ fun DocumentsScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(documents = data.documents + Document(freshId(), t))); input = "" }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(DOCUMENTS_MODULE, onImported = { data = loadDocuments() })
         }
 
         if (Native.supportsCamera) {
@@ -381,6 +386,7 @@ private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, d
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(DOCUMENTS_MODULE, doc.id, doc.title.ifBlank { "document" })
             TextButton(onClick = {
                 deleteBlob(doc.photoBlob)
                 save(data.copy(documents = data.documents.filterNot { it.id == doc.id }))

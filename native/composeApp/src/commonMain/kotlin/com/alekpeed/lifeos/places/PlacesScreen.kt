@@ -37,6 +37,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
+import com.alekpeed.lifeos.attach.PLACES_MODULE
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.integrations.WeatherClient
@@ -166,6 +169,8 @@ private fun PlaceList(
             val n = input.trim().replace("\n", " ")
             if (n.isNotEmpty()) { save(data.copy(places = data.places + Place(freshId(), n, listType))); input = "" }
         }) { Text("Add") }
+        Spacer(Modifier.width(10.dp))
+        ImportRecordButton(PLACES_MODULE, onImported = { save(loadPlaces()) })
     }
     Spacer(Modifier.height(12.dp))
 
@@ -409,6 +414,7 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(PLACES_MODULE, place.id, place.name.ifBlank { "place" })
             TextButton(onClick = {
                 deleteBlob(place.photoBlob)
                 save(data.copy(places = data.places.filterNot { it.id == place.id })); onClose()

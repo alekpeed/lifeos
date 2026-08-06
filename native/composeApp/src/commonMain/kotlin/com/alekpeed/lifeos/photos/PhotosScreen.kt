@@ -39,6 +39,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.alekpeed.lifeos.attach.PHOTOS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
@@ -65,12 +68,12 @@ fun PhotosScreen() {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         val open = data.albums.firstOrNull { it.id == openId }
         if (open != null) AlbumDetail(data, ::save, ::freshId, open) { openId = null }
-        else AlbumsList(data, ::save, ::freshId) { openId = it }
+        else AlbumsList(data, ::save, ::freshId, { data = loadPhotos() }) { openId = it }
     }
 }
 
 @Composable
-private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: () -> Long, onOpen: (Long) -> Unit) {
+private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: () -> Long, onImported: () -> Unit, onOpen: (Long) -> Unit) {
     var input by remember { mutableStateOf("") }
 
 
@@ -81,6 +84,8 @@ private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: ()
             val n = input.trim().replace("\n", " ")
             if (n.isNotEmpty()) { save(data.copy(albums = data.albums + Album(freshId(), n))); input = "" }
         }) { Text("Add") }
+        Spacer(Modifier.width(10.dp))
+        ImportRecordButton(PHOTOS_MODULE, onImported = onImported)
     }
     Spacer(Modifier.height(12.dp))
 
@@ -145,6 +150,7 @@ private fun AlbumDetail(data: PhotosData, save: (PhotosData) -> Unit, freshId: (
         TextButton(onClick = onBack) { Text("← Albums") }
         Spacer(Modifier.width(4.dp))
         Text(album.name.ifBlank { "(untitled album)" }, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        ExportRecordButton(PHOTOS_MODULE, album.id, album.name.ifBlank { "album" })
         TextButton(onClick = {
             album.captions.forEach { deleteBlob(it.blob) }
             save(data.copy(albums = data.albums.filterNot { it.id == album.id })); onBack()

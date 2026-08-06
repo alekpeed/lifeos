@@ -36,6 +36,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.CONTACTS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
@@ -78,6 +81,8 @@ fun ContactsScreen() {
                     save(data.copy(contacts = data.contacts + Contact(freshId(), n))); input = ""
                 }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(CONTACTS_MODULE, onImported = { data = loadContacts() })
         }
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
@@ -252,6 +257,7 @@ private fun ContactDetail(data: ContactsData, save: (ContactsData) -> Unit, c: C
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(CONTACTS_MODULE, c.id, c.name.ifBlank { "contact" })
             TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(contacts = data.contacts.filterNot { it.id == c.id })); onClose() }) { Text("Delete", color = DANGER) }
         }
     }

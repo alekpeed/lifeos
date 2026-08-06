@@ -65,6 +65,28 @@ actual fun loadBlobImage(id: String): ImageBitmap? = try {
     null
 }
 
+actual fun restoreBlob(id: String, bytes: ByteArray): Boolean {
+    if (id.isBlank()) return false
+    return try {
+        val dir = blobsDir() ?: return false
+        File(dir, "$id.bin").writeBytes(bytes)
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
+actual fun restoreTextBlob(id: String, text: String): Boolean {
+    if (id.isBlank()) return false
+    return try {
+        val dir = blobsDir() ?: return false
+        File(dir, "$id.txt").writeText(text)
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
 actual fun saveTextBlob(text: String): String? = try {
     val dir = blobsDir()
     if (dir == null) {

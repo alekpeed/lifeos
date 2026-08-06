@@ -239,6 +239,24 @@ actual object Native {
             // best-effort open
         }
     }
+    // A real save dialog, so the file lands wherever the user actually wants it —
+    // a synced folder, a USB drive — rather than a temp folder they'd have to go
+    // find.
+    actual fun exportPackageFile(suggestedName: String, base64: String, onResult: (Boolean) -> Unit) {
+        try {
+            val chooser = javax.swing.JFileChooser()
+            chooser.dialogTitle = "Save package"
+            chooser.selectedFile = java.io.File(suggestedName)
+            if (chooser.showSaveDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) { onResult(false); return }
+            val f = chooser.selectedFile
+            if (f == null) { onResult(false); return }
+            f.writeBytes(java.util.Base64.getDecoder().decode(base64))
+            onResult(true)
+        } catch (e: Exception) {
+            onResult(false)
+        }
+    }
+
     // Renders via PdfWriter (a small hand-rolled PDF, since there's no bundled JVM
     // engine) and hands the file to the system opener — the desktop equivalent of
     // Android's print/share sheet, which doesn't exist here.

@@ -36,6 +36,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
+import com.alekpeed.lifeos.attach.LINKS_MODULE
 import com.alekpeed.lifeos.net.httpGetImageBase64
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
@@ -87,6 +90,8 @@ fun LinksScreen() {
                     input = ""
                 }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(LINKS_MODULE, onImported = { data = loadLinks() })
         }
         Spacer(Modifier.height(14.dp))
 
@@ -234,6 +239,7 @@ private fun LinkDetail(
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(LINKS_MODULE, link.id, link.title.ifBlank { "link" })
             TextButton(onClick = {
                 if (link.thumbBlob.isNotBlank()) deleteBlob(link.thumbBlob)
                 save(data.copy(links = data.links.filterNot { it.id == link.id })); onClose()

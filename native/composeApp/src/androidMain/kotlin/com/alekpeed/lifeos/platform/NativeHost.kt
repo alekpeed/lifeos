@@ -64,6 +64,14 @@ object NativeHost {
     var dictateLauncher: ActivityResultLauncher<Intent>? = null
     @Volatile var dictateCallback: ((String?) -> Unit)? = null
 
+    // Save-file picker (CreateDocument): MainActivity registers the launcher and
+    // writes exportPendingBytes to whatever Uri the user chose on the result;
+    // Native.exportPackageFile sets the pending bytes and callback, then launches
+    // with the suggested filename. exportPendingBytes is cleared with every result.
+    var exportLauncher: ActivityResultLauncher<String>? = null
+    @Volatile var exportPendingBytes: ByteArray? = null
+    @Volatile var exportCallback: ((Boolean) -> Unit)? = null
+
     fun ctx(): Context? = activity ?: appContext
 
     fun ensureTts(context: Context) {
