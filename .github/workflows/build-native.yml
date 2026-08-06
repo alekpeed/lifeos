@@ -43,6 +43,11 @@ jobs:
           # user pasting a key. Stored as a repo secret — never in source. Absent
           # (empty) on forks/PRs, where the app falls back to a user-entered key.
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # This workflow's own run number — a plain integer that goes up by one
+          # every run, which build.gradle.kts turns into a real versionCode /
+          # versionName / packageVersion instead of a hand-set constant that never
+          # changes. Same value on all three jobs since they're one workflow run.
+          LIFEOS_BUILD_NUMBER: ${{ github.run_number }}
         run: gradle :composeApp:assembleDebug --no-daemon --stacktrace
 
       - name: Upload Android APK
@@ -71,6 +76,8 @@ jobs:
 
       - name: Package native Windows app (.msi)
         working-directory: native
+        env:
+          LIFEOS_BUILD_NUMBER: ${{ github.run_number }}
         run: gradle :composeApp:packageDistributionForCurrentOS --no-daemon --stacktrace
 
       - name: Upload Windows installer
@@ -108,6 +115,8 @@ jobs:
 
       - name: Package native Linux app (.deb)
         working-directory: native
+        env:
+          LIFEOS_BUILD_NUMBER: ${{ github.run_number }}
         run: gradle :composeApp:packageDeb --no-daemon --stacktrace
 
       - name: Upload Linux package

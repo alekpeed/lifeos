@@ -10,6 +10,12 @@ plugins {
     id("com.android.application")
 }
 
+// CI passes the workflow's own run number (LIFEOS_BUILD_NUMBER) — a plain integer
+// that goes up by one every time build-native.yml runs, which is exactly what a
+// build number should be. 0 for a local/PR/fork build with no CI env var, matching
+// what versionCode/versionName/packageVersion below defaulted to before this existed.
+val buildNumber = (System.getenv("LIFEOS_BUILD_NUMBER") ?: "0").toIntOrNull()?.coerceAtLeast(0) ?: 0
+
 // Both jpackage's packageVersion and Android's versionName below are hand-set
 // constants — they don't change per build, so two builds a month apart can look
 // identical in Settings with no way to tell which one is actually installed. This
@@ -108,8 +114,14 @@ android {
         applicationId = "com.alekpeed.lifeos"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // versionCode must strictly increase for Android's own installer to update
+        // the app in place rather than refusing with "app not installed" — a fixed
+        // "1" forever meant every install after the first needed an uninstall first,
+        // the same failure mode the checked-in debug keystore below fixes for
+        // mismatched signing keys. +1 so a local build (buildNumber 0) still gets a
+        // valid versionCode >= 1, matching what this was hardcoded to before.
+        versionCode = buildNumber + 1
+        versionName = "1.0.$buildNumber"
         // Baked-in default OpenAI key, injected from the OPENAI_API_KEY build
         // environment (a GitHub Actions secret in CI) — never committed to source.
         // Empty for local/desktop/PR builds, where the app falls back to a
@@ -154,7 +166,10 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Deb)
             packageName = "LifeOS"
-            packageVersion = "1.0.0"
+            // Plain major.minor.build — the format both jpackage targets accept
+            // (Windows MSI's ProductVersion is fussy about anything else). 0 for a
+            // local build with no CI env var, same as this was hardcoded to before.
+            packageVersion = "1.0.$buildNumber"
         }
     }
 }
