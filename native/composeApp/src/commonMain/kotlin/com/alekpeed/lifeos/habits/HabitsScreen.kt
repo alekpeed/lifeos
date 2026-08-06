@@ -70,6 +70,16 @@ fun HabitsScreen() {
 
         Spacer(Modifier.height(14.dp))
 
+        if (habits.isEmpty()) {
+            Text(
+                "No habits yet. Add one above — anything you want to do on most days. " +
+                    "Checking in builds a streak, and the streak is the whole point.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
+
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             itemsIndexed(habits) { index, habit ->
                 Column(Modifier.fillMaxWidth()) {
