@@ -21,6 +21,9 @@ actual object Native {
     actual val supportsCamera = false
     actual val supportsFilePick = true
     actual val supportsDictation = false
+    // No system dictation dialog on desktop, but there is a microphone — which is
+    // what makes Whisper the only dictation this build has.
+    actual val supportsRecording: Boolean get() = MicRecorder.available
     actual val supportsPdfExport = false
 
     actual fun speak(text: String) {}
@@ -119,6 +122,14 @@ actual object Native {
         ""
     }
     actual fun dictate(onResult: (String?) -> Unit) { onResult(null) }
+
+    actual fun startRecording(): Boolean = MicRecorder.start()
+
+    actual fun stopRecording(): String? = MicRecorder.stop()
+
+    actual fun cancelRecording() = MicRecorder.cancel()
+
+    actual fun micLevel(): Float = MicRecorder.peak()
 
     actual fun openUrl(url: String) {
         try {

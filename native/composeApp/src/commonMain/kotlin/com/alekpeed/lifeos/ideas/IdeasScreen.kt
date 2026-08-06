@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.MicButton
 import com.alekpeed.lifeos.ui.BulkBar
 import com.alekpeed.lifeos.ui.BulkTick
 import com.alekpeed.lifeos.ui.bulkClickable
@@ -59,13 +60,7 @@ fun IdeasScreen() {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
 
         OutlinedTextField(input, { input = it }, modifier = Modifier.fillMaxWidth(), singleLine = false, placeholder = { Text("New idea") })
-        if (com.alekpeed.lifeos.platform.Native.supportsDictation) {
-            TextButton(onClick = {
-                com.alekpeed.lifeos.platform.Native.dictate { spoken ->
-                    if (!spoken.isNullOrBlank()) input = if (input.isBlank()) spoken else "$input $spoken"
-                }
-            }) { Text("🎤 Dictate") }
-        }
+        MicButton { spoken -> input = if (input.isBlank()) spoken else "$input $spoken" }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(tagInput, { tagInput = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Tags (comma-separated)") })

@@ -53,6 +53,7 @@ actual object Native {
     actual val supportsCamera = true
     actual val supportsFilePick = true
     actual val supportsDictation = true
+    actual val supportsRecording = true
     actual val supportsPdfExport = true
 
     actual fun speak(text: String) {
@@ -499,6 +500,26 @@ actual object Native {
             onResult(null)
         }
     }
+
+    // Driving the mic ourselves, for Whisper. The permission is the same one the wake
+    // word and voice enrollment already ask for; if it isn't granted yet we request it
+    // and report failure, so the next tap works.
+    actual fun startRecording(): Boolean {
+        val act = NativeHost.activity
+        if (act != null && act.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            act.requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 9004)
+            return false
+        }
+        val ctx = NativeHost.ctx() ?: return false
+        if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return false
+        return MicRecorder.start()
+    }
+
+    actual fun stopRecording(): String? = MicRecorder.stop()
+
+    actual fun cancelRecording() = MicRecorder.cancel()
+
+    actual fun micLevel(): Float = MicRecorder.peak()
 
     actual fun openUrl(url: String) {
         val ctx = NativeHost.ctx() ?: return

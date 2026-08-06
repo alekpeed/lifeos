@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.AppTheme
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.ai.Whisper
 import com.alekpeed.lifeos.places.MapTiles
 import com.alekpeed.lifeos.core.exportBackupJson
 import com.alekpeed.lifeos.core.importBackupJson
@@ -294,6 +295,38 @@ fun SettingsScreen() {
         Spacer(Modifier.height(24.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
         Spacer(Modifier.height(24.dp))
+
+        // Dictation. Whisper needs the OpenAI key below, so it sits right above it.
+        if (Native.supportsRecording) {
+            var whisperOn by remember { mutableStateOf(Whisper.enabled()) }
+            val canWhisper = Whisper.possible()
+            Text("Dictation", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = whisperOn && canWhisper,
+                    enabled = canWhisper,
+                    onCheckedChange = { whisperOn = it; Whisper.setEngine(it) },
+                )
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text("Transcribe with Whisper", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        when {
+                            !canWhisper -> "Needs an OpenAI key — add one below."
+                            !Native.supportsDictation -> "The only dictation on this machine. Records until you tap Done, then transcribes."
+                            whisperOn -> "Records until you tap Done, then transcribes — punctuation included."
+                            else -> "Using the phone's own recognizer: offline and free, but it stops at the first pause."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(Modifier.height(24.dp))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            Spacer(Modifier.height(24.dp))
+        }
 
         Text("AI", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))

@@ -23,6 +23,10 @@ expect object Native {
     val supportsPdfExport: Boolean
     val supportsDictation: Boolean
 
+    // Whether the app can drive the mic itself (rather than handing off to a system
+    // dictation UI). This is what Whisper transcription needs.
+    val supportsRecording: Boolean
+
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
     fun stopSpeaking()
@@ -44,6 +48,20 @@ expect object Native {
     // recognized text, or null if cancelled / nothing heard / unsupported. Gate the
     // mic button on supportsDictation.
     fun dictate(onResult: (String?) -> Unit)
+
+    // Record from the microphone ourselves, for transcription we control. Start
+    // returns false if it couldn't begin — no mic, no permission yet, already
+    // recording. Stop hands back the take as a base64 16-bit mono 16 kHz WAV, or null
+    // if nothing usable was captured. Cancel throws the take away.
+    fun startRecording(): Boolean
+
+    fun stopRecording(): String?
+
+    fun cancelRecording()
+
+    // Peak level of the last moment of audio, 0f..1f — the only thing that tells you
+    // the mic is actually hearing you while a recording is running.
+    fun micLevel(): Float
 
     // Full-screen (immersive) mode: hide the system status and navigation bars so a
     // graphical interface with its own top row owns the whole screen. Swiping from an

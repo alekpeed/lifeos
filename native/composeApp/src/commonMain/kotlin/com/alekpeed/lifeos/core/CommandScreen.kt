@@ -35,6 +35,7 @@ import com.alekpeed.lifeos.ideas.appendIdea
 import com.alekpeed.lifeos.people.Contact
 import com.alekpeed.lifeos.people.loadContacts
 import com.alekpeed.lifeos.people.saveContacts
+import com.alekpeed.lifeos.ui.MicButton
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.tasks.Task
 import com.alekpeed.lifeos.tasks.loadTasks
@@ -172,10 +173,8 @@ fun CommandScreen() {
             Button(onClick = { capture("task") }) { Text("→ Task") }
             Button(onClick = { capture("idea") }) { Text("→ Idea") }
             OutlinedButton(onClick = { Native.readClipboard()?.let { input = it.trim() } }) { Text("📋 Paste") }
-            if (Native.supportsDictation) {
-                OutlinedButton(onClick = {
-                    Native.dictate { spoken -> if (!spoken.isNullOrBlank()) input = if (input.isBlank()) spoken else "$input $spoken" }
-                }) { Text("🎤 Speak") }
+            MicButton("🎤 Speak") { spoken ->
+                input = if (input.isBlank()) spoken else "$input $spoken"
             }
         }
         if (hasKey) {
