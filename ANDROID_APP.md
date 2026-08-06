@@ -51,7 +51,8 @@ and if it found nothing separable it says so rather than filing one guessed reco
 | Alarms that fire with the app closed | Notifications, bill due dates, document expiry |
 | Pinned ongoing notification | the next thing due |
 | Location and arrival geofences | Places |
-| Dictation and an always-on wake word | Command, Ideas, anywhere text is entered |
+| Microphone, driven by the app itself | the mic button in Command, Ideas, Ask, the Assistant |
+| System dictation and an always-on wake word | the offline fallback; the wake word listens for a trigger phrase |
 | Speaker verification | gates the wake word to your voice |
 | Read aloud | Today, Briefing, Daily Paper |
 | Phone address book import | Contacts |
@@ -63,6 +64,31 @@ and if it found nothing separable it says so rather than filing one guessed reco
 Supabase when signed in. Photos, PDFs and ebooks live in a local blob store that is never
 uploaded and never included in a backup export. AI runs on your own key and is always
 given your records — and the current date and time — as context.
+
+
+## Across every module
+
+Behaviour that isn't any one module's, implemented once and present everywhere:
+
+- **Multi-select on every list.** Long-press a row — press-and-hold works with a mouse —
+  or hit Select, tick as many as you want, then act on all of them at once. Delete asks
+  for confirmation and frees the records' photos and files exactly as a single delete
+  does. Some lists add a second bulk action where one is obviously useful: Archive in
+  Ideas, Watched/Read in Links, Mark done for assignments, Packed for packing items,
+  moving between the two lists in Places, Done on the bucket list.
+- **A microphone wherever text is typed.** One button, which records until you say
+  you're finished and then transcribes with Whisper — a pause mid-sentence is a pause,
+  not the end of the take, and the transcript comes back punctuated. On the phone the
+  system recognizer is available instead (offline, free, cuts you off at the first pause),
+  switchable in Settings; on a computer Whisper is the only dictation there is. Needs a
+  network connection and an OpenAI key, and the audio leaves the device.
+- **Any number of files on any record.** Images as a photo grid you can tap to enlarge,
+  everything else as a named list. Bytes live in a local blob store that never syncs and
+  never lands in a backup export.
+- **Dates are typed or picked**, the same field everywhere.
+- **Every write is confirmed** with a brief toast, so nothing saves silently.
+- **Nothing ships with example data.** An empty module says it's empty and says what
+  goes in it; it doesn't seed placeholder records that look like your own.
 
 ---
 
@@ -97,11 +123,18 @@ suggestion.
 - On the phone: PDF export.
 
 ### ✅  Tasks
-The working list. Status, priority, due dates, projects, tags, repeats, snoozing,
-subtask checklists, and a board view.
+The working list. Four states (not started / in progress / waiting / done),
+priority, any due date, projects, tags, repeats that spawn the next occurrence when you
+complete one, snoozing, subtask checklists, and a board view you can drag cards across.
 
 - **Subtask** — `id`, `text`, `done`
 - **Task** — `id`, `title`, `status`, `priority`, `due`, `project`, `tags`, `notes`, `waitingOn`, `subtasks`, `recur`, `snoozedUntil`, `completedDate`
+- The board is a column per status. Press and hold a card to lift it, drag it over
+  another column, let go — the target lights up and the board auto-scrolls near either
+  edge. ‹ / › on each card do the same one step at a time.
+- The row checkbox *selects* rather than completes, so completing and deleting both act
+  on a whole selection from one bar. Completing flips to Reopen when everything picked
+  is already done.
 
 ### ⌘  Command
 One input. Type an instruction in plain language and it proposes a record and a
@@ -225,10 +258,16 @@ This date in previous years, drawn from every dated record in the app.
 
 ### 📍  Places
 Where you've been and where you want to go: ratings, visit dates, private notes-to-self,
-photos, a map, and a bucket list.
+photos, a real street map, and a bucket list.
 
 - **Place** — `id`, `name`, `listType`, `category`, `rating`, `address`, `lat`, `lng`, `notes`, `visitDates`, `notesToSelf`, `photoBlob`, `contacts`
 - **BucketItem** — `id`, `title`, `done`, `targetDate`
+- The Map tab draws OpenStreetMap tiles with your places pinned on top — real streets
+  and labels, pinch to zoom, panning that wraps at the date line. Tiles are cached on
+  the device as you look at them, so places you've already seen work with no
+  connection. Selecting a pin offers Directions, which hands off to whatever the
+  machine uses for maps; a place with coordinates has the same action in its editor.
+  Coordinates come from "Use my location" or from geocoding the name/address.
 - Uses: Weather
 - On the phone: arrival geofence, location.
 
@@ -283,9 +322,14 @@ Fast capture, tagged and searchable, promotable to a task.
 
 ### 🕳  Rabbit Holes
 What you went down a hole researching — running notes and links, active or resolved.
+An open thread you haven't touched in three weeks is marked cold on its row and surfaces
+in the Briefing with a one-tap Resolve, because an abandoned thread should be closed
+rather than nagged about forever.
 
 - **HoleLink** — `id`, `url`, `title`
-- **RabbitHole** — `id`, `topic`, `notes`, `links`, `status`, `startedDate`, `photoBlob`
+- **RabbitHole** — `id`, `topic`, `notes`, `links`, `status`, `startedDate`, `touchedDate`, `photoBlob`
+- `touchedDate` is stamped on every edit; it's what "gone cold" is measured against.
+  Records written before it existed fall back to their start date.
 - On the phone: camera, gallery, share sheet.
 
 ### 📊  The Almanac
@@ -312,9 +356,14 @@ Patterns computed from your own data: correlations, forecasts, and what-ifs.
 *Body, home and money.* — 4 modules
 
 ### 🔥  Habits
-Streaks that reset honestly. A day is checked in or it isn't, and missing one resets.
+Streaks that reset honestly. A day is checked in or it isn't, and missing one resets;
+checking in twice can't inflate it, and a mis-tap today can be undone. Habits you
+haven't checked in yet appear on Today, and one with a live streak surfaces in the
+Briefing.
 
 - **Habit** — `name`, `checkins`, `notes`
+- Starts empty. No seeded example habits — an empty list says so rather than shipping
+  two placeholders that look like records you chose.
 
 ### ❤  Health
 Daily log, workouts with pace maths, metric trends, and imports from Garmin and Apple

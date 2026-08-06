@@ -421,6 +421,39 @@ lets the whole app be redecorated later without rebuilding it:
   send, gated "no key" state) — a live call needs your real API key/bot
   token, which can't be tested from this environment.
 
+
+### Native-era additions ✅
+
+Built in the Kotlin/Compose application, after the sections above. The full native
+capability inventory — including which build has what, and the gaps — is
+`NATIVE_FEATURES.md`.
+
+- **Multi-select on every list** — long-press or Select, tick rows, then Delete behind a
+  confirmation or use the list's own bulk action (Archive, Watched/Read, Mark done,
+  Packed, move between lists, Done). Selections resolve against what's on screen, so an
+  action can't hit a row that has since gone, and bulk delete frees the records' blobs
+  the same way a single delete does. `ui/Bulk.kt`.
+- **Whisper dictation** — the app drives the microphone itself (raw PCM → WAV →
+  OpenAI transcription) and holds it open until you tap Done, so a pause mid-sentence
+  isn't the end of the take. This is the **only** dictation the desktop build has; on the
+  phone it's the default with the system recognizer as an offline fallback, switchable in
+  Settings. `ai/Whisper.kt`, `ui/MicButton.kt`, `platform/MicRecorder.*`.
+- **A real street map in Places** — OpenStreetMap raster tiles with your places pinned
+  on top, fractional-zoom pinching, date-line wrapping, and a three-tier tile cache
+  (memory → blob store → network) so places you've looked at work offline. Selecting a
+  pin offers Directions, handing off to the system map. Settings reports the cached tile
+  count and can clear it. `places/MapTiles.kt`, `places/WorldMap.kt`.
+- **Cold rabbit holes in the Briefing** — an open thread untouched for three weeks is
+  marked cold on its row and surfaces in the Briefing with a one-tap Resolve. Needed a
+  new `touchedDate` on the record, stamped on every edit.
+- **Tasks: a draggable board and arbitrary due dates** — press and hold a card to lift
+  it, drag it between status columns, with the target column highlighted and the board
+  auto-scrolling near either edge. Due dates use the shared date field, so any date works
+  rather than only Today / Tomorrow / Next week.
+- **No seeded placeholder records** — Habits and Tasks used to ship example rows that
+  looked like real data (and Tasks resurrected them whenever the list was emptied). Both
+  start genuinely empty now, with a real empty state.
+
 ### Still to build 📋
 - **Per-user notifications** — depends on accounts existing first.
 
