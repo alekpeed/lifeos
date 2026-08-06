@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.ideas
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -26,8 +27,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 
 // Free-form capture, native on both platforms — now with tags, a tag filter, and
@@ -43,6 +49,7 @@ fun IdeasScreen() {
     var tagInput by remember { mutableStateOf("") }
     var tagFilter by remember { mutableStateOf<String?>(null) }
     var showArchived by remember { mutableStateOf(false) }
+    val bulk = rememberBulk()
 
     val allTags = data.ideas.filterNot { it.archived }.flatMap { it.tags }.distinct().sorted()
     val visible = data.ideas
@@ -100,28 +107,56 @@ fun IdeasScreen() {
             return
         }
 
+        // Tick several and archive or bin them together, rather than one row at a time.
+        BulkBar(
+            bulk = bulk,
+            ids = visible.map { it.id },
+            noun = "idea",
+            onDelete = { ids -> save(data.copy(ideas = data.ideas.filterNot { it.id in ids })) },
+            extra = { ids ->
+                if (ids.isNotEmpty()) {
+                    TextButton(onClick = {
+                        save(data.copy(ideas = data.ideas.map { if (it.id in ids) it.copy(archived = !showArchived) else it }))
+                        bulk.clear()
+                    }) { Text(if (showArchived) "Restore" else "Archive", style = MaterialTheme.typography.labelMedium) }
+                }
+            },
+        )
+        Spacer(Modifier.height(4.dp))
+
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(visible, key = { it.id }) { idea ->
                 fun patch(f: (Idea) -> Idea) = save(data.copy(ideas = data.ideas.map { if (it.id == idea.id) f(it) else it }))
-                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                Column(
+                    Modifier.fillMaxWidth()
+                        .background(
+                            if (bulk.has(idea.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            else Color.Transparent,
+                        )
+                        .bulkClickable(bulk, idea.id) {}
+                        .padding(vertical = 4.dp),
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        BulkTick(bulk, idea.id)
                         Text(idea.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                        // Promote → a real Task (idea text + tags carry over); the
-                        // idea archives so it doesn't linger in both piles.
-                        if (!idea.archived) {
-                            TextButton(onClick = {
-                                val tasks = com.alekpeed.lifeos.tasks.loadTasks()
-                                val tid = (tasks.maxOfOrNull { it.id } ?: 0L) + 1
-                                com.alekpeed.lifeos.tasks.saveTasks(
-                                    tasks + com.alekpeed.lifeos.tasks.Task(tid, idea.text.replace("\n", " "), tags = idea.tags),
-                                )
-                                patch { it.copy(archived = true) }
-                            }) { Text("→ Task") }
+                        if (!bulk.on) {
+                            // Promote → a real Task (idea text + tags carry over); the
+                            // idea archives so it doesn't linger in both piles.
+                            if (!idea.archived) {
+                                TextButton(onClick = {
+                                    val tasks = com.alekpeed.lifeos.tasks.loadTasks()
+                                    val tid = (tasks.maxOfOrNull { it.id } ?: 0L) + 1
+                                    com.alekpeed.lifeos.tasks.saveTasks(
+                                        tasks + com.alekpeed.lifeos.tasks.Task(tid, idea.text.replace("\n", " "), tags = idea.tags),
+                                    )
+                                    patch { it.copy(archived = true) }
+                                }) { Text("→ Task") }
+                            }
+                            TextButton(onClick = { patch { it.copy(archived = !it.archived) } }) {
+                                Text(if (idea.archived) "Restore" else "Archive")
+                            }
+                            TextButton(onClick = { save(data.copy(ideas = data.ideas.filterNot { it.id == idea.id })) }) { Text("✕") }
                         }
-                        TextButton(onClick = { patch { it.copy(archived = !it.archived) } }) {
-                            Text(if (idea.archived) "Restore" else "Archive")
-                        }
-                        TextButton(onClick = { save(data.copy(ideas = data.ideas.filterNot { it.id == idea.id })) }) { Text("✕") }
                     }
                     if (idea.tags.isNotEmpty()) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

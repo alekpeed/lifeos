@@ -1,7 +1,6 @@
 package com.alekpeed.lifeos.documents
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -47,6 +46,10 @@ import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -114,6 +117,7 @@ fun DocumentsScreen() {
     var input by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("all") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    val bulk = rememberBulk()
     var scanning by remember { mutableStateOf(false) }
     var scanError by remember { mutableStateOf<String?>(null) }
     var showSource by remember { mutableStateOf(false) }
@@ -224,20 +228,40 @@ fun DocumentsScreen() {
             Text("No documents match the current filter.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             return
         }
+        // Tick several and bin them in one go, attachments and all.
+        BulkBar(
+            bulk = bulk,
+            ids = filtered.map { it.id },
+            noun = "document",
+            onDelete = { ids ->
+                data.documents.filter { it.id in ids }.forEach { d ->
+                    if (d.photoBlob.isNotBlank()) deleteBlob(d.photoBlob)
+                    d.attachments.forEach { a -> deleteBlob(a.blobId) }
+                }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(documents = data.documents.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(filtered, key = { it.id }) { doc ->
                 Column {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selected = if (selected == doc.id) null else doc.id }.padding(14.dp),
+                            .background(
+                                if (bulk.has(doc.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                            .bulkClickable(bulk, doc.id) { selected = if (selected == doc.id) null else doc.id }
+                            .padding(14.dp),
                     ) {
+                        BulkTick(bulk, doc.id)
                         Column(Modifier.weight(1f)) {
                             Text(doc.title.ifBlank { "(untitled document)" }, style = MaterialTheme.typography.bodyLarge)
                             DocMeta(doc)
                         }
                     }
-                    if (selected == doc.id) DocumentDetail(data, ::save, doc) { selected = null }
+                    if (selected == doc.id && !bulk.on) DocumentDetail(data, ::save, doc) { selected = null }
                 }
             }
         }

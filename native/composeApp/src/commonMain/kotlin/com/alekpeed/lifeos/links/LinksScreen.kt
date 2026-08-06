@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.links
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -42,6 +41,11 @@ import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkState
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
@@ -57,6 +61,7 @@ fun LinksScreen() {
     var showDone by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Long?>(null) }
     var input by remember { mutableStateOf("") }
+    val bulk = rememberBulk()
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -94,9 +99,30 @@ fun LinksScreen() {
             )
             return
         }
+        // Tick several and clear or mark them off together.
+        BulkBar(
+            bulk = bulk,
+            ids = filtered.map { it.id },
+            noun = if (tab == "video") "video" else "article",
+            onDelete = { ids ->
+                data.links.filter { it.id in ids && it.thumbBlob.isNotBlank() }.forEach { deleteBlob(it.thumbBlob) }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(links = data.links.filterNot { it.id in ids }))
+            },
+            extra = { ids ->
+                if (ids.isNotEmpty()) {
+                    val label = if (tab == "video") "Watched" else "Read"
+                    TextButton(onClick = {
+                        save(data.copy(links = data.links.map { if (it.id in ids) it.copy(status = "done") else it }))
+                        bulk.clear()
+                    }) { Text(label, style = MaterialTheme.typography.labelMedium) }
+                }
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(filtered, key = { it.id }) { link ->
-                LinkCard(data, ::save, link, selected == link.id) { selected = if (selected == link.id) null else link.id }
+                LinkCard(data, ::save, link, selected == link.id, bulk) { selected = if (selected == link.id) null else link.id }
             }
         }
     }
@@ -104,7 +130,16 @@ fun LinksScreen() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LinkCard(data: LinksData, save: (LinksData) -> Unit, link: Link, expanded: Boolean, onToggle: () -> Unit) {
+private fun LinkCard(
+    data: LinksData,
+    save: (LinksData) -> Unit,
+    link: Link,
+    expandedNow: Boolean,
+    bulk: BulkState,
+    onToggle: () -> Unit,
+) {
+    // While a selection is live every card stays shut — taps are ticking, not opening.
+    val expanded = expandedNow && !bulk.on
     fun patch(f: (Link) -> Link) = save(data.copy(links = data.links.map { if (it.id == link.id) f(it) else it }))
 
     Column {
@@ -121,9 +156,14 @@ private fun LinkCard(data: LinksData, save: (LinksData) -> Unit, link: Link, exp
         }
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onToggle() }.padding(14.dp),
+                .background(
+                    if (bulk.has(link.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                )
+                .bulkClickable(bulk, link.id) { onToggle() }.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            BulkTick(bulk, link.id)
             val thumb = if (link.thumbBlob.isNotBlank()) remember(link.thumbBlob) { loadBlobImage(link.thumbBlob) } else null
             if (thumb != null) {
                 Image(

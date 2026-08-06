@@ -38,6 +38,11 @@ import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.BulkState
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.datetime.daysUntil
 
@@ -74,20 +79,31 @@ fun TimeCapsulesScreen() {
         }, modifier = Modifier.fillMaxWidth()) { Text("Seal it") }
         Spacer(Modifier.height(14.dp))
 
+        val bulk = rememberBulk()
+        BulkBar(
+            bulk = bulk,
+            ids = (sealed + opened).map { it.id },
+            noun = "capsule",
+            onDelete = { ids ->
+                data.capsules.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+                save(data.copy(capsules = data.capsules.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { SectionLabel("Sealed (${sealed.size})") }
             if (sealed.isEmpty()) item { Muted("Nothing sealed right now.") }
-            else items(sealed, key = { it.id }) { Capsule(data, ::save, it) }
+            else items(sealed, key = { it.id }) { Capsule(data, ::save, it, bulk) }
 
             item { SectionLabel("Opened (${opened.size})") }
             if (opened.isEmpty()) item { Muted("None have opened yet.") }
-            else items(opened, key = { it.id }) { Capsule(data, ::save, it) }
+            else items(opened, key = { it.id }) { Capsule(data, ::save, it, bulk) }
         }
     }
 }
 
 @Composable
-private fun Capsule(data: TimeCapsulesData, save: (TimeCapsulesData) -> Unit, c: TimeCapsule) {
+private fun Capsule(data: TimeCapsulesData, save: (TimeCapsulesData) -> Unit, c: TimeCapsule, bulk: BulkState) {
     fun patch(f: (TimeCapsule) -> TimeCapsule) = save(data.copy(capsules = data.capsules.map { if (it.id == c.id) f(it) else it }))
     var showSource by remember { mutableStateOf(false) }
 
@@ -104,14 +120,22 @@ private fun Capsule(data: TimeCapsulesData, save: (TimeCapsulesData) -> Unit, c:
 
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp),
+            .background(
+                if (bulk.has(c.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .bulkClickable(bulk, c.id) {}
+            .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            BulkTick(bulk, c.id)
             Text(c.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            TextButton(onClick = {
-                deleteBlob(c.photoBlob)
-                save(data.copy(capsules = data.capsules.filterNot { it.id == c.id }))
-            }) { Text("×") }
+            if (!bulk.on) {
+                TextButton(onClick = {
+                    deleteBlob(c.photoBlob)
+                    save(data.copy(capsules = data.capsules.filterNot { it.id == c.id }))
+                }) { Text("×") }
+            }
         }
         if (isSealed(c)) {
             val days = today().daysUntil(parseDateOrNull(c.sealedUntil) ?: today()).coerceAtLeast(1)

@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.rabbitholes
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +38,11 @@ import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.BulkState
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
@@ -83,10 +87,22 @@ private fun Overview(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fre
     }
     Spacer(Modifier.height(14.dp))
 
+    val bulk = rememberBulk()
+    val listed = active + if (showResolved) resolved else emptyList()
+    BulkBar(
+        bulk = bulk,
+        ids = listed.map { it.id },
+        noun = "thread",
+        onDelete = { ids ->
+            data.holes.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+            save(data.copy(holes = data.holes.filterNot { it.id in ids }))
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { SectionLabel("Active (${active.size})") }
         if (active.isEmpty()) item { Muted("Nothing open right now.") }
-        else items(active, key = { it.id }) { HoleRow(it) { onOpen(it.id) } }
+        else items(active, key = { it.id }) { HoleRow(it, bulk) { onOpen(it.id) } }
 
         if (resolved.isNotEmpty()) {
             item {
@@ -94,17 +110,24 @@ private fun Overview(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fre
                     Text(if (showResolved) "Hide resolved" else "Show resolved (${resolved.size})")
                 }
             }
-            if (showResolved) items(resolved, key = { it.id }) { HoleRow(it) { onOpen(it.id) } }
+            if (showResolved) items(resolved, key = { it.id }) { HoleRow(it, bulk) { onOpen(it.id) } }
         }
     }
 }
 
 @Composable
-private fun HoleRow(hole: RabbitHole, onClick: () -> Unit) {
+private fun HoleRow(hole: RabbitHole, bulk: BulkState, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 8.dp),
+        Modifier.fillMaxWidth()
+            .background(
+                if (bulk.has(hole.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                else Color.Transparent,
+            )
+            .bulkClickable(bulk, hole.id) { onClick() }
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        BulkTick(bulk, hole.id)
         Text(hole.topic.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Text("${hole.links.size} link${if (hole.links.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

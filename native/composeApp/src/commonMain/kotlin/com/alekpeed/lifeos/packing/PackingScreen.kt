@@ -1,7 +1,6 @@
 package com.alekpeed.lifeos.packing
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -36,6 +35,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 
 @Composable
@@ -89,13 +92,26 @@ private fun ListsOverview(data: PackingData, save: (PackingData) -> Unit, freshI
     Text("Your trips (${data.lists.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(8.dp))
     if (data.lists.isEmpty()) { Text("No trips yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = data.lists.map { it.id },
+        noun = "trip",
+        onDelete = { ids -> save(data.copy(lists = data.lists.filterNot { it.id in ids })) },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(data.lists, key = { it.id }) { list ->
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onOpen(list.id) }.padding(14.dp),
+                    .background(
+                        if (bulk.has(list.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    .bulkClickable(bulk, list.id) { onOpen(list.id) }.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                BulkTick(bulk, list.id)
                 Column(Modifier.weight(1f)) {
                     Text(list.name.ifBlank { "(untitled trip)" }, style = MaterialTheme.typography.bodyLarge)
                     val packed = list.items.count { it.packed }
@@ -104,7 +120,9 @@ private fun ListsOverview(data: PackingData, save: (PackingData) -> Unit, freshI
                         style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
                     )
                 }
-                TextButton(onClick = { save(data.copy(lists = data.lists.filterNot { it.id == list.id })) }) { Text("×") }
+                if (!bulk.on) {
+                    TextButton(onClick = { save(data.copy(lists = data.lists.filterNot { it.id == list.id })) }) { Text("×") }
+                }
             }
         }
     }

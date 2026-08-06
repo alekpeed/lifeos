@@ -43,6 +43,10 @@ import com.alekpeed.lifeos.integrations.WeatherClient
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -166,14 +170,49 @@ private fun PlaceList(
     Spacer(Modifier.height(12.dp))
 
     if (places.isEmpty()) { Muted("Nothing here yet."); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = places.map { it.id },
+        noun = "place",
+        onDelete = { ids ->
+            data.places.filter { it.id in ids }.forEach { p ->
+                if (p.photoBlob.isNotBlank()) deleteBlob(p.photoBlob)
+                p.attachments.forEach { a -> deleteBlob(a.blobId) }
+            }
+            save(data.copy(places = data.places.filterNot { it.id in ids }))
+        },
+        extra = { ids ->
+            // Moving a batch between the two lists is the other thing worth doing to
+            // several places at once.
+            if (ids.isNotEmpty()) {
+                val to = if (listType == "wantToGo") "visited" else "wantToGo"
+                TextButton(onClick = {
+                    save(data.copy(places = data.places.map { if (it.id in ids) it.copy(listType = to) else it }))
+                    bulk.clear()
+                }) {
+                    Text(
+                        if (to == "visited") "→ Visited" else "→ Want to go",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(places, key = { it.id }) { p ->
             Column {
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onSelect(p.id) }.padding(14.dp),
+                        .background(
+                            if (bulk.has(p.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        .bulkClickable(bulk, p.id) { onSelect(p.id) }.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    BulkTick(bulk, p.id)
                     Column(Modifier.weight(1f)) {
                         Text(p.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                         val chips = buildList {
@@ -189,7 +228,7 @@ private fun PlaceList(
                         }
                     }
                 }
-                if (selected == p.id) PlaceDetail(data, save, p) { onSelect(p.id) }
+                if (selected == p.id && !bulk.on) PlaceDetail(data, save, p) { onSelect(p.id) }
             }
         }
     }

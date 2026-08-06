@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.people
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -42,6 +41,10 @@ import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 
@@ -60,6 +63,7 @@ fun ContactsScreen() {
     var input by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    val bulk = rememberBulk()
     var query by remember { mutableStateOf("") }
     var tagFilter by remember { mutableStateOf<String?>(null) }
 
@@ -126,14 +130,30 @@ fun ContactsScreen() {
             }
             .sortedBy { it.name.lowercase() }
         if (shown.isEmpty()) { Muted("No matches."); return }
+        BulkBar(
+            bulk = bulk,
+            ids = shown.map { it.id },
+            noun = "contact",
+            onDelete = { ids ->
+                data.contacts.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(contacts = data.contacts.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(shown, key = { it.id }) { c ->
                 Column {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selected = if (selected == c.id) null else c.id }.padding(14.dp),
+                            .background(
+                                if (bulk.has(c.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                            .bulkClickable(bulk, c.id) { selected = if (selected == c.id) null else c.id }
+                            .padding(14.dp),
                     ) {
+                        BulkTick(bulk, c.id)
                         Column(Modifier.weight(1f)) {
                             Text(c.name.ifBlank { "(unnamed)" }, style = MaterialTheme.typography.bodyLarge)
                             val chips = buildList {

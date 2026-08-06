@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.milestones
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -50,6 +49,10 @@ import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.recipes.loadRecipes
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -65,6 +68,7 @@ fun MilestonesScreen() {
 
     var tab by remember { mutableStateOf("timeline") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    val bulk = rememberBulk()
     var input by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
@@ -88,6 +92,17 @@ fun MilestonesScreen() {
 
         val sorted = data.milestones.sortedByDescending { it.date.ifBlank { "0000" } }
         if (sorted.isEmpty()) { Muted("No milestones logged yet."); return@Column }
+        BulkBar(
+            bulk = bulk,
+            ids = sorted.map { it.id },
+            noun = "milestone",
+            onDelete = { ids ->
+                data.milestones.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(milestones = data.milestones.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             var lastYear = ""
             sorted.forEach { m ->
@@ -99,16 +114,23 @@ fun MilestonesScreen() {
                 item {
                     Column {
                         Row(
-                            Modifier.fillMaxWidth().clickable { selected = if (selected == m.id) null else m.id }.padding(vertical = 6.dp),
+                            Modifier.fillMaxWidth()
+                                .background(
+                                    if (bulk.has(m.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                    else Color.Transparent,
+                                )
+                                .bulkClickable(bulk, m.id) { selected = if (selected == m.id) null else m.id }
+                                .padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            BulkTick(bulk, m.id)
                             Column(Modifier.weight(1f)) {
                                 Text(m.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                                 val meta = listOf(m.category, usDate(m.date).ifBlank { m.date }).filter { it.isNotBlank() }.joinToString(" · ")
                                 if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        if (selected == m.id) MilestoneDetail(data, ::save, m) { selected = null }
+                        if (selected == m.id && !bulk.on) MilestoneDetail(data, ::save, m) { selected = null }
                     }
                 }
             }

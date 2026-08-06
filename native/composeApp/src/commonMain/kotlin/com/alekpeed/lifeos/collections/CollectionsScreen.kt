@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.collections
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -42,6 +41,10 @@ import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
@@ -87,18 +90,36 @@ private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, fre
     Text("Your collections (${data.collections.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(8.dp))
     if (data.collections.isEmpty()) { Muted("No collections yet."); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = data.collections.map { it.id },
+        noun = "collection",
+        onDelete = { ids ->
+            data.collections.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+            save(data.copy(collections = data.collections.filterNot { it.id in ids }))
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(data.collections, key = { it.id }) { c ->
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onOpen(c.id) }.padding(14.dp),
+                    .background(
+                        if (bulk.has(c.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    .bulkClickable(bulk, c.id) { onOpen(c.id) }.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                BulkTick(bulk, c.id)
                 Column(Modifier.weight(1f)) {
                     Text(c.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                     Text("${c.items.size} item${if (c.items.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
-                TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(collections = data.collections.filterNot { it.id == c.id })) }) { Text("×") }
+                if (!bulk.on) {
+                    TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(collections = data.collections.filterNot { it.id == c.id })) }) { Text("×") }
+                }
             }
         }
     }

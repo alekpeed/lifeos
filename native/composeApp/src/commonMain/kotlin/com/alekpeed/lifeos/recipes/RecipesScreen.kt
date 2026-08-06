@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.recipes
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -44,6 +43,10 @@ import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 
@@ -68,6 +71,7 @@ fun RecipesScreen() {
     var tab by remember { mutableStateOf("recipes") }
     var selected by remember { mutableStateOf<Long?>(null) }
     var input by remember { mutableStateOf("") }
+    val bulk = rememberBulk()
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -92,14 +96,30 @@ fun RecipesScreen() {
         Spacer(Modifier.height(12.dp))
 
         if (data.recipes.isEmpty()) { Muted("No recipes yet."); return@Column }
+        BulkBar(
+            bulk = bulk,
+            ids = data.recipes.map { it.id },
+            noun = "recipe",
+            onDelete = { ids ->
+                data.recipes.filter { it.id in ids && it.photoBlob.isNotBlank() }.forEach { deleteBlob(it.photoBlob) }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(recipes = data.recipes.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(data.recipes, key = { it.id }) { r ->
                 Column {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selected = if (selected == r.id) null else r.id }.padding(14.dp),
+                            .background(
+                                if (bulk.has(r.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                            .bulkClickable(bulk, r.id) { selected = if (selected == r.id) null else r.id }
+                            .padding(14.dp),
                     ) {
+                        BulkTick(bulk, r.id)
                         Text("🍳", modifier = Modifier.padding(end = 10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(r.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
@@ -110,7 +130,7 @@ fun RecipesScreen() {
                             })
                         }
                     }
-                    if (selected == r.id) RecipeDetail(data, ::save, ::freshId, r) { selected = null }
+                    if (selected == r.id && !bulk.on) RecipeDetail(data, ::save, ::freshId, r) { selected = null }
                 }
             }
         }

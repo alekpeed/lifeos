@@ -78,6 +78,11 @@ import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.readTextBlob
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.platform.saveTextBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.BulkState
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -148,6 +153,7 @@ fun BooksScreen() {
     var selected by remember { mutableStateOf<Long?>(null) }
     var reading by remember { mutableStateOf<Pair<Long, Long>?>(null) }
     var input by remember { mutableStateOf("") }
+    val bulk = rememberBulk()
     var scanBusy by remember { mutableStateOf(false) }
     var scanMsg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -225,11 +231,29 @@ fun BooksScreen() {
 
         val filtered = data.books.filter { (it.status.ifBlank { "to_read" }) == tab }
         if (filtered.isEmpty()) { Muted("No books here yet."); return@Column }
+        // Tick several and clear the shelf in one go — a book's cover and any files
+        // it holds go with it.
+        BulkBar(
+            bulk = bulk,
+            ids = filtered.map { it.id },
+            noun = "book",
+            onDelete = { ids ->
+                data.books.filter { it.id in ids }.forEach { b ->
+                    if (b.photoBlob.isNotBlank()) deleteBlob(b.photoBlob)
+                    b.files.forEach { file -> if (file.blobId.isNotBlank()) deleteBlob(file.blobId) }
+                }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(books = data.books.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(filtered, key = { it.id }) { book ->
                 Column {
-                    BookCard(book) { selected = if (selected == book.id) null else book.id }
-                    if (selected == book.id) BookDetail(data, ::save, ::freshId, book, onRead = { fileId -> reading = book.id to fileId }) { selected = null }
+                    BookCard(book, bulk) { selected = if (selected == book.id) null else book.id }
+                    if (selected == book.id && !bulk.on) {
+                        BookDetail(data, ::save, ::freshId, book, onRead = { fileId -> reading = book.id to fileId }) { selected = null }
+                    }
                 }
             }
         }
@@ -238,11 +262,16 @@ fun BooksScreen() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BookCard(book: Book, onClick: () -> Unit) {
+private fun BookCard(book: Book, bulk: BulkState, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onClick() }.padding(14.dp),
+            .background(
+                if (bulk.has(book.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .bulkClickable(bulk, book.id) { onClick() }.padding(14.dp),
     ) {
+        BulkTick(bulk, book.id)
         Text("📖", modifier = Modifier.padding(end = 10.dp))
         Column(Modifier.weight(1f)) {
             Text(book.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)

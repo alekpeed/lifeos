@@ -1,7 +1,6 @@
 package com.alekpeed.lifeos.quartermaster
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -57,6 +56,11 @@ import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.readBlobBase64
 import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkState
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -142,6 +146,7 @@ fun QuartermasterScreen() {
     var adding by remember { mutableStateOf(false) }
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var filter by remember { mutableStateOf("all") } // all | low | out | lent
+    val bulk = rememberBulk()
 
     val lentOut = data.items.filter { it.lentTo.isNotBlank() }
     val onHand = data.items.filter { it.lentTo.isBlank() }
@@ -230,14 +235,28 @@ fun QuartermasterScreen() {
             )
         }
 
-        Spacer(Modifier.height(10.dp))
+        // Multi-select: long-press a row (or hit Select) to tick several, then clear
+        // them in one go. A photo scan can drop twenty items in at once, so deleting
+        // them one at a time was the wrong shape.
+        val visible = if (filter == "all") lentOut + onHand else data.items.filter { matches(it) }
+        BulkBar(
+            bulk = bulk,
+            ids = visible.map { it.id },
+            noun = "item",
+            onDelete = { ids ->
+                data.items.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+                if (expandedId?.let { it in ids } == true) expandedId = null
+                save(data.copy(items = data.items.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(6.dp))
 
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (filter == "all") {
                 if (lentOut.isNotEmpty()) {
                     item { SectionLabel("Lent out (${lentOut.size})") }
                     items(lentOut, key = { it.id }) { row ->
-                        ItemRow(data, ::save, row, expandedId == row.id) {
+                        ItemRow(data, ::save, row, expandedId == row.id, bulk) {
                             expandedId = if (expandedId == row.id) null else row.id
                         }
                     }
@@ -247,15 +266,14 @@ fun QuartermasterScreen() {
                     item { Text("Nothing logged yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 } else {
                     items(onHand, key = { it.id }) { row ->
-                        ItemRow(data, ::save, row, expandedId == row.id) {
+                        ItemRow(data, ::save, row, expandedId == row.id, bulk) {
                             expandedId = if (expandedId == row.id) null else row.id
                         }
                     }
                 }
             } else {
-                val shown = data.items.filter { matches(it) }
-                items(shown, key = { it.id }) { row ->
-                    ItemRow(data, ::save, row, expandedId == row.id) {
+                items(visible, key = { it.id }) { row ->
+                    ItemRow(data, ::save, row, expandedId == row.id, bulk) {
                         expandedId = if (expandedId == row.id) null else row.id
                     }
                 }
@@ -270,9 +288,12 @@ private fun ItemRow(
     data: QuartermasterData,
     save: (QuartermasterData) -> Unit,
     item: InventoryItem,
-    expanded: Boolean,
+    expandedNow: Boolean,
+    bulk: BulkState,
     onToggle: () -> Unit,
 ) {
+    // While a selection is live every row stays collapsed — taps are ticking, not opening.
+    val expanded = expandedNow && !bulk.on
     fun patch(f: (InventoryItem) -> InventoryItem) = save(data.copy(items = data.items.map { if (it.id == item.id) f(it) else it }))
     var lendTo by remember(item.id) { mutableStateOf("") }
     var showSource by remember { mutableStateOf(false) }
@@ -290,12 +311,16 @@ private fun ItemRow(
 
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onToggle() }
+            .background(
+                if (bulk.has(item.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .bulkClickable(bulk, item.id) { onToggle() }
             .padding(horizontal = 12.dp, vertical = if (expanded) 12.dp else 9.dp),
     ) {
         // Collapsed: one line — name, where it lives, its stock at a glance.
         Row(verticalAlignment = Alignment.CenterVertically) {
+            BulkTick(bulk, item.id)
             Text(
                 item.name.ifBlank { "(untitled)" },
                 style = MaterialTheme.typography.bodyMedium,
@@ -316,11 +341,13 @@ private fun ItemRow(
                 Text("📎", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(end = 6.dp))
             }
             StockPill(item.stockStatus)
-            Text(
-                if (expanded) "  ▾" else "  ›",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (!bulk.on) {
+                Text(
+                    if (expanded) "  ▾" else "  ›",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         if (item.lentTo.isNotBlank() && !expanded) {
             Text(
