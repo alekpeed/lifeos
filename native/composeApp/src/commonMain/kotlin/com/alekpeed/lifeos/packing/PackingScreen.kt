@@ -187,11 +187,39 @@ private fun ListDetail(data: PackingData, save: (PackingData) -> Unit, freshId: 
         return
     }
     val grouped = list.items.groupBy { it.category.ifBlank { "Other" } }
+    // A template can drop thirty items on a list at once, so selection matters more
+    // here than almost anywhere: tick a run and pack or drop them together.
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = list.items.map { it.id },
+        noun = "item",
+        onDelete = { ids -> patch { l -> l.copy(items = l.items.filterNot { it.id in ids }) } },
+        extra = { ids ->
+            if (ids.isNotEmpty()) {
+                TextButton(onClick = {
+                    patch { l -> l.copy(items = l.items.map { if (it.id in ids) it.copy(packed = true) else it }) }
+                    bulk.clear()
+                }) { Text("Packed", style = MaterialTheme.typography.labelMedium) }
+            }
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         grouped.forEach { (cat, catItems) ->
             item { Text(cat, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
             items(catItems, key = { it.id }) { it2 ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .background(
+                            if (bulk.has(it2.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            else Color.Transparent,
+                        )
+                        .bulkClickable(bulk, it2.id) {}
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BulkTick(bulk, it2.id)
                     Checkbox(checked = it2.packed, onCheckedChange = { c ->
                         patch { l -> l.copy(items = l.items.map { if (it.id == it2.id) it.copy(packed = c) else it }) }
                     })
@@ -199,7 +227,9 @@ private fun ListDetail(data: PackingData, save: (PackingData) -> Unit, freshId: 
                         it2.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f),
                         textDecoration = if (it2.packed) TextDecoration.LineThrough else null,
                     )
-                    TextButton(onClick = { patch { l -> l.copy(items = l.items.filterNot { it.id == it2.id }) } }) { Text("×") }
+                    if (!bulk.on) {
+                        TextButton(onClick = { patch { l -> l.copy(items = l.items.filterNot { it.id == it2.id }) } }) { Text("×") }
+                    }
                 }
             }
         }

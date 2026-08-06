@@ -434,11 +434,33 @@ private fun BucketList(data: PlacesData, save: (PlacesData) -> Unit, freshId: ()
 
     if (data.bucket.isEmpty()) { Muted("No bucket-list goals yet."); return }
     val shown = data.bucket.sortedBy { it.done }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = shown.map { it.id },
+        noun = "goal",
+        onDelete = { ids -> save(data.copy(bucket = data.bucket.filterNot { it.id in ids })) },
+        extra = { ids ->
+            if (ids.isNotEmpty()) {
+                TextButton(onClick = {
+                    save(data.copy(bucket = data.bucket.map { if (it.id in ids) it.copy(done = true) else it }))
+                    bulk.clear()
+                }) { Text("Done", style = MaterialTheme.typography.labelMedium) }
+            }
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         items(shown, key = { it.id }) { item ->
             fun patch(f: (BucketItem) -> BucketItem) = save(data.copy(bucket = data.bucket.map { if (it.id == item.id) f(it) else it }))
-            Column(Modifier.padding(vertical = 2.dp)) {
+            Column(
+                Modifier.background(
+                    if (bulk.has(item.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                    else Color.Transparent,
+                ).bulkClickable(bulk, item.id) {}.padding(vertical = 2.dp),
+            ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    BulkTick(bulk, item.id)
                     Checkbox(checked = item.done, onCheckedChange = { c -> patch { it.copy(done = c) } })
                     Text(
                         item.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f),
@@ -447,7 +469,9 @@ private fun BucketList(data: PlacesData, save: (PlacesData) -> Unit, freshId: ()
                     if (item.targetDate.isNotBlank()) {
                         Text(usDate(item.targetDate).ifBlank { item.targetDate }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    TextButton(onClick = { save(data.copy(bucket = data.bucket.filterNot { it.id == item.id })) }) { Text("×") }
+                    if (!bulk.on) {
+                        TextButton(onClick = { save(data.copy(bucket = data.bucket.filterNot { it.id == item.id })) }) { Text("×") }
+                    }
                 }
                 Row(Modifier.padding(start = 44.dp), verticalAlignment = Alignment.CenterVertically) {
                     AssistChip(onClick = { patch { it.copy(targetDate = today().toString()) } }, label = { Text("Target: today") })

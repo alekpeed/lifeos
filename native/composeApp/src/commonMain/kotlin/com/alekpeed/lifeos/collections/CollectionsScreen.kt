@@ -206,9 +206,27 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
     Text("Items (${sorted.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(6.dp))
     if (sorted.isEmpty()) { Muted("Nothing in this collection yet."); return }
+    val itemBulk = rememberBulk()
+    BulkBar(
+        bulk = itemBulk,
+        ids = sorted.map { it.id },
+        noun = "item",
+        onDelete = { ids -> patch { it.copy(items = it.items.filterNot { x -> x.id in ids }) } },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         items(sorted, key = { it.id }) { item ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth()
+                    .background(
+                        if (itemBulk.has(item.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                        else Color.Transparent,
+                    )
+                    .bulkClickable(itemBulk, item.id) {}
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BulkTick(itemBulk, item.id)
                 Column(Modifier.weight(1f)) {
                     Text(item.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                     val chips = buildList {
@@ -220,7 +238,9 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
                     }
                     if (item.notes.isNotBlank()) Text(item.notes, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                TextButton(onClick = { patch { it.copy(items = it.items.filterNot { x -> x.id == item.id }) } }) { Text("×") }
+                if (!itemBulk.on) {
+                    TextButton(onClick = { patch { it.copy(items = it.items.filterNot { x -> x.id == item.id }) } }) { Text("×") }
+                }
             }
         }
     }
