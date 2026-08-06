@@ -40,6 +40,12 @@ import kotlinx.coroutines.withContext
 private const val WORLD_W = 360f
 private const val WORLD_H = 180f
 
+// Pan clamp for one axis: keep the offset within [lo, hi] when the world overflows the
+// viewport, and park it at `centered` when it doesn't. Separated out because getting this
+// wrong is a crash, not a cosmetic bug — coerceIn(lo, hi) throws outright when lo > hi.
+private fun axis(value: Float, lo: Float, hi: Float, centered: Float): Float =
+    if (lo > hi) centered else value.coerceIn(lo, hi)
+
 // One value per place the map needs — precomputed world coords + list color key.
 data class MapPin(val id: Long, val name: String, val x: Float, val y: Float, val wantToGo: Boolean)
 
@@ -112,17 +118,24 @@ fun WorldMapView(pins: List<MapPin>, onPick: (Long) -> Unit) {
                 .pointerInput(Unit) {
                     detectTransformGestures { centroid, pan, gestureZoom, _ ->
                         val fit = size.width / WORLD_W
+                        if (fit <= 0f) return@detectTransformGestures
                         val z = if (zoom <= 0f) fit else zoom
                         val off = if (zoom <= 0f) Offset(0f, (size.height - WORLD_H * fit) / 2f) else offset
                         val newZoom = (z * gestureZoom).coerceIn(fit, fit * 60f)
                         // Keep the point under the centroid fixed while zooming, then pan.
                         var next = centroid - (centroid - off) * (newZoom / z) + pan
-                        // Loose clamp so the world can't be flung away entirely.
+                        // Loose clamp so the world can't be flung away entirely — but only on
+                        // an axis where the world is actually bigger than the viewport. When
+                        // it isn't (the world is 2:1, so on a portrait screen it never fills
+                        // the height), there is nothing to clamp between and the world is
+                        // centred instead. Clamping regardless is what crashed this screen:
+                        // coerceIn throws when its minimum exceeds its maximum, which on a
+                        // tall canvas was every pan and every pinch.
                         val w = WORLD_W * newZoom
                         val h = WORLD_H * newZoom
                         next = Offset(
-                            next.x.coerceIn(size.width - w - 80f, 80f),
-                            next.y.coerceIn(size.height - h - 80f, 80f),
+                            axis(next.x, size.width - w - 80f, 80f, (size.width - w) / 2f),
+                            axis(next.y, size.height - h - 80f, 80f, (size.height - h) / 2f),
                         )
                         zoom = newZoom
                         offset = next
