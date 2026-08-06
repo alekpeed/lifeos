@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.AppTheme
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.places.MapTiles
 import com.alekpeed.lifeos.core.exportBackupJson
 import com.alekpeed.lifeos.core.importBackupJson
 import com.alekpeed.lifeos.ai.DEFAULT_AI_MODEL
@@ -271,6 +272,22 @@ fun SettingsScreen() {
                     Spacer(Modifier.height(6.dp))
                     Text(deviceMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
+            }
+
+            // Map tiles the Places map has downloaded. They live in the blob store, so
+            // they never sync and never land in a backup — but they do take space.
+            Spacer(Modifier.height(14.dp))
+            var mapTiles by remember { mutableStateOf(MapTiles.cachedTileCount()) }
+            Text("Map tiles", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                if (mapTiles == 0) "Nothing downloaded yet. The Places map saves tiles as you look at them, so places you've seen work offline."
+                else "$mapTiles tile${if (mapTiles == 1) "" else "s"} saved on this device for offline use.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (mapTiles > 0) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = { MapTiles.clearCache(); mapTiles = 0 }) { Text("Clear map cache") }
             }
         }
 

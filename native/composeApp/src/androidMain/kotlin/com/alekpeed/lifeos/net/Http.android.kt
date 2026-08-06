@@ -33,10 +33,11 @@ actual suspend fun httpRequest(
     }
 }
 
-actual suspend fun httpGetImageBase64(url: String): String? = withContext(Dispatchers.IO) {
+actual suspend fun httpGetImageBase64(url: String, headers: Map<String, String>): String? = withContext(Dispatchers.IO) {
     val conn = URL(url).openConnection() as HttpURLConnection
     try {
         conn.requestMethod = "GET"
+        headers.forEach { (k, v) -> conn.setRequestProperty(k, v) }
         conn.connectTimeout = 30000
         conn.readTimeout = 60000
         conn.instanceFollowRedirects = true

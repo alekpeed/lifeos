@@ -81,13 +81,13 @@ fun PlacesScreen() {
                     "No places have coordinates yet. Open a place and tap “Find on map” (or “Use my location”) to pin it.",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                // Tapping a pin jumps to that place's list with its editor open.
-                WorldMapView(pins) { id ->
-                    val place = data.places.firstOrNull { it.id == id } ?: return@WorldMapView
-                    tab = if (place.listType == "wantToGo") "wantToGo" else "visited"
-                    selected = id
-                }
+                Spacer(Modifier.height(10.dp))
+            }
+            // Tapping a pin selects it; tapping it again jumps to that place's editor.
+            WorldMapView(pins) { id ->
+                val place = data.places.firstOrNull { it.id == id } ?: return@WorldMapView
+                tab = if (place.listType == "wantToGo") "wantToGo" else "visited"
+                selected = id
             }
             return@Column
         }
@@ -271,6 +271,13 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
                     },
                     enabled = !geoBusy,
                 ) { Text(if (geoBusy) "Finding…" else "🗺 Find on map") }
+                // Once it has coordinates, hand off to whatever the machine uses for
+                // maps — that's where directions belong.
+                if (place.lat != null && place.lng != null) {
+                    TextButton(onClick = {
+                        Native.openUrl(mapsLink(place.lat!!, place.lng!!))
+                    }) { Text("Directions ↗") }
+                }
             }
             geoErr?.let {
                 Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)

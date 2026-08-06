@@ -23,7 +23,7 @@ suspend fun httpGet(url: String, headers: Map<String, String> = emptyMap()): Net
 // ready to hand to the blob store. Returns null on any non-2xx / network failure,
 // or if the payload is empty or implausibly large. Text httpGet would corrupt
 // binary data through the charset decode, so images need this dedicated path.
-expect suspend fun httpGetImageBase64(url: String): String?
+expect suspend fun httpGetImageBase64(url: String, headers: Map<String, String> = emptyMap()): String?
 
 suspend fun httpPostJson(url: String, headers: Map<String, String>, body: String): NetResponse =
     httpRequest("POST", url, headers, body)
