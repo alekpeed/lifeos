@@ -1,0 +1,75 @@
+package com.alekpeed.lifeos.platform
+
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.speech.tts.TextToSpeech
+import androidx.activity.result.ActivityResultLauncher
+import com.journeyapps.barcodescanner.ScanOptions
+
+// Holds the Android bits the capability layer needs: the current Activity (for
+// window flags, share chooser, permission-gated calls) and a shared TextToSpeech
+// engine. MainActivity wires these on create/resume.
+object NativeHost {
+    var activity: Activity? = null
+    var appContext: Context? = null
+
+    @Volatile var tts: TextToSpeech? = null
+    @Volatile var ttsReady = false
+
+    // QR scanner (zxing-android-embedded): MainActivity registers the launcher;
+    // Native.scanQr sets the pending callback and launches it.
+    var qrLauncher: ActivityResultLauncher<ScanOptions>? = null
+    @Volatile var qrCallback: ((String?) -> Unit)? = null
+
+    // Photo picker (GetContent "image/*"): MainActivity registers the launcher and
+    // does the decode→downscale→base64 on the result; Native.capturePhoto sets the
+    // pending callback and launches it. The callback receives base64 JPEG or null.
+    var photoLauncher: ActivityResultLauncher<String>? = null
+    @Volatile var photoCallback: ((String?) -> Unit)? = null
+
+    // Camera capture: MainActivity owns the TakePicture + permission launchers and
+    // the temp-file wiring, exposed here as a request hook. Native.takePhoto sets
+    // the callback then invokes cameraRequest.
+    var cameraRequest: (() -> Unit)? = null
+    @Volatile var cameraCallback: ((String?) -> Unit)? = null
+
+    // Document picker (OpenDocument): MainActivity registers the launcher and reads
+    // the chosen file's text on the result; Native.pickTextFile sets the callback
+    // and launches it. The callback receives the file text or null.
+    var filePickLauncher: ActivityResultLauncher<Array<String>>? = null
+    @Volatile var fileCallback: ((String?) -> Unit)? = null
+
+    // When set, the picked file is streamed line-by-line and only lines containing
+    // one of these substrings are kept (Native.pickFilteredTextFile) — how a
+    // multi-hundred-MB Apple Health export fits through without an OOM. Cleared
+    // with the callback on every result.
+    @Volatile var fileFilter: List<String>? = null
+
+    // When true the picked file is parsed as an ebook (EPUB → readable text in
+    // spine order, or a plain .txt) for the Books reader (Native.pickEbook).
+    @Volatile var ebookMode: Boolean = false
+
+    // Set instead of fileCallback when the caller also wants the file's display name
+    // (Native.pickEbookNamed) — a book can hold several files, and a list of them is
+    // only useful if each one is named. Receives (name, text); both null on cancel.
+    @Volatile var ebookNamedCallback: ((String?, String?) -> Unit)? = null
+
+    // When set, the picked file is returned as (display name, mime, raw bytes as
+    // base64) for the shared attachment layer (Native.pickAttachment). Takes
+    // precedence over ebook/filter/text handling; cleared with every result.
+    @Volatile var attachCallback: ((String?, String?, String?) -> Unit)? = null
+
+    // One-shot speech-to-text (Native.dictate): the system recognizer dialog result.
+    var dictateLauncher: ActivityResultLauncher<Intent>? = null
+    @Volatile var dictateCallback: ((String?) -> Unit)? = null
+
+    fun ctx(): Context? = activity ?: appContext
+
+    fun ensureTts(context: Context) {
+        if (tts != null) return
+        tts = TextToSpeech(context.applicationContext) { status ->
+            ttsReady = status == TextToSpeech.SUCCESS
+        }
+    }
+}

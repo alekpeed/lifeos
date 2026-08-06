@@ -1,0 +1,293 @@
+package com.alekpeed.lifeos.ai
+
+import com.alekpeed.lifeos.Storage
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+
+const val DEFAULT_AI_MODEL = "claude-opus-4-8"
+
+@Serializable
+private data class Msg(val role: String, val content: String)
+
+@Serializable
+private data class Req(
+    val model: String,
+    @SerialName("max_tokens") val maxTokens: Int,
+    val system: String? = null,
+    val messages: List<Msg>,
+)
+
+@Serializable
+private data class Block(val type: String, val text: String? = null)
+
+@Serializable
+private data class Resp(
+    val content: List<Block> = emptyList(),
+    @SerialName("stop_reason") val stopReason: String? = null,
+)
+
+@Serializable
+private data class ErrBody(val message: String? = null)
+
+@Serializable
+private data class ErrEnvelope(val error: ErrBody? = null)
+
+data class AiReply(val text: String, val isError: Boolean)
+
+// A content block for a multi-image vision request: interleaved text and images
+// in one user turn (e.g. labeled reference photos followed by a query photo).
+sealed class VisionBlock {
+    data class Txt(val text: String) : VisionBlock()
+    data class Img(val base64: String) : VisionBlock()
+}
+
+// The AI entry point. Routes Ask + the Assistant to whichever provider is selected
+// in Settings (Claude / OpenAI / Gemini); each provider's key + model live in local
+// Storage. Claude is the built-in default and lives here; OpenAI/Gemini are in their
+// own client objects. For Claude, `thinking` is omitted (cheaper for quick Q&A) with
+// a concise-answer system prompt; Opus 4.8 rejects temperature/top_p/top_k so none
+// are sent.
+object AiClient {
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+
+    // "claude" | "openai" | "gemini". A choice saved in Settings wins; otherwise
+    // default to OpenAI when the build ships with a baked-in OpenAI key, so the
+    // app works out of the box, else Claude.
+    fun provider(): String {
+        val stored = Storage.read("AiProvider")?.trim()?.ifBlank { null }
+        if (stored != null) return stored
+        return if (OpenAiClient.key().isNotEmpty()) "openai" else "claude"
+    }
+
+    // True when the *active* provider has a key set.
+    fun hasKey(): Boolean = when (provider()) {
+        "openai" -> OpenAiClient.key().isNotEmpty()
+        "gemini" -> GeminiClient.key().isNotEmpty()
+        else -> !Storage.read("ApiKey")?.trim().isNullOrEmpty()
+    }
+
+    fun model(): String = Storage.read("AiModel")?.trim()?.ifBlank { null } ?: DEFAULT_AI_MODEL
+
+    suspend fun ask(system: String, userText: String, maxTokens: Int = 1024): AiReply =
+        withAiRetry {
+            when (provider()) {
+                "openai" -> OpenAiClient.ask(system, userText, maxTokens)
+                "gemini" -> GeminiClient.ask(system, userText, maxTokens)
+                else -> askClaude(system, userText, maxTokens)
+            }
+        }
+
+    // Retry transient failures — spurious 401s (providers occasionally reject a
+    // valid key on the first hit or under load), rate limits, 5xx, and network
+    // blips — with a short backoff, so a call that would "work if you tap again"
+    // just works. A genuinely bad key still fails after the retries.
+    private suspend fun withAiRetry(block: suspend () -> AiReply): AiReply {
+        var result = block()
+        var attempt = 1
+        while (result.isError && attempt < 3 && isTransient(result.text)) {
+            kotlinx.coroutines.delay(500L * attempt)
+            result = block()
+            attempt++
+        }
+        return result
+    }
+
+    private fun isTransient(msg: String): Boolean {
+        val m = msg.lowercase()
+        return ("invalid" in m && "key" in m) ||
+            "rate limited" in m ||
+            "server error" in m ||
+            "no network" in m ||
+            "couldn't reach" in m ||
+            "unexpected response" in m
+    }
+
+    // Vision: send a base64 JPEG (no data: prefix) plus a text instruction to the
+    // active provider. All three default models are vision-capable. Backs the
+    // camera-to-data document scan (and future photo-cataloging).
+    suspend fun askWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int = 1024): AiReply =
+        withAiRetry {
+            when (provider()) {
+                "openai" -> OpenAiClient.askWithImage(system, userText, imageBase64, maxTokens)
+                "gemini" -> GeminiClient.askWithImage(system, userText, imageBase64, maxTokens)
+                else -> askClaudeWithImage(system, userText, imageBase64, maxTokens)
+            }
+        }
+
+    // Multi-image vision: interleaved text + images in one turn. Backs few-shot
+    // classification (labeled reference photos + a query photo).
+    suspend fun askVision(system: String, blocks: List<VisionBlock>, maxTokens: Int = 1024): AiReply =
+        withAiRetry {
+            when (provider()) {
+                "openai" -> OpenAiClient.askVision(system, blocks, maxTokens)
+                "gemini" -> GeminiClient.askVision(system, blocks, maxTokens)
+                else -> askClaudeVision(system, blocks, maxTokens)
+            }
+        }
+
+    private suspend fun askClaudeVision(system: String, blocks: List<VisionBlock>, maxTokens: Int): AiReply {
+        val key = Storage.read("ApiKey")?.trim().orEmpty()
+        if (key.isEmpty()) return AiReply("Add your Anthropic API key in Settings to use this.", isError = true)
+
+        val body = buildJsonObject {
+            put("model", model())
+            put("max_tokens", maxTokens)
+            put("system", system)
+            put("messages", buildJsonArray {
+                add(buildJsonObject {
+                    put("role", "user")
+                    put("content", buildJsonArray {
+                        blocks.forEach { b ->
+                            when (b) {
+                                is VisionBlock.Txt -> add(buildJsonObject { put("type", "text"); put("text", b.text) })
+                                is VisionBlock.Img -> add(buildJsonObject {
+                                    put("type", "image")
+                                    put("source", buildJsonObject {
+                                        put("type", "base64"); put("media_type", "image/jpeg"); put("data", b.base64)
+                                    })
+                                })
+                            }
+                        }
+                    })
+                })
+            })
+        }.toString()
+
+        val headers = mapOf("x-api-key" to key, "anthropic-version" to "2023-06-01", "content-type" to "application/json")
+        val resp = com.alekpeed.lifeos.net.httpPostJson("https://api.anthropic.com/v1/messages", headers, body)
+        if (resp.ok) {
+            return try {
+                val text = json.parseToJsonElement(resp.body).jsonObject["content"]
+                    ?.jsonArray?.firstOrNull { it.jsonObject["type"]?.jsonPrimitive?.content == "text" }
+                    ?.jsonObject?.get("text")?.jsonPrimitive?.content
+                if (!text.isNullOrBlank()) AiReply(text.trim(), isError = false)
+                else AiReply("The model returned no answer.", isError = true)
+            } catch (e: Exception) {
+                AiReply("Got an unexpected response from the model.", isError = true)
+            }
+        }
+        val detail = try {
+            json.parseToJsonElement(resp.body).jsonObject["error"]?.jsonObject?.get("message")?.jsonPrimitive?.content
+        } catch (e: Exception) { null }
+        return AiReply(friendlyAiError(resp.status, detail, "Claude"), isError = true)
+    }
+
+    private suspend fun askClaudeWithImage(system: String, userText: String, imageBase64: String, maxTokens: Int): AiReply {
+        val key = Storage.read("ApiKey")?.trim().orEmpty()
+        if (key.isEmpty()) return AiReply("Add your Anthropic API key in Settings to use this.", isError = true)
+
+        val body = buildJsonObject {
+            put("model", model())
+            put("max_tokens", maxTokens)
+            put("system", system)
+            put("messages", buildJsonArray {
+                add(buildJsonObject {
+                    put("role", "user")
+                    put("content", buildJsonArray {
+                        add(buildJsonObject {
+                            put("type", "image")
+                            put("source", buildJsonObject {
+                                put("type", "base64")
+                                put("media_type", "image/jpeg")
+                                put("data", imageBase64)
+                            })
+                        })
+                        add(buildJsonObject {
+                            put("type", "text")
+                            put("text", userText)
+                        })
+                    })
+                })
+            })
+        }.toString()
+
+        val headers = mapOf(
+            "x-api-key" to key,
+            "anthropic-version" to "2023-06-01",
+            "content-type" to "application/json",
+        )
+
+        val resp = com.alekpeed.lifeos.net.httpPostJson("https://api.anthropic.com/v1/messages", headers, body)
+        if (resp.ok) {
+            return try {
+                val text = json.parseToJsonElement(resp.body).jsonObject["content"]
+                    ?.jsonArray?.firstOrNull { it.jsonObject["type"]?.jsonPrimitive?.content == "text" }
+                    ?.jsonObject?.get("text")?.jsonPrimitive?.content
+                if (!text.isNullOrBlank()) AiReply(text.trim(), isError = false)
+                else AiReply("The model returned no answer.", isError = true)
+            } catch (e: Exception) {
+                AiReply("Got an unexpected response from the model.", isError = true)
+            }
+        }
+        val detail = try {
+            json.parseToJsonElement(resp.body).jsonObject["error"]?.jsonObject
+                ?.get("message")?.jsonPrimitive?.content
+        } catch (e: Exception) { null }
+        return AiReply(friendlyAiError(resp.status, detail, "Claude"), isError = true)
+    }
+
+    private suspend fun askClaude(system: String, userText: String, maxTokens: Int): AiReply {
+        val key = Storage.read("ApiKey")?.trim().orEmpty()
+        if (key.isEmpty()) return AiReply("Add your Anthropic API key in Settings to use this.", isError = true)
+
+        val body = json.encodeToString(
+            Req(
+                model = model(),
+                maxTokens = maxTokens,
+                system = system,
+                messages = listOf(Msg("user", userText)),
+            ),
+        )
+        val headers = mapOf(
+            "x-api-key" to key,
+            "anthropic-version" to "2023-06-01",
+            "content-type" to "application/json",
+        )
+
+        val resp = try {
+            httpPostJson("https://api.anthropic.com/v1/messages", headers, body)
+        } catch (e: Exception) {
+            return AiReply("Couldn't reach the model: ${e.message ?: "network error"}", isError = true)
+        }
+
+        if (resp.status in 200..299) {
+            val parsed = try {
+                json.decodeFromString<Resp>(resp.body)
+            } catch (e: Exception) {
+                return AiReply("Got an unexpected response from the model.", isError = true)
+            }
+            if (parsed.stopReason == "refusal") {
+                return AiReply("The model declined to answer that.", isError = true)
+            }
+            val text = parsed.content.firstOrNull { it.type == "text" && !it.text.isNullOrBlank() }?.text
+            return if (text != null) AiReply(text.trim(), isError = false)
+            else AiReply("The model returned no answer.", isError = true)
+        }
+
+        val detail = try {
+            json.decodeFromString<ErrEnvelope>(resp.body).error?.message
+        } catch (e: Exception) {
+            null
+        }
+        val friendly = when (resp.status) {
+            401 -> "Invalid API key — check it in Settings."
+            403 -> "This key doesn't have access to that model."
+            404 -> "Model not found — pick another in Settings."
+            429 -> "Rate limited by the API — try again in a moment."
+            in 500..599 -> "The API had a server error — try again."
+            -1 -> "No network connection."
+            else -> detail ?: "Request failed (HTTP ${resp.status})."
+        }
+        return AiReply(friendly, isError = true)
+    }
+}

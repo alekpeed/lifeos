@@ -1,0 +1,581 @@
+package com.alekpeed.lifeos.platform
+
+import android.app.AlarmManager
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.Manifest
+import android.app.PendingIntent
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.ContactsContract
+import android.speech.tts.TextToSpeech
+import android.view.WindowManager
+
+private const val CHANNEL_REMINDERS = "lifeos_reminders"
+private const val CHANNEL_PINNED = "lifeos_pinned"
+private const val PINNED_ID = 4201
+
+private fun ensureChannel(nm: NotificationManager, id: String, name: String, importance: Int) {
+    if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(id) == null) {
+        nm.createNotificationChannel(NotificationChannel(id, name, importance))
+    }
+}
+
+@Suppress("DEPRECATION")
+private fun notifBuilder(ctx: Context, channelId: String): Notification.Builder =
+    if (Build.VERSION.SDK_INT >= 26) Notification.Builder(ctx, channelId) else Notification.Builder(ctx)
+
+private fun actionPending(ctx: Context, action: String, notifId: Int): PendingIntent {
+    val intent = Intent(ctx, NotificationActionReceiver::class.java).apply {
+        this.action = action
+        putExtra(NotificationActionReceiver.EXTRA_ID, notifId)
+    }
+    val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    return PendingIntent.getBroadcast(ctx, (action + notifId).hashCode(), intent, flags)
+}
+
+// Real Android capabilities. Each degrades quietly if a permission is missing or
+// the system service is unavailable — nothing here throws into the UI.
+actual object Native {
+    actual val supportsTts = true
+    actual val supportsNotifications = true
+    actual val supportsContacts = true
+    actual val supportsKeepAwake = true
+    actual val supportsWakeWord = true
+    actual val supportsGeofence = true
+    actual val supportsSpeakerId = true
+    actual val supportsQrScan = true
+    actual val supportsLocation = true
+    actual val supportsCamera = true
+    actual val supportsFilePick = true
+    actual val supportsDictation = true
+    actual val supportsRecording = true
+    actual val supportsPdfExport = true
+
+    actual fun speak(text: String) {
+        val ctx = NativeHost.ctx() ?: return
+        NativeHost.ensureTts(ctx)
+        if (NativeHost.ttsReady) NativeHost.tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "lifeos")
+    }
+
+    actual fun stopSpeaking() {
+        NativeHost.tts?.stop()
+    }
+
+    actual fun shareText(text: String) {
+        val ctx = NativeHost.ctx() ?: return
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        val chooser = Intent.createChooser(send, "Share").apply {
+            if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        (NativeHost.activity ?: ctx).startActivity(chooser)
+    }
+
+    actual fun readClipboard(): String? {
+        val ctx = NativeHost.ctx() ?: return null
+        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return null
+        val clip = cm.primaryClip ?: return null
+        if (clip.itemCount == 0) return null
+        return clip.getItemAt(0).coerceToText(ctx)?.toString()?.ifBlank { null }
+    }
+
+    actual fun setImmersive(on: Boolean) {
+        val act = NativeHost.activity ?: return
+        act.runOnUiThread {
+            try {
+                val window = act.window
+                androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, !on)
+                // Hiding the bars isn't enough: Android still letterboxes content away
+                // from a notch / punch-hole unless we opt into the short edges, which
+                // leaves a black band at the top and shifts the artwork down.
+                if (android.os.Build.VERSION.SDK_INT >= 28) {
+                    val attrs = window.attributes
+                    attrs.layoutInDisplayCutoutMode = if (on) {
+                        android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    } else {
+                        android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+                    }
+                    window.attributes = attrs
+                }
+                val c = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+                // Hide the STATUS bar only. Hiding the navigation bar too would mean the
+                // first swipe from the bottom just reveals the bars instead of going
+                // home, which fights the gesture rather than yielding to it.
+                if (on) {
+                    c.hide(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                } else {
+                    c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                }
+            } catch (e: Exception) {
+                // best-effort
+            }
+        }
+    }
+
+    actual fun cutoutTopPx(): Int = try {
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            NativeHost.activity?.window?.decorView?.rootWindowInsets
+                ?.displayCutout?.safeInsetTop ?: 0
+        } else 0
+    } catch (e: Exception) {
+        0
+    }
+
+    actual fun navBottomPx(): Int = try {
+        val v = NativeHost.activity?.window?.decorView
+        val insets = if (v != null) androidx.core.view.ViewCompat.getRootWindowInsets(v) else null
+        val nav = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val gest = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemGestures())?.bottom ?: 0
+        maxOf(nav, gest)
+    } catch (e: Exception) {
+        0
+    }
+
+    actual fun keepScreenAwake(on: Boolean) {
+        val act = NativeHost.activity ?: return
+        act.runOnUiThread {
+            if (on) act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    actual fun importContacts(): List<PhoneContact> {
+        val ctx = NativeHost.ctx() ?: return emptyList()
+        return try {
+            val out = mutableListOf<PhoneContact>()
+            val cursor = ctx.contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ),
+                null,
+                null,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC",
+            )
+            cursor?.use { c ->
+                val nameIdx = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                val numIdx = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                val seen = HashSet<String>()
+                while (c.moveToNext()) {
+                    val name = if (nameIdx >= 0) c.getString(nameIdx) else null
+                    val num = if (numIdx >= 0) c.getString(numIdx) else null
+                    if (!name.isNullOrBlank() && seen.add(name)) out.add(PhoneContact(name, num ?: ""))
+                }
+            }
+            out
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    actual fun postReminder(title: String, body: String) {
+        val ctx = NativeHost.ctx() ?: return
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        ensureChannel(nm, CHANNEL_REMINDERS, "Reminders", NotificationManager.IMPORTANCE_DEFAULT)
+        val id = (title + body).hashCode()
+        val n = notifBuilder(ctx, CHANNEL_REMINDERS)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setAutoCancel(true)
+            .addAction(0, "Done", actionPending(ctx, NotificationActionReceiver.ACTION_DONE, id))
+            .addAction(0, "Snooze", actionPending(ctx, NotificationActionReceiver.ACTION_SNOOZE, id))
+            .build()
+        try {
+            nm.notify(id, n)
+        } catch (e: SecurityException) {
+            // POST_NOTIFICATIONS not granted; ignore.
+        }
+    }
+
+    actual fun setPinnedNextUp(text: String?) {
+        val ctx = NativeHost.ctx() ?: return
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        if (text == null) {
+            nm.cancel(PINNED_ID)
+            return
+        }
+        ensureChannel(nm, CHANNEL_PINNED, "Next up", NotificationManager.IMPORTANCE_LOW)
+        val n = notifBuilder(ctx, CHANNEL_PINNED)
+            .setContentTitle("Next up")
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setOngoing(true)
+            .build()
+        try {
+            nm.notify(PINNED_ID, n)
+        } catch (e: SecurityException) {
+            // POST_NOTIFICATIONS not granted; ignore.
+        }
+    }
+
+    actual fun setWakeWordEnabled(on: Boolean) {
+        val ctx = NativeHost.ctx() ?: return
+        val svc = Intent(ctx, WakeWordService::class.java)
+        if (on) {
+            NativeHost.activity?.let { act ->
+                if (act.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    act.requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 9002)
+                }
+            }
+            if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(svc) else ctx.startService(svc)
+        } else {
+            ctx.stopService(svc)
+        }
+    }
+
+    actual fun armArrivalHere(label: String) {
+        Geofences.armHere(NativeHost.ctx(), label)
+    }
+
+    actual fun clearArrivals() {
+        Geofences.clear(NativeHost.ctx())
+    }
+
+    private fun reminderPendingIntent(ctx: Context, id: Int, title: String, body: String): PendingIntent {
+        val intent = Intent(ctx, ReminderFireReceiver::class.java).apply {
+            putExtra(ReminderFireReceiver.EXTRA_TITLE, title)
+            putExtra(ReminderFireReceiver.EXTRA_BODY, body)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(ctx, id, intent, flags)
+    }
+
+    // Uses setAndAllowWhileIdle rather than an exact alarm: no SCHEDULE_EXACT_ALARM
+    // permission needed, and Android may still shift it by a few minutes under
+    // Doze — an honest tradeoff for a personal reminder, not a deadline-critical one.
+    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) {
+        val ctx = NativeHost.ctx() ?: return
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        val pi = reminderPendingIntent(ctx, id, title, body)
+        try {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atEpochMillis, pi)
+        } catch (e: SecurityException) {
+            // no exact-alarm-adjacent permission on this OEM/version; ignore
+        }
+    }
+
+    actual fun cancelReminder(id: Int) {
+        val ctx = NativeHost.ctx() ?: return
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        am.cancel(reminderPendingIntent(ctx, id, "", ""))
+    }
+
+    actual fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit) {
+        val ctx = NativeHost.ctx()
+        if (ctx == null) { onResult(false); return }
+        // Enrollment needs the mic; request it if the activity is around.
+        NativeHost.activity?.let { act ->
+            if (act.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                act.requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 9003)
+            }
+        }
+        VoiceEnroller.enroll(ctx, onStatus, onResult)
+    }
+
+    actual fun hasVoiceprint(): Boolean = VoiceId.hasVoiceprint()
+
+    actual fun clearVoiceprint() = VoiceId.clearVoiceprint()
+
+    actual fun setOnlyMyVoice(on: Boolean) = VoiceId.setOnlyMyVoice(on)
+
+    actual fun onlyMyVoiceEnabled(): Boolean = VoiceId.isOnlyMyVoiceEnabled()
+
+    actual fun scanQr(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.qrLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.qrCallback = onResult
+        val opts = com.journeyapps.barcodescanner.ScanOptions().apply {
+            setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+            setPrompt("Scan a Life OS code")
+            setBeepEnabled(false)
+            setOrientationLocked(false)
+        }
+        try {
+            launcher.launch(opts)
+        } catch (e: Exception) {
+            NativeHost.qrCallback = null
+            onResult(null)
+        }
+    }
+
+    actual fun scanAnyCode(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.qrLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.qrCallback = onResult
+        val opts = com.journeyapps.barcodescanner.ScanOptions().apply {
+            setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.ALL_CODE_TYPES)
+            setPrompt("Point at a code")
+            setBeepEnabled(false)
+            setOrientationLocked(false)
+        }
+        try {
+            launcher.launch(opts)
+        } catch (e: Exception) {
+            NativeHost.qrCallback = null
+            onResult(null)
+        }
+    }
+
+    actual fun scanBarcode(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.qrLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.qrCallback = onResult
+        val opts = com.journeyapps.barcodescanner.ScanOptions().apply {
+            setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.PRODUCT_CODE_TYPES)
+            setPrompt("Scan a book barcode")
+            setBeepEnabled(false)
+            setOrientationLocked(false)
+        }
+        try {
+            launcher.launch(opts)
+        } catch (e: Exception) {
+            NativeHost.qrCallback = null
+            onResult(null)
+        }
+    }
+
+    actual fun getCurrentLocation(onResult: (Double?, Double?) -> Unit) {
+        Geofences.currentLocation(NativeHost.ctx(), onResult)
+    }
+
+    actual fun capturePhoto(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.photoLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.photoCallback = onResult
+        try {
+            launcher.launch("image/*")
+        } catch (e: Exception) {
+            NativeHost.photoCallback = null
+            onResult(null)
+        }
+    }
+
+    actual fun takePhoto(onResult: (String?) -> Unit) {
+        val request = NativeHost.cameraRequest
+        if (request == null) { onResult(null); return }
+        NativeHost.cameraCallback = onResult
+        try {
+            request.invoke()
+        } catch (e: Exception) {
+            NativeHost.cameraCallback = null
+            onResult(null)
+        }
+    }
+
+    actual fun pickTextFile(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.fileCallback = onResult
+        try {
+            launcher.launch(arrayOf("*/*"))
+        } catch (e: Exception) {
+            NativeHost.fileCallback = null
+            onResult(null)
+        }
+    }
+
+    actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.fileCallback = onResult
+        NativeHost.fileFilter = substrings
+        try {
+            launcher.launch(arrayOf("*/*"))
+        } catch (e: Exception) {
+            NativeHost.fileCallback = null
+            NativeHost.fileFilter = null
+            onResult(null)
+        }
+    }
+
+    actual fun exportTextAsPdf(title: String, text: String) {
+        val ctx = NativeHost.ctx() ?: return
+        try {
+            val doc = android.graphics.pdf.PdfDocument()
+            val pageW = 595; val pageH = 842; val margin = 40           // A4 @ 72dpi
+            val width = pageW - margin * 2
+            val body = android.text.TextPaint().apply { textSize = 12f; color = android.graphics.Color.BLACK; isAntiAlias = true }
+            val titlePaint = android.text.TextPaint().apply { textSize = 18f; color = android.graphics.Color.BLACK; isFakeBoldText = true; isAntiAlias = true }
+            val layout = android.text.StaticLayout.Builder.obtain(text, 0, text.length, body, width).build()
+            val totalH = layout.height
+
+            var drawn = 0
+            var pageNum = 1
+            while (drawn < totalH && pageNum <= 300) {
+                val page = doc.startPage(android.graphics.pdf.PdfDocument.PageInfo.Builder(pageW, pageH, pageNum).create())
+                val c = page.canvas
+                var top = margin
+                if (pageNum == 1) { c.drawText(title, margin.toFloat(), (margin + 14).toFloat(), titlePaint); top = margin + 34 }
+                val avail = (pageH - margin) - top
+                // Snap the page break to a whole line so nothing gets sliced.
+                val bottomLine = layout.getLineForVertical(drawn + avail)
+                var pageH2 = layout.getLineTop(bottomLine) - drawn
+                if (pageH2 <= 0) pageH2 = avail
+                c.save()
+                c.translate(margin.toFloat(), top.toFloat())
+                c.clipRect(0, 0, width, minOf(pageH2, avail))
+                c.translate(0f, -drawn.toFloat())
+                layout.draw(c)
+                c.restore()
+                doc.finishPage(page)
+                drawn += pageH2
+                pageNum++
+            }
+
+            val safe = title.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("").take(40).ifBlank { "lifeos" }
+            val file = java.io.File(ctx.cacheDir, "$safe.pdf")
+            java.io.FileOutputStream(file).use { doc.writeTo(it) }
+            doc.close()
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(send, "Print / Save PDF").apply {
+                if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            (NativeHost.activity ?: ctx).startActivity(chooser)
+        } catch (e: Exception) {
+            // best-effort export
+        }
+    }
+
+    actual fun pickEbook(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.fileCallback = onResult
+        NativeHost.ebookMode = true
+        try {
+            launcher.launch(arrayOf("application/epub+zip", "text/plain", "*/*"))
+        } catch (e: Exception) {
+            NativeHost.fileCallback = null
+            NativeHost.ebookMode = false
+            onResult(null)
+        }
+    }
+
+    actual val supportsScreenshot = false
+    actual fun captureScreen(onResult: (String?) -> Unit) { onResult(null) }
+    actual fun machineSummary(): String =
+        "Android ${android.os.Build.VERSION.RELEASE} · ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+
+    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null, null); return }
+        NativeHost.ebookNamedCallback = onResult
+        NativeHost.ebookMode = true
+        try {
+            launcher.launch(arrayOf("application/epub+zip", "text/plain", "*/*"))
+        } catch (e: Exception) {
+            NativeHost.ebookNamedCallback = null
+            NativeHost.ebookMode = false
+            onResult(null, null)
+        }
+    }
+
+    actual fun dictate(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.dictateLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.dictateCallback = onResult
+        try {
+            val intent = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Speak now…")
+            }
+            launcher.launch(intent)
+        } catch (e: Exception) {
+            NativeHost.dictateCallback = null
+            onResult(null)
+        }
+    }
+
+    // Driving the mic ourselves, for Whisper. The permission is the same one the wake
+    // word and voice enrollment already ask for; if it isn't granted yet we request it
+    // and report failure, so the next tap works.
+    actual fun startRecording(): Boolean {
+        val act = NativeHost.activity
+        if (act != null && act.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            act.requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 9004)
+            return false
+        }
+        val ctx = NativeHost.ctx() ?: return false
+        if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return false
+        return MicRecorder.start()
+    }
+
+    actual fun stopRecording(): String? = MicRecorder.stop()
+
+    actual fun cancelRecording() = MicRecorder.cancel()
+
+    actual fun micLevel(): Float = MicRecorder.peak()
+
+    actual fun openUrl(url: String) {
+        val ctx = NativeHost.ctx() ?: return
+        try {
+            val u = if (url.contains("://")) url else "https://$url"
+            val view = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(u)).apply {
+                if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            (NativeHost.activity ?: ctx).startActivity(view)
+        } catch (e: Exception) {
+            // no browser / bad url
+        }
+    }
+
+    actual fun copyToClipboard(text: String) {
+        val ctx = NativeHost.ctx() ?: return
+        try {
+            val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("lifeos", text))
+        } catch (e: Exception) {
+            // no clipboard service
+        }
+    }
+
+    actual fun pickAttachment(onResult: (String?, String?, String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null, null, null); return }
+        NativeHost.attachCallback = onResult
+        try {
+            launcher.launch(arrayOf("*/*"))
+        } catch (e: Exception) {
+            NativeHost.attachCallback = null
+            onResult(null, null, null)
+        }
+    }
+
+    actual fun openAttachment(base64: String, name: String, mime: String) {
+        val ctx = NativeHost.ctx() ?: return
+        try {
+            val bytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+            val safe = name.map { if (it.isLetterOrDigit() || it == '.' || it == '-' || it == '_') it else '_' }
+                .joinToString("").take(60).ifBlank { "attachment" }
+            val file = java.io.File(ctx.cacheDir, safe)
+            java.io.FileOutputStream(file).use { it.write(bytes) }
+            val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+            val type = mime.ifBlank { ctx.contentResolver.getType(uri) ?: "application/octet-stream" }
+            val view = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, type)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(view, "Open").apply {
+                if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            (NativeHost.activity ?: ctx).startActivity(chooser)
+        } catch (e: Exception) {
+            // best-effort open
+        }
+    }
+}

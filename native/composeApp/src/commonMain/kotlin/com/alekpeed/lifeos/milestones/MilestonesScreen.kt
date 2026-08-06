@@ -1,0 +1,342 @@
+package com.alekpeed.lifeos.milestones
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.books.loadBooks
+import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.places.loadPlaces
+import com.alekpeed.lifeos.recipes.loadRecipes
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.usDate
+import kotlinx.coroutines.launch
+
+private val DANGER = Color(0xFFD64545)
+
+@Composable
+fun MilestonesScreen() {
+    var data by remember { mutableStateOf(loadMilestones()) }
+    var counter by remember { mutableStateOf(data.milestones.maxOfOrNull { it.id } ?: 0L) }
+    fun freshId(): Long { counter += 1; return counter }
+    fun save(d: MilestonesData) { data = d; saveMilestones(d); SaveToast.show() }
+
+    var tab by remember { mutableStateOf("timeline") }
+    var selected by remember { mutableStateOf<Long?>(null) }
+    val bulk = rememberBulk()
+    var input by remember { mutableStateOf("") }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = tab == "timeline", onClick = { tab = "timeline" }, label = { Text("Timeline") })
+            FilterChip(selected = tab == "recap", onClick = { tab = "recap"; selected = null }, label = { Text("Yearly recap") })
+        }
+        Spacer(Modifier.height(12.dp))
+
+        if (tab == "recap") { Recap(data); return@Column }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(input, { input = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New milestone") })
+            Spacer(Modifier.width(10.dp))
+            Button(onClick = {
+                val t = input.trim().replace("\n", " ")
+                if (t.isNotEmpty()) { save(data.copy(milestones = data.milestones + Milestone(freshId(), t, today().toString()))); input = "" }
+            }) { Text("Add") }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        val sorted = data.milestones.sortedByDescending { it.date.ifBlank { "0000" } }
+        if (sorted.isEmpty()) { Muted("No milestones logged yet."); return@Column }
+        BulkBar(
+            bulk = bulk,
+            ids = sorted.map { it.id },
+            noun = "milestone",
+            onDelete = { ids ->
+                data.milestones.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(milestones = data.milestones.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            var lastYear = ""
+            sorted.forEach { m ->
+                val year = m.date.take(4).ifBlank { "Undated" }
+                if (year != lastYear) {
+                    lastYear = year
+                    item { Text(year, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
+                }
+                item {
+                    Column {
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .background(
+                                    if (bulk.has(m.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                    else Color.Transparent,
+                                )
+                                .bulkClickable(bulk, m.id) { selected = if (selected == m.id) null else m.id }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BulkTick(bulk, m.id)
+                            Column(Modifier.weight(1f)) {
+                                Text(m.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
+                                val meta = listOf(m.category, usDate(m.date).ifBlank { m.date }).filter { it.isNotBlank() }.joinToString(" · ")
+                                if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        if (selected == m.id && !bulk.on) MilestoneDetail(data, ::save, m) { selected = null }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MilestoneDetail(data: MilestonesData, save: (MilestonesData) -> Unit, m: Milestone, onClose: () -> Unit) {
+    fun patch(f: (Milestone) -> Milestone) = save(data.copy(milestones = data.milestones.map { if (it.id == m.id) f(it) else it }))
+    var showSource by remember { mutableStateOf(false) }
+    fun onAttach(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        deleteBlob(m.photoBlob)
+        patch { it.copy(photoBlob = id) }
+    }
+    Column(
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp),
+    ) {
+        Label("Title"); Field(m.title, "Title") { v -> patch { it.copy(title = v.replace("\n", " ")) } }
+        Label("Date"); DateField(m.date) { v -> patch { it.copy(date = v) } }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AssistChip(onClick = { patch { it.copy(date = today().toString()) } }, label = { Text("Today") })
+            if (m.date.isNotBlank()) TextButton(onClick = { patch { it.copy(date = "") } }) { Text("Clear") }
+        }
+        Label("Category"); Field(m.category, "birthday, achievement, travel, career…") { v -> patch { it.copy(category = v.replace("\n", " ")) } }
+        Label("Notes"); Field(m.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
+
+        Label("Photo")
+        val img = remember(m.photoBlob) { loadBlobImage(m.photoBlob) }
+        if (img != null) {
+            Image(bitmap = img, contentDescription = "Attached photo", modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Fit)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
+                TextButton(onClick = { deleteBlob(m.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
+            }
+        } else if (Native.supportsCamera) {
+            OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
+        }
+        if (showSource) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showSource = false },
+                title = { Text("Attach a photo") },
+                text = { Text("Take a new photo, or choose one from your library.") },
+                confirmButton = { TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") } },
+                dismissButton = { TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") } },
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onClose) { Text("Done") }
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = { deleteBlob(m.photoBlob); save(data.copy(milestones = data.milestones.filterNot { it.id == m.id })); onClose() }) { Text("Delete", color = DANGER) }
+        }
+    }
+}
+
+private const val RECAP_SYSTEM =
+    "You write a short, warm year-in-review narrative for one person, inside their life-management app. " +
+        "Use ONLY the STATS and MILESTONES provided — never invent a number, event, or feeling the data " +
+        "doesn't support. 3-5 sentences, reflective but grounded. Output only the prose."
+
+private fun buildRecapContext(y: String, stats: List<Pair<String, String>>, ms: List<Milestone>): String = buildString {
+    append("Year: $y\n")
+    stats.forEach { append("${it.first}: ${it.second}\n") }
+    append(if (ms.isNotEmpty()) "Milestones this year: ${ms.joinToString("; ") { "${it.title.ifBlank { "(untitled)" }} (${it.date})" }}\n" else "Milestones this year: none logged\n")
+}
+
+private fun loadRecapNarrative(y: String): String {
+    val raw = Storage.read("RecapNarrative") ?: return ""
+    val p = raw.split("|", limit = 2)
+    return if (p.getOrNull(0) == y) p.getOrElse(1) { "" } else ""
+}
+
+private fun saveRecapNarrative(y: String, text: String) = Storage.write("RecapNarrative", "$y|$text")
+
+@Composable
+private fun Recap(data: MilestonesData) {
+    var year by remember { mutableStateOf(today().toString().take(4)) }
+    val y = year
+
+    // Real cross-module stats computed from native storage for the chosen year —
+    // the web recap's full spread (tasks, assignments, bills, habits, health)
+    // plus a native workouts line. Stats with no data for the year still show as
+    // zero; only avg-sleep hides when there's nothing to average.
+    val books = remember(y) { loadBooks() }
+    val recipes = remember(y) { loadRecipes() }
+    val places = remember(y) { loadPlaces() }
+    val booksFinished = books.books.count { it.finishedDate.startsWith(y) }
+    val pagesRead = books.books.flatMap { it.logs }.filter { it.date.startsWith(y) }.sumOf { it.pagesRead }
+    val cookLogsYear = recipes.recipes.map { r -> r.cookLogs.count { it.date.startsWith(y) } }
+    val cookSessions = cookLogsYear.sum()
+    val recipesCooked = cookLogsYear.count { it > 0 }
+    val visitDatesYear = places.places.map { p -> p.visitDates.count { it.startsWith(y) } }
+    val visits = visitDatesYear.sum()
+    val placesVisited = visitDatesYear.count { it > 0 }
+    val tasksDone = remember(y) { com.alekpeed.lifeos.tasks.loadTasks().count { it.done && it.completedDate.startsWith(y) } }
+    val assignmentsDone = remember(y) {
+        com.alekpeed.lifeos.education.loadEducation().assignments.count { it.done && it.dueDate.startsWith(y) }
+    }
+    val billsPaid = remember(y) {
+        com.alekpeed.lifeos.finance.financeBillPayments().filter { it.date.startsWith(y) }.sumOf { it.amount }
+    }
+    val habitCheckins = remember(y) {
+        com.alekpeed.lifeos.habits.loadHabits().sumOf { h -> h.checkins.count { it.toString().startsWith(y) } }
+    }
+    val health = remember(y) { com.alekpeed.lifeos.health.loadHealth() }
+    val healthLogs = health.logs.count { it.date.startsWith(y) }
+    val sleeps = health.logs.filter { it.date.startsWith(y) }.mapNotNull { it.sleepHours }
+    val workoutsLogged = health.workouts.count { it.date.startsWith(y) }
+    // Documents and contacts have no date of their own; the record census knows when
+    // each one turned up, which is exactly what the web recap counts. Records that
+    // predate the census read as LEGACY and so aren't attributed to any year.
+    val births = remember(y) { com.alekpeed.lifeos.timemachine.loadBirths() }
+    val docsAdded = births.born.count { (k, v) -> k.startsWith("Documents#") && v.startsWith(y) }
+    val contactsAdded = births.born.count { (k, v) -> k.startsWith("Contacts#") && v.startsWith(y) }
+    val ms = data.milestones.filter { it.date.startsWith(y) }.sortedBy { it.date }
+    val stats = buildList {
+        add("Milestones" to ms.size.toString())
+        add("Tasks completed" to tasksDone.toString())
+        add("Assignments completed" to assignmentsDone.toString())
+        add("Places visited" to "$placesVisited places, $visits visits")
+        add("Books finished" to booksFinished.toString())
+        add("Pages read" to pagesRead.toString())
+        add("Recipes cooked" to "$recipesCooked recipes, $cookSessions sessions")
+        add("Bills paid" to "$" + ((billsPaid * 100).toLong() / 100.0).toString())
+        add("Documents added" to docsAdded.toString())
+        add("Contacts added" to contactsAdded.toString())
+        add("Habit check-ins" to habitCheckins.toString())
+        add("Workouts logged" to workoutsLogged.toString())
+        add("Health logs" to healthLogs.toString())
+        if (sleeps.isNotEmpty()) add("Avg. sleep (hrs)" to (((sleeps.sum() / sleeps.size) * 10).toLong() / 10.0).toString())
+    }
+
+    val scope = rememberCoroutineScope()
+    val hasKey = remember { AiClient.hasKey() }
+    var narrative by remember(y) { mutableStateOf(loadRecapNarrative(y)) }
+    var writing by remember { mutableStateOf(false) }
+    fun writeNarrative() {
+        if (writing) return
+        writing = true
+        scope.launch {
+            val reply = AiClient.ask(RECAP_SYSTEM, buildRecapContext(y, stats, ms), maxTokens = 400)
+            narrative = reply.text
+            if (!reply.isError) saveRecapNarrative(y, reply.text)
+            writing = false
+        }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Year", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(8.dp))
+            OutlinedTextField(year, { year = it.filter { c -> c.isDigit() }.take(4) }, modifier = Modifier.width(120.dp), singleLine = true)
+        }
+        Spacer(Modifier.height(10.dp))
+        Text("$y in review", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        stats.forEach { StatRow(it.first, it.second) }
+
+        Spacer(Modifier.height(12.dp))
+        Text("Narrative", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        when {
+            !hasKey -> Muted("Add an AI key in Settings to have the year written up, grounded only in these numbers.")
+            writing -> Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.height(16.dp).width(16.dp))
+                Spacer(Modifier.width(10.dp)); Text("Writing…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            narrative.isNotBlank() -> Column {
+                Text(narrative, style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = { writeNarrative() }) { Text("↻ Regenerate") }
+            }
+            else -> Button(onClick = { writeNarrative() }) { Text("Write the $y narrative") }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Text("Milestones this year", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (ms.isEmpty()) Muted("No milestones logged this year.")
+        else ms.forEach { StatRow(it.title.ifBlank { "(untitled)" }, usDate(it.date).ifBlank { it.date }) }
+    }
+}
+
+@Composable
+private fun StatRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun Label(text: String) {
+    Spacer(Modifier.height(8.dp))
+    Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(4.dp))
+}
+
+@Composable
+private fun Field(value: String, placeholder: String, singleLine: Boolean = true, onChange: (String) -> Unit) {
+    OutlinedTextField(value = value, onValueChange = onChange, modifier = Modifier.fillMaxWidth(), singleLine = singleLine, placeholder = { Text(placeholder) })
+}
+
+@Composable
+private fun Muted(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}

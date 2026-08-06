@@ -7,4 +7,6 @@ package com.alekpeed.lifeos
 expect object Storage {
     fun read(name: String): String?
     fun write(name: String, text: String)
+    // Delete a key's value (leaves a sync tombstone via SyncMeta).
+    fun remove(name: String)
 }

@@ -1,0 +1,252 @@
+package com.alekpeed.lifeos.collections
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.SaveToast
+
+private val DANGER = Color(0xFFD64545)
+
+@Composable
+fun CollectionsScreen() {
+    var data by remember { mutableStateOf(loadCollections()) }
+    var counter by remember {
+        mutableStateOf(maxOf(data.collections.maxOfOrNull { it.id } ?: 0L, data.collections.flatMap { it.items }.maxOfOrNull { it.id } ?: 0L))
+    }
+    fun freshId(): Long { counter += 1; return counter }
+    fun save(d: CollectionsData) { data = d; saveCollections(d); SaveToast.show() }
+    var openId by remember { mutableStateOf<Long?>(null) }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        val open = data.collections.firstOrNull { it.id == openId }
+        if (open != null) Detail(data, ::save, ::freshId, open) { openId = null }
+        else Overview(data, ::save, ::freshId) { openId = it }
+    }
+}
+
+@Composable
+private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, freshId: () -> Long, onOpen: (Long) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var desc by remember { mutableStateOf("") }
+
+    Text("Track any collection you keep — records, cards, whatever.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(12.dp))
+    OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Collection name (e.g. Vinyl records)") })
+    Spacer(Modifier.height(6.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(desc, { desc = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Description (optional)") })
+        Spacer(Modifier.width(8.dp))
+        Button(onClick = {
+            val n = name.trim().replace("\n", " ")
+            if (n.isNotEmpty()) {
+                val id = freshId(); save(data.copy(collections = data.collections + Collection(id, n, desc.trim())))
+                name = ""; desc = ""; onOpen(id)
+            }
+        }) { Text("Create") }
+    }
+    Spacer(Modifier.height(14.dp))
+    Text("Your collections (${data.collections.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(8.dp))
+    if (data.collections.isEmpty()) { Muted("No collections yet."); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = data.collections.map { it.id },
+        noun = "collection",
+        onDelete = { ids ->
+            data.collections.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+            save(data.copy(collections = data.collections.filterNot { it.id in ids }))
+        },
+    )
+    Spacer(Modifier.height(4.dp))
+    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(data.collections, key = { it.id }) { c ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (bulk.has(c.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    .bulkClickable(bulk, c.id) { onOpen(c.id) }.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BulkTick(bulk, c.id)
+                Column(Modifier.weight(1f)) {
+                    Text(c.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
+                    Text("${c.items.size} item${if (c.items.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
+                if (!bulk.on) {
+                    TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(collections = data.collections.filterNot { it.id == c.id })) }) { Text("×") }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, freshId: () -> Long, coll: Collection, onBack: () -> Unit) {
+    fun patch(f: (Collection) -> Collection) = save(data.copy(collections = data.collections.map { if (it.id == coll.id) f(it) else it }))
+    var showSource by remember { mutableStateOf(false) }
+    fun onAttach(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        deleteBlob(coll.photoBlob)
+        patch { it.copy(photoBlob = id) }
+    }
+    var iName by remember { mutableStateOf("") }
+    var iDate by remember { mutableStateOf("") }
+    var iTags by remember { mutableStateOf("") }
+    var iNotes by remember { mutableStateOf("") }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TextButton(onClick = onBack) { Text("← Collections") }
+        Spacer(Modifier.width(4.dp))
+        Text(coll.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+    }
+    if (coll.description.isNotBlank()) Text(coll.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(10.dp))
+
+    Text("Photo", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val img = remember(coll.photoBlob) { loadBlobImage(coll.photoBlob) }
+    if (img != null) {
+        Image(
+            bitmap = img,
+            contentDescription = "Attached photo",
+            modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Fit,
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (coll.photoBlob.isBlank()) {
+            if (Native.supportsCamera) OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
+        } else {
+            if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
+            TextButton(onClick = { deleteBlob(coll.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
+        }
+    }
+    if (showSource) {
+        AlertDialog(
+            onDismissRequest = { showSource = false },
+            title = { Text("Attach a photo") },
+            text = { Text("Take a new photo, or choose one from your library.") },
+            confirmButton = {
+                TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") }
+            },
+        )
+    }
+    Spacer(Modifier.height(10.dp))
+
+    OutlinedTextField(iName, { iName = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Item name") })
+    Spacer(Modifier.height(6.dp))
+    DateField(iDate) { v -> iDate = v }
+    Spacer(Modifier.height(6.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(iTags, { iTags = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Tags") })
+        Spacer(Modifier.width(6.dp))
+        OutlinedTextField(iNotes, { iNotes = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Notes") })
+        Spacer(Modifier.width(6.dp))
+        Button(onClick = {
+            val n = iName.trim().replace("\n", " ")
+            if (n.isNotEmpty()) {
+                val t = iTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                patch { it.copy(items = it.items + CollItem(freshId(), n, iDate, t, iNotes.trim())) }
+                iName = ""; iDate = ""; iTags = ""; iNotes = ""
+            }
+        }) { Text("Add") }
+    }
+    Spacer(Modifier.height(12.dp))
+
+    val sorted = coll.items.sortedByDescending { it.acquiredDate }
+    Text("Items (${sorted.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(6.dp))
+    if (sorted.isEmpty()) { Muted("Nothing in this collection yet."); return }
+    val itemBulk = rememberBulk()
+    BulkBar(
+        bulk = itemBulk,
+        ids = sorted.map { it.id },
+        noun = "item",
+        onDelete = { ids -> patch { it.copy(items = it.items.filterNot { x -> x.id in ids }) } },
+    )
+    Spacer(Modifier.height(4.dp))
+    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        items(sorted, key = { it.id }) { item ->
+            Row(
+                Modifier.fillMaxWidth()
+                    .background(
+                        if (itemBulk.has(item.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                        else Color.Transparent,
+                    )
+                    .bulkClickable(itemBulk, item.id) {}
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BulkTick(itemBulk, item.id)
+                Column(Modifier.weight(1f)) {
+                    Text(item.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
+                    val chips = buildList {
+                        if (item.acquiredDate.isNotBlank()) add(usDate(item.acquiredDate))
+                        item.tags.forEach { add("#$it") }
+                    }
+                    if (chips.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        chips.forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+                    }
+                    if (item.notes.isNotBlank()) Text(item.notes, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (!itemBulk.on) {
+                    TextButton(onClick = { patch { it.copy(items = it.items.filterNot { x -> x.id == item.id }) } }) { Text("×") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Muted(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}

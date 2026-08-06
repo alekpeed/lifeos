@@ -3,6 +3,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.compose")
     id("com.android.application")
 }
@@ -16,19 +17,40 @@ kotlin {
             dependencies {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
+                implementation(compose.animation)
                 implementation(compose.material3)
                 implementation(compose.ui)
                 implementation(compose.components.resources)
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
             }
         }
         val androidMain by getting {
             dependencies {
                 implementation("androidx.activity:activity-compose:1.8.2")
+                // WindowCompat / WindowInsetsControllerCompat — immersive full screen for
+                // graphical interfaces that supply their own status row.
+                implementation("androidx.core:core-ktx:1.12.0")
+                implementation("com.google.android.gms:play-services-location:21.0.1")
+                // WebSocket client for Supabase Realtime (Phoenix channels). minSdk 24
+                // rules out java.net.http.WebSocket (API 34+), so OkHttp carries it on
+                // both JVM targets.
+                implementation("com.squareup.okhttp3:okhttp:4.12.0")
+                // Offline speech engine: lightweight on-device keyword spotting +
+                // speaker identification, no cloud, far lighter than looping the
+                // system SpeechRecognizer. Bundles its own native libs (JNA + libvosk).
+                implementation("com.alphacephei:vosk-android:0.3.75")
+                // QR: pure-Java encoder (both platforms) + camera scanner (Android).
+                implementation("com.google.zxing:core:3.5.3")
+                implementation("com.journeyapps:zxing-android-embedded:4.3.0")
             }
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("com.google.zxing:core:3.5.3")
+                // Same Realtime WebSocket client as Android (see androidMain note).
+                implementation("com.squareup.okhttp3:okhttp:4.12.0")
             }
         }
     }
@@ -44,10 +66,41 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        // Baked-in default OpenAI key, injected from the OPENAI_API_KEY build
+        // environment (a GitHub Actions secret in CI) — never committed to source.
+        // Empty for local/desktop/PR builds, where the app falls back to a
+        // user-entered key. Escape any double-quote defensively.
+        val bakedKey = (System.getenv("OPENAI_API_KEY") ?: "").trim().replace("\"", "\\\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"$bakedKey\"")
+    }
+    buildFeatures {
+        buildConfig = true
+    }
+    // A checked-in debug keystore (standard well-known debug credentials, not a
+    // secret) so every CI build is signed with the same key. Without this, each
+    // GitHub Actions run generates a throwaway debug key and Android refuses to
+    // upgrade the app in place ("app not installed") — forcing an uninstall first.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    // Vosk ships prebuilt native libs (JNA + libvosk) for each ABI; pick-first
+    // avoids duplicate-file merge failures if another dep carries the same names.
+    packaging {
+        jniLibs {
+            pickFirsts += listOf("**/libvosk.so", "**/libjnidispatch.so")
+        }
+        resources {
+            pickFirsts += listOf("META-INF/AL2.0", "META-INF/LGPL2.1")
+        }
     }
 }
 

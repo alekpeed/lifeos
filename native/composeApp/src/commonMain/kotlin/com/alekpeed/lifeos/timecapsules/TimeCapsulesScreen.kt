@@ -1,0 +1,195 @@
+package com.alekpeed.lifeos.timecapsules
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.data.parseDateOrNull
+import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.deleteBlob
+import com.alekpeed.lifeos.platform.loadBlobImage
+import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.BulkState
+import com.alekpeed.lifeos.ui.SaveToast
+import kotlinx.datetime.daysUntil
+
+@Composable
+fun TimeCapsulesScreen() {
+    var data by remember { mutableStateOf(loadCapsules()) }
+    var counter by remember { mutableStateOf(data.capsules.maxOfOrNull { it.id } ?: 0L) }
+    fun freshId(): Long { counter += 1; return counter }
+    fun save(d: TimeCapsulesData) { data = d; saveCapsules(d); SaveToast.show() }
+
+    var title by remember { mutableStateOf("") }
+    var body by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf("") }
+
+    val sealed = data.capsules.filter { isSealed(it) }.sortedBy { it.sealedUntil }
+    val opened = data.capsules.filter { !isSealed(it) }.sortedByDescending { it.sealedUntil.ifBlank { it.createdAt } }
+
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("Write a note now, seal it until a future date, and it surfaces on its own.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Title (e.g. For my 30th birthday)") })
+        Spacer(Modifier.height(6.dp))
+        OutlinedTextField(body, { body = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Write to your future self…") })
+        Spacer(Modifier.height(6.dp))
+        DateField(date) { v -> date = v }
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = {
+            val d = parseDateOrNull(date)
+            if (body.trim().isNotEmpty() && d != null) {
+                save(data.copy(capsules = data.capsules + TimeCapsule(freshId(), title.trim(), body.trim(), date, today().toString())))
+                title = ""; body = ""; date = ""
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text("Seal it") }
+        Spacer(Modifier.height(14.dp))
+
+        val bulk = rememberBulk()
+        BulkBar(
+            bulk = bulk,
+            ids = (sealed + opened).map { it.id },
+            noun = "capsule",
+            onDelete = { ids ->
+                data.capsules.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+                save(data.copy(capsules = data.capsules.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { SectionLabel("Sealed (${sealed.size})") }
+            if (sealed.isEmpty()) item { Muted("Nothing sealed right now.") }
+            else items(sealed, key = { it.id }) { Capsule(data, ::save, it, bulk) }
+
+            item { SectionLabel("Opened (${opened.size})") }
+            if (opened.isEmpty()) item { Muted("None have opened yet.") }
+            else items(opened, key = { it.id }) { Capsule(data, ::save, it, bulk) }
+        }
+    }
+}
+
+@Composable
+private fun Capsule(data: TimeCapsulesData, save: (TimeCapsulesData) -> Unit, c: TimeCapsule, bulk: BulkState) {
+    fun patch(f: (TimeCapsule) -> TimeCapsule) = save(data.copy(capsules = data.capsules.map { if (it.id == c.id) f(it) else it }))
+    var showSource by remember { mutableStateOf(false) }
+
+    // Attach/replace the photo: save the new blob, drop the old one, point the
+    // record at the new id.
+    fun onAttach(b64: String?) {
+        if (b64.isNullOrEmpty()) return
+        val id = saveBlob(b64) ?: return
+        deleteBlob(c.photoBlob)
+        patch { it.copy(photoBlob = id) }
+    }
+
+    val img = remember(c.photoBlob) { loadBlobImage(c.photoBlob) }
+
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .background(
+                if (bulk.has(c.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .bulkClickable(bulk, c.id) {}
+            .padding(14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BulkTick(bulk, c.id)
+            Text(c.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            if (!bulk.on) {
+                TextButton(onClick = {
+                    deleteBlob(c.photoBlob)
+                    save(data.copy(capsules = data.capsules.filterNot { it.id == c.id }))
+                }) { Text("×") }
+            }
+        }
+        if (isSealed(c)) {
+            val days = today().daysUntil(parseDateOrNull(c.sealedUntil) ?: today()).coerceAtLeast(1)
+            Text("🔒 Sealed — opens in $days day${if (days == 1) "" else "s"} (${usDate(c.sealedUntil)})", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            Text(if (c.sealedUntil.isNotBlank()) "Opened ${usDate(c.sealedUntil)}" else "Written", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+            Text(c.body, style = MaterialTheme.typography.bodyMedium)
+
+            Spacer(Modifier.height(8.dp))
+            Text("Photo", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+            if (c.photoBlob.isNotBlank()) {
+                if (img != null) {
+                    Image(
+                        bitmap = img,
+                        contentDescription = "Attached photo",
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Fit,
+                    )
+                } else {
+                    Text("Photo attached (no preview available).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
+                    TextButton(onClick = { deleteBlob(c.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
+                }
+            } else if (Native.supportsCamera) {
+                OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
+            }
+        }
+
+        if (showSource) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showSource = false },
+                title = { Text("Attach a photo") },
+                text = { Text("Take a new photo, or choose one from your library.") },
+                confirmButton = {
+                    TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+}
+
+@Composable
+private fun Muted(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}

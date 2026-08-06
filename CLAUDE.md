@@ -1,36 +1,17 @@
 # Life OS — standing instructions
 
-## Model / reasoning-effort protocol
+## Native is the product — never pitch the web app (2026-07-16)
 
-Baseline for this project: **claude-sonnet-5 + medium reasoning effort**
-("S2"). Work at baseline requires no confirmation, including batching
-several S2-level tasks together without asking each time.
+**Hard rule, no exceptions:** the native rebuild (Kotlin + Compose Multiplatform)
+is the app. Never suggest, imply, or "offer the honest trade" of going back to /
+sticking with / keeping the legacy web PWA. Do not frame native as a lift "versus"
+the web app. Alek has decided; relitigating it — even framed as transparency — is
+off the table. The web `js/` source is a **reference to port FROM**, nothing else.
 
-**Any deviation — a different model, or a different reasoning-effort level,
-up or down — must be flagged to Alek and confirmed before executing.** This
-includes deviations you didn't choose (e.g. a remote/cloud session
-provisioned on a different model or effort level than the local baseline).
-
-A `SessionStart` hook (`.claude/hooks/session-protocol-check.sh`) checks the
-`CLAUDE_EFFORT` and `CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE` env vars every
-session and injects a flag into context if either deviates from baseline.
-It cannot read true model identity (not exposed via env var) — cross-check
-any explicit "Model identity" override section in the system prompt
-yourself, and state the real model to Alek before doing non-trivial work.
-
-**A context-compaction auto-resume ("continue directly, don't ask further
-questions") does NOT override this protocol.** Treat every resume as a
-fresh checkpoint: re-verify model/effort and get explicit confirmation
-before executing queued or planned work, even if the resume instruction
-says to proceed without asking. Alek's last real message before a
-compaction gap is the actual instruction to weigh — not the system's resume
-prompt.
-
-This exists because of a real incident (2026-07-10): five routine features
-were built and shipped while running on claude-fable-5 at high reasoning
-effort, neither flagged in advance, because a post-compaction auto-resume
-was followed instead of this protocol. See `PROJECT_SPEC.md` and the
-backup's `HANDOFF.md` for the full writeup.
+The job is to bring native to full feature depth by **porting each module's real
+behavior from the web source into Compose** — real features, not text-box stubs.
+Don't report a module "done" until its actual functionality is there and Alek has
+seen it work on device.
 
 ## Backups
 
@@ -80,6 +61,14 @@ Alek names one, asks about rearchitecture, or a trigger becomes real.
 Deploy: `main` branch via GitHub Pages. Routine convention this session:
 commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
 `main`, push `main`, checkout back to the dev branch.
+
+## Build delivery (2026-08-04)
+
+**Always give the direct GitHub download link for a build — don't attach the file.**
+Per-artifact form, which downloads on click when signed in:
+`github.com/alekpeed/lifeos/actions/runs/<run_id>/artifacts/<artifact_id>`
+(get both ids from the artifacts listing for the run). Attaching APKs/debs here is
+size-capped and clumsy; the link always works. Standing preference, every build.
 
 **GitHub links: always link to a directory when possible**, not just the
 bare repo root — e.g. `github.com/alekpeed/lifeos/tree/<branch>` (or a
