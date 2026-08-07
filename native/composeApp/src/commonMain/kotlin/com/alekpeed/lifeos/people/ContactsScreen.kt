@@ -2,6 +2,7 @@ package com.alekpeed.lifeos.people
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -40,6 +42,7 @@ import com.alekpeed.lifeos.attach.CONTACTS_MODULE
 import com.alekpeed.lifeos.attach.ExportRecordButton
 import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.PhoneContact
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
@@ -69,6 +72,8 @@ fun ContactsScreen() {
     val bulk = rememberBulk()
     var query by remember { mutableStateOf("") }
     var tagFilter by remember { mutableStateOf<String?>(null) }
+    var phoneContacts by remember { mutableStateOf<List<PhoneContact>>(emptyList()) }
+    var showPhonePicker by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
 
@@ -106,20 +111,28 @@ fun ContactsScreen() {
         if (Native.supportsContacts) {
             Spacer(Modifier.height(10.dp))
             OutlinedButton(onClick = {
-                val existing = data.contacts.map { it.name.lowercase() }.toMutableSet()
-                val added = mutableListOf<Contact>()
-                Native.importContacts().forEach { c ->
-                    if (existing.add(c.name.lowercase())) {
-                        added.add(Contact(freshId(), c.name, phones = if (c.detail.isNotBlank()) listOf(c.detail) else emptyList()))
-                    }
-                }
-                if (added.isNotEmpty()) save(data.copy(contacts = data.contacts + added))
-                note = if (added.isEmpty()) "No new contacts (grant permission if this keeps happening)" else "Imported ${added.size} contact(s)"
+                val all = Native.importContacts()
+                note = if (all.isEmpty()) "No contacts found (grant permission if this keeps happening)" else ""
+                phoneContacts = all
+                showPhonePicker = all.isNotEmpty()
             }) { Text("📇 Import from phone") }
             if (note.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+        if (showPhonePicker) {
+            PhoneImportPicker(
+                contacts = phoneContacts,
+                existingNames = data.contacts.map { it.name.lowercase() }.toSet(),
+                freshId = ::freshId,
+                onDismiss = { showPhonePicker = false },
+                onImport = { added ->
+                    save(data.copy(contacts = data.contacts + added))
+                    note = "Imported ${added.size} contact(s)"
+                    showPhonePicker = false
+                },
+            )
         }
         Spacer(Modifier.height(14.dp))
 
@@ -178,6 +191,76 @@ fun ContactsScreen() {
             }
         }
     }
+}
+
+// Lets you pick which phone contacts to bring in, instead of an all-or-nothing
+// import. Contacts already present (matched by name, same as the old dedup
+// rule) show as disabled/"added" rather than disappearing, so it's clear why
+// they can't be picked again.
+@Composable
+private fun PhoneImportPicker(
+    contacts: List<PhoneContact>,
+    existingNames: Set<String>,
+    freshId: () -> Long,
+    onDismiss: () -> Unit,
+    onImport: (List<Contact>) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    var picked by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    val q = query.trim().lowercase()
+    val shownIdx = contacts.indices.filter { i ->
+        q.isEmpty() || contacts[i].name.lowercase().contains(q) || contacts[i].detail.lowercase().contains(q)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (picked.isEmpty()) "Import from phone" else "Import from phone (${picked.size})") },
+        text = {
+            Column {
+                OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Search") })
+                Spacer(Modifier.height(6.dp))
+                Row {
+                    TextButton(onClick = {
+                        picked = picked + shownIdx.filter { contacts[it].name.lowercase() !in existingNames }
+                    }) { Text("Select all") }
+                    TextButton(onClick = { picked = emptySet() }) { Text("Clear") }
+                }
+                LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                    items(shownIdx, key = { it }) { i ->
+                        val pc = contacts[i]
+                        val already = pc.name.lowercase() in existingNames
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .clickable(enabled = !already) { picked = if (i in picked) picked - i else picked + i }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(checked = i in picked, enabled = !already, onCheckedChange = { c ->
+                                picked = if (c) picked + i else picked - i
+                            })
+                            Column(Modifier.weight(1f)) {
+                                Text(pc.name, style = MaterialTheme.typography.bodyMedium)
+                                if (pc.detail.isNotBlank()) Text(pc.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (already) Text("added", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = picked.isNotEmpty(),
+                onClick = {
+                    onImport(
+                        picked.map { contacts[it] }.map { c ->
+                            Contact(freshId(), c.name, phones = if (c.detail.isNotBlank()) listOf(c.detail) else emptyList())
+                        },
+                    )
+                },
+            ) { Text("Import selected") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
