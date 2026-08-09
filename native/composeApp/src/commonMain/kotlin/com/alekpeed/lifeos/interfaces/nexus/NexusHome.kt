@@ -45,6 +45,8 @@ import kotlin.math.sqrt
 
 const val NEXUS = "nexus"
 private const val ART = "nexus-home.png"
+private const val CANONICAL_WIDTH = 1080f
+private const val CANONICAL_HEIGHT = 2400f
 private val GENERATED_ART = (0..8).map { "nexus-home-$it.b64" }
 
 private val DOMAINS = listOf(
@@ -86,11 +88,12 @@ fun NexusHome() {
         val bottomInset = Native.navBottomPx().toFloat()
         val safeH = (viewportH - topInset - bottomInset).coerceAtLeast(1f)
 
-        // Preserve the canonical 1080x2400 artwork geometry exactly. Any device
-        // aspect-ratio difference is handled with letterboxing, not stretching.
-        val scale = minOf(viewportW / art.width.toFloat(), safeH / art.height.toFloat())
-        val drawW = art.width * scale
-        val drawH = art.height * scale
+        // The interaction frame is always exactly 1080x2400 in normalized geometry.
+        // Device aspect-ratio differences are letterboxed; the artwork is fitted to
+        // this canonical frame rather than allowed to redefine it.
+        val scale = minOf(viewportW / CANONICAL_WIDTH, safeH / CANONICAL_HEIGHT)
+        val drawW = CANONICAL_WIDTH * scale
+        val drawH = CANONICAL_HEIGHT * scale
         val originX = (viewportW - drawW) / 2f
         val originY = topInset + (safeH - drawH) / 2f
         val density = LocalDensity.current
@@ -153,7 +156,6 @@ private fun hitRegion(
     val y = (tap.y - originY) / drawH
     if (x !in 0f..1f || y !in 0f..1f) return null
 
-    // Canonical frame JSON rectangles.
     if (x in 0.82f..0.92f && y in 0.035f..0.09f) return "bell"
 
     if (x in 0.045f..0.205f && y in 0.845f..0.955f) return "voice"
@@ -162,7 +164,6 @@ private fun hitRegion(
     if (x in 0.615f..0.795f && y in 0.845f..0.955f) return "barcode"
     if (x in 0.795f..0.955f && y in 0.845f..0.955f) return "ai_assist"
 
-    // The dial radii in the JSON are explicitly fractions of screen width.
     val dxPx = (x - 0.5f) * drawW
     val dyPx = (y - 0.365f) * drawH
     val radiusPx = sqrt(dxPx * dxPx + dyPx * dyPx)
@@ -174,7 +175,6 @@ private fun hitRegion(
     val outerRadius = 0.405f * drawW
     if (radiusPx < innerRadius || radiusPx > outerRadius) return null
 
-    // Eight 45-degree wedges, clockwise from top. First wedge center = -90 degrees.
     var angleDeg = atan2(dyPx, dxPx) * 180f / PI.toFloat()
     if (angleDeg < 0f) angleDeg += 360f
     val clockwiseFromTop = (angleDeg + 90f) % 360f
