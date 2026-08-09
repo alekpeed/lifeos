@@ -35,6 +35,7 @@ import com.alekpeed.lifeos.HomeScreen
 import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.lifeOsModules
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.loadBase64ImageAsset
 import com.alekpeed.lifeos.platform.loadImageAsset
 import com.alekpeed.lifeos.system.scanCode
 import com.alekpeed.lifeos.system.scanWithCamera
@@ -44,6 +45,7 @@ import kotlin.math.sqrt
 
 const val NEXUS = "nexus"
 private const val ART = "nexus-home.png"
+private val GENERATED_ART = (0..8).map { "nexus-home-$it.b64" }
 
 private val DOMAINS = listOf(
     "Operations",
@@ -58,7 +60,9 @@ private val DOMAINS = listOf(
 
 @Composable
 fun NexusHome() {
-    val art = remember { loadImageAsset(ART) }
+    val art = remember {
+        loadBase64ImageAsset(GENERATED_ART) ?: loadImageAsset(ART)
+    }
     if (art == null) {
         HomeScreen(remember { lifeOsModules() }) { Nav.open(it.id) }
         return
