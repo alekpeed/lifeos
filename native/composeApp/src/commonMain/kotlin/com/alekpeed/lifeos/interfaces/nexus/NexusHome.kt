@@ -23,34 +23,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.alekpeed.lifeos.HomeScreen
 import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.lifeOsModules
 import com.alekpeed.lifeos.platform.Native
-import com.alekpeed.lifeos.platform.loadImageAsset
 import com.alekpeed.lifeos.system.scanCode
 import com.alekpeed.lifeos.system.scanWithCamera
 import kotlinx.coroutines.delay
@@ -59,410 +48,412 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.roundToInt
-
-// NEXUS — a graphical home for Life OS. The artwork is a single bundled image; every
-// interactive area is a region mapped onto it (traced in Figma against the 852x1846
-// artwork), and the values that change are printed into empty "slots" left in the art.
-//
-// Tapping one of the eight wheel petals opens that domain; tapping a module in the
-// domain list routes through Nav, exactly like the built-in launcher. The artwork is
-// fitted into the safe area (below the cutout, above the gesture lane) and every region
-// goes through that same transform, so hit areas stay aligned on any screen shape.
+import kotlin.math.min
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 const val NEXUS = "nexus"
-private const val ART = "nexus-home.png"
 
-// The artwork's own pixel space. All regions below are in these coordinates.
-private const val ART_W = 852f
-private const val ART_H = 1846f
-
-// Wheel petals, as traced polygons (x,y pairs) in artwork space.
-private val PETALS: List<Pair<String, FloatArray>> = listOf(
-    "Operations" to floatArrayOf(351f,535.5f, 285.5f,390f, 285.5f,384.5f, 311f,373.5f, 329f,367.5f, 351f,362.5f, 382.5f,355.5f, 407.5f,354f, 426f,352.5f, 443f,354f, 453f,354f, 470f,355.5f, 485.5f,358f, 508f,362.5f, 524.5f,367.5f, 541f,373.5f, 556f,379f, 566f,384.5f, 566f,390f, 502f,535.5f, 483f,527f, 464f,521.5f, 448.5f,519f, 426f,518f, 404f,519f, 382.5f,523f),
-    "Archive" to floatArrayOf(502f,535f, 571.5f,388f, 590f,395f, 605.5f,404f, 621.5f,415.5f, 642f,431f, 657f,445.5f, 671f,459.5f, 681.5f,472f, 695f,488.5f, 708f,508.5f, 720f,530f, 729.5f,551.5f, 586f,623.5f, 572.5f,598.5f, 554.5f,574.5f, 541.5f,562f, 526f,549f),
-    "Logistics" to floatArrayOf(729f,553.5f, 588f,623f, 588f,633f, 593f,647f, 596.5f,661.5f, 599.5f,696.5f, 596.5f,727.5f, 593f,742f, 588f,757f, 584f,771f, 731f,843.5f, 739.5f,823.5f, 745f,803f, 752f,782f, 755f,757f, 759.5f,720.5f, 759.5f,696.5f, 757.5f,669.5f, 755f,647f, 752f,625f, 745f,600.5f, 737.5f,578f),
-    "Discovery" to floatArrayOf(502f,860.5f, 571.5f,1007.5f, 590f,1000.5f, 605.5f,991.5f, 621.5f,980f, 642f,964.5f, 657f,950f, 671f,936f, 681.5f,923.5f, 695f,907f, 708f,887f, 720f,865.5f, 729.5f,844f, 586f,772f, 572.5f,797f, 554.5f,821f, 541.5f,833.5f, 526f,846.5f),
-    "Management" to floatArrayOf(348.784f,858f, 282f,1003.5f, 282f,1009f, 308f,1020f, 326.353f,1026f, 348.784f,1031f, 380.902f,1038f, 406.392f,1039.5f, 425.255f,1041f, 442.588f,1039.5f, 452.784f,1039.5f, 470.118f,1038f, 485.922f,1035.5f, 508.863f,1031f, 525.686f,1026f, 542.51f,1020f, 557.804f,1014.5f, 568f,1009f, 568f,1003.5f, 502.745f,858f, 483.373f,866.5f, 464f,872f, 448.196f,874.5f, 425.255f,875.5f, 402.824f,874.5f, 380.902f,870.5f),
-    "Intelligence" to floatArrayOf(347.5f,860.5f, 278f,1007.5f, 259.5f,1000.5f, 244f,991.5f, 228f,980f, 207.5f,964.5f, 192.5f,950f, 178.5f,936f, 168f,923.5f, 154.5f,907f, 141.5f,887f, 129.5f,865.5f, 120f,844f, 263.5f,772f, 277f,797f, 295f,821f, 308f,833.5f, 323.5f,846.5f),
-    "People" to floatArrayOf(122.5f,554f, 263.5f,623.5f, 263.5f,633.5f, 258.5f,647.5f, 255f,662f, 252f,697f, 255f,728f, 258.5f,742.5f, 263.5f,757.5f, 267.5f,771.5f, 120.5f,844f, 112f,824f, 106.5f,803.5f, 99.5f,782.5f, 96.5f,757.5f, 92f,721f, 92f,697f, 94f,670f, 96.5f,647.5f, 99.5f,625.5f, 106.5f,601f, 114f,578.5f),
-    "System" to floatArrayOf(352.5f,535.5f, 283f,388.5f, 264.5f,395.5f, 249f,404.5f, 233f,416f, 212.5f,431.5f, 197.5f,446f, 183.5f,460f, 173f,472.5f, 159.5f,489f, 146.5f,509f, 134.5f,530.5f, 125f,552f, 268.5f,624f, 282f,599f, 300f,575f, 313f,562.5f, 328.5f,549.5f),
+private val domains = listOf(
+    "Operations",
+    "Archive",
+    "Logistics",
+    "Discovery",
+    "Management",
+    "Intelligence",
+    "People",
+    "System",
 )
 
-// Rectangular tap regions: id to (x, y, w, h).
-//
-// The four action buttons are measured from the artwork's own pixels, not traced: each
-// icon sits at art y 1648-1695 with its label at 1723-1738, while the traced box started
-// 22px above the icon and cut off below the label — so the light landed high and the word
-// fell outside it. These cover icon and label together, which also means tapping the word
-// works. Expressed in trace space like everything else so one transform still rules.
-private val RECTS: List<Pair<String, FloatArray>> = listOf(
-    "bell" to floatArrayOf(657f, 17f, 49f, 51f),
-    "btn-voice" to floatArrayOf(52.7f, 1613.1f, 116.8f, 111.1f),
-    "btn-note" to floatArrayOf(202.2f, 1613.1f, 116.8f, 111.1f),
-    "btn-scandoc" to floatArrayOf(526.8f, 1613.1f, 116.8f, 111.1f),
-    "btn-ai" to floatArrayOf(678.7f, 1613.1f, 116.8f, 111.1f),
-)
-
-// Elliptical tap regions: id to (cx, cy, rx, ry).
-private val ELLIPSES: List<Pair<String, FloatArray>> = listOf(
-    "btn-scan-center" to floatArrayOf(423.5f, 1652f, 63.5f, 68f),
-    "core" to floatArrayOf(426f, 697f, 149f, 154f),
-)
-
-// Text slots left empty in the art: (x, y, w, h) in trace space.
-private val SLOT_CLOCK = floatArrayOf(359f, 17f, 138f, 35f)
-private val SLOT_DATE = floatArrayOf(359f, 52f, 138f, 35f)
-
-// The Figma trace and the artwork disagree slightly: the image layer had moved (and
-// scaled ~1%) between tracing and reading its position, so every mapped shape sat
-// ~41px high at the top of the art and ~24px high at the bottom. Measured against
-// the artwork's own pixels (the top-right dial and the scan-button ring):
-//   art = trace * MAP_S + MAP_T, per axis.
-private const val MAP_SX = 0.9936f
-private const val MAP_TX = 1.1f
-private const val MAP_SY = 0.98993f
-private const val MAP_TY = 41.13f
-
-private fun traceToArt(r: FloatArray) = floatArrayOf(
-    r[0] * MAP_SX + MAP_TX, r[1] * MAP_SY + MAP_TY, r[2] * MAP_SX, r[3] * MAP_SY,
-)
-
-private val SLOT_CLOCK_ART = traceToArt(SLOT_CLOCK)
-private val SLOT_DATE_ART = traceToArt(SLOT_DATE)
-
-private val MONTHS = listOf(
+private val months = listOf(
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
 )
 
-// Ray-casting point-in-polygon over the flat (x,y) pair array.
-private fun inPolygon(poly: FloatArray, px: Float, py: Float): Boolean {
-    var inside = false
-    val n = poly.size / 2
-    var j = n - 1
-    for (i in 0 until n) {
-        val xi = poly[i * 2]; val yi = poly[i * 2 + 1]
-        val xj = poly[j * 2]; val yj = poly[j * 2 + 1]
-        if ((yi > py) != (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside
-        j = i
-    }
-    return inside
-}
+private val pink = Color(0xFFFF4F93)
+private val hotPink = Color(0xFFFF88B9)
+private val palePink = Color(0xFFFFC6DB)
+private val cyan = Color(0xFF65E6E6)
+private val panel = Color(0xCC090A10)
+private val bg = Color(0xFF05060A)
+private val white = Color(0xFFF4F0F3)
+private val muted = Color(0xFFB9A6B0)
 
-// ── Light ────────────────────────────────────────────────────────────────────────
-// The artwork is a still image, so everything that moves is drawn over it in the same
-// coordinate space as the hit testing. Light is the whole vocabulary: a region lights up
-// when you touch it, a ray sweeps the wheel on open, and the core breathes. Nothing here
-// changes the art — pull the overlay and the screen still works.
-
-private val LIGHT = Color(0xFFE0708F) // the art's accent — glow has to look native to it
-private val LIGHT_HOT = Color(0xFFFFC2D6) // the brighter core of a fresh tap
-
-// All timing in milliseconds, measured off the frame clock.
-private const val BOOT_DELAY_MS = 350f
-private const val BOOT_MS = 1500f // one full turn of the ray
-private const val BREATH_MS = 4200f // a full breath, in and back out
-private const val TAP_HOLD_MS = 210
-private const val TAP_FADE_MS = 420f
-
-// Glow is additive: layered strokes from wide-and-faint to tight-and-bright, so the edge
-// reads as light bleeding off the shape rather than a flat outline sitting on top of it.
-private val HALO_W = floatArrayOf(20f, 13f, 7f, 3f)
-private val HALO_A = floatArrayOf(0.13f, 0.21f, 0.34f, 0.80f)
-
-// spread widens the halo, gain brightens it — together they take the same shape from a
-// touch highlight to a full bloom without needing a second set of constants.
-private fun DrawScope.glow(
-    path: Path,
-    amount: Float,
-    scale: Float,
-    fill: Float = 0.20f,
-    spread: Float = 1f,
-    gain: Float = 1f,
-) {
-    if (amount <= 0.01f) return
-    val a = amount.coerceIn(0f, 1f)
-    if (fill > 0f) {
-        drawPath(path, LIGHT.copy(alpha = (fill * a).coerceAtMost(1f)), blendMode = BlendMode.Plus)
-    }
-    for (i in HALO_W.indices) {
-        drawPath(
-            path,
-            (if (i == HALO_W.lastIndex) LIGHT_HOT else LIGHT)
-                .copy(alpha = (HALO_A[i] * a * gain).coerceAtMost(1f)),
-            style = Stroke(width = HALO_W[i] * spread * scale),
-            blendMode = BlendMode.Plus,
-        )
-    }
-}
-
-// Trace-space point -> screen, via the same art mapping every region uses.
-private fun sx(x: Float, ox: Float, scale: Float) = ox + (x * MAP_SX + MAP_TX) * scale
-private fun sy(y: Float, oy: Float, scale: Float) = oy + (y * MAP_SY + MAP_TY) * scale
-
-private fun polyPath(poly: FloatArray, ox: Float, oy: Float, scale: Float): Path {
-    val p = Path()
-    for (i in 0 until poly.size / 2) {
-        val x = sx(poly[i * 2], ox, scale)
-        val y = sy(poly[i * 2 + 1], oy, scale)
-        if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
-    }
-    p.close()
-    return p
-}
-
-private fun rectPath(r: FloatArray, ox: Float, oy: Float, scale: Float): Path {
-    val a = traceToArt(r)
-    val p = Path()
-    p.addRoundRect(
-        RoundRect(
-            Rect(
-                Offset(ox + a[0] * scale, oy + a[1] * scale),
-                Size(a[2] * scale, a[3] * scale),
-            ),
-            CornerRadius(18f * scale, 18f * scale),
-        ),
-    )
-    return p
-}
-
-private fun ovalPath(e: FloatArray, ox: Float, oy: Float, scale: Float, inset: Float = 1f): Path {
-    val cx = sx(e[0], ox, scale)
-    val cy = sy(e[1], oy, scale)
-    val rx = e[2] * MAP_SX * scale * inset
-    val ry = e[3] * MAP_SY * scale * inset
-    val p = Path()
-    p.addOval(Rect(cx - rx, cy - ry, cx + rx, cy + ry))
-    return p
-}
-
-// The opening sweep: one ray of light turning around the wheel.
-//
-// Brightening petals one at a time can't be smooth — the smallest thing it can light is a
-// whole petal, so it steps no matter how the timing is shaped. This instead rotates a wedge
-// of light about the wheel's centre and clips it to the petals, so the light moves by angle
-// and the petal edges are just what it happens to be crossing. The wedge is drawn as a run
-// of overlapping arc segments whose brightness falls off behind the head, which is what
-// gives it a comet's tail instead of a hard leading edge.
-private val WHEEL_C = floatArrayOf(426f, 697f) // wheel centre, trace space (same as the core)
-// Deliberately a little wider than the petals themselves (which run ~159 to ~345 from the
-// centre): the ray is clipped to the petals anyway, so overshooting guarantees it covers
-// them to the edge instead of leaving an unlit rim.
-private const val WHEEL_R_IN = 148f
-private const val WHEEL_R_OUT = 360f
-private const val SWEEP_TAIL_DEG = 155f
-private const val SWEEP_SEGS = 40
-private const val SWEEP_FADE_FROM = 0.62f // point in the turn where the ray starts dying out
-
-private fun DrawScope.drawSweep(t: Float, wheel: Path, ox: Float, oy: Float, scale: Float) {
-    if (t <= 0f || t >= 1f) return
-    val cx = sx(WHEEL_C[0], ox, scale)
-    val cy = sy(WHEEL_C[1], oy, scale)
-    val rIn = WHEEL_R_IN * MAP_SX * scale
-    val rOut = WHEEL_R_OUT * MAP_SX * scale
-    val rMid = (rIn + rOut) / 2f
-    val band = rOut - rIn
-    val topLeft = Offset(cx - rMid, cy - rMid)
-    val size = Size(rMid * 2f, rMid * 2f)
-    // Exactly one turn, finishing back at the top where it began. The tail would still be
-    // lit at that moment, so the whole ray dims over the last stretch of the turn — it
-    // arrives home and goes out, instead of running on past the start to clear itself.
-    val head = -90f + t * 360f
-    val envelope = if (t < SWEEP_FADE_FROM) {
-        1f
-    } else {
-        val f = (t - SWEEP_FADE_FROM) / (1f - SWEEP_FADE_FROM)
-        0.5f + 0.5f * cos(PI.toFloat() * f)
-    }
-    val seg = SWEEP_TAIL_DEG / SWEEP_SEGS
-    clipPath(wheel) {
-        for (i in 0 until SWEEP_SEGS) {
-            val f = i / SWEEP_SEGS.toFloat() // 0 at the head, 1 at the end of the tail
-            val fade = 0.5f + 0.5f * cos(PI.toFloat() * f)
-            drawArc(
-                if (i == 0) LIGHT_HOT else LIGHT,
-                head - (i + 1) * seg,
-                // Overlap each segment into the next so there is no seam between them.
-                seg * 1.35f,
-                false,
-                topLeft,
-                size,
-                alpha = (0.62f * fade * fade * envelope).coerceIn(0f, 1f),
-                style = Stroke(width = band),
-                blendMode = BlendMode.Plus,
-            )
-        }
-    }
-}
+private data class BottomAction(val id: String, val label: String)
+private val bottomActions = listOf(
+    BottomAction("voice", "VOICE LINK"),
+    BottomAction("note", "QUICK NOTE"),
+    BottomAction("camera", "CAMERA"),
+    BottomAction("barcode", "BARCODE"),
+    BottomAction("ai", "AI ASSIST"),
+)
 
 @Composable
 fun NexusHome() {
-    val art = remember { loadImageAsset(ART) }
-    if (art == null) {
-        // No artwork bundled (or desktop): fall back to the functional launcher.
-        HomeScreen(remember { lifeOsModules() }) { Nav.open(it.id) }
-        return
-    }
-
     val modules = remember { lifeOsModules() }
     val scope = rememberCoroutineScope()
+    var openDomain by remember { mutableStateOf("") }
+    var clock by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf("") }
+    var pulse by remember { mutableStateOf(0f) }
 
-    // The artwork has its own clock, date and status row, so the system bars would sit
-    // on top of it. Go full screen while this home is showing, and restore on the way out.
     DisposableEffect(Unit) {
         Native.setImmersive(true)
         onDispose { Native.setImmersive(false) }
     }
-    var openDomain by remember { mutableStateOf("") }
 
-    // Live clock — the art leaves these two slots empty on purpose.
-    var clock by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
         while (true) {
-            runCatching {
-                val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-                val h12 = when {
-                    now.hour == 0 -> 12
-                    now.hour > 12 -> now.hour - 12
-                    else -> now.hour
-                }
-                val mm = now.minute.toString().padStart(2, '0')
-                clock = "$h12:$mm ${if (now.hour < 12) "AM" else "PM"}"
-                date = "${MONTHS[now.monthNumber - 1]} ${now.dayOfMonth}, ${now.year}"
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val h12 = when {
+                now.hour == 0 -> 12
+                now.hour > 12 -> now.hour - 12
+                else -> now.hour
             }
+            clock = "$h12:${now.minute.toString().padStart(2, '0')} ${if (now.hour < 12) "AM" else "PM"}"
+            date = "${months[now.monthNumber - 1]} ${now.dayOfMonth}, ${now.year}"
             delay(20_000)
         }
     }
 
-    // Milliseconds since this home appeared, ticked from the raw frame callback.
-    //
-    // Every light effect is computed from this number instead of from Compose's animation
-    // API on purpose: animateTo and infiniteRepeatable are multiplied by the OS animator
-    // duration scale, so on a device with animations switched off they jump straight to
-    // their end value — the sweep is over before the first frame and the breath is
-    // pinned. A tap still lights up, because setting a value isn't an animation.
-    // Frame callbacks are not scaled, so time-driven light runs either way. Reading the
-    // clock here, in composition, is also what forces the canvas to redraw each frame.
-    val frameMs = remember { mutableStateOf(0f) }
     LaunchedEffect(Unit) {
-        val t0 = withFrameNanos { it }
         while (true) {
-            withFrameNanos { t -> frameMs.value = (t - t0) / 1_000_000f }
+            val t = (Clock.System.now().toEpochMilliseconds() % 4200L) / 4200f
+            pulse = 0.5f - 0.5f * cos(2f * PI.toFloat() * t)
+            delay(32)
         }
     }
-    val nowMs = frameMs.value
 
-    // Tap light: which region was hit, and when. Held in MutableState (not a delegated var)
-    // because the gesture lambda is remembered — it has to read the live clock, not the
-    // value from the composition that created it.
-    val litId = remember { mutableStateOf("") }
-    val litAt = remember { mutableStateOf(-1e9f) }
-
-    // The ray's one turn around the wheel, held off a moment so it isn't spent behind the
-    // launch animation.
-    val bootT = ((nowMs - BOOT_DELAY_MS) / BOOT_MS).coerceIn(0f, 1f)
-
-    // The core breathing: a cosine so it eases at both ends instead of ping-ponging, and a
-    // near-full swing so the bloom clearly grows and recedes rather than flickering.
-    val breathT = run {
-        val p = (nowMs % BREATH_MS) / BREATH_MS
-        0.16f + 0.84f * (0.5f - 0.5f * cos(2f * PI.toFloat() * p))
-    }
-
-    // Tap: full brightness while the screen changes underneath, then fade.
-    val litNow = litId.value
-    val litAge = nowMs - litAt.value
-    val litT = when {
-        litNow.isEmpty() -> 0f
-        litAge < TAP_HOLD_MS -> 1f
-        else -> (1f - (litAge - TAP_HOLD_MS) / TAP_FADE_MS).coerceAtLeast(0f)
-    }
-
-    BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF07080C))) {
-        val vw = constraints.maxWidth.toFloat()
-        val vh = constraints.maxHeight.toFloat()
-        // The artwork carries its own status row at its very top, so it must clear the
-        // display cutout: fill the width, TOP-ALIGN just below the punch hole, and let
-        // any overflow crop off the bottom (empty dais margin) — never the top. No
-        // vertical centering, so nothing drifts with screen shape. Re-read each
-        // recomposition: insets can report 0 on the very first frame.
+    BoxWithConstraints(Modifier.fillMaxSize().background(bg)) {
+        val w = constraints.maxWidth.toFloat()
+        val h = constraints.maxHeight.toFloat()
         val topInset = Native.cutoutTopPx().toFloat()
         val bottomInset = Native.navBottomPx().toFloat()
-        // Fit the WHOLE artwork between the punch hole and the system gesture lane, so
-        // the bottom action bar sits clear of the home swipe and the top row stays clear
-        // of the camera. Fitting (not filling) means a thin letterbox at the sides — the
-        // art's edges are near-black, so it reads as bezel rather than a gap.
-        val safeH = (vh - topInset - bottomInset).coerceAtLeast(1f)
-        val scale = minOf(vw / ART_W, safeH / ART_H)
-        val ox = (vw - ART_W * scale) / 2f
-        val oy = topInset + (safeH - ART_H * scale) / 2f
-        val density = LocalDensity.current
-
-        // Every lightable region as a screen-space path, built from the same mapped shapes
-        // the taps test against — so what lights up is exactly what you pressed. Rebuilt
-        // only when the fit changes (rotation, insets settling), not per frame.
-        val paths = remember(scale, ox, oy) {
-            buildMap<String, Path> {
-                PETALS.forEach { (id, poly) -> put(DOMAIN_PREFIX + id, polyPath(poly, ox, oy, scale)) }
-                RECTS.forEach { (id, r) -> put(id, rectPath(r, ox, oy, scale)) }
-                ELLIPSES.forEach { (id, e) -> put(id, ovalPath(e, ox, oy, scale, inset = 0.94f)) }
-            }
-        }
-
-        // All eight petals as one shape, used to clip the sweeping ray so light only lands
-        // on the wheel and not in the gaps between petals.
-        val wheel = remember(scale, ox, oy) {
-            Path().also { p -> PETALS.forEach { (_, poly) -> p.addPath(polyPath(poly, ox, oy, scale)) } }
-        }
+        val safeTop = topInset + 8f
+        val safeBottom = h - bottomInset - 8f
+        val wheelCx = w / 2f
+        val wheelCy = safeTop + (safeBottom - safeTop) * 0.39f
+        val wheelR = min(w * 0.43f, (safeBottom - safeTop) * 0.27f)
+        val coreR = wheelR * 0.34f
+        val cardTop = safeTop + (safeBottom - safeTop) * 0.72f
+        val bottomBarTop = safeTop + (safeBottom - safeTop) * 0.855f
+        val bottomBarBottom = safeBottom - 10f
 
         Canvas(
-            modifier = Modifier.fillMaxSize().pointerInput(scale, ox, oy) {
+            Modifier.fillMaxSize().pointerInput(w, h, wheelR) {
                 detectTapGestures { tap ->
-                    val hit = regionAt(tap, ox, oy, scale) ?: return@detectTapGestures
-                    // The wheel's centre isn't a button — don't light it on touch and
-                    // promise something that isn't there.
-                    if (hit == "core") return@detectTapGestures
-                    litId.value = hit
-                    litAt.value = frameMs.value
-                    scope.launch {
-                        // Let the light actually land before the screen changes underneath
-                        // it — a button that opens a module is gone too fast to see at 70ms.
-                        delay(TAP_HOLD_MS.toLong())
-                        if (hit.startsWith(DOMAIN_PREFIX)) {
-                            openDomain = hit.removePrefix(DOMAIN_PREFIX)
-                        } else {
-                            act(hit, scope)
-                        }
+                    val hit = hitTest(
+                        tap = tap,
+                        w = w,
+                        h = h,
+                        safeTop = safeTop,
+                        safeBottom = safeBottom,
+                        wheelCx = wheelCx,
+                        wheelCy = wheelCy,
+                        wheelR = wheelR,
+                        coreR = coreR,
+                        bottomBarTop = bottomBarTop,
+                        bottomBarBottom = bottomBarBottom,
+                    ) ?: return@detectTapGestures
+                    when {
+                        hit.startsWith("domain:") -> openDomain = hit.removePrefix("domain:")
+                        hit == "bell" -> Nav.open("notifications")
+                        hit == "voice" -> Nav.open("command")
+                        hit == "note" -> Nav.open("ideas")
+                        hit == "camera" -> scanWithCamera(scope)
+                        hit == "barcode" -> scanCode(scope)
+                        hit == "ai" -> Nav.open("ai-assistant")
                     }
                 }
             },
         ) {
-            // Drawn with the exact same transform the hit testing uses, so the tap
-            // zones can never drift from the pixels.
-            drawImage(
-                image = art,
-                srcOffset = IntOffset.Zero,
-                srcSize = IntSize(art.width, art.height),
-                dstOffset = IntOffset(ox.roundToInt(), oy.roundToInt()),
-                dstSize = IntSize((ART_W * scale).roundToInt(), (ART_H * scale).roundToInt()),
+            drawRect(bg)
+
+            // Faint cyberpunk city rails / perspective floor.
+            val horizon = safeTop + (safeBottom - safeTop) * 0.61f
+            for (i in -6..6) {
+                val x = w / 2f + i * w * 0.10f
+                drawLine(pink.copy(alpha = 0.08f), Offset(w / 2f, horizon), Offset(x, safeBottom), 1f)
+            }
+            for (i in 0..7) {
+                val yy = horizon + (safeBottom - horizon) * (i / 8f)
+                drawLine(pink.copy(alpha = 0.06f), Offset(0f, yy), Offset(w, yy), 1f)
+            }
+
+            // Planet horizon behind the wheel.
+            drawArc(
+                color = pink.copy(alpha = 0.28f),
+                startAngle = 195f,
+                sweepAngle = 150f,
+                useCenter = false,
+                topLeft = Offset(-w * 0.12f, safeTop + 40f),
+                size = Size(w * 1.24f, wheelR * 1.45f),
+                style = Stroke(width = 2.5f),
+            )
+            drawArc(
+                color = hotPink.copy(alpha = 0.13f),
+                startAngle = 195f,
+                sweepAngle = 150f,
+                useCenter = false,
+                topLeft = Offset(-w * 0.12f, safeTop + 37f),
+                size = Size(w * 1.24f, wheelR * 1.45f),
+                style = Stroke(width = 14f),
+                blendMode = BlendMode.Plus,
             )
 
-            // Opening sweep: one ray turns around the wheel, once.
-            drawSweep(bootT, wheel, ox, oy, scale)
+            // Radial wheel.
+            drawCircle(pink.copy(alpha = 0.13f), wheelR * 1.08f, Offset(wheelCx, wheelCy), style = Stroke(1.5f))
+            drawCircle(pink.copy(alpha = 0.22f), wheelR, Offset(wheelCx, wheelCy), style = Stroke(2f))
+            drawCircle(pink.copy(alpha = 0.16f), wheelR * 0.72f, Offset(wheelCx, wheelCy), style = Stroke(1.5f))
 
-            // The core breathing, always — a wide, bright bloom rather than a faint outline.
-            paths["core"]?.let { glow(it, breathT, scale, fill = 0.28f, spread = 2.6f, gain = 2.4f) }
+            repeat(8) { i ->
+                val a = Math.toRadians((-112.5 + i * 45.0)).toFloat()
+                val inner = Offset(
+                    wheelCx + cos(a) * coreR * 1.18f,
+                    wheelCy + sin(a) * coreR * 1.18f,
+                )
+                val outer = Offset(
+                    wheelCx + cos(a) * wheelR,
+                    wheelCy + sin(a) * wheelR,
+                )
+                drawLine(pink.copy(alpha = 0.38f), inner, outer, 1.5f)
+            }
 
-            // Whatever you just pressed, brightest and on top.
-            if (litNow.isNotEmpty()) paths[litNow]?.let { glow(it, litT, scale, fill = 0.30f) }
+            val glow = 0.35f + pulse * 0.35f
+            drawCircle(pink.copy(alpha = 0.10f + pulse * 0.08f), coreR * 1.22f, Offset(wheelCx, wheelCy), blendMode = BlendMode.Plus)
+            drawCircle(pink.copy(alpha = glow), coreR * 1.05f, Offset(wheelCx, wheelCy), style = Stroke(11f), blendMode = BlendMode.Plus)
+            drawCircle(palePink.copy(alpha = 0.85f), coreR, Offset(wheelCx, wheelCy), style = Stroke(3f))
+
+            // Projection beam / dais.
+            val beamBottom = cardTop - 45f
+            drawLine(pink.copy(alpha = 0.25f), Offset(wheelCx, wheelCy + wheelR), Offset(wheelCx, beamBottom), 3f)
+            drawLine(hotPink.copy(alpha = 0.42f), Offset(wheelCx, wheelCy + wheelR), Offset(wheelCx, beamBottom), 1f)
+            for (j in 0..3) {
+                drawOval(
+                    color = pink.copy(alpha = 0.20f - j * 0.03f),
+                    topLeft = Offset(w * (0.20f + j * 0.035f), beamBottom - 10f + j * 4f),
+                    size = Size(w * (0.60f - j * 0.07f), 28f - j * 3f),
+                    style = Stroke(width = if (j == 0) 2f else 1f),
+                )
+            }
+
+            // Information cards.
+            val gap = w * 0.018f
+            val cardW = (w - gap * 4f) / 3f
+            val cardH = (bottomBarTop - cardTop) * 0.82f
+            repeat(3) { i ->
+                drawRoundRect(
+                    color = panel,
+                    topLeft = Offset(gap + i * (cardW + gap), cardTop),
+                    size = Size(cardW, cardH),
+                    cornerRadius = CornerRadius(18f, 18f),
+                )
+                drawRoundRect(
+                    color = pink.copy(alpha = 0.35f),
+                    topLeft = Offset(gap + i * (cardW + gap), cardTop),
+                    size = Size(cardW, cardH),
+                    cornerRadius = CornerRadius(18f, 18f),
+                    style = Stroke(1.4f),
+                )
+            }
+
+            // Bottom action bar.
+            drawRoundRect(
+                color = panel,
+                topLeft = Offset(w * 0.035f, bottomBarTop),
+                size = Size(w * 0.93f, bottomBarBottom - bottomBarTop),
+                cornerRadius = CornerRadius(30f, 30f),
+            )
+            drawRoundRect(
+                color = pink.copy(alpha = 0.32f),
+                topLeft = Offset(w * 0.035f, bottomBarTop),
+                size = Size(w * 0.93f, bottomBarBottom - bottomBarTop),
+                cornerRadius = CornerRadius(30f, 30f),
+                style = Stroke(1.5f),
+            )
+            val camCx = w * 0.50f
+            val camCy = (bottomBarTop + bottomBarBottom) / 2f - 2f
+            val camR = (bottomBarBottom - bottomBarTop) * 0.36f
+            drawCircle(pink.copy(alpha = 0.16f), camR * 1.18f, Offset(camCx, camCy), blendMode = BlendMode.Plus)
+            drawCircle(pink, camR, Offset(camCx, camCy), style = Stroke(2.4f))
         }
 
-        // Live values printed into the slots the art leaves empty.
-        SlotText(clock, SLOT_CLOCK_ART, ox, oy, scale, density, Color(0xFFF2F4F6), 26f, FontWeight.Medium)
-        SlotText(date, SLOT_DATE_ART, ox, oy, scale, density, Color(0xFFE0708F), 19f, FontWeight.Normal)
+        // Header and live values.
+        Text(
+            "NEXUS",
+            color = hotPink,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Light,
+            letterSpacing = 5.sp,
+            modifier = Modifier.offset(24.dp, with(LocalDensity.current) { (safeTop + 18f).toDp() }),
+        )
+        Text(
+            "LIFE OS",
+            color = palePink,
+            fontSize = 11.sp,
+            letterSpacing = 3.sp,
+            modifier = Modifier.offset(26.dp, with(LocalDensity.current) { (safeTop + 53f).toDp() }),
+        )
+        Text(
+            clock,
+            color = white,
+            fontSize = 19.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.offset(
+                x = with(LocalDensity.current) { (w * 0.34f).toDp() },
+                y = with(LocalDensity.current) { (safeTop + 19f).toDp() },
+            ).width(with(LocalDensity.current) { (w * 0.32f).toDp() }),
+        )
+        Text(
+            date,
+            color = hotPink,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.offset(
+                x = with(LocalDensity.current) { (w * 0.33f).toDp() },
+                y = with(LocalDensity.current) { (safeTop + 47f).toDp() },
+            ).width(with(LocalDensity.current) { (w * 0.34f).toDp() }),
+        )
+        Text(
+            "♧",
+            color = palePink,
+            fontSize = 24.sp,
+            modifier = Modifier.offset(
+                x = with(LocalDensity.current) { (w * 0.76f).toDp() },
+                y = with(LocalDensity.current) { (safeTop + 16f).toDp() },
+            ),
+        )
+
+        // Domain labels around the wheel.
+        domains.forEachIndexed { i, domain ->
+            val a = Math.toRadians((-90.0 + i * 45.0)).toFloat()
+            val r = wheelR * 0.79f
+            val x = wheelCx + cos(a) * r
+            val y = wheelCy + sin(a) * r
+            Text(
+                domain.uppercase(),
+                color = palePink,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 1.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier.offset(
+                    x = with(LocalDensity.current) { (x - w * 0.12f).toDp() },
+                    y = with(LocalDensity.current) { (y - 12f).toDp() },
+                ).width(with(LocalDensity.current) { (w * 0.24f).toDp() }),
+            )
+        }
+
+        Text(
+            "NEXUS",
+            color = white,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Light,
+            letterSpacing = 4.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.offset(
+                x = with(LocalDensity.current) { (wheelCx - coreR).toDp() },
+                y = with(LocalDensity.current) { (wheelCy - 20f).toDp() },
+            ).width(with(LocalDensity.current) { (coreR * 2f).toDp() }),
+        )
+        Text(
+            "CORE",
+            color = hotPink,
+            fontSize = 11.sp,
+            letterSpacing = 3.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.offset(
+                x = with(LocalDensity.current) { (wheelCx - coreR).toDp() },
+                y = with(LocalDensity.current) { (wheelCy + 22f).toDp() },
+            ).width(with(LocalDensity.current) { (coreR * 2f).toDp() }),
+        )
+
+        Text(
+            "FOCUS  •  BALANCE  •  MOMENTUM",
+            color = palePink,
+            fontSize = 10.sp,
+            letterSpacing = 2.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.offset(
+                x = 0.dp,
+                y = with(LocalDensity.current) { (cardTop - 31f).toDp() },
+            ).fillMaxWidth(),
+        )
+
+        val gap = w * 0.018f
+        val cardW = (w - gap * 4f) / 3f
+        listOf(
+            Triple("LIFE SCORE", "—", "not calculated"),
+            Triple("SYNC STATUS", "READY", "local data active"),
+            Triple("UP NEXT", "TODAY", "open Today for details"),
+        ).forEachIndexed { i, card ->
+            val x = gap + i * (cardW + gap)
+            Text(
+                card.first,
+                color = hotPink,
+                fontSize = 9.sp,
+                letterSpacing = 1.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.offset(
+                    x = with(LocalDensity.current) { x.toDp() },
+                    y = with(LocalDensity.current) { (cardTop + 14f).toDp() },
+                ).width(with(LocalDensity.current) { cardW.toDp() }),
+            )
+            Text(
+                card.second,
+                color = white,
+                fontSize = if (i == 0) 27.sp else 16.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.offset(
+                    x = with(LocalDensity.current) { x.toDp() },
+                    y = with(LocalDensity.current) { (cardTop + 43f).toDp() },
+                ).width(with(LocalDensity.current) { cardW.toDp() }),
+            )
+            Text(
+                card.third,
+                color = muted,
+                fontSize = 8.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.offset(
+                    x = with(LocalDensity.current) { x.toDp() },
+                    y = with(LocalDensity.current) { (cardTop + 76f).toDp() },
+                ).width(with(LocalDensity.current) { cardW.toDp() }),
+            )
+        }
+
+        val centers = listOf(0.12f, 0.30f, 0.50f, 0.70f, 0.88f)
+        val iconText = listOf("MIC", "NOTE", "CAM", "BAR", "AI")
+        bottomActions.forEachIndexed { i, action ->
+            val x = w * centers[i]
+            val y = bottomBarTop + (bottomBarBottom - bottomBarTop) * 0.25f
+            Text(
+                iconText[i],
+                color = if (i == 2) white else hotPink,
+                fontSize = if (i == 2) 13.sp else 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.offset(
+                    x = with(LocalDensity.current) { (x - w * 0.08f).toDp() },
+                    y = with(LocalDensity.current) { y.toDp() },
+                ).width(with(LocalDensity.current) { (w * 0.16f).toDp() }),
+            )
+            Text(
+                action.label,
+                color = palePink,
+                fontSize = 8.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier.offset(
+                    x = with(LocalDensity.current) { (x - w * 0.095f).toDp() },
+                    y = with(LocalDensity.current) { (y + 28f).toDp() },
+                ).width(with(LocalDensity.current) { (w * 0.19f).toDp() }),
+            )
+        }
 
         if (openDomain.isNotBlank()) {
             DomainSheet(
@@ -475,83 +466,44 @@ fun NexusHome() {
     }
 }
 
-private const val DOMAIN_PREFIX = "domain:"
-
-// Screen point -> which mapped region it landed in, or null. Converts screen -> artwork
-// px -> trace space (undoing the trace's offset and ~1% scale) so every mapped region
-// tests unchanged. Shared by tap and long-press so they can never disagree.
-private fun regionAt(
-    tap: androidx.compose.ui.geometry.Offset,
-    ox: Float,
-    oy: Float,
-    scale: Float,
+private fun hitTest(
+    tap: Offset,
+    w: Float,
+    h: Float,
+    safeTop: Float,
+    safeBottom: Float,
+    wheelCx: Float,
+    wheelCy: Float,
+    wheelR: Float,
+    coreR: Float,
+    bottomBarTop: Float,
+    bottomBarBottom: Float,
 ): String? {
-    val ax = ((tap.x - ox) / scale - MAP_TX) / MAP_SX
-    val ay = ((tap.y - oy) / scale - MAP_TY) / MAP_SY
-    PETALS.firstOrNull { inPolygon(it.second, ax, ay) }?.let { return DOMAIN_PREFIX + it.first }
-    for ((id, e) in ELLIPSES) {
-        val nx = (ax - e[0]) / e[2]
-        val ny = (ay - e[1]) / e[3]
-        if (nx * nx + ny * ny <= 1f) return id
+    if (tap.x > w * 0.72f && tap.y < safeTop + h * 0.07f) return "bell"
+
+    if (tap.y in bottomBarTop..bottomBarBottom) {
+        val centers = floatArrayOf(0.12f, 0.30f, 0.50f, 0.70f, 0.88f)
+        val ids = arrayOf("voice", "note", "camera", "barcode", "ai")
+        var best = -1
+        var bestD = Float.MAX_VALUE
+        for (i in centers.indices) {
+            val d = kotlin.math.abs(tap.x - w * centers[i])
+            if (d < bestD) { bestD = d; best = i }
+        }
+        if (best >= 0 && bestD < w * 0.11f) return ids[best]
     }
-    for ((id, r) in RECTS) {
-        if (ax >= r[0] && ax <= r[0] + r[2] && ay >= r[1] && ay <= r[1] + r[3]) return id
-    }
-    return null
+
+    val dx = tap.x - wheelCx
+    val dy = tap.y - wheelCy
+    val r = sqrt(dx * dx + dy * dy)
+    if (r <= coreR) return null
+    if (r > wheelR) return null
+    var deg = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
+    if (deg < 0f) deg += 360f
+    val index = (((deg + 22.5f) % 360f) / 45f).toInt()
+    return "domain:${domains[index]}"
 }
 
-// Where a non-petal region goes. The wheel's center is left for a future easter egg.
-private fun act(id: String, scope: kotlinx.coroutines.CoroutineScope) {
-    when (id) {
-        "bell" -> Nav.open("notifications")
-        "btn-voice" -> Nav.open("command")
-        "btn-note" -> Nav.open("ideas")
-        // SCAN DOC: the precise scanner — decodes a QR or barcode exactly and files it.
-        "btn-scandoc" -> scanCode(scope)
-        "btn-ai" -> Nav.open("ai-assistant")
-        // The big round button IS the camera: shoot anything, and Life OS reads what is
-        // on it and proposes where it goes.
-        "btn-scan-center" -> scanWithCamera(scope)
-        else -> {} // core: reserved
-    }
-}
-
-@Composable
-private fun SlotText(
-    text: String,
-    slot: FloatArray,
-    ox: Float,
-    oy: Float,
-    scale: Float,
-    density: androidx.compose.ui.unit.Density,
-    color: Color,
-    designSize: Float,
-    weight: FontWeight,
-) {
-    if (text.isBlank()) return
-    // Give the text room either side of the slot and center it on the slot's middle, so a
-    // long value (a full date) is never clipped by the traced box.
-    val pad = slot[2] * 1.2f
-    with(density) {
-        Text(
-            text,
-            color = color,
-            fontSize = (designSize * scale).toSp(),
-            fontWeight = weight,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier
-                .offset(
-                    x = (ox + (slot[0] - pad / 2f) * scale).toDp(),
-                    y = (oy + slot[1] * scale).toDp(),
-                )
-                .width(((slot[2] + pad) * scale).toDp()),
-        )
-    }
-}
-
-// The modules inside a tapped domain. Deliberately plain — the artwork carries the
-// look; this is the functional list that gets you into a module.
 @Composable
 private fun DomainSheet(
     domain: String,
@@ -560,7 +512,7 @@ private fun DomainSheet(
     onDismiss: () -> Unit,
 ) {
     Box(
-        Modifier.fillMaxSize().background(Color(0xE605070B)).clickable(onClick = onDismiss),
+        Modifier.fillMaxSize().background(Color(0xF205060A)).clickable(onClick = onDismiss),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -569,19 +521,19 @@ private fun DomainSheet(
         ) {
             Text(
                 domain.uppercase(),
-                color = Color(0xFFE0708F),
+                color = hotPink,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 3.sp,
             )
             modules.forEach { m ->
                 Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x14FFFFFF))
+                    Modifier.fillMaxWidth()
+                        .background(Color(0x14FFFFFF), RoundedCornerShape(12.dp))
                         .clickable { onPick(m.id) }
                         .padding(horizontal = 16.dp, vertical = 15.dp),
                 ) {
-                    Text("${m.icon}   ${m.label}", color = Color(0xFFEDEFF2), fontSize = 16.sp)
+                    Text("${m.icon}   ${m.label}", color = white, fontSize = 16.sp)
                 }
             }
             Text(
@@ -594,7 +546,6 @@ private fun DomainSheet(
     }
 }
 
-// Register NEXUS as an available interface. Idempotent; called on app open.
 fun registerNexus() {
     com.alekpeed.lifeos.interfaces.Interfaces.registerHome(NEXUS) { NexusHome() }
 }
