@@ -43,11 +43,11 @@ import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.system.scanCode
 import com.alekpeed.lifeos.system.scanWithCamera
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.min
@@ -75,7 +75,6 @@ private val months = listOf(
 private val pink = Color(0xFFFF4F93)
 private val hotPink = Color(0xFFFF88B9)
 private val palePink = Color(0xFFFFC6DB)
-private val cyan = Color(0xFF65E6E6)
 private val panel = Color(0xCC090A10)
 private val bg = Color(0xFF05060A)
 private val white = Color(0xFFF4F0F3)
@@ -147,9 +146,7 @@ fun NexusHome() {
                     val hit = hitTest(
                         tap = tap,
                         w = w,
-                        h = h,
                         safeTop = safeTop,
-                        safeBottom = safeBottom,
                         wheelCx = wheelCx,
                         wheelCy = wheelCy,
                         wheelR = wheelR,
@@ -171,7 +168,6 @@ fun NexusHome() {
         ) {
             drawRect(bg)
 
-            // Faint cyberpunk city rails / perspective floor.
             val horizon = safeTop + (safeBottom - safeTop) * 0.61f
             for (i in -6..6) {
                 val x = w / 2f + i * w * 0.10f
@@ -182,7 +178,6 @@ fun NexusHome() {
                 drawLine(pink.copy(alpha = 0.06f), Offset(0f, yy), Offset(w, yy), 1f)
             }
 
-            // Planet horizon behind the wheel.
             drawArc(
                 color = pink.copy(alpha = 0.28f),
                 startAngle = 195f,
@@ -203,13 +198,12 @@ fun NexusHome() {
                 blendMode = BlendMode.Plus,
             )
 
-            // Radial wheel.
             drawCircle(pink.copy(alpha = 0.13f), wheelR * 1.08f, Offset(wheelCx, wheelCy), style = Stroke(1.5f))
             drawCircle(pink.copy(alpha = 0.22f), wheelR, Offset(wheelCx, wheelCy), style = Stroke(2f))
             drawCircle(pink.copy(alpha = 0.16f), wheelR * 0.72f, Offset(wheelCx, wheelCy), style = Stroke(1.5f))
 
             repeat(8) { i ->
-                val a = Math.toRadians((-112.5 + i * 45.0)).toFloat()
+                val a = (-112.5f + i * 45f) * PI.toFloat() / 180f
                 val inner = Offset(
                     wheelCx + cos(a) * coreR * 1.18f,
                     wheelCy + sin(a) * coreR * 1.18f,
@@ -226,7 +220,6 @@ fun NexusHome() {
             drawCircle(pink.copy(alpha = glow), coreR * 1.05f, Offset(wheelCx, wheelCy), style = Stroke(11f), blendMode = BlendMode.Plus)
             drawCircle(palePink.copy(alpha = 0.85f), coreR, Offset(wheelCx, wheelCy), style = Stroke(3f))
 
-            // Projection beam / dais.
             val beamBottom = cardTop - 45f
             drawLine(pink.copy(alpha = 0.25f), Offset(wheelCx, wheelCy + wheelR), Offset(wheelCx, beamBottom), 3f)
             drawLine(hotPink.copy(alpha = 0.42f), Offset(wheelCx, wheelCy + wheelR), Offset(wheelCx, beamBottom), 1f)
@@ -239,7 +232,6 @@ fun NexusHome() {
                 )
             }
 
-            // Information cards.
             val gap = w * 0.018f
             val cardW = (w - gap * 4f) / 3f
             val cardH = (bottomBarTop - cardTop) * 0.82f
@@ -259,7 +251,6 @@ fun NexusHome() {
                 )
             }
 
-            // Bottom action bar.
             drawRoundRect(
                 color = panel,
                 topLeft = Offset(w * 0.035f, bottomBarTop),
@@ -280,21 +271,21 @@ fun NexusHome() {
             drawCircle(pink, camR, Offset(camCx, camCy), style = Stroke(2.4f))
         }
 
-        // Header and live values.
+        val density = LocalDensity.current
         Text(
             "NEXUS",
             color = hotPink,
             fontSize = 28.sp,
             fontWeight = FontWeight.Light,
             letterSpacing = 5.sp,
-            modifier = Modifier.offset(24.dp, with(LocalDensity.current) { (safeTop + 18f).toDp() }),
+            modifier = Modifier.offset(24.dp, with(density) { (safeTop + 18f).toDp() }),
         )
         Text(
             "LIFE OS",
             color = palePink,
             fontSize = 11.sp,
             letterSpacing = 3.sp,
-            modifier = Modifier.offset(26.dp, with(LocalDensity.current) { (safeTop + 53f).toDp() }),
+            modifier = Modifier.offset(26.dp, with(density) { (safeTop + 53f).toDp() }),
         )
         Text(
             clock,
@@ -303,9 +294,9 @@ fun NexusHome() {
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             modifier = Modifier.offset(
-                x = with(LocalDensity.current) { (w * 0.34f).toDp() },
-                y = with(LocalDensity.current) { (safeTop + 19f).toDp() },
-            ).width(with(LocalDensity.current) { (w * 0.32f).toDp() }),
+                x = with(density) { (w * 0.34f).toDp() },
+                y = with(density) { (safeTop + 19f).toDp() },
+            ).width(with(density) { (w * 0.32f).toDp() }),
         )
         Text(
             date,
@@ -313,23 +304,22 @@ fun NexusHome() {
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.offset(
-                x = with(LocalDensity.current) { (w * 0.33f).toDp() },
-                y = with(LocalDensity.current) { (safeTop + 47f).toDp() },
-            ).width(with(LocalDensity.current) { (w * 0.34f).toDp() }),
+                x = with(density) { (w * 0.33f).toDp() },
+                y = with(density) { (safeTop + 47f).toDp() },
+            ).width(with(density) { (w * 0.34f).toDp() }),
         )
         Text(
-            "♧",
+            "◇",
             color = palePink,
             fontSize = 24.sp,
             modifier = Modifier.offset(
-                x = with(LocalDensity.current) { (w * 0.76f).toDp() },
-                y = with(LocalDensity.current) { (safeTop + 16f).toDp() },
+                x = with(density) { (w * 0.76f).toDp() },
+                y = with(density) { (safeTop + 16f).toDp() },
             ),
         )
 
-        // Domain labels around the wheel.
         domains.forEachIndexed { i, domain ->
-            val a = Math.toRadians((-90.0 + i * 45.0)).toFloat()
+            val a = (-90f + i * 45f) * PI.toFloat() / 180f
             val r = wheelR * 0.79f
             val x = wheelCx + cos(a) * r
             val y = wheelCy + sin(a) * r
@@ -342,9 +332,9 @@ fun NexusHome() {
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 modifier = Modifier.offset(
-                    x = with(LocalDensity.current) { (x - w * 0.12f).toDp() },
-                    y = with(LocalDensity.current) { (y - 12f).toDp() },
-                ).width(with(LocalDensity.current) { (w * 0.24f).toDp() }),
+                    x = with(density) { (x - w * 0.12f).toDp() },
+                    y = with(density) { (y - 12f).toDp() },
+                ).width(with(density) { (w * 0.24f).toDp() }),
             )
         }
 
@@ -356,9 +346,9 @@ fun NexusHome() {
             letterSpacing = 4.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.offset(
-                x = with(LocalDensity.current) { (wheelCx - coreR).toDp() },
-                y = with(LocalDensity.current) { (wheelCy - 20f).toDp() },
-            ).width(with(LocalDensity.current) { (coreR * 2f).toDp() }),
+                x = with(density) { (wheelCx - coreR).toDp() },
+                y = with(density) { (wheelCy - 20f).toDp() },
+            ).width(with(density) { (coreR * 2f).toDp() }),
         )
         Text(
             "CORE",
@@ -367,9 +357,9 @@ fun NexusHome() {
             letterSpacing = 3.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.offset(
-                x = with(LocalDensity.current) { (wheelCx - coreR).toDp() },
-                y = with(LocalDensity.current) { (wheelCy + 22f).toDp() },
-            ).width(with(LocalDensity.current) { (coreR * 2f).toDp() }),
+                x = with(density) { (wheelCx - coreR).toDp() },
+                y = with(density) { (wheelCy + 22f).toDp() },
+            ).width(with(density) { (coreR * 2f).toDp() }),
         )
 
         Text(
@@ -380,7 +370,7 @@ fun NexusHome() {
             textAlign = TextAlign.Center,
             modifier = Modifier.offset(
                 x = 0.dp,
-                y = with(LocalDensity.current) { (cardTop - 31f).toDp() },
+                y = with(density) { (cardTop - 31f).toDp() },
             ).fillMaxWidth(),
         )
 
@@ -399,9 +389,9 @@ fun NexusHome() {
                 letterSpacing = 1.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.offset(
-                    x = with(LocalDensity.current) { x.toDp() },
-                    y = with(LocalDensity.current) { (cardTop + 14f).toDp() },
-                ).width(with(LocalDensity.current) { cardW.toDp() }),
+                    x = with(density) { x.toDp() },
+                    y = with(density) { (cardTop + 14f).toDp() },
+                ).width(with(density) { cardW.toDp() }),
             )
             Text(
                 card.second,
@@ -410,9 +400,9 @@ fun NexusHome() {
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.offset(
-                    x = with(LocalDensity.current) { x.toDp() },
-                    y = with(LocalDensity.current) { (cardTop + 43f).toDp() },
-                ).width(with(LocalDensity.current) { cardW.toDp() }),
+                    x = with(density) { x.toDp() },
+                    y = with(density) { (cardTop + 43f).toDp() },
+                ).width(with(density) { cardW.toDp() }),
             )
             Text(
                 card.third,
@@ -420,9 +410,9 @@ fun NexusHome() {
                 fontSize = 8.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.offset(
-                    x = with(LocalDensity.current) { x.toDp() },
-                    y = with(LocalDensity.current) { (cardTop + 76f).toDp() },
-                ).width(with(LocalDensity.current) { cardW.toDp() }),
+                    x = with(density) { x.toDp() },
+                    y = with(density) { (cardTop + 76f).toDp() },
+                ).width(with(density) { cardW.toDp() }),
             )
         }
 
@@ -438,9 +428,9 @@ fun NexusHome() {
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.offset(
-                    x = with(LocalDensity.current) { (x - w * 0.08f).toDp() },
-                    y = with(LocalDensity.current) { y.toDp() },
-                ).width(with(LocalDensity.current) { (w * 0.16f).toDp() }),
+                    x = with(density) { (x - w * 0.08f).toDp() },
+                    y = with(density) { y.toDp() },
+                ).width(with(density) { (w * 0.16f).toDp() }),
             )
             Text(
                 action.label,
@@ -449,9 +439,9 @@ fun NexusHome() {
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 modifier = Modifier.offset(
-                    x = with(LocalDensity.current) { (x - w * 0.095f).toDp() },
-                    y = with(LocalDensity.current) { (y + 28f).toDp() },
-                ).width(with(LocalDensity.current) { (w * 0.19f).toDp() }),
+                    x = with(density) { (x - w * 0.095f).toDp() },
+                    y = with(density) { (y + 28f).toDp() },
+                ).width(with(density) { (w * 0.19f).toDp() }),
             )
         }
 
@@ -469,9 +459,7 @@ fun NexusHome() {
 private fun hitTest(
     tap: Offset,
     w: Float,
-    h: Float,
     safeTop: Float,
-    safeBottom: Float,
     wheelCx: Float,
     wheelCy: Float,
     wheelR: Float,
@@ -479,7 +467,7 @@ private fun hitTest(
     bottomBarTop: Float,
     bottomBarBottom: Float,
 ): String? {
-    if (tap.x > w * 0.72f && tap.y < safeTop + h * 0.07f) return "bell"
+    if (tap.x > w * 0.72f && tap.y < safeTop + 70f) return "bell"
 
     if (tap.y in bottomBarTop..bottomBarBottom) {
         val centers = floatArrayOf(0.12f, 0.30f, 0.50f, 0.70f, 0.88f)
@@ -487,8 +475,11 @@ private fun hitTest(
         var best = -1
         var bestD = Float.MAX_VALUE
         for (i in centers.indices) {
-            val d = kotlin.math.abs(tap.x - w * centers[i])
-            if (d < bestD) { bestD = d; best = i }
+            val d = abs(tap.x - w * centers[i])
+            if (d < bestD) {
+                bestD = d
+                best = i
+            }
         }
         if (best >= 0 && bestD < w * 0.11f) return ids[best]
     }
@@ -496,9 +487,8 @@ private fun hitTest(
     val dx = tap.x - wheelCx
     val dy = tap.y - wheelCy
     val r = sqrt(dx * dx + dy * dy)
-    if (r <= coreR) return null
-    if (r > wheelR) return null
-    var deg = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
+    if (r <= coreR || r > wheelR) return null
+    var deg = atan2(dy, dx) * 180f / PI.toFloat() + 90f
     if (deg < 0f) deg += 360f
     val index = (((deg + 22.5f) % 360f) / 45f).toInt()
     return "domain:${domains[index]}"
