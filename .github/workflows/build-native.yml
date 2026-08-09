@@ -13,6 +13,11 @@ on:
     paths:
       - 'native/**'
       - '.github/workflows/build-native.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'native/**'
+      - '.github/workflows/build-native.yml'
   workflow_dispatch:
 
 jobs:
@@ -39,9 +44,6 @@ jobs:
       - name: Build native Android APK
         working-directory: native
         env:
-          # Baked into the APK at build time so the app ships working without each
-          # user pasting a key. Stored as a repo secret — never in source. Absent
-          # (empty) on forks/PRs, where the app falls back to a user-entered key.
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: gradle :composeApp:assembleDebug --no-daemon --stacktrace
 
@@ -82,11 +84,6 @@ jobs:
 
   linux:
     name: Native Linux App
-    # Built on the OLDEST supported base on purpose. jpackage writes the runner's own
-    # library names into the package's dependency list, and 24.04 names them with the
-    # 64-bit time_t suffix (libasound2t64, libpng16-16t64). Those package names don't
-    # exist on 22.04 or on Mint 21.x, so a .deb built on 24.04 refuses to install
-    # there. Building on 22.04 produces a package that installs on 22.04 and newer.
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -102,7 +99,6 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      # jpackage builds the .deb; fakeroot and dpkg-dev are what it shells out to.
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y fakeroot dpkg-dev binutils
 
