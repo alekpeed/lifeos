@@ -36,12 +36,25 @@ object Interfaces {
     // Active interface id, observable so switching it in Settings recomposes pages.
     // Persisted, so the interface you picked is still there after a restart.
     private const val K_ACTIVE = "ActiveInterface"
+    private const val K_COMMAND_ROOM_HOME_MIGRATED = "NexusCommandRoomHomeMigrated"
+
     // NEXUS is the baseline interface — the graphical home is what Life OS opens into
     // unless you pick something else in Settings. It falls back to the built-in
     // functional launcher wherever its artwork isn't available (e.g. desktop).
     const val BASELINE = "nexus"
+
+    // Existing installs can have an older persisted interface selection, including
+    // "default", which would otherwise prevent a newly-installed canonical NEXUS
+    // home from appearing at all. Promote the command-room NEXUS home exactly once
+    // per install. After this migration, Settings choices are respected normally.
     private var activeState by mutableStateOf(
-        Storage.read(K_ACTIVE)?.ifBlank { null } ?: BASELINE,
+        if (Storage.read(K_COMMAND_ROOM_HOME_MIGRATED) != "1") {
+            Storage.write(K_ACTIVE, BASELINE)
+            Storage.write(K_COMMAND_ROOM_HOME_MIGRATED, "1")
+            BASELINE
+        } else {
+            Storage.read(K_ACTIVE)?.ifBlank { null } ?: BASELINE
+        },
     )
     val active: String get() = activeState
 
