@@ -12,6 +12,7 @@ import com.alekpeed.lifeos.links.LinksScreen
 import com.alekpeed.lifeos.milestones.MilestonesScreen
 import com.alekpeed.lifeos.museum.MuseumScreen
 import com.alekpeed.lifeos.orrery.OrreryScreen
+import com.alekpeed.lifeos.operations.OperationsScreen
 import com.alekpeed.lifeos.packing.PackingScreen
 import com.alekpeed.lifeos.paper.DailyPaperScreen
 import com.alekpeed.lifeos.places.PlacesScreen
@@ -53,6 +54,7 @@ data class Module(
     val label: String,
     val group: String,
     val ready: Boolean,
+    val immersive: Boolean = false,
     val content: @Composable () -> Unit,
 )
 
@@ -65,6 +67,7 @@ val MODULE_GROUPS = listOf(
 
 fun lifeOsModules(): List<Module> = listOf(
     // Operations — run your day
+    Module("operations", "◈", "Operations", "Operations", true, immersive = true) { OperationsScreen() },
     Module("today", "🗓", "Today", "Operations", true) { TodayScreen() },
     Module("daily-paper", "📰", "Daily Paper", "Operations", true) { DailyPaperScreen() },
     Module("tasks", "✅", "Tasks", "Operations", true) { TasksScreen() },

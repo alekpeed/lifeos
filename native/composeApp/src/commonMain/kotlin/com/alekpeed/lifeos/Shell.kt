@@ -68,6 +68,10 @@ fun Shell() {
     // A deep link / app shortcut / NFC tag / shared item can request a module by id.
     LaunchedEffect(Nav.pendingModuleId) {
         val id = Nav.consume() ?: return@LaunchedEffect
+        if (id == Nav.HOME) {
+            current = null
+            return@LaunchedEffect
+        }
         modules.firstOrNull { it.id == id }?.let { current = it }
     }
 
@@ -92,20 +96,26 @@ fun Shell() {
         } else {
             // Android edge-swipe / back button pops to Home instead of leaving the app.
             SystemBackHandler(enabled = true) { current = null }
-            Column(Modifier.fillMaxSize()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    BackArrow { current = null }
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "${c.icon}  ${c.label}",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-                Box(Modifier.fillMaxWidth().weight(1f)) {
+            if (c.immersive) {
+                Box(Modifier.fillMaxSize()) {
                     Interfaces.Render(c.id, c.content)
+                }
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BackArrow { current = null }
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            "${c.icon}  ${c.label}",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    Box(Modifier.fillMaxWidth().weight(1f)) {
+                        Interfaces.Render(c.id, c.content)
+                    }
                 }
             }
         }
