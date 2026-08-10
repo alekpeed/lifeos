@@ -45,8 +45,8 @@ object Interfaces {
 
     // Existing installs can have an older persisted interface selection, including
     // "default", which would otherwise prevent a newly-installed canonical NEXUS
-    // home from appearing at all. Promote the command-room NEXUS home exactly once
-    // per install. After this migration, Settings choices are respected normally.
+    // home from appearing at all. Promote the command-room NEXUS home once per
+    // install. After this migration, Settings choices are respected normally.
     private var activeState by mutableStateOf(
         if (Storage.read(K_COMMAND_ROOM_HOME_MIGRATED) != "1") {
             Storage.write(K_ACTIVE, BASELINE)
