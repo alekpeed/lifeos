@@ -1,7 +1,12 @@
 package com.alekpeed.lifeos
 
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import com.alekpeed.lifeos.interfaces.Interfaces
+import com.alekpeed.lifeos.interfaces.machiya.MACHIYA
+import com.alekpeed.lifeos.interfaces.machiya.registerMachiyaHome
 
 // Desktop entry point. Plain `lifeos` opens the full app; `lifeos --helper` opens the
 // helper window — same binary, so one build serves both and a fix reaches both.
@@ -23,8 +28,20 @@ fun main(args: Array<String>) {
         val n = it.substringAfter('=').trim()
         if (n.isNotEmpty()) AppMode.ownerName = n
     }
+
+    val isLinux = System.getProperty("os.name").contains("linux", ignoreCase = true)
+    if (!AppMode.helper && isLinux) {
+        registerMachiyaHome()
+        Interfaces.setActive(MACHIYA)
+    }
     application {
-        Window(onCloseRequest = ::exitApplication, title = "Life OS") {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "Life OS",
+            state = rememberWindowState(
+                placement = if (!AppMode.helper && isLinux) WindowPlacement.Maximized else WindowPlacement.Floating,
+            ),
+        ) {
             App()
         }
     }
