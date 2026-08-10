@@ -30,13 +30,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -165,7 +165,6 @@ fun NexusCommandRoomHome() {
             onAi = { Nav.open("ai-assistant") },
         )
 
-        // Bell hit target, kept separate from the header so its icon can stay subtle.
         Box(Modifier.r(0.735f, 0.026f, 0.08f, 0.05f).clickable { Nav.open("notifications") })
 
         if (openDomain.isNotBlank()) {
@@ -206,7 +205,6 @@ private fun RoomBackdrop(topInset: Float, safeH: Float) {
             size = Size(size.width, y1 - y0),
         )
 
-        // Window frame.
         drawRoundRect(
             Color(0xFF6CB7DA).copy(alpha = 0.22f),
             topLeft = Offset(size.width * 0.315f, y0 + safeH * 0.015f),
@@ -215,7 +213,6 @@ private fun RoomBackdrop(topInset: Float, safeH: Float) {
             style = Stroke(2f),
         )
 
-        // Dense 2170 skyline. Geometry stays deterministic; only window light breathes.
         val skylineBottom = y1
         val towers = listOf(
             0.30f to 0.16f, 0.335f to 0.23f, 0.365f to 0.19f, 0.39f to 0.28f,
@@ -249,7 +246,6 @@ private fun RoomBackdrop(topInset: Float, safeH: Float) {
             }
         }
 
-        // Multi-level traffic ribbons.
         repeat(4) { i ->
             val yy = y1 - safeH * (0.035f + i * 0.028f)
             drawLine(Color(0xFF63D7FF).copy(alpha = 0.18f), Offset(size.width * 0.29f, yy), Offset(size.width * 0.71f, yy - 7f), 2f)
@@ -280,7 +276,6 @@ private fun RoomChrome(topInset: Float, safeH: Float) {
         drawLine(cyan.copy(alpha = 0.35f), Offset(0f, top + safeH * 0.098f), Offset(size.width * 0.42f, top + safeH * 0.098f), 1f)
         drawLine(amber.copy(alpha = 0.30f), Offset(size.width * 0.62f, top + safeH * 0.098f), Offset(size.width, top + safeH * 0.098f), 1f)
 
-        // Architectural rails framing the city and console.
         drawLine(steel, Offset(size.width * 0.02f, top + safeH * 0.11f), Offset(size.width * 0.02f, bottom * 0.84f), 6f)
         drawLine(steel, Offset(size.width * 0.98f, top + safeH * 0.11f), Offset(size.width * 0.98f, bottom * 0.84f), 6f)
         drawLine(cyan.copy(alpha = 0.38f), Offset(size.width * 0.025f, top + safeH * 0.12f), Offset(size.width * 0.025f, top + safeH * 0.53f), 1.5f)
