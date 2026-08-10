@@ -9,3 +9,5 @@ actual fun loadTextAsset(name: String): String? = try {
 // Desktop has no bundled interface artwork; graphical interfaces are mobile-only
 // and callers fall back to the built-in functional screen.
 actual fun loadImageAsset(name: String): androidx.compose.ui.graphics.ImageBitmap? = null
+
+actual fun loadBase64ImageAsset(parts: List<String>): androidx.compose.ui.graphics.ImageBitmap? = null
