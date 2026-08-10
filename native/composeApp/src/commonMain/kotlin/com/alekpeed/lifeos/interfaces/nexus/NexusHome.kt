@@ -1,5 +1,6 @@
 package com.alekpeed.lifeos.interfaces.nexus
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,10 +24,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -37,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.HomeScreen
 import com.alekpeed.lifeos.Nav
+import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.lifeOsModules
 import com.alekpeed.lifeos.platform.Native
@@ -52,476 +56,118 @@ import com.alekpeed.lifeos.tasks.Task
 import com.alekpeed.lifeos.tasks.loadTasks
 import com.alekpeed.lifeos.tasks.priorityRank
 import com.alekpeed.lifeos.tasks.statusLabel
-import com.alekpeed.lifeos.data.today
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.PI
-import kotlin.math.atan2
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
+import kotlin.math.sin
 
 const val NEXUS = "nexus"
 private const val ART = "nexus-home.png"
-private const val CANONICAL_WIDTH = 1080f
-private const val CANONICAL_HEIGHT = 2400f
-private val GENERATED_ART = (0..8).map { "nexus-home-$it.b64" }
-private val MONTHS = listOf(
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+private const val CW = 941f
+private const val CH = 1672f
+private val ART_PARTS = listOf(
+    "nexus-command-room.b64",
+    "nexus-command-room-1.b64",
+    "nexus-command-room-2.b64",
+    "nexus-command-room-3.b64",
+)
+private val MONTHS = listOf("January","February","March","April","May","June","July","August","September","October","November","December")
+
+private data class R(val id:String,val l:Float,val t:Float,val r:Float,val b:Float)
+private val HITS = listOf(
+    R("domain:Operations",.060f,.128f,.292f,.222f), R("domain:Archive",.060f,.228f,.292f,.318f),
+    R("domain:Logistics",.060f,.327f,.292f,.418f), R("domain:Discovery",.060f,.425f,.292f,.515f),
+    R("domain:Management",.705f,.128f,.936f,.222f), R("domain:Intelligence",.705f,.228f,.936f,.318f),
+    R("domain:People",.705f,.327f,.936f,.418f), R("domain:System",.705f,.425f,.936f,.515f),
+    R("bell",.755f,.024f,.815f,.078f), R("core",.205f,.515f,.795f,.645f),
+    R("voice",.035f,.865f,.220f,.965f), R("quick_note",.220f,.865f,.405f,.965f),
+    R("camera",.405f,.840f,.595f,.985f), R("barcode",.595f,.865f,.780f,.965f), R("ai_assist",.780f,.865f,.965f,.965f),
 )
 
-private val DOMAINS = listOf(
-    "Operations",
-    "Archive",
-    "Logistics",
-    "Discovery",
-    "Management",
-    "Intelligence",
-    "People",
-    "System",
-)
-
-private data class NexusLiveState(
-    val score: String,
-    val scoreCaption: String,
-    val syncMain: String,
-    val syncLine1: String,
-    val syncLine2: String,
-    val nextWhen: String,
-    val nextTitle: String,
-    val nextDetail: String,
+private data class Live(
+    val score:String,val scoreCaption:String,val syncMain:String,val sync1:String,val sync2:String,
+    val nextWhen:String,val nextTitle:String,val nextDetail:String,val notifications:Int,
 )
 
 @Composable
 fun NexusHome() {
-    val art = remember {
-        loadBase64ImageAsset(GENERATED_ART) ?: loadImageAsset(ART)
-    }
-    if (art == null) {
-        HomeScreen(remember { lifeOsModules() }) { Nav.open(it.id) }
-        return
-    }
-
+    val art = remember { loadBase64ImageAsset(ART_PARTS) ?: loadImageAsset(ART) }
+    if (art == null) { HomeScreen(remember { lifeOsModules() }) { Nav.open(it.id) }; return }
     val modules = remember { lifeOsModules() }
     val scope = rememberCoroutineScope()
-    var openDomain by remember { mutableStateOf("") }
+    var domain by remember { mutableStateOf("") }
+    DisposableEffect(Unit) { Native.setImmersive(true); onDispose { Native.setImmersive(false) } }
 
-    DisposableEffect(Unit) {
-        Native.setImmersive(true)
-        onDispose { Native.setImmersive(false) }
-    }
-
-    BoxWithConstraints(
-        Modifier.fillMaxSize().background(Color(0xFF05060A)),
-    ) {
-        val viewportW = constraints.maxWidth.toFloat()
-        val viewportH = constraints.maxHeight.toFloat()
-        val topInset = Native.cutoutTopPx().toFloat()
-        val bottomInset = Native.navBottomPx().toFloat()
-        val safeH = (viewportH - topInset - bottomInset).coerceAtLeast(1f)
-
-        // The interaction frame is always exactly 1080x2400 in normalized geometry.
-        // Device aspect-ratio differences are letterboxed; the artwork is fitted to
-        // this canonical frame rather than allowed to redefine it.
-        val scale = minOf(viewportW / CANONICAL_WIDTH, safeH / CANONICAL_HEIGHT)
-        val drawW = CANONICAL_WIDTH * scale
-        val drawH = CANONICAL_HEIGHT * scale
-        val originX = (viewportW - drawW) / 2f
-        val originY = topInset + (safeH - drawH) / 2f
-        val density = LocalDensity.current
-
-        Image(
-            bitmap = art,
-            contentDescription = null,
-            contentScale = ContentScale.FillBounds,
-            modifier = Modifier
-                .offset(
-                    with(density) { originX.toDp() },
-                    with(density) { originY.toDp() },
-                )
-                .size(
-                    with(density) { drawW.toDp() },
-                    with(density) { drawH.toDp() },
-                ),
-        )
-
-        // Live text is painted over only the static text pixels in the artwork.
-        // The generated design, borders, icons, wheel, glow and hit geometry stay intact.
-        LiveNexusOverlay(originX, originY, drawW, drawH)
-
-        // Invisible interaction layer. Coordinates below are the canonical JSON
-        // frame values and intentionally do not alter the artwork.
-        Box(
-            Modifier.fillMaxSize().pointerInput(art, originX, originY, drawW, drawH) {
-                detectTapGestures { tap ->
-                    when (val hit = hitRegion(tap, originX, originY, drawW, drawH)) {
-                        null, "core" -> Unit
-                        "bell" -> Nav.open("notifications")
-                        "voice" -> Nav.open("command")
-                        "quick_note" -> Nav.open("ideas")
-                        "camera" -> scanWithCamera(scope)
-                        "barcode" -> scanCode(scope)
-                        "ai_assist" -> Nav.open("ai-assistant")
-                        else -> if (hit.startsWith("domain:")) {
-                            openDomain = hit.removePrefix("domain:")
-                        }
-                    }
-                }
-            },
-        )
-
-        if (openDomain.isNotBlank()) {
-            DomainSheet(
-                domain = openDomain,
-                modules = modules.filter { it.group == openDomain },
-                onPick = { Nav.open(it); openDomain = "" },
-                onDismiss = { openDomain = "" },
-            )
-        }
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF03070B))) {
+        val vw=constraints.maxWidth.toFloat(); val vh=constraints.maxHeight.toFloat()
+        val top=Native.cutoutTopPx().toFloat(); val bottom=Native.navBottomPx().toFloat(); val safe=(vh-top-bottom).coerceAtLeast(1f)
+        val s=minOf(vw/CW,safe/CH); val w=CW*s; val h=CH*s; val ox=(vw-w)/2f; val oy=top+(safe-h)/2f
+        val d=LocalDensity.current
+        Image(art,null,Modifier.offset(with(d){ox.toDp()},with(d){oy.toDp()}).size(with(d){w.toDp()},with(d){h.toDp()}),contentScale=ContentScale.FillBounds)
+        Ambient(ox,oy,w,h)
+        LiveOverlay(ox,oy,w,h)
+        Box(Modifier.fillMaxSize().pointerInput(art,ox,oy,w,h){ detectTapGestures { p ->
+            when(val hit=hit(p,ox,oy,w,h)) {
+                null,"core" -> Unit
+                "bell" -> Nav.open("notifications")
+                "voice" -> Nav.open("command")
+                "quick_note" -> Nav.open("ideas")
+                "camera" -> scanWithCamera(scope)
+                "barcode" -> scanCode(scope)
+                "ai_assist" -> Nav.open("ai-assistant")
+                else -> if(hit.startsWith("domain:")) domain=hit.removePrefix("domain:")
+            }
+        } })
+        if(domain.isNotBlank()) DomainSheet(domain,modules.filter{it.group==domain},{Nav.open(it);domain=""},{domain=""})
     }
 }
 
 @Composable
-private fun LiveNexusOverlay(originX: Float, originY: Float, drawW: Float, drawH: Float) {
-    var clockText by remember { mutableStateOf("") }
-    var dateText by remember { mutableStateOf("") }
-    var live by remember { mutableStateOf(readLiveState(syncing = false)) }
-    var syncing by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-            val hour = when {
-                now.hour == 0 -> 12
-                now.hour > 12 -> now.hour - 12
-                else -> now.hour
-            }
-            clockText = "$hour:${now.minute.toString().padStart(2, '0')} ${if (now.hour < 12) "AM" else "PM"}"
-            dateText = "${MONTHS[now.monthNumber - 1]} ${now.dayOfMonth}, ${now.year}"
-            delay(1_000)
-        }
+private fun Ambient(ox:Float,oy:Float,w:Float,h:Float){
+    var ms by remember{mutableStateOf(0L)}
+    LaunchedEffect(Unit){while(true) withFrameNanos{ms=it/1_000_000L}}
+    val d=LocalDensity.current; val p=((ms%4800L).toFloat()/4800f)*2f*PI.toFloat(); val breathe=.5f+.5f*sin(p)
+    Canvas(Modifier.offset(with(d){ox.toDp()},with(d){oy.toDp()}).size(with(d){w.toDp()},with(d){h.toDp()})){
+        val core=Offset(size.width*.5f,size.height*.562f); val r=size.width*(.018f+.005f*breathe)
+        drawCircle(Color(0x222DDCFF),r*3.2f,core); drawCircle(Color(0x554AE8FF),r*1.7f,core); drawCircle(Color(0xAA9DF8FF),r*.55f,core)
+        drawCircle(Color(0x8848BFFF),r*2f,core.copy(y=core.y+size.height*.002f*sin(p+1.1f)),style=Stroke(size.width*.0015f))
+        val lights=listOf(.326f to .250f,.366f to .327f,.421f to .287f,.468f to .390f,.520f to .302f,.566f to .348f,.614f to .268f,.654f to .402f)
+        lights.forEachIndexed{i,(x,y)-> val a=.12f+.22f*(.5f+.5f*sin(p+i*.8f)); drawCircle(Color.White.copy(alpha=a),size.width*.0017f,Offset(size.width*x,size.height*y)) }
+        drawCircle(Color(0x5545D5FF),size.width*(.028f+.002f*breathe),Offset(size.width*.871f,size.height*.047f),style=Stroke(size.width*.002f))
     }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            live = readLiveState(syncing)
-            delay(15_000)
-        }
-    }
-
-    // While this home screen is open, a signed-in device performs a real sync on
-    // entry and then every five minutes. The status card reflects the actual local
-    // pending count and the last successful SyncMeta timestamp.
-    LaunchedEffect(Unit) {
-        while (true) {
-            if (SupabaseAuth.isSignedIn()) {
-                syncing = true
-                live = readLiveState(syncing = true)
-                SupabaseSync.syncNow()
-                syncing = false
-                live = readLiveState(syncing = false)
-            }
-            delay(5 * 60 * 1_000L)
-        }
-    }
-
-    val density = LocalDensity.current
-    val panel = Color(0xFF08060B)
-    val card = Color(0xFF09050B)
-    val pink = Color(0xFFFF77AC)
-    val pale = Color(0xFFFFD7E5)
-    val white = Color(0xFFF9F3F6)
-    val muted = Color(0xFFD5BFC8)
-    val green = Color(0xFF55D36A)
-
-    fun Modifier.artRect(x: Float, y: Float, w: Float, h: Float): Modifier =
-        this.offset(
-            with(density) { (originX + drawW * x).toDp() },
-            with(density) { (originY + drawH * y).toDp() },
-        ).size(
-            with(density) { (drawW * w).toDp() },
-            with(density) { (drawH * h).toDp() },
-        )
-
-    // Header clock + date. This mask sits entirely inside the header's flat dark fill.
-    Column(
-        modifier = Modifier.artRect(0.355f, 0.035f, 0.29f, 0.045f).background(panel),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            clockText,
-            color = white,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-        Text(
-            dateText,
-            color = pink,
-            fontSize = 10.sp,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-    }
-
-    // Life Score: today's completion across tasks due today + today's habit check-ins.
-    Box(
-        Modifier.artRect(0.085f, 0.771f, 0.13f, 0.035f).background(card),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            live.score,
-            color = pale,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Light,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-    }
-    Box(
-        Modifier.artRect(0.075f, 0.813f, 0.15f, 0.026f).background(card),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            live.scoreCaption,
-            color = pink,
-            fontSize = 8.sp,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-    }
-
-    // Sync card. The cloud icon remains artwork; only its status copy is live.
-    Column(
-        modifier = Modifier.artRect(0.385f, 0.806f, 0.255f, 0.047f).background(card),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            live.syncMain,
-            color = pink,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-        Text(
-            live.syncLine1,
-            color = muted,
-            fontSize = 7.sp,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-        Text(
-            live.syncLine2,
-            color = if (SupabaseAuth.isSignedIn() && SyncEngine.pendingCount() == 0) green else muted,
-            fontSize = 7.sp,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-    }
-
-    // Up Next. The calendar glyph remains artwork; its value and labels come from Tasks.
-    Box(
-        Modifier.artRect(0.755f, 0.754f, 0.19f, 0.034f).background(card),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            live.nextWhen,
-            color = pink,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-    Column(
-        modifier = Modifier.artRect(0.685f, 0.796f, 0.27f, 0.052f).background(card),
-        horizontalAlignment = Alignment.Start,
-    ) {
-        Text(
-            live.nextTitle,
-            color = pale,
-            fontSize = 9.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            live.nextDetail,
-            color = muted,
-            fontSize = 8.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-private fun readLiveState(syncing: Boolean): NexusLiveState {
-    val now = Clock.System.now().toEpochMilliseconds()
-    val today = today()
-    val tasks = loadTasks()
-    val habits = loadHabits()
-
-    val dueToday = tasks.filter { it.dueDate() == today }
-    val totalDaily = dueToday.size + habits.size
-    val completedDaily = dueToday.count { it.done } + habits.count { it.checkedInToday }
-    val score = if (totalDaily == 0) "—" else ((completedDaily * 100f) / totalDaily).roundToInt().toString()
-    val scoreCaption = if (totalDaily == 0) "NO ITEMS TODAY" else "$completedDaily / $totalDaily COMPLETE"
-
-    val signedIn = SupabaseAuth.isSignedIn()
-    val pending = if (signedIn) SyncEngine.pendingCount() else 0
-    val lastSync = SyncMeta.lastSyncAt
-    val syncMain = when {
-        syncing -> "SYNCING"
-        !signedIn -> "LOCAL ONLY"
-        pending == 0 -> "SYNCED"
-        else -> "$pending PENDING"
-    }
-    val syncLine1 = when {
-        !signedIn -> "Cloud sync is off"
-        lastSync <= 0L -> "Not synced yet"
-        else -> relativeSyncTime(now - lastSync)
-    }
-    val syncLine2 = when {
-        !signedIn -> "Sign in from Settings"
-        pending == 0 -> "All systems up to date"
-        else -> "Changes waiting to sync"
-    }
-
-    val next = nextTask(tasks, today)
-    val nextWhen = when (val due = next?.dueDate()) {
-        null -> if (next == null) "CLEAR" else "ANYTIME"
-        today -> "TODAY"
-        else -> due.toString()
-    }
-    val nextTitle = next?.title ?: "Nothing queued"
-    val nextDetail = next?.project?.ifBlank { statusLabel(next.status) } ?: "Tasks are clear"
-
-    return NexusLiveState(
-        score = score,
-        scoreCaption = scoreCaption,
-        syncMain = syncMain,
-        syncLine1 = syncLine1,
-        syncLine2 = syncLine2,
-        nextWhen = nextWhen,
-        nextTitle = nextTitle,
-        nextDetail = nextDetail,
-    )
-}
-
-private fun nextTask(tasks: List<Task>, today: kotlinx.datetime.LocalDate): Task? =
-    tasks.asSequence()
-        .filter { !it.done }
-        .filter { it.snoozeDate()?.let { snoozed -> snoozed <= today } ?: true }
-        .sortedWith(
-            compareBy<Task>(
-                { it.dueDate() == null },
-                { it.dueDate()?.toString().orEmpty() },
-                { priorityRank(it.priority) },
-            ),
-        )
-        .firstOrNull()
-
-private fun relativeSyncTime(ageMillis: Long): String = when {
-    ageMillis < 60_000L -> "Last synced just now"
-    ageMillis < 3_600_000L -> "Last synced ${ageMillis / 60_000L}m ago"
-    ageMillis < 86_400_000L -> "Last synced ${ageMillis / 3_600_000L}h ago"
-    else -> "Last synced ${ageMillis / 86_400_000L}d ago"
-}
-
-private fun hitRegion(
-    tap: Offset,
-    originX: Float,
-    originY: Float,
-    drawW: Float,
-    drawH: Float,
-): String? {
-    val x = (tap.x - originX) / drawW
-    val y = (tap.y - originY) / drawH
-    if (x !in 0f..1f || y !in 0f..1f) return null
-
-    if (x in 0.82f..0.92f && y in 0.035f..0.09f) return "bell"
-
-    if (x in 0.045f..0.205f && y in 0.845f..0.955f) return "voice"
-    if (x in 0.205f..0.385f && y in 0.845f..0.955f) return "quick_note"
-    if (x in 0.385f..0.615f && y in 0.825f..0.965f) return "camera"
-    if (x in 0.615f..0.795f && y in 0.845f..0.955f) return "barcode"
-    if (x in 0.795f..0.955f && y in 0.845f..0.955f) return "ai_assist"
-
-    val dxPx = (x - 0.5f) * drawW
-    val dyPx = (y - 0.365f) * drawH
-    val radiusPx = sqrt(dxPx * dxPx + dyPx * dyPx)
-
-    val coreRadius = 0.105f * drawW
-    if (radiusPx <= coreRadius) return "core"
-
-    val innerRadius = 0.17f * drawW
-    val outerRadius = 0.405f * drawW
-    if (radiusPx < innerRadius || radiusPx > outerRadius) return null
-
-    var angleDeg = atan2(dyPx, dxPx) * 180f / PI.toFloat()
-    if (angleDeg < 0f) angleDeg += 360f
-    val clockwiseFromTop = (angleDeg + 90f) % 360f
-    val index = (((clockwiseFromTop + 22.5f) % 360f) / 45f).toInt()
-    return "domain:${DOMAINS[index]}"
 }
 
 @Composable
-private fun DomainSheet(
-    domain: String,
-    modules: List<com.alekpeed.lifeos.Module>,
-    onPick: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color(0xE605070B))
-            .clickable(onClick = onDismiss),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                domain.uppercase(),
-                color = Color(0xFFFF88B9),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 3.sp,
-            )
-            modules.forEach { module ->
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Color(0x14FFFFFF),
-                            RoundedCornerShape(12.dp),
-                        )
-                        .clickable { onPick(module.id) }
-                        .padding(horizontal = 16.dp, vertical = 15.dp),
-                ) {
-                    Text(
-                        "${module.icon}   ${module.label}",
-                        color = Color(0xFFEDEFF2),
-                        fontSize = 16.sp,
-                    )
-                }
-            }
-            Text(
-                "tap anywhere to close",
-                color = Color(0x8899A0AA),
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-        }
-    }
+private fun LiveOverlay(ox:Float,oy:Float,w:Float,h:Float){
+    var time by remember{mutableStateOf("")}; var date by remember{mutableStateOf("")}; var syncing by remember{mutableStateOf(false)}; var live by remember{mutableStateOf(readLive(false))}
+    LaunchedEffect(Unit){while(true){val n=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault());val hr=if(n.hour==0)12 else if(n.hour>12)n.hour-12 else n.hour;time="$hr:${n.minute.toString().padStart(2,'0')} ${if(n.hour<12)"AM" else "PM"}";date="${MONTHS[n.monthNumber-1]} ${n.dayOfMonth}, ${n.year}";delay(1000)}}
+    LaunchedEffect(Unit){while(true){live=readLive(syncing);delay(15_000)}}
+    LaunchedEffect(Unit){while(true){if(SupabaseAuth.isSignedIn()){syncing=true;live=readLive(true);SupabaseSync.syncNow();syncing=false;live=readLive(false)};delay(300_000)}}
+    val d=LocalDensity.current; val panel=Color(0xFF050A10); val card=Color(0xFF071018); val cyan=Color(0xFF8DEBFF); val white=Color(0xFFF4F8FC); val muted=Color(0xFFA8BBC7); val green=Color(0xFF55D6A0)
+    fun Modifier.rect(x:Float,y:Float,rw:Float,rh:Float)=offset(with(d){(ox+w*x).toDp()},with(d){(oy+h*y).toDp()}).size(with(d){(w*rw).toDp()},with(d){(h*rh).toDp()})
+    Column(Modifier.rect(.395f,.026f,.215f,.050f).background(panel),horizontalAlignment=Alignment.CenterHorizontally){Text(time,color=white,fontSize=17.sp,fontWeight=FontWeight.Medium,maxLines=1);Text(date.uppercase(),color=muted,fontSize=8.sp,maxLines=1)}
+    Column(Modifier.rect(.075f,.710f,.215f,.110f).background(card),horizontalAlignment=Alignment.CenterHorizontally){Text(live.score,color=white,fontSize=31.sp,fontWeight=FontWeight.Light);Text(live.scoreCaption,color=cyan,fontSize=7.sp,maxLines=1)}
+    Column(Modifier.rect(.365f,.704f,.245f,.120f).background(card).padding(6.dp),verticalArrangement=Arrangement.spacedBy(3.dp)){Text(live.syncMain,color=cyan,fontSize=10.sp,fontWeight=FontWeight.Medium);Text(live.sync1,color=white,fontSize=8.sp,maxLines=1,overflow=TextOverflow.Ellipsis);Text(live.sync2,color=if(SupabaseAuth.isSignedIn()&&SyncEngine.pendingCount()==0)green else muted,fontSize=8.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
+    Column(Modifier.rect(.690f,.704f,.245f,.122f).background(card).padding(6.dp),verticalArrangement=Arrangement.spacedBy(3.dp)){Text(live.nextWhen,color=cyan,fontSize=10.sp,fontWeight=FontWeight.Medium);Text(live.nextTitle,color=white,fontSize=8.sp,maxLines=1,overflow=TextOverflow.Ellipsis);Text(live.nextDetail,color=muted,fontSize=8.sp,maxLines=1,overflow=TextOverflow.Ellipsis)}
+    if(live.notifications>0) Box(Modifier.rect(.786f,.026f,.028f,.022f).background(Color(0xFFD94D74),RoundedCornerShape(50)),contentAlignment=Alignment.Center){Text(live.notifications.coerceAtMost(99).toString(),color=Color.White,fontSize=7.sp,fontWeight=FontWeight.Bold)}
 }
 
-fun registerNexus() {
-    com.alekpeed.lifeos.interfaces.Interfaces.registerHome(NEXUS) { NexusHome() }
+private fun readLive(syncing:Boolean):Live{
+    val now=Clock.System.now().toEpochMilliseconds(); val day=today(); val tasks=loadTasks(); val habits=loadHabits(); val due=tasks.filter{it.dueDate()==day}; val total=due.size+habits.size; val done=due.count{it.done}+habits.count{it.checkedInToday}
+    val score=if(total==0)"—" else ((done*100f)/total).roundToInt().toString(); val caption=if(total==0)"NO ITEMS TODAY" else "$done / $total COMPLETE"
+    val signed=SupabaseAuth.isSignedIn(); val pending=if(signed)SyncEngine.pendingCount() else 0; val last=SyncMeta.lastSyncAt
+    val sm=when{syncing->"SYNCING";!signed->"LOCAL ONLY";pending==0->"SYNCED";else->"$pending PENDING"}; val s1=when{!signed->"Cloud sync is off";last<=0L->"Not synced yet";else->relative(now-last)}; val s2=when{!signed->"Sign in from Settings";pending==0->"All systems up to date";else->"Changes waiting to sync"}
+    val n=nextTask(tasks,day); val nw=when(val x=n?.dueDate()){null->if(n==null)"CLEAR" else "ANYTIME";day->"TODAY";else->x.toString()}; return Live(score,caption,sm,s1,s2,nw,n?.title?:"Nothing queued",n?.project?.ifBlank{statusLabel(n.status)}?:"Tasks are clear",due.count{!it.done}+pending)
 }
+private fun nextTask(tasks:List<Task>,day:kotlinx.datetime.LocalDate)=tasks.asSequence().filter{!it.done}.filter{it.snoozeDate()?.let{s->s<=day}?:true}.sortedWith(compareBy<Task>({it.dueDate()==null},{it.dueDate()?.toString().orEmpty()},{priorityRank(it.priority)})).firstOrNull()
+private fun relative(a:Long)=when{a<60_000->"Last synced just now";a<3_600_000->"Last synced ${a/60_000}m ago";a<86_400_000->"Last synced ${a/3_600_000}h ago";else->"Last synced ${a/86_400_000}d ago"}
+private fun hit(p:Offset,ox:Float,oy:Float,w:Float,h:Float):String?{val x=(p.x-ox)/w;val y=(p.y-oy)/h;if(x !in 0f..1f||y !in 0f..1f)return null;return HITS.firstOrNull{x in it.l..it.r&&y in it.t..it.b}?.id}
+
+@Composable
+private fun DomainSheet(domain:String,modules:List<com.alekpeed.lifeos.Module>,onPick:(String)->Unit,onDismiss:()->Unit){
+    Box(Modifier.fillMaxSize().background(Color(0xE6050A10)).clickable(onClick=onDismiss),contentAlignment=Alignment.Center){Column(Modifier.fillMaxWidth().padding(horizontal=28.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Text(domain.uppercase(),color=Color(0xFF8DEBFF),fontSize=13.sp,fontWeight=FontWeight.SemiBold,letterSpacing=3.sp);modules.forEach{m->Box(Modifier.fillMaxWidth().background(Color(0x14FFFFFF),RoundedCornerShape(12.dp)).clickable{onPick(m.id)}.padding(horizontal=16.dp,vertical=15.dp)){Text("${m.icon}   ${m.label}",color=Color(0xFFEDEFF2),fontSize=16.sp)}}}}
+}
+fun registerNexus(){com.alekpeed.lifeos.interfaces.Interfaces.registerHome(NEXUS){NexusHome()}}
