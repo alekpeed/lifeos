@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.core.runAutomations
 import com.alekpeed.lifeos.interfaces.Interfaces
-import com.alekpeed.lifeos.interfaces.nexus.registerNexus
+import com.alekpeed.lifeos.interfaces.nexus.registerNexusCommandRoom
 import com.alekpeed.lifeos.platform.SystemBackHandler
 import com.alekpeed.lifeos.settings.LockScreen
 import com.alekpeed.lifeos.settings.appLockEnabled
@@ -55,7 +55,7 @@ fun Shell() {
     }
 
     // Make the graphical interfaces available for selection in Settings.
-    remember { registerNexus() }
+    remember { registerNexusCommandRoom() }
 
     // Run the opt-in automation rules once on app open (no-op unless enabled).
     LaunchedEffect(Unit) { runAutomations() }
@@ -85,7 +85,7 @@ fun Shell() {
     Box(Modifier.fillMaxSize()) {
         val c = current
         if (c == null) {
-            // An interface can supply its own home (its navigation artwork); otherwise
+            // An interface can supply its own home (its navigation art); otherwise
             // the built-in functional launcher.
             val customHome = Interfaces.home()
             if (customHome != null) customHome() else HomeScreen(modules) { current = it }
