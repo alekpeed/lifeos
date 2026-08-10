@@ -8,11 +8,17 @@ import androidx.compose.runtime.setValue
 // a shared item) can ask the UI to open a specific module by id. The Shell observes
 // `pendingModuleId`; when it's set, it opens that module and clears it.
 object Nav {
+    const val HOME = "__home__"
+
     var pendingModuleId: String? by mutableStateOf(null)
         private set
 
     fun open(moduleId: String) {
         pendingModuleId = moduleId
+    }
+
+    fun goHome() {
+        pendingModuleId = HOME
     }
 
     fun consume(): String? {
