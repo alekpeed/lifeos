@@ -31,6 +31,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -62,10 +63,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.MicButton
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlin.math.roundToInt
 import kotlinx.datetime.LocalDate
@@ -107,6 +110,7 @@ fun TasksScreen() {
     fun persist() { saveTasks(tasks); SaveToast.show() }
     // Adding starts from the button, not the keyboard: hit Add and the prompt comes up.
     var adding by remember { mutableStateOf(false) }
+    var dumpTranscript by remember { mutableStateOf<String?>(null) }
     var nextId by remember { mutableStateOf((tasks.maxOfOrNull { it.id } ?: 0L) + 1) }
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var board by remember { mutableStateOf(false) }
@@ -173,8 +177,15 @@ fun TasksScreen() {
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
 
-        Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("+ Add task")
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(onClick = { adding = true }, modifier = Modifier.weight(1f)) {
+                Text("+ Add task")
+            }
+            Spacer(Modifier.width(10.dp))
+            // Dictate a whole list in one take (Whisper doesn't cut you off mid-thought);
+            // the transcript gets split into separate tasks for review before anything's
+            // added, same "never silently trust it" pattern as the photo-scan flows.
+            MicButton("🎤 Add several") { transcript -> if (transcript.isNotBlank()) dumpTranscript = transcript }
         }
         Spacer(Modifier.height(10.dp))
 
@@ -223,6 +234,22 @@ fun TasksScreen() {
                     nextId += 1
                     persist()
                     adding = false
+                },
+            )
+        }
+
+        dumpTranscript?.let { transcript ->
+            BrainDumpReview(
+                transcript = transcript,
+                onDismiss = { dumpTranscript = null },
+                onAdd = { picked ->
+                    picked.forEach { item ->
+                        tasks.add(Task(nextId, item.title, due = item.due, project = projectFilter ?: ""))
+                        nextId += 1
+                    }
+                    saveTasks(tasks)
+                    SaveToast.show(if (picked.size == 1) "Added 1 task" else "Added ${picked.size} tasks")
+                    dumpTranscript = null
                 },
             )
         }
@@ -744,6 +771,112 @@ private fun AddTaskPrompt(
             }
         },
         confirmButton = { TextButton(onClick = { submit() }) { Text("Add") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+private data class DumpItem(val title: String, val due: String, val include: Boolean = true)
+
+private val DUMP_SPLIT_SYSTEM =
+    "You split a person's spoken list of to-dos into separate tasks. They may ramble, " +
+        "repeat themselves, or say things that aren't really tasks — skip anything that " +
+        "isn't actually something to do. Respond with exactly one line per task, formatted as:\n" +
+        "TITLE: <cleaned-up title> | DUE: <YYYY-MM-DD or blank>\n" +
+        "Nothing else — no numbering, no commentary. Resolve relative dates (tomorrow, Friday, " +
+        "next week, in N days) against TODAY given in the message."
+
+private fun parseDumpLines(reply: String): List<DumpItem> =
+    reply.lines().mapNotNull { line ->
+        val m = Regex("(?i)^TITLE:\\s*(.+?)\\s*\\|\\s*DUE:\\s*(\\d{4}-\\d{2}-\\d{2})?\\s*$").find(line.trim())
+            ?: return@mapNotNull null
+        val title = m.groupValues[1].trim()
+        if (title.isEmpty()) null else DumpItem(title, m.groupValues[2])
+    }
+
+// Keyless fallback when there's no AI key (or the call fails): split on sentence
+// breaks / line breaks instead of real understanding. No due-date extraction here —
+// good enough to land candidates on the review screen, where each one can still be
+// edited or dropped before anything is actually added.
+private fun splitDumpNaively(text: String): List<DumpItem> =
+    text.split(Regex("(?<=[.!?;])\\s+|\\n+"))
+        .map { it.trim().trim('.', '!', '?', ';', ',', ' ') }
+        .filter { it.isNotEmpty() }
+        .map { DumpItem(it, "") }
+
+// One long dictation, split into candidate tasks for a one-tap-per-item review —
+// never bulk-added sight unseen, same discipline as the photo-scan flows elsewhere
+// (Quartermaster's catalog-from-photo, Documents' scan).
+@Composable
+private fun BrainDumpReview(transcript: String, onDismiss: () -> Unit, onAdd: (List<DumpItem>) -> Unit) {
+    var items by remember { mutableStateOf<List<DumpItem>?>(null) }
+    var loading by remember { mutableStateOf(AiClient.hasKey()) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(transcript) {
+        if (AiClient.hasKey()) {
+            val reply = AiClient.ask(DUMP_SPLIT_SYSTEM, "TODAY: ${today()}\n$transcript", maxTokens = 500)
+            loading = false
+            if (reply.isError) {
+                error = reply.text
+                items = splitDumpNaively(transcript)
+            } else {
+                items = parseDumpLines(reply.text).ifEmpty { splitDumpNaively(transcript) }
+            }
+        } else {
+            loading = false
+            items = splitDumpNaively(transcript)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Review before adding") },
+        text = {
+            Column {
+                if (loading) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Splitting that up…", style = MaterialTheme.typography.bodyMedium)
+                    }
+                } else {
+                    error?.let {
+                        Text(
+                            "Couldn't reach AI ($it) — split by sentence instead.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    val list = items.orEmpty()
+                    if (list.isEmpty()) {
+                        Text("Didn't catch anything that sounded like a task.", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    list.forEachIndexed { i, item ->
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                            Checkbox(
+                                checked = item.include,
+                                onCheckedChange = { c -> items = list.mapIndexed { j, it -> if (j == i) it.copy(include = c) else it } },
+                            )
+                            OutlinedTextField(
+                                value = item.title,
+                                onValueChange = { v ->
+                                    items = list.mapIndexed { j, it -> if (j == i) it.copy(title = v.replace("\n", " ")) else it }
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !loading && items.orEmpty().any { it.include && it.title.isNotBlank() },
+                onClick = { onAdd(items.orEmpty().filter { it.include && it.title.isNotBlank() }) },
+            ) { Text("Add") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
