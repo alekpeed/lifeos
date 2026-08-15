@@ -71,16 +71,24 @@ object Whisper {
         if (audio.size <= 44) return Result.failure(IllegalStateException("Nothing was recorded."))
         if (audio.size > 24 * 1024 * 1024) return Result.failure(IllegalStateException("That recording is too long to send."))
 
-        val body = multipart(audio, hint)
-        val resp = httpSendBytes(
+        suspend fun send(keywords: List<String>) = httpSendBytes(
             "POST",
             "https://api.openai.com/v1/audio/transcriptions",
             mapOf(
                 "Authorization" to "Bearer $key",
                 "Content-Type" to "multipart/form-data; boundary=$BOUNDARY",
             ),
-            Base64.encode(body),
+            Base64.encode(multipart(audio, hint, keywords)),
         )
+
+        val keywords = runCatching { dictationKeywords() }.getOrDefault(emptyList())
+        var resp = send(keywords)
+        // A 4xx with keywords attached is more likely to be the keywords than the
+        // audio — the endpoint rejects request arguments it doesn't recognise, and
+        // how an array is spelled in a multipart body is exactly the kind of thing
+        // that can differ. Drop them and try once more: a hint is never worth
+        // losing the transcript over.
+        if (resp.status in 400..499 && keywords.isNotEmpty()) resp = send(emptyList())
         if (resp.status !in 200..299) return Result.failure(IllegalStateException(errorFrom(resp.status, resp.body)))
 
         val text = runCatching {
@@ -91,8 +99,12 @@ object Whisper {
     }
 
     // The form body, byte for byte: the audio as a file part, then the plain fields.
+    // `keywords` is a list, and a multipart body has no arrays — it's sent the way
+    // this endpoint's other list arguments are documented, one repeated field per
+    // term under a bracketed name. See the retry in transcribe() for what happens
+    // if that spelling is ever wrong.
     @OptIn(ExperimentalEncodingApi::class)
-    private fun multipart(audio: ByteArray, hint: String): ByteArray {
+    private fun multipart(audio: ByteArray, hint: String, keywords: List<String> = emptyList()): ByteArray {
         val head = buildString {
             append("--$BOUNDARY\r\n")
             append("Content-Disposition: form-data; name=\"file\"; filename=\"speech.wav\"\r\n")
@@ -110,6 +122,11 @@ object Whisper {
                 append("\r\n--$BOUNDARY\r\n")
                 append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n")
                 append(hint.take(800))
+            }
+            keywords.forEach { term ->
+                append("\r\n--$BOUNDARY\r\n")
+                append("Content-Disposition: form-data; name=\"keywords[]\"\r\n\r\n")
+                append(term)
             }
             append("\r\n--$BOUNDARY--\r\n")
         }.encodeToByteArray()
