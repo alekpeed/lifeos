@@ -66,7 +66,6 @@ fun KnowledgeGraphScreen() {
     var focus by remember { mutableStateOf<Node?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Knowledge Graph", style = MaterialTheme.typography.headlineMedium)
         val f = focus
         if (f == null) PickFocus { focus = it }
         else GraphView(data, ::save, f, onRefocus = { focus = it }, onChangeFocus = { focus = null })

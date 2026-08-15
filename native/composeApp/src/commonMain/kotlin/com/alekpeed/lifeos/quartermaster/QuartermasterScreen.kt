@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -27,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +38,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
@@ -43,12 +50,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
 import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.ai.VisionBlock
+import com.alekpeed.lifeos.attach.QUARTERMASTER_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.readBlobBase64
 import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkState
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -128,48 +143,68 @@ fun QuartermasterScreen() {
         showSource = true
     }
 
+    // Compact by design: the top bar already names this screen, adding lives behind a
+    // button, and each item is a single line until you open it — so a scan that drops
+    // twenty items in is still a list you can read.
+    var adding by remember { mutableStateOf(false) }
+    var expandedId by remember { mutableStateOf<Long?>(null) }
+    var filter by remember { mutableStateOf("all") } // all | low | out | lent
+    val bulk = rememberBulk()
+
     val lentOut = data.items.filter { it.lentTo.isNotBlank() }
     val onHand = data.items.filter { it.lentTo.isBlank() }
+    val lowN = data.items.count { it.stockStatus == "Low" }
+    val outN = data.items.count { it.stockStatus == "Out" }
 
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Quartermaster", style = MaterialTheme.typography.headlineMedium)
-        Text("Your physical inventory, and who has what right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(12.dp))
+    fun matches(i: InventoryItem) = when (filter) {
+        "low" -> i.stockStatus == "Low"
+        "out" -> i.stockStatus == "Out"
+        "lent" -> i.lentTo.isNotBlank()
+        else -> true
+    }
 
-        OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Item name") })
-        Spacer(Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(loc, { loc = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Location") })
-            Spacer(Modifier.width(6.dp))
-            OutlinedTextField(tags, { tags = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Tags") })
-            Spacer(Modifier.width(6.dp))
-            Button(onClick = {
-                val n = name.trim().replace("\n", " ")
-                if (n.isNotEmpty()) {
-                    val t = tags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                    save(data.copy(items = data.items + InventoryItem(freshId(), n, loc.trim(), t)))
-                    name = ""; loc = ""; tags = ""
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        // One row of actions rather than a stack of full-width buttons.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { adding = true }) { Text("+ Add") }
+            if (Native.supportsCamera) {
+                OutlinedButton(onClick = { startCatalog() }, enabled = !cataloging) {
+                    if (cataloging) {
+                        CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Reading…")
+                    } else {
+                        Text("📷 Photo")
+                    }
                 }
-            }) { Text("Add") }
+                OutlinedButton(onClick = { showStock = true }) { Text("📊 Stock") }
+            }
+            ImportRecordButton(QUARTERMASTER_MODULE, onImported = { data = loadInventory() })
+        }
+        catalogError?.let {
+            Spacer(Modifier.height(6.dp))
+            Text(it, style = MaterialTheme.typography.labelMedium, color = DANGER)
         }
 
-        if (Native.supportsCamera) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = { startCatalog() }, enabled = !cataloging) {
-                if (cataloging) {
-                    CircularProgressIndicator(Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Reading…")
-                } else {
-                    Text("📷 Catalog from a photo")
-                }
+        // Filters only appear once there's enough inventory for them to matter.
+        if (data.items.size > 3 && (lowN > 0 || outN > 0 || lentOut.isNotEmpty())) {
+            Spacer(Modifier.height(6.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(selected = filter == "all", onClick = { filter = "all" }, label = { Text("All (${data.items.size})") })
+                if (lowN > 0) FilterChip(selected = filter == "low", onClick = { filter = if (filter == "low") "all" else "low" }, label = { Text("Low ($lowN)") })
+                if (outN > 0) FilterChip(selected = filter == "out", onClick = { filter = if (filter == "out") "all" else "out" }, label = { Text("Out ($outN)") })
+                if (lentOut.isNotEmpty()) FilterChip(selected = filter == "lent", onClick = { filter = if (filter == "lent") "all" else "lent" }, label = { Text("Lent (${lentOut.size})") })
             }
-            catalogError?.let {
-                Spacer(Modifier.height(6.dp))
-                Text(it, style = MaterialTheme.typography.labelMedium, color = DANGER)
-            }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = { showStock = true }) { Text("📊 Stock check") }
+        }
+
+        if (adding) {
+            AddItemPrompt(
+                onDismiss = { adding = false },
+                onAdd = { n, l, tg ->
+                    save(data.copy(items = data.items + InventoryItem(freshId(), n, l, tg)))
+                    adding = false
+                },
+            )
         }
 
         if (showStock) StockDialog(data, ::save, ::freshId) { showStock = false }
@@ -189,7 +224,7 @@ fun QuartermasterScreen() {
         }
 
         draft?.let { items ->
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
             CatalogReview(
                 items = items,
                 onEdit = { i, v -> draft = items.toMutableList().also { it[i] = v } },
@@ -204,18 +239,48 @@ fun QuartermasterScreen() {
             )
         }
 
-        Spacer(Modifier.height(14.dp))
+        // Multi-select: long-press a row (or hit Select) to tick several, then clear
+        // them in one go. A photo scan can drop twenty items in at once, so deleting
+        // them one at a time was the wrong shape.
+        val visible = if (filter == "all") lentOut + onHand else data.items.filter { matches(it) }
+        BulkBar(
+            bulk = bulk,
+            ids = visible.map { it.id },
+            noun = "item",
+            onDelete = { ids ->
+                data.items.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+                if (expandedId?.let { it in ids } == true) expandedId = null
+                save(data.copy(items = data.items.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(6.dp))
 
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (lentOut.isNotEmpty()) {
-                item { SectionLabel("Lent out (${lentOut.size})") }
-                items(lentOut, key = { it.id }) { ItemCard(data, ::save, it) }
-            }
-            item { SectionLabel("On hand (${onHand.size})") }
-            if (onHand.isEmpty()) {
-                item { Text("Nothing logged yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (filter == "all") {
+                if (lentOut.isNotEmpty()) {
+                    item { SectionLabel("Lent out (${lentOut.size})") }
+                    items(lentOut, key = { it.id }) { row ->
+                        ItemRow(data, ::save, row, expandedId == row.id, bulk) {
+                            expandedId = if (expandedId == row.id) null else row.id
+                        }
+                    }
+                }
+                item { SectionLabel("On hand (${onHand.size})") }
+                if (onHand.isEmpty()) {
+                    item { Text("Nothing logged yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                } else {
+                    items(onHand, key = { it.id }) { row ->
+                        ItemRow(data, ::save, row, expandedId == row.id, bulk) {
+                            expandedId = if (expandedId == row.id) null else row.id
+                        }
+                    }
+                }
             } else {
-                items(onHand, key = { it.id }) { ItemCard(data, ::save, it) }
+                items(visible, key = { it.id }) { row ->
+                    ItemRow(data, ::save, row, expandedId == row.id, bulk) {
+                        expandedId = if (expandedId == row.id) null else row.id
+                    }
+                }
             }
         }
     }
@@ -223,7 +288,16 @@ fun QuartermasterScreen() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ItemCard(data: QuartermasterData, save: (QuartermasterData) -> Unit, item: InventoryItem) {
+private fun ItemRow(
+    data: QuartermasterData,
+    save: (QuartermasterData) -> Unit,
+    item: InventoryItem,
+    expandedNow: Boolean,
+    bulk: BulkState,
+    onToggle: () -> Unit,
+) {
+    // While a selection is live every row stays collapsed — taps are ticking, not opening.
+    val expanded = expandedNow && !bulk.on
     fun patch(f: (InventoryItem) -> InventoryItem) = save(data.copy(items = data.items.map { if (it.id == item.id) f(it) else it }))
     var lendTo by remember(item.id) { mutableStateOf("") }
     var showSource by remember { mutableStateOf(false) }
@@ -241,21 +315,60 @@ private fun ItemCard(data: QuartermasterData, save: (QuartermasterData) -> Unit,
 
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant).padding(14.dp),
+            .background(
+                if (bulk.has(item.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .bulkClickable(bulk, item.id) { onToggle() }
+            .padding(horizontal = 12.dp, vertical = if (expanded) 12.dp else 9.dp),
     ) {
+        // Collapsed: one line — name, where it lives, its stock at a glance.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(item.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            TextButton(onClick = {
-                deleteBlob(item.photoBlob)
-                save(data.copy(items = data.items.filterNot { it.id == item.id }))
-            }) { Text("×") }
+            BulkTick(bulk, item.id)
+            Text(
+                item.name.ifBlank { "(untitled)" },
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (item.location.isNotBlank() && !expanded) {
+                Text(
+                    item.location,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+            }
+            if (item.photoBlob.isNotBlank() && !expanded) {
+                Text("📎", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(end = 6.dp))
+            }
+            StockPill(item.stockStatus)
+            if (!bulk.on) {
+                Text(
+                    if (expanded) "  ▾" else "  ›",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
+        if (item.lentTo.isNotBlank() && !expanded) {
+            Text(
+                "with ${item.lentTo}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        if (!expanded) return@Column
+
         val chips = buildList {
             if (item.location.isNotBlank()) add("📍 ${item.location}")
-            if (item.stockStatus.isNotBlank()) add("📦 ${item.stockStatus}")
             item.tags.forEach { add("#$it") }
         }
         if (chips.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 chips.forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
             }
@@ -291,25 +404,29 @@ private fun ItemCard(data: QuartermasterData, save: (QuartermasterData) -> Unit,
         }
 
         Spacer(Modifier.height(8.dp))
-        Text("Photo", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(4.dp))
-        if (item.photoBlob.isNotBlank()) {
-            if (img != null) {
-                Image(
-                    bitmap = img,
-                    contentDescription = "Attached photo",
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Fit,
-                )
-            } else {
-                Text("Photo attached (no preview available).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (item.photoBlob.isNotBlank()) {
+                // A thumbnail, not a full-width photo — the record is the point, not the picture.
+                if (img != null) {
+                    Image(
+                        bitmap = img,
+                        contentDescription = "Attached photo",
+                        modifier = Modifier.size(52.dp).clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
                 if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
-                TextButton(onClick = { deleteBlob(item.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
+                TextButton(onClick = { deleteBlob(item.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove") }
+            } else if (Native.supportsCamera) {
+                TextButton(onClick = { showSource = true }) { Text("📷 Photo") }
             }
-        } else if (Native.supportsCamera) {
-            OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
+            Spacer(Modifier.weight(1f))
+            ExportRecordButton(QUARTERMASTER_MODULE, item.id, item.name.ifBlank { "item" })
+            TextButton(onClick = {
+                deleteBlob(item.photoBlob)
+                save(data.copy(items = data.items.filterNot { it.id == item.id }))
+            }) { Text("Delete", color = DANGER) }
         }
 
         if (showSource) {
@@ -468,4 +585,77 @@ private fun StockDialog(
 @Composable
 private fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+}
+
+// Current stock as a single coloured pill, so a row doesn't need four buttons to say
+// "Low". The selector itself only appears when the row is open.
+@Composable
+private fun StockPill(status: String) {
+    if (status.isBlank()) return
+    val c = when (status) {
+        "Full" -> Color(0xFF4C9E6F)
+        "OK" -> Color(0xFF5C9CE0)
+        "Low" -> Color(0xFFE0A25C)
+        "Out" -> DANGER
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Text(
+        status,
+        style = MaterialTheme.typography.labelSmall,
+        color = c,
+        modifier = Modifier.clip(RoundedCornerShape(6.dp))
+            .background(c.copy(alpha = 0.15f))
+            .padding(horizontal = 7.dp, vertical = 3.dp),
+    )
+}
+
+// Adding starts from the button: name is all that's required, location and tags are
+// there if you want them.
+@Composable
+private fun AddItemPrompt(
+    onDismiss: () -> Unit,
+    onAdd: (name: String, location: String, tags: List<String>) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    var loc by remember { mutableStateOf("") }
+    var tags by remember { mutableStateOf("") }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+
+    fun submit() {
+        val n = name.trim().replace("\n", " ")
+        if (n.isNotEmpty()) {
+            onAdd(n, loc.trim(), tags.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+        }
+    }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New item") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    name, { name = it },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    singleLine = true,
+                    placeholder = { Text("What is it?") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    loc, { loc = it }, modifier = Modifier.fillMaxWidth(),
+                    singleLine = true, placeholder = { Text("Location (optional)") },
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    tags, { tags = it }, modifier = Modifier.fillMaxWidth(),
+                    singleLine = true, placeholder = { Text("Tags, comma separated (optional)") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { submit() }) { Text("Add") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

@@ -44,9 +44,12 @@ private fun parseLine(line: String): Habit {
     return Habit(name, dates, parts.getOrElse(2) { "" })
 }
 
+// No seeded placeholders. Shipping "Drink water" and "Move 30 min" as real records
+// meant two habits nobody chose showed up on Today with a Check in button, and the
+// only way to be rid of them was to delete them — which reads as losing data rather
+// than clearing a demo. An empty list and a real empty state is the honest version.
 fun loadHabits(): List<Habit> =
-    Storage.read("Habits")?.lines()?.filter { it.isNotBlank() }?.map { parseLine(it) }
-        ?: listOf(Habit("Drink water", emptySet()), Habit("Move 30 min", emptySet()))
+    Storage.read("Habits")?.lines()?.filter { it.isNotBlank() }?.map { parseLine(it) } ?: emptyList()
 
 fun saveHabits(habits: List<Habit>) {
     Storage.write("Habits", habits.joinToString("\n") { it.toLine() })

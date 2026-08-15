@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.rabbitholes
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,11 +33,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.RABBIT_HOLES_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.BulkState
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
@@ -67,7 +74,6 @@ private fun Overview(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fre
     val active = data.holes.filter { it.status != "resolved" }
     val resolved = data.holes.filter { it.status == "resolved" }
 
-    Text("Rabbit Hole Journal", style = MaterialTheme.typography.headlineMedium)
     Text("Track what you went down a hole researching.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(12.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -77,17 +83,31 @@ private fun Overview(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fre
             val t = topic.trim().replace("\n", " ")
             if (t.isNotEmpty()) {
                 val id = freshId()
-                save(data.copy(holes = data.holes + RabbitHole(id, t, startedDate = today().toString())))
+                save(data.copy(holes = data.holes + RabbitHole(id, t, startedDate = today().toString(), touchedDate = today().toString())))
                 topic = ""; onOpen(id)
             }
         }) { Text("Start") }
+        Spacer(Modifier.width(10.dp))
+        ImportRecordButton(RABBIT_HOLES_MODULE, onImported = { save(loadHoles()) })
     }
     Spacer(Modifier.height(14.dp))
 
+    val bulk = rememberBulk()
+    val listed = active + if (showResolved) resolved else emptyList()
+    BulkBar(
+        bulk = bulk,
+        ids = listed.map { it.id },
+        noun = "thread",
+        onDelete = { ids ->
+            data.holes.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+            save(data.copy(holes = data.holes.filterNot { it.id in ids }))
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { SectionLabel("Active (${active.size})") }
         if (active.isEmpty()) item { Muted("Nothing open right now.") }
-        else items(active, key = { it.id }) { HoleRow(it) { onOpen(it.id) } }
+        else items(active, key = { it.id }) { HoleRow(it, bulk) { onOpen(it.id) } }
 
         if (resolved.isNotEmpty()) {
             item {
@@ -95,25 +115,44 @@ private fun Overview(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fre
                     Text(if (showResolved) "Hide resolved" else "Show resolved (${resolved.size})")
                 }
             }
-            if (showResolved) items(resolved, key = { it.id }) { HoleRow(it) { onOpen(it.id) } }
+            if (showResolved) items(resolved, key = { it.id }) { HoleRow(it, bulk) { onOpen(it.id) } }
         }
     }
 }
 
 @Composable
-private fun HoleRow(hole: RabbitHole, onClick: () -> Unit) {
+private fun HoleRow(hole: RabbitHole, bulk: BulkState, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 8.dp),
+        Modifier.fillMaxWidth()
+            .background(
+                if (bulk.has(hole.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                else Color.Transparent,
+            )
+            .bulkClickable(bulk, hole.id) { onClick() }
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        BulkTick(bulk, hole.id)
         Text(hole.topic.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        val cold = if (hole.status == "resolved") null else daysCold(hole)?.takeIf { it >= COLD_AFTER_DAYS }
+        if (cold != null) {
+            Text(
+                "cold ${cold}d",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+        }
         Text("${hole.links.size} link${if (hole.links.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun Detail(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, freshId: () -> Long, hole: RabbitHole, onBack: () -> Unit) {
-    fun patch(f: (RabbitHole) -> RabbitHole) = save(data.copy(holes = data.holes.map { if (it.id == hole.id) f(it) else it }))
+    // Every edit counts as touching the hole, which is what keeps it out of the
+    // Briefing's cold list while you're still working on it.
+    fun patch(f: (RabbitHole) -> RabbitHole) =
+        save(data.copy(holes = data.holes.map { if (it.id == hole.id) touched(f(it)) else it }))
     var showSource by remember { mutableStateOf(false) }
     fun onAttach(b64: String?) {
         if (b64.isNullOrEmpty()) return
@@ -206,6 +245,7 @@ private fun Detail(data: RabbitHolesData, save: (RabbitHolesData) -> Unit, fresh
             OutlinedButton(onClick = { patch { it.copy(status = "resolved") } }) { Text("Mark resolved") }
         }
         Spacer(Modifier.weight(1f))
+        ExportRecordButton(RABBIT_HOLES_MODULE, hole.id, hole.topic.ifBlank { "thread" })
         TextButton(onClick = { deleteBlob(hole.photoBlob); save(data.copy(holes = data.holes.filterNot { it.id == hole.id })); onBack() }) { Text("Delete", color = DANGER) }
     }
 }

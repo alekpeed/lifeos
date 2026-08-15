@@ -53,6 +53,7 @@ actual object Native {
     actual val supportsCamera = true
     actual val supportsFilePick = true
     actual val supportsDictation = true
+    actual val supportsRecording = true
     actual val supportsPdfExport = true
 
     actual fun speak(text: String) {
@@ -83,6 +84,58 @@ actual object Native {
         val clip = cm.primaryClip ?: return null
         if (clip.itemCount == 0) return null
         return clip.getItemAt(0).coerceToText(ctx)?.toString()?.ifBlank { null }
+    }
+
+    actual fun setImmersive(on: Boolean) {
+        val act = NativeHost.activity ?: return
+        act.runOnUiThread {
+            try {
+                val window = act.window
+                androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, !on)
+                // Hiding the bars isn't enough: Android still letterboxes content away
+                // from a notch / punch-hole unless we opt into the short edges, which
+                // leaves a black band at the top and shifts the artwork down.
+                if (android.os.Build.VERSION.SDK_INT >= 28) {
+                    val attrs = window.attributes
+                    attrs.layoutInDisplayCutoutMode = if (on) {
+                        android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    } else {
+                        android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+                    }
+                    window.attributes = attrs
+                }
+                val c = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+                // Hide the STATUS bar only. Hiding the navigation bar too would mean the
+                // first swipe from the bottom just reveals the bars instead of going
+                // home, which fights the gesture rather than yielding to it.
+                if (on) {
+                    c.hide(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                } else {
+                    c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                }
+            } catch (e: Exception) {
+                // best-effort
+            }
+        }
+    }
+
+    actual fun cutoutTopPx(): Int = try {
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            NativeHost.activity?.window?.decorView?.rootWindowInsets
+                ?.displayCutout?.safeInsetTop ?: 0
+        } else 0
+    } catch (e: Exception) {
+        0
+    }
+
+    actual fun navBottomPx(): Int = try {
+        val v = NativeHost.activity?.window?.decorView
+        val insets = if (v != null) androidx.core.view.ViewCompat.getRootWindowInsets(v) else null
+        val nav = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val gest = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemGestures())?.bottom ?: 0
+        maxOf(nav, gest)
+    } catch (e: Exception) {
+        0
     }
 
     actual fun keepScreenAwake(on: Boolean) {
@@ -255,6 +308,24 @@ actual object Native {
         }
     }
 
+    actual fun scanAnyCode(onResult: (String?) -> Unit) {
+        val launcher = NativeHost.qrLauncher
+        if (launcher == null) { onResult(null); return }
+        NativeHost.qrCallback = onResult
+        val opts = com.journeyapps.barcodescanner.ScanOptions().apply {
+            setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.ALL_CODE_TYPES)
+            setPrompt("Point at a code")
+            setBeepEnabled(false)
+            setOrientationLocked(false)
+        }
+        try {
+            launcher.launch(opts)
+        } catch (e: Exception) {
+            NativeHost.qrCallback = null
+            onResult(null)
+        }
+    }
+
     actual fun scanBarcode(onResult: (String?) -> Unit) {
         val launcher = NativeHost.qrLauncher
         if (launcher == null) { onResult(null); return }
@@ -395,6 +466,61 @@ actual object Native {
         }
     }
 
+    // PixelCopy's Window overload — the version that needs no foreground-service
+    // dance and no extra permission — only exists from API 26. Below that this is
+    // exactly as absent as it always was.
+    actual val supportsScreenshot: Boolean get() = Build.VERSION.SDK_INT >= 26
+
+    // A PNG of this app's own window, for the same reason desktop's version exists:
+    // the single most useful thing a non-technical person can send when something is
+    // wrong. Captures the current Activity's content only — not the whole physical
+    // screen, which is the other direction (a foreground-service MediaProjection
+    // dance) nobody asked for here.
+    actual fun captureScreen(onResult: (String?) -> Unit) {
+        val act = NativeHost.activity
+        if (act == null || Build.VERSION.SDK_INT < 26) { onResult(null); return }
+        try {
+            val decor = act.window.decorView
+            val w = decor.width
+            val h = decor.height
+            if (w <= 0 || h <= 0) { onResult(null); return }
+            val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+            android.view.PixelCopy.request(
+                act.window,
+                bmp,
+                { result ->
+                    if (result == android.view.PixelCopy.SUCCESS) {
+                        val out = java.io.ByteArrayOutputStream()
+                        bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                        val b = out.toByteArray()
+                        onResult(if (b.isEmpty()) null else android.util.Base64.encodeToString(b, android.util.Base64.NO_WRAP))
+                    } else {
+                        onResult(null)
+                    }
+                },
+                android.os.Handler(android.os.Looper.getMainLooper()),
+            )
+        } catch (e: Exception) {
+            onResult(null)
+        }
+    }
+    actual fun machineSummary(): String =
+        "Android ${android.os.Build.VERSION.RELEASE} · ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+
+    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) {
+        val launcher = NativeHost.filePickLauncher
+        if (launcher == null) { onResult(null, null); return }
+        NativeHost.ebookNamedCallback = onResult
+        NativeHost.ebookMode = true
+        try {
+            launcher.launch(arrayOf("application/epub+zip", "text/plain", "*/*"))
+        } catch (e: Exception) {
+            NativeHost.ebookNamedCallback = null
+            NativeHost.ebookMode = false
+            onResult(null, null)
+        }
+    }
+
     actual fun dictate(onResult: (String?) -> Unit) {
         val launcher = NativeHost.dictateLauncher
         if (launcher == null) { onResult(null); return }
@@ -410,6 +536,26 @@ actual object Native {
             onResult(null)
         }
     }
+
+    // Driving the mic ourselves, for Whisper. The permission is the same one the wake
+    // word and voice enrollment already ask for; if it isn't granted yet we request it
+    // and report failure, so the next tap works.
+    actual fun startRecording(): Boolean {
+        val act = NativeHost.activity
+        if (act != null && act.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            act.requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 9004)
+            return false
+        }
+        val ctx = NativeHost.ctx() ?: return false
+        if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return false
+        return MicRecorder.start()
+    }
+
+    actual fun stopRecording(): String? = MicRecorder.stop()
+
+    actual fun cancelRecording() = MicRecorder.cancel()
+
+    actual fun micLevel(): Float = MicRecorder.peak()
 
     actual fun openUrl(url: String) {
         val ctx = NativeHost.ctx() ?: return
@@ -443,6 +589,20 @@ actual object Native {
         } catch (e: Exception) {
             NativeHost.attachCallback = null
             onResult(null, null, null)
+        }
+    }
+
+    actual fun exportPackageFile(suggestedName: String, base64: String, onResult: (Boolean) -> Unit) {
+        val launcher = NativeHost.exportLauncher
+        if (launcher == null) { onResult(false); return }
+        try {
+            NativeHost.exportPendingBytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+            NativeHost.exportCallback = onResult
+            launcher.launch(suggestedName)
+        } catch (e: Exception) {
+            NativeHost.exportPendingBytes = null
+            NativeHost.exportCallback = null
+            onResult(false)
         }
     }
 

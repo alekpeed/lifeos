@@ -15,6 +15,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import com.alekpeed.lifeos.helper.HelperApp
+
+// Which app this launch is. Set once from the entry point before anything renders —
+// the desktop build reads it from the command line, so the same binary ships as both
+// Life OS and the helper window someone else runs.
+object AppMode {
+    var helper: Boolean = false
+    var ownerName: String = "Alek"
+}
 
 // Observable theme prefs (mirrors the Interfaces registry pattern), so a change
 // in Settings or Theme-from-Photo re-themes the whole app live. Backed by Storage
@@ -53,7 +62,9 @@ fun App() {
             LocalDensity provides Density(d.density * (if (AppTheme.compact) 0.9f else 1f), d.fontScale),
         ) {
             Surface(modifier = Modifier.fillMaxSize()) {
-                Shell()
+                // One binary, two apps: launched with --helper it boots straight into the
+                // stripped-down helper window instead of the full shell.
+                if (AppMode.helper) HelperApp(AppMode.ownerName) else Shell()
             }
         }
     }

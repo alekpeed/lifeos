@@ -65,7 +65,6 @@ fun GhostDaysScreen() {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Ghost Days", style = MaterialTheme.typography.headlineMedium)
         Text("Everything that happened on ${today()} across the years.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(14.dp))
 

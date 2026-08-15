@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.collections
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -36,12 +35,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.COLLECTIONS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
@@ -68,7 +74,6 @@ private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, fre
     var name by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
 
-    Text("Collections", style = MaterialTheme.typography.headlineMedium)
     Text("Track any collection you keep — records, cards, whatever.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(12.dp))
     OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Collection name (e.g. Vinyl records)") })
@@ -83,23 +88,44 @@ private fun Overview(data: CollectionsData, save: (CollectionsData) -> Unit, fre
                 name = ""; desc = ""; onOpen(id)
             }
         }) { Text("Create") }
+        Spacer(Modifier.width(10.dp))
+        ImportRecordButton(COLLECTIONS_MODULE, onImported = { save(loadCollections()) })
     }
     Spacer(Modifier.height(14.dp))
     Text("Your collections (${data.collections.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(8.dp))
     if (data.collections.isEmpty()) { Muted("No collections yet."); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = data.collections.map { it.id },
+        noun = "collection",
+        onDelete = { ids ->
+            data.collections.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+            save(data.copy(collections = data.collections.filterNot { it.id in ids }))
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(data.collections, key = { it.id }) { c ->
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onOpen(c.id) }.padding(14.dp),
+                    .background(
+                        if (bulk.has(c.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    .bulkClickable(bulk, c.id) { onOpen(c.id) }.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                BulkTick(bulk, c.id)
                 Column(Modifier.weight(1f)) {
                     Text(c.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                     Text("${c.items.size} item${if (c.items.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
-                TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(collections = data.collections.filterNot { it.id == c.id })) }) { Text("×") }
+                if (!bulk.on) {
+                    ExportRecordButton(COLLECTIONS_MODULE, c.id, c.name.ifBlank { "collection" })
+                    TextButton(onClick = { deleteBlob(c.photoBlob); save(data.copy(collections = data.collections.filterNot { it.id == c.id })) }) { Text("×") }
+                }
             }
         }
     }
@@ -186,9 +212,27 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
     Text("Items (${sorted.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(6.dp))
     if (sorted.isEmpty()) { Muted("Nothing in this collection yet."); return }
+    val itemBulk = rememberBulk()
+    BulkBar(
+        bulk = itemBulk,
+        ids = sorted.map { it.id },
+        noun = "item",
+        onDelete = { ids -> patch { it.copy(items = it.items.filterNot { x -> x.id in ids }) } },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         items(sorted, key = { it.id }) { item ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth()
+                    .background(
+                        if (itemBulk.has(item.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                        else Color.Transparent,
+                    )
+                    .bulkClickable(itemBulk, item.id) {}
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BulkTick(itemBulk, item.id)
                 Column(Modifier.weight(1f)) {
                     Text(item.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                     val chips = buildList {
@@ -200,7 +244,9 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
                     }
                     if (item.notes.isNotBlank()) Text(item.notes, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                TextButton(onClick = { patch { it.copy(items = it.items.filterNot { x -> x.id == item.id }) } }) { Text("×") }
+                if (!itemBulk.on) {
+                    TextButton(onClick = { patch { it.copy(items = it.items.filterNot { x -> x.id == item.id }) } }) { Text("×") }
+                }
             }
         }
     }

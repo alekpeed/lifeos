@@ -40,6 +40,11 @@ import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.BulkState
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val OVERDUE = Color(0xFFE05C5C)
@@ -65,8 +70,6 @@ fun EducationScreen() {
     var courseId by remember { mutableStateOf<Long?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Education", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = tab == "coursework", onClick = { tab = "coursework" }, label = { Text("Coursework") })
             FilterChip(selected = tab == "summary", onClick = { tab = "summary" }, label = { Text("GPA & Time") })
@@ -116,9 +119,17 @@ private fun SemestersView(
         Muted("No semesters yet.")
         return
     }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = data.semesters.map { it.id },
+        noun = "semester",
+        onDelete = { ids -> save(data.copy(semesters = data.semesters.filterNot { it.id in ids })) },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(data.semesters, key = { it.id }) { s ->
-            Card(onClick = { onOpen(s.id) }) {
+            Card(onClick = { onOpen(s.id) }, bulk = bulk, id = s.id) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(s.name.ifBlank { "(untitled semester)" }, style = MaterialTheme.typography.bodyLarge)
@@ -129,8 +140,10 @@ private fun SemestersView(
                             Chip("$n course${if (n == 1) "" else "s"}")
                         }
                     }
-                    DeleteBtn {
-                        save(data.copy(semesters = data.semesters.filterNot { it.id == s.id }))
+                    if (!bulk.on) {
+                        DeleteBtn {
+                            save(data.copy(semesters = data.semesters.filterNot { it.id == s.id }))
+                        }
                     }
                 }
             }
@@ -168,12 +181,28 @@ private fun CoursesView(
     Spacer(Modifier.height(12.dp))
 
     if (courses.isEmpty()) { Muted("No courses in this semester yet."); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = courses.map { it.id },
+        noun = "course",
+        onDelete = { ids ->
+            if (selected?.let { it in ids } == true) selected = null
+            save(
+                data.copy(
+                    courses = data.courses.filterNot { it.id in ids },
+                    assignments = data.assignments.filterNot { it.courseId in ids },
+                ),
+            )
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(courses, key = { it.id }) { c ->
             val all = doneByCourse[c.id].orEmpty()
             val done = all.count { it.done }
             Column {
-                Card(onClick = { selected = if (selected == c.id) null else c.id }) {
+                Card(onClick = { selected = if (selected == c.id) null else c.id }, bulk = bulk, id = c.id) {
                     Column(Modifier.weight(1f)) {
                         Text(c.name.ifBlank { "(untitled course)" }, style = MaterialTheme.typography.bodyLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -183,7 +212,7 @@ private fun CoursesView(
                         }
                     }
                 }
-                if (selected == c.id) CourseDetail(data, save, c, onOpenCourse) { selected = null }
+                if (selected == c.id && !bulk.on) CourseDetail(data, save, c, onOpenCourse) { selected = null }
             }
         }
     }
@@ -305,15 +334,42 @@ private fun AssignmentsView(
     Spacer(Modifier.height(12.dp))
 
     if (assignments.isEmpty()) { Muted("No assignments yet."); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = assignments.map { it.id },
+        noun = "assignment",
+        onDelete = { ids ->
+            if (selected?.let { it in ids } == true) selected = null
+            save(data.copy(assignments = data.assignments.filterNot { it.id in ids }))
+        },
+        extra = { ids ->
+            // Ticking off a week's worth at once is the other bulk action worth having.
+            if (ids.isNotEmpty()) {
+                TextButton(onClick = {
+                    save(data.copy(assignments = data.assignments.map { if (it.id in ids) it.copy(status = "done") else it }))
+                    bulk.clear()
+                }) { Text("Mark done", style = MaterialTheme.typography.labelMedium) }
+            }
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         items(assignments, key = { it.id }) { a ->
             fun patch(f: (Assignment) -> Assignment) =
                 save(data.copy(assignments = data.assignments.map { if (it.id == a.id) f(it) else it }))
             Column {
                 Row(
-                    Modifier.fillMaxWidth().clickable { selected = if (selected == a.id) null else a.id }.padding(vertical = 4.dp),
+                    Modifier.fillMaxWidth()
+                        .background(
+                            if (bulk.has(a.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            else Color.Transparent,
+                        )
+                        .bulkClickable(bulk, a.id) { selected = if (selected == a.id) null else a.id }
+                        .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    BulkTick(bulk, a.id)
                     Checkbox(checked = a.done, onCheckedChange = { c -> patch { it.copy(status = if (c) "done" else "not_started") } })
                     Text(
                         a.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge,
@@ -335,7 +391,7 @@ private fun AssignmentsView(
                         chips.forEach { (t, warn) -> Chip(t, if (warn) OVERDUE else null) }
                     }
                 }
-                if (selected == a.id) AssignmentDetail(data, save, a) { selected = null }
+                if (selected == a.id && !bulk.on) AssignmentDetail(data, save, a) { selected = null }
             }
         }
     }
@@ -528,12 +584,25 @@ private fun Toolbar(back: String, title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun Card(onClick: () -> Unit, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+private fun Card(
+    onClick: () -> Unit,
+    bulk: BulkState? = null,
+    id: Long = 0L,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onClick() }.padding(14.dp),
+            .background(
+                if (bulk != null && bulk.has(id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .let { m -> if (bulk != null) m.bulkClickable(bulk, id) { onClick() } else m.clickable { onClick() } }
+            .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
-    ) { content() }
+    ) {
+        if (bulk != null) BulkTick(bulk, id)
+        content()
+    }
 }
 
 @Composable

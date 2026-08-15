@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.alekpeed.lifeos.Storage
 
 typealias ModuleContent = @Composable () -> Unit
 
@@ -28,21 +29,44 @@ object Interfaces {
     // interfaceId -> (moduleId -> screen)
     private val registry = mutableMapOf<String, MutableMap<String, ModuleContent>>()
 
+    // interfaceId -> its own home/launcher screen. An interface can replace just the
+    // home (its navigation art) and leave every module on the functional default.
+    private val homes = mutableMapOf<String, ModuleContent>()
+
     // Active interface id, observable so switching it in Settings recomposes pages.
-    private var activeState by mutableStateOf(DEFAULT)
+    // Persisted, so the interface you picked is still there after a restart.
+    private const val K_ACTIVE = "ActiveInterface"
+    // NEXUS is the baseline interface — the graphical home is what Life OS opens into
+    // unless you pick something else in Settings. It falls back to the built-in
+    // functional launcher wherever its artwork isn't available (e.g. desktop).
+    const val BASELINE = "nexus"
+    private var activeState by mutableStateOf(
+        Storage.read(K_ACTIVE)?.ifBlank { null } ?: BASELINE,
+    )
     val active: String get() = activeState
 
-    // "default" plus every interface anyone has registered a screen under.
-    val available: List<String> get() = (listOf(DEFAULT) + registry.keys.sorted()).distinct()
+    // "default" plus every interface anyone has registered a screen or home under.
+    val available: List<String>
+        get() = (listOf(DEFAULT) + (registry.keys + homes.keys).sorted()).distinct()
 
     fun setActive(id: String) {
         activeState = id
+        Storage.write(K_ACTIVE, id)
     }
 
     fun register(interfaceId: String, moduleId: String, content: ModuleContent) {
         require(interfaceId != DEFAULT) { "The default interface is the built-in functional layer." }
         registry.getOrPut(interfaceId) { mutableMapOf() }[moduleId] = content
     }
+
+    // Register an interface's home/launcher. Idempotent — safe to call on every open.
+    fun registerHome(interfaceId: String, content: ModuleContent) {
+        require(interfaceId != DEFAULT) { "The default interface is the built-in functional layer." }
+        homes[interfaceId] = content
+    }
+
+    // The active interface's own home, or null to use the built-in launcher.
+    fun home(): ModuleContent? = if (activeState == DEFAULT) null else homes[activeState]
 
     // True if the active interface supplies its own screen for this module.
     fun hasCustom(moduleId: String): Boolean =

@@ -2,7 +2,11 @@ package com.alekpeed.lifeos.tasks
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -21,30 +25,52 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.ai.AiClient
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.MicButton
 import com.alekpeed.lifeos.ui.SaveToast
+import kotlin.math.roundToInt
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 
@@ -82,7 +108,9 @@ private fun taskMetas(task: Task): List<String> = buildList {
 fun TasksScreen() {
     val tasks = remember { mutableStateListOf<Task>().apply { addAll(loadTasks()) } }
     fun persist() { saveTasks(tasks); SaveToast.show() }
-    var input by remember { mutableStateOf("") }
+    // Adding starts from the button, not the keyboard: hit Add and the prompt comes up.
+    var adding by remember { mutableStateOf(false) }
+    var dumpTranscript by remember { mutableStateOf<String?>(null) }
     var nextId by remember { mutableStateOf((tasks.maxOfOrNull { it.id } ?: 0L) + 1) }
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var board by remember { mutableStateOf(false) }
@@ -90,6 +118,10 @@ fun TasksScreen() {
     var hideDone by remember { mutableStateOf(false) }
     var showSnoozed by remember { mutableStateOf(false) }
     var sortByPriority by remember { mutableStateOf(false) }
+    // The row checkbox SELECTS; completing and deleting are done to the selection from
+    // one universal bar. Keeps the checkbox meaning one thing and makes both actions
+    // work on many rows at once.
+    var selected by remember { mutableStateOf(setOf<Long>()) }
 
     fun update(id: Long, f: (Task) -> Task) {
         val i = tasks.indexOfFirst { it.id == id }
@@ -109,28 +141,51 @@ fun TasksScreen() {
         // Stamp/clear the completion date so the yearly recap can count real years.
         update(task.id) { it.copy(status = newStatus, completedDate = if (newStatus == "done") today().toString() else "") }
     }
-    fun toggleDone(task: Task) = moveStatus(task, if (task.status == "done") "not_started" else "done")
+    // Complete the selection — or reopen it, if every selected task is already done, so a
+    // mis-complete is undone the same way it was made.
+    fun completeSelected() {
+        val picked = tasks.filter { it.id in selected }
+        if (picked.isEmpty()) return
+        val reopen = picked.all { it.done }
+        picked.forEach { task ->
+            if (!reopen && !task.done && task.recur.isNotEmpty()) spawnRecurrence(task)
+            val i = tasks.indexOfFirst { it.id == task.id }
+            if (i >= 0) {
+                tasks[i] = tasks[i].copy(
+                    status = if (reopen) "not_started" else "done",
+                    completedDate = if (reopen) "" else today().toString(),
+                )
+            }
+        }
+        saveTasks(tasks)
+        SaveToast.show(if (reopen) "Reopened ${picked.size}" else "Completed ${picked.size}")
+        selected = emptySet()
+    }
+
+    fun deleteSelected() {
+        val n = tasks.count { it.id in selected }
+        if (n == 0) return
+        tasks.removeAll { it.id in selected }
+        if (expandedId in selected) expandedId = null
+        saveTasks(tasks)
+        SaveToast.show(if (n == 1) "Deleted 1 task" else "Deleted $n tasks")
+        selected = emptySet()
+    }
 
     val projects = tasks.map { it.project.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
     fun visible(list: List<Task>) = list.filter { projectFilter == null || it.project.trim() == projectFilter }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Tasks", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(14.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = input, onValueChange = { input = it },
-                modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New task") },
-            )
+            Button(onClick = { adding = true }, modifier = Modifier.weight(1f)) {
+                Text("+ Add task")
+            }
             Spacer(Modifier.width(10.dp))
-            Button(onClick = {
-                val t = input.trim().replace("\n", " ")
-                if (t.isNotEmpty()) {
-                    // Adding while filtered to a project drops the new task into that project.
-                    tasks.add(Task(nextId, t, project = projectFilter ?: "")); nextId += 1; persist(); input = ""
-                }
-            }) { Text("Add") }
+            // Dictate a whole list in one take (Whisper doesn't cut you off mid-thought);
+            // the transcript gets split into separate tasks for review before anything's
+            // added, same "never silently trust it" pattern as the photo-scan flows.
+            MicButton("🎤 Add several") { transcript -> if (transcript.isNotBlank()) dumpTranscript = transcript }
         }
         Spacer(Modifier.height(10.dp))
 
@@ -155,6 +210,50 @@ fun TasksScreen() {
         }
         Spacer(Modifier.height(12.dp))
 
+        // One bar for the whole selection: complete (or reopen) and delete.
+        if (!board && selected.isNotEmpty()) {
+            val shownIds = visible(tasks).map { it.id }.toSet()
+            SelectionBar(
+                count = selected.size,
+                allShownPicked = shownIds.isNotEmpty() && shownIds.all { it in selected },
+                onComplete = { completeSelected() },
+                onDelete = { deleteSelected() },
+                onSelectAll = { selected = if (shownIds.all { it in selected }) emptySet() else shownIds },
+                onClear = { selected = emptySet() },
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+
+        if (adding) {
+            AddTaskPrompt(
+                // Adding while filtered to a project drops the new task into that project.
+                project = projectFilter,
+                onDismiss = { adding = false },
+                onAdd = { title, due ->
+                    tasks.add(Task(nextId, title, due = due, project = projectFilter ?: ""))
+                    nextId += 1
+                    persist()
+                    adding = false
+                },
+            )
+        }
+
+        dumpTranscript?.let { transcript ->
+            BrainDumpReview(
+                transcript = transcript,
+                onDismiss = { dumpTranscript = null },
+                onAdd = { picked ->
+                    picked.forEach { item ->
+                        tasks.add(Task(nextId, item.title, due = item.due, project = projectFilter ?: ""))
+                        nextId += 1
+                    }
+                    saveTasks(tasks)
+                    SaveToast.show(if (picked.size == 1) "Added 1 task" else "Added ${picked.size} tasks")
+                    dumpTranscript = null
+                },
+            )
+        }
+
         if (board) {
             TaskBoard(
                 tasks = visible(tasks),
@@ -172,13 +271,24 @@ fun TasksScreen() {
                         compareBy({ it.done }, { it.dueDate()?.toString() ?: "9999-99-99" }, { priorityRank(it.priority) })
                     },
                 )
+            if (shown.isEmpty()) {
+                Text(
+                    if (tasks.isEmpty()) "Nothing on the list. Add a task above."
+                    else "Nothing matches the current filters.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 items(shown, key = { it.id }) { task ->
                     TaskRow(
                         task = task,
                         expanded = expandedId == task.id,
+                        picked = task.id in selected,
+                        onPick = { on ->
+                            selected = if (on) selected + task.id else selected - task.id
+                        },
                         onToggleExpand = { expandedId = if (expandedId == task.id) null else task.id },
-                        onToggleDone = { toggleDone(task) },
                         update = { id, f -> update(id, f) },
                         onDelete = { tasks.removeAll { it.id == task.id }; expandedId = null; persist() },
                     )
@@ -193,14 +303,16 @@ fun TasksScreen() {
 private fun TaskRow(
     task: Task,
     expanded: Boolean,
+    picked: Boolean,
+    onPick: (Boolean) -> Unit,
     onToggleExpand: () -> Unit,
-    onToggleDone: () -> Unit,
     update: (Long, (Task) -> Task) -> Unit,
     onDelete: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().clickable { onToggleExpand() }.padding(vertical = 4.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = task.done, onCheckedChange = { onToggleDone() })
+            // Selects, never completes — completing is done from the selection bar.
+            Checkbox(checked = picked, onCheckedChange = { onPick(it) })
             priorityColor(task.priority)?.let { c ->
                 Text("●", color = c, modifier = Modifier.padding(end = 6.dp))
             }
@@ -231,38 +343,151 @@ private fun TaskRow(
     }
 }
 
-// Kanban: one column per status, horizontally scrollable. Cards carry ‹ / › to
-// nudge a task to the previous/next status without opening it; tapping a card
-// jumps back to the list with that task expanded for a full edit.
+// Kanban: one column per status, horizontally scrollable, with real drag and drop.
+//
+// Press and hold a card to pick it up, drag it over another column, let go. The
+// column under your finger lights up so you can see where it will land, and dragging
+// near either edge scrolls the board — without that, moving a card from Not started
+// to Done on a phone would be impossible, since only a column and a half fits on
+// screen at once.
+//
+// Long-press rather than plain drag on purpose: a bare drag would fight the board's
+// own horizontal scroll, and a tap still opens the card for a full edit. The ‹ / ›
+// buttons stay as the keyboard-and-mouse path and as a fallback if a drag misses.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ColumnScope.TaskBoard(tasks: List<Task>, onOpen: (Long) -> Unit, onMove: (Task, String) -> Unit) {
     val statusOrder = TASK_STATUSES.map { it.first }
-    Row(
-        Modifier.weight(1f).fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    val scroll = rememberScrollState()
+    val density = LocalDensity.current
+
+    // Everything below is in root coordinates, so a scrolling board and a moving
+    // finger are measured against the same origin.
+    var boardOrigin by remember { mutableStateOf(Offset.Zero) }
+    var boardWidth by remember { mutableStateOf(0f) }
+    val colSpan = remember { mutableStateMapOf<String, ClosedFloatingPointRange<Float>>() }
+
+    var dragTask by remember { mutableStateOf<Task?>(null) }
+    var dragAt by remember { mutableStateOf(Offset.Zero) }
+    var dragGrab by remember { mutableStateOf(Offset.Zero) }   // where in the card you grabbed it
+
+    val hovered = if (dragTask == null) null else {
+        statusOrder.firstOrNull { s -> colSpan[s]?.contains(dragAt.x) == true }
+    }
+
+    // Auto-scroll while a drag sits near an edge. Frame-driven so it moves at a
+    // readable speed regardless of how fast the pointer is being sampled.
+    LaunchedEffect(dragTask != null) {
+        if (dragTask == null) return@LaunchedEffect
+        val edge = with(density) { 64.dp.toPx() }
+        val step = with(density) { 9.dp.toPx() }
+        while (true) {
+            withFrameNanos { }
+            if (boardWidth <= 0f) continue
+            val x = dragAt.x - boardOrigin.x
+            val dx = when {
+                x < edge -> -step
+                x > boardWidth - edge -> step
+                else -> 0f
+            }
+            if (dx != 0f) scroll.scrollBy(dx)
+        }
+    }
+
+    fun drop() {
+        val task = dragTask
+        val target = hovered
+        dragTask = null
+        if (task != null && target != null && target != task.status.ifBlank { "not_started" }) {
+            onMove(task, target)
+        }
+    }
+
+    Box(
+        Modifier.weight(1f).fillMaxWidth().onGloballyPositioned {
+            boardOrigin = it.positionInRoot()
+            boardWidth = it.size.width.toFloat()
+        },
     ) {
-        TASK_STATUSES.forEach { (statusVal, label) ->
-            val colTasks = tasks.filter { (it.status.ifBlank { "not_started" }) == statusVal }
-                .sortedWith(compareBy({ it.dueDate()?.toString() ?: "9999-99-99" }, { priorityRank(it.priority) }))
-            val idx = statusOrder.indexOf(statusVal)
-            Column(Modifier.width(250.dp).fillMaxHeight().verticalScroll(rememberScrollState())) {
-                Text("$label · ${colTasks.size}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(6.dp))
-                if (colTasks.isEmpty()) {
-                    Text("—", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                colTasks.forEach { task ->
-                    BoardCard(
-                        task = task,
-                        canPrev = idx > 0,
-                        canNext = idx in 0 until statusOrder.lastIndex,
-                        onOpen = { onOpen(task.id) },
-                        onPrev = { if (idx > 0) onMove(task, statusOrder[idx - 1]) },
-                        onNext = { if (idx in 0 until statusOrder.lastIndex) onMove(task, statusOrder[idx + 1]) },
+        Row(
+            Modifier.fillMaxSize().horizontalScroll(scroll),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            TASK_STATUSES.forEach { (statusVal, label) ->
+                val colTasks = tasks.filter { (it.status.ifBlank { "not_started" }) == statusVal }
+                    .sortedWith(compareBy({ it.dueDate()?.toString() ?: "9999-99-99" }, { priorityRank(it.priority) }))
+                val idx = statusOrder.indexOf(statusVal)
+                val isTarget = hovered == statusVal
+                Column(
+                    Modifier.width(250.dp).fillMaxHeight()
+                        .onGloballyPositioned { c ->
+                            val left = c.positionInRoot().x
+                            colSpan[statusVal] = left..(left + c.size.width)
+                        }
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (isTarget) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                            else Color.Transparent,
+                        )
+                        .padding(4.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        "$label · ${colTasks.size}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
+                    if (colTasks.isEmpty()) {
+                        Text(
+                            if (isTarget) "Drop here" else "—",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    colTasks.forEach { task ->
+                        BoardCard(
+                            task = task,
+                            canPrev = idx > 0,
+                            canNext = idx in 0 until statusOrder.lastIndex,
+                            lifted = dragTask?.id == task.id,
+                            onOpen = { onOpen(task.id) },
+                            onPrev = { if (idx > 0) onMove(task, statusOrder[idx - 1]) },
+                            onNext = { if (idx in 0 until statusOrder.lastIndex) onMove(task, statusOrder[idx + 1]) },
+                            onPickUp = { cardRoot, grab ->
+                                dragTask = task
+                                dragGrab = grab
+                                dragAt = cardRoot + grab
+                            },
+                            onDragBy = { amount -> dragAt += amount },
+                            onDrop = { drop() },
+                            onDragCancel = { dragTask = null },
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
                 }
+            }
+        }
+
+        // The card riding under your finger. Drawn last so it floats over the columns,
+        // and offset by where you grabbed it so it doesn't jump on pick-up.
+        dragTask?.let { task ->
+            val x = dragAt.x - boardOrigin.x - dragGrab.x
+            val y = dragAt.y - boardOrigin.y - dragGrab.y
+            Box(
+                Modifier.offset { IntOffset(x.roundToInt(), y.roundToInt()) }
+                    .width(250.dp)
+                    .zIndex(1f),
+            ) {
+                BoardCard(
+                    task = task,
+                    canPrev = false,
+                    canNext = false,
+                    floating = true,
+                    onOpen = {},
+                    onPrev = {},
+                    onNext = {},
+                )
             }
         }
     }
@@ -277,10 +502,39 @@ private fun BoardCard(
     onOpen: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
+    // Drag state. `lifted` is the gap left behind by a card being dragged; `floating`
+    // is the copy riding under the finger. Both are false for an ordinary card, which
+    // is why the overlay can reuse this composable unchanged.
+    lifted: Boolean = false,
+    floating: Boolean = false,
+    onPickUp: (cardRoot: Offset, grab: Offset) -> Unit = { _, _ -> },
+    onDragBy: (Offset) -> Unit = {},
+    onDrop: () -> Unit = {},
+    onDragCancel: () -> Unit = {},
 ) {
+    var cardRoot by remember { mutableStateOf(Offset.Zero) }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onOpen() }.padding(10.dp),
+            .background(
+                if (floating) MaterialTheme.colorScheme.surfaceVariant
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (lifted) 0.35f else 1f),
+            )
+            .then(if (floating) Modifier.alpha(0.92f) else Modifier)
+            .onGloballyPositioned { cardRoot = it.positionInRoot() }
+            .then(
+                // The floating copy takes no input — the original still owns the gesture.
+                if (floating) Modifier
+                else Modifier.pointerInput(task.id) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { grab -> onPickUp(cardRoot, grab) },
+                        onDrag = { _, amount -> onDragBy(amount) },
+                        onDragEnd = { onDrop() },
+                        onDragCancel = { onDragCancel() },
+                    )
+                },
+            )
+            .then(if (floating) Modifier else Modifier.clickable { onOpen() })
+            .padding(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             priorityColor(task.priority)?.let { c -> Text("●", color = c, modifier = Modifier.padding(end = 6.dp)) }
@@ -335,12 +589,16 @@ private fun TaskEditor(task: Task, update: (Long, (Task) -> Task) -> Unit, onDel
             }
         }
         Label("Due")
+        // The chips cover the common cases; the field underneath takes any date, which
+        // is what everything else in the app already offers.
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Today" to today(), "Tomorrow" to today().plusDays(1), "Next week" to today().plusDays(7)).forEach { (lbl, d) ->
                 AssistChip(onClick = { update(task.id) { it.copy(due = d.toString()) } }, label = { Text(lbl) })
             }
             TextButton(onClick = { update(task.id) { it.copy(due = "") } }) { Text("Clear") }
         }
+        Spacer(Modifier.height(4.dp))
+        DateField(task.due) { v -> update(task.id) { it.copy(due = v) } }
         Label("Repeats")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TASK_RECUR.forEach { (v, lbl) ->
@@ -421,5 +679,204 @@ private fun EditField(value: String, placeholder: String, singleLine: Boolean = 
     OutlinedTextField(
         value = value, onValueChange = onChange, modifier = Modifier.fillMaxWidth(),
         singleLine = singleLine, placeholder = { Text(placeholder) },
+    )
+}
+
+// The universal selection bar: acts on every checked task at once. Only shown when
+// something is selected, so it stays out of the way the rest of the time.
+@Composable
+private fun SelectionBar(
+    count: Int,
+    allShownPicked: Boolean,
+    onComplete: () -> Unit,
+    onDelete: () -> Unit,
+    onSelectAll: () -> Unit,
+    onClear: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "$count selected",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(6.dp))
+        TextButton(onClick = onSelectAll) { Text(if (allShownPicked) "None" else "All") }
+        Spacer(Modifier.weight(1f))
+        TextButton(onClick = onComplete) { Text("✓ Complete") }
+        TextButton(onClick = onDelete) { Text("🗑 Delete", color = Color(0xFFD64545)) }
+        TextButton(onClick = onClear) { Text("×") }
+    }
+}
+
+// The add prompt: hit Add and this comes up ready to type, so a new task never starts
+// with hunting for a text box. Title is all that's required; the due chips save opening
+// the task afterwards just to say "today".
+@Composable
+private fun AddTaskPrompt(
+    project: String?,
+    onDismiss: () -> Unit,
+    onAdd: (title: String, due: String) -> Unit,
+) {
+    var title by remember { mutableStateOf("") }
+    var due by remember { mutableStateOf("") }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+
+    fun submit() {
+        val t = title.trim().replace("\n", " ")
+        if (t.isNotEmpty()) onAdd(t, due)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (project != null) "New task in $project" else "New task") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    singleLine = true,
+                    placeholder = { Text("What needs doing?") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Due",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(
+                        "Today" to today().toString(),
+                        "Tomorrow" to today().plusDays(1).toString(),
+                        "Next week" to today().plusDays(7).toString(),
+                    ).forEach { (label, value) ->
+                        FilterChip(
+                            selected = due == value,
+                            onClick = { due = if (due == value) "" else value },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                DateField(due) { v -> due = v }
+            }
+        },
+        confirmButton = { TextButton(onClick = { submit() }) { Text("Add") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+private data class DumpItem(val title: String, val due: String, val include: Boolean = true)
+
+private val DUMP_SPLIT_SYSTEM =
+    "You split a person's spoken list of to-dos into separate tasks. They may ramble, " +
+        "repeat themselves, or say things that aren't really tasks — skip anything that " +
+        "isn't actually something to do. Respond with exactly one line per task, formatted as:\n" +
+        "TITLE: <cleaned-up title> | DUE: <YYYY-MM-DD or blank>\n" +
+        "Nothing else — no numbering, no commentary. Resolve relative dates (tomorrow, Friday, " +
+        "next week, in N days) against TODAY given in the message."
+
+private fun parseDumpLines(reply: String): List<DumpItem> =
+    reply.lines().mapNotNull { line ->
+        val m = Regex("(?i)^TITLE:\\s*(.+?)\\s*\\|\\s*DUE:\\s*(\\d{4}-\\d{2}-\\d{2})?\\s*$").find(line.trim())
+            ?: return@mapNotNull null
+        val title = m.groupValues[1].trim()
+        if (title.isEmpty()) null else DumpItem(title, m.groupValues[2])
+    }
+
+// Keyless fallback when there's no AI key (or the call fails): split on sentence
+// breaks / line breaks instead of real understanding. No due-date extraction here —
+// good enough to land candidates on the review screen, where each one can still be
+// edited or dropped before anything is actually added.
+private fun splitDumpNaively(text: String): List<DumpItem> =
+    text.split(Regex("(?<=[.!?;])\\s+|\\n+"))
+        .map { it.trim().trim('.', '!', '?', ';', ',', ' ') }
+        .filter { it.isNotEmpty() }
+        .map { DumpItem(it, "") }
+
+// One long dictation, split into candidate tasks for a one-tap-per-item review —
+// never bulk-added sight unseen, same discipline as the photo-scan flows elsewhere
+// (Quartermaster's catalog-from-photo, Documents' scan).
+@Composable
+private fun BrainDumpReview(transcript: String, onDismiss: () -> Unit, onAdd: (List<DumpItem>) -> Unit) {
+    var items by remember { mutableStateOf<List<DumpItem>?>(null) }
+    var loading by remember { mutableStateOf(AiClient.hasKey()) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(transcript) {
+        if (AiClient.hasKey()) {
+            val reply = AiClient.ask(DUMP_SPLIT_SYSTEM, "TODAY: ${today()}\n$transcript", maxTokens = 500)
+            loading = false
+            if (reply.isError) {
+                error = reply.text
+                items = splitDumpNaively(transcript)
+            } else {
+                items = parseDumpLines(reply.text).ifEmpty { splitDumpNaively(transcript) }
+            }
+        } else {
+            loading = false
+            items = splitDumpNaively(transcript)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Review before adding") },
+        text = {
+            Column {
+                if (loading) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Splitting that up…", style = MaterialTheme.typography.bodyMedium)
+                    }
+                } else {
+                    error?.let {
+                        Text(
+                            "Couldn't reach AI ($it) — split by sentence instead.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    val list = items.orEmpty()
+                    if (list.isEmpty()) {
+                        Text("Didn't catch anything that sounded like a task.", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    list.forEachIndexed { i, item ->
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                            Checkbox(
+                                checked = item.include,
+                                onCheckedChange = { c -> items = list.mapIndexed { j, it -> if (j == i) it.copy(include = c) else it } },
+                            )
+                            OutlinedTextField(
+                                value = item.title,
+                                onValueChange = { v ->
+                                    items = list.mapIndexed { j, it -> if (j == i) it.copy(title = v.replace("\n", " ")) else it }
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !loading && items.orEmpty().any { it.include && it.title.isNotBlank() },
+                onClick = { onAdd(items.orEmpty().filter { it.include && it.title.isNotBlank() }) },
+            ) { Text("Add") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

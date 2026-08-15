@@ -1,0 +1,579 @@
+# Life OS — Android
+
+Everything in the Android application as it stands: how you get into it, the phone
+hardware it uses, and all 40 modules with what each one is and what a record in it
+holds. Written from the Kotlin source.
+
+**40 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
+
+---
+
+## The interface
+
+**A graphical home, not a list.** The default home is artwork: a wheel of eight petals,
+one per domain, around a centre. The clock, date and a status ring print into blank slots
+the artwork leaves for them. Tapping a petal opens that domain's modules. A bottom bar
+holds voice capture, a quick note, a code scanner and the assistant, with a large camera
+button in the middle. Every region is a traced polygon mapped onto the image, so what
+lights up under your thumb is the exact shape drawn.
+
+**Light is the interaction vocabulary.** A ray sweeps the wheel when the app opens, the
+core breathes continuously, and whatever you press flashes and fades. It's drawn over the
+artwork rather than baked into it, and it's timed off the frame clock so it runs even
+with device animations switched off.
+
+**A plain launcher is also there**, and the interface is switchable in Settings.
+
+**Every module page** sits under a persistent back control and the module's name, and
+saves as you type — there is no save button anywhere in the app.
+
+## The camera is a primary input
+
+The centre button shoots anything and the app works out what it is:
+
+- a photographed to-do list → many tasks, not one
+- a shelf or pantry → many inventory items
+- a business card → a contact
+- a receipt → a ledger entry
+- a document → a filed document with its text, issuer and expiry read out of it
+- a book's barcode → an ISBN lookup with cover art
+
+What comes back is a **proposal** — what it thinks it saw, itemized, with a suggested
+destination among seven modules. You confirm or redirect it. Nothing is written silently,
+and if it found nothing separable it says so rather than filing one guessed record.
+
+## What the phone provides
+
+| Capability | Used by |
+|---|---|
+| Camera and gallery | Documents, Photos, Places, Quartermaster, Finance, Recipes, Milestones, Collections, the scanner |
+| QR / barcode / ISBN scanning | Books, QR Sync, the scanner |
+| Alarms that fire with the app closed | Notifications, bill due dates, document expiry |
+| Pinned ongoing notification | the next thing due |
+| Location and arrival geofences | Places |
+| Microphone, driven by the app itself | the mic button in Command, Ideas, Ask, the Assistant |
+| System dictation and an always-on wake word | the offline fallback; the wake word listens for a trigger phrase |
+| Speaker verification | gates the wake word to your voice |
+| Read aloud | Today, Briefing, Daily Paper |
+| Phone address book import | Contacts |
+| Screen wake-lock | Recipes while cooking |
+| PDF export | Daily Paper |
+| Share sheet, deep links, app shortcuts | throughout |
+
+**Where data lives.** Records are JSON per module in app storage, synced per key through
+Supabase when signed in. Photos, PDFs and ebooks live in a local blob store that is never
+uploaded and never included in a backup export. AI runs on your own key and is always
+given your records — and the current date and time — as context.
+
+
+## Across every module
+
+Behaviour that isn't any one module's, implemented once and present everywhere:
+
+- **Multi-select on every list.** Long-press a row — press-and-hold works with a mouse —
+  or hit Select, tick as many as you want, then act on all of them at once. Delete asks
+  for confirmation and frees the records' photos and files exactly as a single delete
+  does. Some lists add a second bulk action where one is obviously useful: Archive in
+  Ideas, Watched/Read in Links, Mark done for assignments, Packed for packing items,
+  moving between the two lists in Places, Done on the bucket list.
+- **A microphone wherever text is typed.** One button, which records until you say
+  you're finished and then transcribes with Whisper — a pause mid-sentence is a pause,
+  not the end of the take, and the transcript comes back punctuated. On the phone the
+  system recognizer is available instead (offline, free, cuts you off at the first pause),
+  switchable in Settings; on a computer Whisper is the only dictation there is. Needs a
+  network connection and an OpenAI key, and the audio leaves the device.
+- **Any number of files on any record.** Images as a photo grid you can tap to enlarge,
+  everything else as a named list. Bytes live in a local blob store that never syncs and
+  never lands in a backup export.
+- **Dates are typed or picked**, the same field everywhere.
+- **Every write is confirmed** with a brief toast, so nothing saves silently.
+- **Nothing ships with example data.** An empty module says it's empty and says what
+  goes in it; it doesn't seed placeholder records that look like your own.
+
+---
+
+# The modules
+
+Field names are the real ones the app stores. **On the phone** lists the hardware each
+module actually reaches for.
+
+## Operations
+*Run your day.* — 6 modules
+
+### 🗓  Today
+The landing page. Everything today asks of you, gathered from every other module: what's
+overdue, what's due, which habits are unchecked, what happened on this date in past
+years, and one thing you once said you wanted to get to.
+
+- **DueLine** — `icon`, `title`, `meta`, `moduleId`, `urgent`
+- **Pick** — `kind`, `title`, `moduleId`
+- **ParsedCmd** — `type`, `title`, `due`, `amount`
+- Uses: AI, Weather
+- On the phone: dictation, read aloud.
+
+### 📰  Daily Paper
+A newspaper about your own life, written each morning. An AI editorial grounded strictly
+in the day's real facts, a docket of what's coming, the weather, and a re-rollable
+suggestion.
+
+- **Docket** — `kind`, `title`, `date`, `overdue`, `key`
+- **OnThisDay** — `kind`, `title`, `year`
+- **TaskLite** — `id`, `title`, `due`, `done`
+- Uses: AI, Telegram, Weather
+- On the phone: PDF export.
+
+### ✅  Tasks
+The working list. Four states (not started / in progress / waiting / done),
+priority, any due date, projects, tags, repeats that spawn the next occurrence when you
+complete one, snoozing, subtask checklists, and a board view you can drag cards across.
+
+- **Subtask** — `id`, `text`, `done`
+- **Task** — `id`, `title`, `status`, `priority`, `due`, `project`, `tags`, `notes`, `waitingOn`, `subtasks`, `recur`, `snoozedUntil`, `completedDate`
+- The board is a column per status. Press and hold a card to lift it, drag it over
+  another column, let go — the target lights up and the board auto-scrolls near either
+  edge. ‹ / › on each card do the same one step at a time.
+- The row checkbox *selects* rather than completes, so completing and deleting both act
+  on a whole selection from one bar. Completing flips to Reopen when everything picked
+  is already done.
+
+### ⌘  Command
+One input. Type an instruction in plain language and it proposes a record and a
+destination module; you confirm before anything is written.
+
+- **ParsedCmd** — `type`, `title`, `due`, `amount`
+- **DueLine** — `icon`, `title`, `meta`, `moduleId`, `urgent`
+- **Pick** — `kind`, `title`, `moduleId`
+- Uses: AI, Weather
+- On the phone: dictation, read aloud.
+
+### 📋  Briefing
+Everything wanting attention in one column, each row carrying its own action — complete,
+check in, snooze, renew. The page exists to be emptied.
+
+- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
+- **Lin** — `slope`, `intercept`
+- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
+- **Entry** — `s`, `m`, `t`, `v`
+- **Index** — `hash`, `entries`
+- **Ranked** — `source`, `text`, `moduleId`, `score`
+- **Area** — `label`, `days`
+- **ChatMsg** — `fromUser`, `text`
+- **Conversation** — `id`, `name`, `msgs`
+- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
+- **Reminder** — `text`, `atEpochMillis`
+- **Fact** — `text`, `intervalDays`, `nextReview`
+- Uses: AI
+- On the phone: notifications, pinned notification, read aloud, scheduled alarms.
+
+### 🔔  Notifications
+What's overdue, due soon, or expiring, and a place to set a reminder.
+
+- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
+- **Reminder** — `text`, `atEpochMillis`
+- **Lin** — `slope`, `intercept`
+- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
+- **Entry** — `s`, `m`, `t`, `v`
+- **Index** — `hash`, `entries`
+- **Ranked** — `source`, `text`, `moduleId`, `score`
+- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
+- **Area** — `label`, `days`
+- **ChatMsg** — `fromUser`, `text`
+- **Conversation** — `id`, `name`, `msgs`
+- **Fact** — `text`, `intervalDays`, `nextReview`
+- Uses: AI
+- On the phone: notifications, pinned notification, read aloud, scheduled alarms.
+
+---
+
+## Archive
+*What you keep.* — 9 modules
+
+### 📄  Documents
+Anything with an expiry date — IDs, policies, warranties. Import a scan and AI reads the
+title, issuer, number and expiry out of it.
+
+- **Document** — `id`, `title`, `category`, `issuer`, `policyNumber`, `expiryDate`, `transcription`, `notes`, `linkedContact`, `photoBlob`
+- Uses: AI
+- On the phone: camera, gallery.
+
+### 🔗  Links
+Saved videos and articles, with cached thumbnails, tags and read state.
+
+- **Link** — `id`, `url`, `type`, `title`, `tags`, `status`, `shareWith`, `videoId`, `thumbBlob`
+- On the phone: share sheet.
+
+### 📚  Books
+The reading list, the shelf, and a real in-app reader. A book holds any number of
+readable files, each remembering its own place.
+
+- **ReadLog** — `id`, `date`, `pagesRead`
+- **BookFile** — `id`, `name`, `kind`, `blobId`, `frac`, `page`
+- **Book** — `id`, `title`, `author`, `genre`, `status`, `totalPages`, `currentPage`, `startedDate`, `finishedDate`, `rating`, `notes`, `logs`, `photoBlob`, `readFrac`
+- On the phone: barcode scanning, camera, ebook import, file picker, gallery, open in another app.
+
+### 🖼  Photos
+Albums of captioned photos.
+
+- **Caption** — `id`, `text`, `note`, `blob`
+- **Album** — `id`, `name`, `description`, `captions`
+- On the phone: camera, gallery.
+
+### 🏛  Museum
+A hall of everything finished, assembled from six other modules: tasks, books, recipes,
+projects, milestones, streaks.
+
+- **Plaque** — `title`, `meta`, `coverBlob`
+- **Wing** — `title`, `items`
+
+### 🗂  Collections
+Things you collect, with per-item acquired dates, tags and notes.
+
+- **CollItem** — `id`, `name`, `acquiredDate`, `tags`, `notes`
+- **Collection** — `id`, `name`, `description`, `items`, `photoBlob`
+- On the phone: camera, gallery.
+
+### ⏳  Time Capsules
+A sealed note to your future self, genuinely hidden until its date.
+
+- **TimeCapsule** — `id`, `title`, `body`, `sealedUntil`, `createdAt`, `photoBlob`
+- On the phone: camera, gallery.
+
+### 🏆  Milestones
+What's worth remembering, on a timeline — plus a yearly recap that counts your year
+across every module and writes a narrative of it.
+
+- **Milestone** — `id`, `title`, `date`, `category`, `notes`, `photoBlob`
+- Uses: AI
+- On the phone: camera, gallery.
+
+### 👻  Ghost Days
+This date in previous years, drawn from every dated record in the app.
+
+- **Ghost** — `year`, `kind`, `text`
+
+---
+
+## Logistics
+*Places, supply and trips.* — 4 modules
+
+### 📍  Places
+Where you've been and where you want to go: ratings, visit dates, private notes-to-self,
+photos, a real street map, and a bucket list.
+
+- **Place** — `id`, `name`, `listType`, `category`, `rating`, `address`, `lat`, `lng`, `notes`, `visitDates`, `notesToSelf`, `photoBlob`, `contacts`
+- **BucketItem** — `id`, `title`, `done`, `targetDate`
+- The Map tab draws OpenStreetMap tiles with your places pinned on top — real streets
+  and labels, pinch to zoom, panning that wraps at the date line. Tiles are cached on
+  the device as you look at them, so places you've already seen work with no
+  connection. Selecting a pin offers Directions, which hands off to whatever the
+  machine uses for maps; a place with coordinates has the same action in its editor.
+  Coordinates come from "Use my location" or from geocoding the name/address.
+- Uses: Weather
+- On the phone: arrival geofence, location.
+
+### 🪐  Orrery
+Your life as an orbital system. Modules are bodies; how long since you touched one sets
+its orbit.
+
+- **Planet** — `label`, `count`, `days`, `overdue`
+
+### 📦  Quartermaster
+What you own, where it is, what's running out, and what you've lent. Photograph a shelf
+and it catalogues the contents.
+
+- **InventoryItem** — `id`, `name`, `location`, `tags`, `lentTo`, `lentSince`, `photoBlob`, `stockCheckedAt`
+- **StockRef** — `id`, `label`, `blob`
+- Uses: AI
+- On the phone: camera, gallery.
+
+### 🧳  Packing Lists
+One checklist per trip, from four starting templates.
+
+- **PackItem** — `id`, `name`, `category`, `packed`
+- **PackingList** — `id`, `name`, `tripDate`, `items`
+
+---
+
+## Discovery
+*Learning and curiosity.* — 5 modules
+
+### 🎓  Education
+Semesters, courses and assignments — with grades, GPA, time spent, and a pacing plan: a
+target, dated checkpoints, and logs of what you actually did against it.
+
+- **KeyDate** — `label`, `date`
+- **Checkpoint** — `date`, `targetByThen`
+- **ProgressLog** — `id`, `date`, `unitsAdded`
+- **Semester** — `id`, `name`, `startDate`, `endDate`
+- **Course** — `id`, `semesterId`, `name`, `credits`, `grade`, `readingListTag`, `notes`, `keyDates`
+- **Assignment** — `id`, `courseId`, `title`, `dueDate`, `status`, `percentComplete`, `timeSpentMinutes`, `grade`, `pacingTarget`, `pacingUnit`, `paceCheckpoints`, `progressLogs`
+
+### 🌳  Skill Trees
+Your real activity expressed as levels across three branches. Nothing is entered here;
+it reads what you did elsewhere.
+
+- **Skill** — `name`, `icon`, `xp`, `blurb`
+
+### 💡  Ideas
+Fast capture, tagged and searchable, promotable to a task.
+
+- **Idea** — `id`, `text`, `tags`, `archived`, `created`
+- On the phone: dictation.
+
+### 🕳  Rabbit Holes
+What you went down a hole researching — running notes and links, active or resolved.
+An open thread you haven't touched in three weeks is marked cold on its row and surfaces
+in the Briefing with a one-tap Resolve, because an abandoned thread should be closed
+rather than nagged about forever.
+
+- **HoleLink** — `id`, `url`, `title`
+- **RabbitHole** — `id`, `topic`, `notes`, `links`, `status`, `startedDate`, `touchedDate`, `photoBlob`
+- `touchedDate` is stamped on every edit; it's what "gone cold" is measured against.
+  Records written before it existed fall back to their start date.
+- On the phone: camera, gallery, share sheet.
+
+### 📊  The Almanac
+Patterns computed from your own data: correlations, forecasts, and what-ifs.
+
+- **Lin** — `slope`, `intercept`
+- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
+- **Entry** — `s`, `m`, `t`, `v`
+- **Index** — `hash`, `entries`
+- **Ranked** — `source`, `text`, `moduleId`, `score`
+- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
+- **Area** — `label`, `days`
+- **ChatMsg** — `fromUser`, `text`
+- **Conversation** — `id`, `name`, `msgs`
+- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
+- **Reminder** — `text`, `atEpochMillis`
+- **Fact** — `text`, `intervalDays`, `nextReview`
+- Uses: AI
+- On the phone: notifications, pinned notification, read aloud, scheduled alarms.
+
+---
+
+## Management
+*Body, home and money.* — 4 modules
+
+### 🔥  Habits
+Streaks that reset honestly. A day is checked in or it isn't, and missing one resets;
+checking in twice can't inflate it, and a mis-tap today can be undone. Habits you
+haven't checked in yet appear on Today, and one with a live streak surfaces in the
+Briefing.
+
+- **Habit** — `name`, `checkins`, `notes`
+- Starts empty. No seeded example habits — an empty list says so rather than shipping
+  two placeholders that look like records you chose.
+
+### ❤  Health
+Daily log, workouts with pace maths, metric trends, and imports from Garmin and Apple
+Health exports.
+
+- **Reading** — `id`, `metric`, `value`, `unit`, `date`
+- **DailyLog** — `date`, `workoutType`, `workoutMinutes`, `waterOz`, `weightLb`, `notes`
+- **Workout** — `id`, `date`, `type`, `minutes`, `distance`, `distanceUnit`, `notes`
+- On the phone: large-file import.
+
+### 🍳  Recipes
+Cook from them, rescale every quantity live to the servings you want, and log each time
+you cooked it.
+
+- **GroceryTotal** — `name`, `unit`, `qty`, `exact`, `raw`
+- **Ingredient** — `id`, `name`, `qty`, `unit`
+- **Step** — `id`, `text`
+- **CookLog** — `id`, `date`, `notes`
+- **Recipe** — `id`, `title`, `baseServings`, `tags`, `notes`, `ingredients`, `steps`, `cookLogs`, `photoBlob`
+- On the phone: camera, gallery, screen wake-lock.
+
+### 💵  Finance
+Ledger, bills with payment history, subscriptions, and holdings priced live. Photograph
+a receipt and it reads it.
+
+- **Entry** — `id`, `desc`, `amount`, `category`, `recurring`, `date`, `photoBlob`
+- **Payment** — `date`, `amount`
+- **Bill** — `id`, `name`, `amount`, `dueDate`, `cadence`, `autopay`, `remindDays`, `category`, `paymentHistory`, `contact`, `attachments`
+- **Subscription** — `id`, `name`, `amount`, `cycle`, `active`, `category`, `renewalDate`
+- Uses: AI, Markets
+- On the phone: camera, gallery, scheduled alarms.
+
+---
+
+## Intelligence
+*The app thinking about you.* — 6 modules
+
+### 🔎  Ask
+A question about your own records — either an AI answer with its sources, or semantic
+search with no AI at all.
+
+- **Lin** — `slope`, `intercept`
+- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
+- **Entry** — `s`, `m`, `t`, `v`
+- **Index** — `hash`, `entries`
+- **Ranked** — `source`, `text`, `moduleId`, `score`
+- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
+- **Area** — `label`, `days`
+- **ChatMsg** — `fromUser`, `text`
+- **Conversation** — `id`, `name`, `msgs`
+- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
+- **Reminder** — `text`, `atEpochMillis`
+- **Fact** — `text`, `intervalDays`, `nextReview`
+- Uses: AI
+- On the phone: notifications, pinned notification, read aloud, scheduled alarms.
+
+### 🤖  AI Assistant
+Named conversations grounded in your data and the current time.
+
+- **ChatMsg** — `fromUser`, `text`
+- **Conversation** — `id`, `name`, `msgs`
+- **Lin** — `slope`, `intercept`
+- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
+- **Entry** — `s`, `m`, `t`, `v`
+- **Index** — `hash`, `entries`
+- **Ranked** — `source`, `text`, `moduleId`, `score`
+- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
+- **Area** — `label`, `days`
+- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
+- **Reminder** — `text`, `atEpochMillis`
+- **Fact** — `text`, `intervalDays`, `nextReview`
+- Uses: AI
+- On the phone: notifications, pinned notification, read aloud, scheduled alarms.
+
+### 🕸  Knowledge Graph
+Labelled links between any two records in the app, resolved live so a renamed record
+doesn't leave a stale label.
+
+- **Node** — `source`, `label`
+- **Edge** — `aSource`, `aLabel`, `bSource`, `bLabel`
+- Uses: AI
+
+### ♻  Recall
+Spaced repetition over facts you chose to keep.
+
+- **Lin** — `slope`, `intercept`
+- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
+- **Entry** — `s`, `m`, `t`, `v`
+- **Index** — `hash`, `entries`
+- **Ranked** — `source`, `text`, `moduleId`, `score`
+- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
+- **Area** — `label`, `days`
+- **ChatMsg** — `fromUser`, `text`
+- **Conversation** — `id`, `name`, `msgs`
+- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
+- **Reminder** — `text`, `atEpochMillis`
+- **Fact** — `text`, `intervalDays`, `nextReview`
+- Uses: AI
+- On the phone: notifications, pinned notification, read aloud, scheduled alarms.
+
+### 🌀  Entropy
+What you've been neglecting, module by module.
+
+- **Area** — `label`, `days`
+- **Lin** — `slope`, `intercept`
+- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
+- **Entry** — `s`, `m`, `t`, `v`
+- **Index** — `hash`, `entries`
+- **Ranked** — `source`, `text`, `moduleId`, `score`
+- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
+- **ChatMsg** — `fromUser`, `text`
+- **Conversation** — `id`, `name`, `msgs`
+- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
+- **Reminder** — `text`, `atEpochMillis`
+- **Fact** — `text`, `intervalDays`, `nextReview`
+- Uses: AI
+- On the phone: notifications, pinned notification, read aloud, scheduled alarms.
+
+### ⏰  Time Machine
+What the app knew on a past day: how much of today's record existed then, what arrived
+that day, and what you actually did.
+
+- **Event** — `icon`, `text`, `source`
+- **Stub** — `key`, `title`
+- **StoreSnapshot** — `label`, `stubs`
+- **Births** — `seeded`, `born`
+
+---
+
+## People
+*Others, and other devices.* — 3 modules
+
+### 👤  Contacts
+People and everything you know about them, linked to the places and documents they
+appear in.
+
+- **Contact** — `id`, `name`, `emails`, `company`, `title`, `relationship`, `address`, `birthday`, `tags`, `notes`, `photoBlob`
+- On the phone: camera, gallery, phone address book.
+
+### 🤝  Sharebox
+A shared feed between you and someone else, over your own account, arriving live without
+a refresh.
+
+- **ShareItem** — `id`, `kind`, `url`, `title`, `body`, `urgency`, `postedBy`, `createdAt`
+- **SpaceRow** — `id`, `name`
+- **ItemRow** — `id`, `kind`, `url`, `title`, `body`, `urgency`
+- Uses: account, file transfer, shared spaces
+- On the phone: file picker, open in another app, share sheet.
+
+### 🔳  QR Sync
+Pair another device by scanning a code. Phone-only — the desktop build omits it.
+
+- **UnitDef** — `name`, `toBase`
+- **QrMatrix** — `size`, `modules`
+- **ScanProposal** — `kind`, `title`, `items`, `text`, `summary`, `fields`, `photoB64`, `suggested`
+- Uses: AI, Currency, Markets, Weather, account
+- On the phone: QR scanning, camera, code scanning.
+
+---
+
+## System
+*Running the app.* — 3 modules
+
+### 🔍  Search
+One box across every record in the app, grouped by module.
+
+- **StatusItem** — `text`, `status`
+- **NoteItem** — `title`, `note`
+- On the phone: read aloud.
+
+### 🧰  Tools
+Currency across ~160 currencies with live rates, time zones, unit conversion, weather,
+and market prices.
+
+- **UnitDef** — `name`, `toBase`
+- **QrMatrix** — `size`, `modules`
+- **ScanProposal** — `kind`, `title`, `items`, `text`, `summary`, `fields`, `photoB64`, `suggested`
+- Uses: AI, Currency, Markets, Weather, account
+- On the phone: QR scanning, camera, code scanning.
+
+### ⚙  Settings
+AI keys and provider, account and sync, Telegram, alert thresholds, the app lock, and
+backup.
+
+- Uses: Telegram, TelegramLink, account
+- On the phone: arrival geofence, screen wake-lock, share sheet, voice enrolment, wake word.
+
+---
+
+# Beyond the modules
+
+- **Automations** (off by default): a habit reaching 7, 30, 100 or 365 days writes its
+  own milestone; a document nearing expiry writes a renewal task. Both idempotent.
+- **App lock**: an optional PIN gating the whole app at launch. A screen lock, not
+  encryption — the data on the device isn't scrambled.
+- **Backup**: export every module as one JSON file and import it back, independent of the
+  account. Attachments stay on the device.
+- **Sharebox**: the one place data leaves the phone, and only by posting to a space you
+  joined.
+
+# Where it stands
+
+All 40 modules are built and the build runs on device. Outstanding:
+
+- **Blocked on credentials** — Google Photos import and calendar push; both need an
+  OAuth client created in the Google Cloud project.
+- **Awaiting artwork** — the Orrery's orbital view and the Knowledge Graph's radial view.
+  Both work as lists today.
+- **Open decisions** — whether Recall stays flashcards or becomes cross-module
+  resurfacing; whether Notifications adds a shared activity feed; when the animated
+  character gets built.
+- **Small gaps** — projects in Tasks are a text field rather than first-class records,
+  and weather is by named city rather than location.

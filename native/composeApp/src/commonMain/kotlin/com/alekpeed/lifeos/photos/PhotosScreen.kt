@@ -39,10 +39,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.alekpeed.lifeos.attach.PHOTOS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 
 private val DANGER = Color(0xFFD64545)
@@ -61,16 +68,14 @@ fun PhotosScreen() {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         val open = data.albums.firstOrNull { it.id == openId }
         if (open != null) AlbumDetail(data, ::save, ::freshId, open) { openId = null }
-        else AlbumsList(data, ::save, ::freshId) { openId = it }
+        else AlbumsList(data, ::save, ::freshId, { data = loadPhotos() }) { openId = it }
     }
 }
 
 @Composable
-private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: () -> Long, onOpen: (Long) -> Unit) {
+private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: () -> Long, onImported: () -> Unit, onOpen: (Long) -> Unit) {
     var input by remember { mutableStateOf("") }
 
-    Text("Photos", style = MaterialTheme.typography.headlineMedium)
-    Spacer(Modifier.height(12.dp))
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(input, { input = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New album") })
@@ -79,18 +84,36 @@ private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: ()
             val n = input.trim().replace("\n", " ")
             if (n.isNotEmpty()) { save(data.copy(albums = data.albums + Album(freshId(), n))); input = "" }
         }) { Text("Add") }
+        Spacer(Modifier.width(10.dp))
+        ImportRecordButton(PHOTOS_MODULE, onImported = onImported)
     }
     Spacer(Modifier.height(12.dp))
 
     if (data.albums.isEmpty()) { Muted("No albums yet."); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = data.albums.map { it.id },
+        noun = "album",
+        onDelete = { ids ->
+            data.albums.filter { it.id in ids }.forEach { a -> a.captions.forEach { deleteBlob(it.blob) } }
+            save(data.copy(albums = data.albums.filterNot { it.id in ids }))
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(data.albums, key = { it.id }) { album ->
             val cover = album.captions.firstOrNull { it.blob.isNotBlank() }
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onOpen(album.id) }.padding(14.dp),
+                    .background(
+                        if (bulk.has(album.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    .bulkClickable(bulk, album.id) { onOpen(album.id) }.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                BulkTick(bulk, album.id)
                 val coverBlob = cover?.blob ?: ""
                 val coverImg = remember(coverBlob) { if (coverBlob.isBlank()) null else loadBlobImage(coverBlob) }
                 if (coverImg != null) {
@@ -103,7 +126,9 @@ private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: ()
                     Text(album.name.ifBlank { "(untitled album)" }, style = MaterialTheme.typography.bodyLarge)
                     Text("${album.captions.size} item${if (album.captions.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
-                TextButton(onClick = { album.captions.forEach { deleteBlob(it.blob) }; save(data.copy(albums = data.albums.filterNot { it.id == album.id })) }) { Text("×") }
+                if (!bulk.on) {
+                    TextButton(onClick = { album.captions.forEach { deleteBlob(it.blob) }; save(data.copy(albums = data.albums.filterNot { it.id == album.id })) }) { Text("×") }
+                }
             }
         }
     }
@@ -125,6 +150,7 @@ private fun AlbumDetail(data: PhotosData, save: (PhotosData) -> Unit, freshId: (
         TextButton(onClick = onBack) { Text("← Albums") }
         Spacer(Modifier.width(4.dp))
         Text(album.name.ifBlank { "(untitled album)" }, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        ExportRecordButton(PHOTOS_MODULE, album.id, album.name.ifBlank { "album" })
         TextButton(onClick = {
             album.captions.forEach { deleteBlob(it.blob) }
             save(data.copy(albums = data.albums.filterNot { it.id == album.id })); onBack()

@@ -1,6 +1,5 @@
 package com.alekpeed.lifeos.places
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,13 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -38,17 +35,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
+import com.alekpeed.lifeos.attach.PLACES_MODULE
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.integrations.WeatherClient
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
-import com.alekpeed.lifeos.platform.loadBlobImage
-import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -73,8 +74,6 @@ fun PlacesScreen() {
     var nearby by remember { mutableStateOf<List<NearbyNudge>?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Places", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("visited" to "Visited", "wantToGo" to "Want to go", "map" to "Map", "bucket" to "Bucket list").forEach { (v, lbl) ->
                 FilterChip(selected = tab == v, onClick = { tab = v; selected = null }, label = { Text(lbl) })
@@ -89,13 +88,13 @@ fun PlacesScreen() {
                     "No places have coordinates yet. Open a place and tap “Find on map” (or “Use my location”) to pin it.",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                // Tapping a pin jumps to that place's list with its editor open.
-                WorldMapView(pins) { id ->
-                    val place = data.places.firstOrNull { it.id == id } ?: return@WorldMapView
-                    tab = if (place.listType == "wantToGo") "wantToGo" else "visited"
-                    selected = id
-                }
+                Spacer(Modifier.height(10.dp))
+            }
+            // Tapping a pin selects it; tapping it again jumps to that place's editor.
+            WorldMapView(pins) { id ->
+                val place = data.places.firstOrNull { it.id == id } ?: return@WorldMapView
+                tab = if (place.listType == "wantToGo") "wantToGo" else "visited"
+                selected = id
             }
             return@Column
         }
@@ -170,18 +169,55 @@ private fun PlaceList(
             val n = input.trim().replace("\n", " ")
             if (n.isNotEmpty()) { save(data.copy(places = data.places + Place(freshId(), n, listType))); input = "" }
         }) { Text("Add") }
+        Spacer(Modifier.width(10.dp))
+        ImportRecordButton(PLACES_MODULE, onImported = { save(loadPlaces()) })
     }
     Spacer(Modifier.height(12.dp))
 
     if (places.isEmpty()) { Muted("Nothing here yet."); return }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = places.map { it.id },
+        noun = "place",
+        onDelete = { ids ->
+            data.places.filter { it.id in ids }.forEach { p ->
+                if (p.photoBlob.isNotBlank()) deleteBlob(p.photoBlob)
+                p.attachments.forEach { a -> deleteBlob(a.blobId) }
+            }
+            save(data.copy(places = data.places.filterNot { it.id in ids }))
+        },
+        extra = { ids ->
+            // Moving a batch between the two lists is the other thing worth doing to
+            // several places at once.
+            if (ids.isNotEmpty()) {
+                val to = if (listType == "wantToGo") "visited" else "wantToGo"
+                TextButton(onClick = {
+                    save(data.copy(places = data.places.map { if (it.id in ids) it.copy(listType = to) else it }))
+                    bulk.clear()
+                }) {
+                    Text(
+                        if (to == "visited") "→ Visited" else "→ Want to go",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(places, key = { it.id }) { p ->
             Column {
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onSelect(p.id) }.padding(14.dp),
+                        .background(
+                            if (bulk.has(p.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        .bulkClickable(bulk, p.id) { onSelect(p.id) }.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    BulkTick(bulk, p.id)
                     Column(Modifier.weight(1f)) {
                         Text(p.name.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                         val chips = buildList {
@@ -197,7 +233,7 @@ private fun PlaceList(
                         }
                     }
                 }
-                if (selected == p.id) PlaceDetail(data, save, p) { onSelect(p.id) }
+                if (selected == p.id && !bulk.on) PlaceDetail(data, save, p) { onSelect(p.id) }
             }
         }
     }
@@ -208,16 +244,6 @@ private fun PlaceList(
 private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Place, onClose: () -> Unit) {
     fun patch(f: (Place) -> Place) = save(data.copy(places = data.places.map { if (it.id == place.id) f(it) else it }))
     var newNote by remember { mutableStateOf("") }
-    var showSource by remember { mutableStateOf(false) }
-
-    // Attach/replace the photo: save the new blob, drop the old one, point the
-    // record at the new id.
-    fun onAttach(b64: String?) {
-        if (b64.isNullOrEmpty()) return
-        val id = saveBlob(b64) ?: return
-        deleteBlob(place.photoBlob)
-        patch { it.copy(photoBlob = id) }
-    }
 
     Panel {
         Label("Name")
@@ -289,6 +315,13 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
                     },
                     enabled = !geoBusy,
                 ) { Text(if (geoBusy) "Finding…" else "🗺 Find on map") }
+                // Once it has coordinates, hand off to whatever the machine uses for
+                // maps — that's where directions belong.
+                if (place.lat != null && place.lng != null) {
+                    TextButton(onClick = {
+                        Native.openUrl(mapsLink(place.lat!!, place.lng!!))
+                    }) { Text("Directions ↗") }
+                }
             }
             geoErr?.let {
                 Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
@@ -355,43 +388,25 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
             )
         }
 
-        Label("Photo")
-        val photo = remember(place.photoBlob) { loadBlobImage(place.photoBlob) }
-        if (place.photoBlob.isNotBlank()) {
-            if (photo != null) {
-                Image(
-                    bitmap = photo,
-                    contentDescription = "Attached photo",
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Fit,
-                )
-            } else {
-                Text("Photo attached (no preview available).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (Native.supportsCamera) TextButton(onClick = { showSource = true }) { Text("Replace") }
-                TextButton(onClick = { deleteBlob(place.photoBlob); patch { it.copy(photoBlob = "") } }) { Text("Remove photo") }
-            }
-        } else if (Native.supportsCamera) {
-            OutlinedButton(onClick = { showSource = true }) { Text("📷 Attach photo") }
-        } else {
-            Text("Photo attachments need a camera.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        // A place is a place you saw — one photo per place was the wrong shape. Every
+        // photo shows as a thumbnail here, the first tile being the primary one the list
+        // row uses, and non-image files stay in their own list below.
+        Label("Photos")
+        com.alekpeed.lifeos.attach.PhotoGrid(
+            attachments = place.attachments,
+            onChange = { list -> patch { it.copy(attachments = list) } },
+            label = "Photos of this place",
+            primaryBlob = place.photoBlob,
+            onPrimaryChange = { v -> patch { it.copy(photoBlob = v) } },
+        )
 
-        Label("Files")
-        com.alekpeed.lifeos.attach.AttachmentsSection(place.attachments, { list -> patch { it.copy(attachments = list) } }, label = "More photos & files")
-
-        if (showSource) {
-            AlertDialog(
-                onDismissRequest = { showSource = false },
-                title = { Text("Attach a photo") },
-                text = { Text("Take a new photo, or choose one from your library.") },
-                confirmButton = {
-                    TextButton(onClick = { showSource = false; Native.takePhoto { onAttach(it) } }) { Text("Take a photo") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showSource = false; Native.capturePhoto { onAttach(it) } }) { Text("Choose from library") }
-                },
+        val files = place.attachments.filterNot { it.isImage }
+        if (files.isNotEmpty() || Native.supportsFilePick) {
+            Label("Files")
+            com.alekpeed.lifeos.attach.AttachmentsSection(
+                place.attachments,
+                { list -> patch { it.copy(attachments = list) } },
+                label = "Files",
             )
         }
 
@@ -399,6 +414,7 @@ private fun PlaceDetail(data: PlacesData, save: (PlacesData) -> Unit, place: Pla
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(PLACES_MODULE, place.id, place.name.ifBlank { "place" })
             TextButton(onClick = {
                 deleteBlob(place.photoBlob)
                 save(data.copy(places = data.places.filterNot { it.id == place.id })); onClose()
@@ -424,11 +440,33 @@ private fun BucketList(data: PlacesData, save: (PlacesData) -> Unit, freshId: ()
 
     if (data.bucket.isEmpty()) { Muted("No bucket-list goals yet."); return }
     val shown = data.bucket.sortedBy { it.done }
+    val bulk = rememberBulk()
+    BulkBar(
+        bulk = bulk,
+        ids = shown.map { it.id },
+        noun = "goal",
+        onDelete = { ids -> save(data.copy(bucket = data.bucket.filterNot { it.id in ids })) },
+        extra = { ids ->
+            if (ids.isNotEmpty()) {
+                TextButton(onClick = {
+                    save(data.copy(bucket = data.bucket.map { if (it.id in ids) it.copy(done = true) else it }))
+                    bulk.clear()
+                }) { Text("Done", style = MaterialTheme.typography.labelMedium) }
+            }
+        },
+    )
+    Spacer(Modifier.height(4.dp))
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         items(shown, key = { it.id }) { item ->
             fun patch(f: (BucketItem) -> BucketItem) = save(data.copy(bucket = data.bucket.map { if (it.id == item.id) f(it) else it }))
-            Column(Modifier.padding(vertical = 2.dp)) {
+            Column(
+                Modifier.background(
+                    if (bulk.has(item.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                    else Color.Transparent,
+                ).bulkClickable(bulk, item.id) {}.padding(vertical = 2.dp),
+            ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    BulkTick(bulk, item.id)
                     Checkbox(checked = item.done, onCheckedChange = { c -> patch { it.copy(done = c) } })
                     Text(
                         item.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f),
@@ -437,7 +475,9 @@ private fun BucketList(data: PlacesData, save: (PlacesData) -> Unit, freshId: ()
                     if (item.targetDate.isNotBlank()) {
                         Text(usDate(item.targetDate).ifBlank { item.targetDate }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    TextButton(onClick = { save(data.copy(bucket = data.bucket.filterNot { it.id == item.id })) }) { Text("×") }
+                    if (!bulk.on) {
+                        TextButton(onClick = { save(data.copy(bucket = data.bucket.filterNot { it.id == item.id })) }) { Text("×") }
+                    }
                 }
                 Row(Modifier.padding(start = 44.dp), verticalAlignment = Alignment.CenterVertically) {
                     AssistChip(onClick = { patch { it.copy(targetDate = today().toString()) } }, label = { Text("Target: today") })

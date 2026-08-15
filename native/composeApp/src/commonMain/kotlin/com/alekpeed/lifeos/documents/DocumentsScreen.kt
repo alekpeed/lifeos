@@ -1,7 +1,6 @@
 package com.alekpeed.lifeos.documents
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -41,12 +40,19 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.layout.ContentScale
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.attach.DOCUMENTS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.deleteBlob
 import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -114,6 +120,7 @@ fun DocumentsScreen() {
     var input by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("all") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    val bulk = rememberBulk()
     var scanning by remember { mutableStateOf(false) }
     var scanError by remember { mutableStateOf<String?>(null) }
     var showSource by remember { mutableStateOf(false) }
@@ -152,8 +159,6 @@ fun DocumentsScreen() {
     val categories = data.documents.mapNotNull { it.category.ifBlank { null } }.distinct()
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Documents", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(input, { input = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New document") })
@@ -162,6 +167,8 @@ fun DocumentsScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(documents = data.documents + Document(freshId(), t))); input = "" }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(DOCUMENTS_MODULE, onImported = { data = loadDocuments() })
         }
 
         if (Native.supportsCamera) {
@@ -226,20 +233,40 @@ fun DocumentsScreen() {
             Text("No documents match the current filter.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             return
         }
+        // Tick several and bin them in one go, attachments and all.
+        BulkBar(
+            bulk = bulk,
+            ids = filtered.map { it.id },
+            noun = "document",
+            onDelete = { ids ->
+                data.documents.filter { it.id in ids }.forEach { d ->
+                    if (d.photoBlob.isNotBlank()) deleteBlob(d.photoBlob)
+                    d.attachments.forEach { a -> deleteBlob(a.blobId) }
+                }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(documents = data.documents.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(filtered, key = { it.id }) { doc ->
                 Column {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selected = if (selected == doc.id) null else doc.id }.padding(14.dp),
+                            .background(
+                                if (bulk.has(doc.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                            .bulkClickable(bulk, doc.id) { selected = if (selected == doc.id) null else doc.id }
+                            .padding(14.dp),
                     ) {
+                        BulkTick(bulk, doc.id)
                         Column(Modifier.weight(1f)) {
                             Text(doc.title.ifBlank { "(untitled document)" }, style = MaterialTheme.typography.bodyLarge)
                             DocMeta(doc)
                         }
                     }
-                    if (selected == doc.id) DocumentDetail(data, ::save, doc) { selected = null }
+                    if (selected == doc.id && !bulk.on) DocumentDetail(data, ::save, doc) { selected = null }
                 }
             }
         }
@@ -359,6 +386,7 @@ private fun DocumentDetail(data: DocumentsData, save: (DocumentsData) -> Unit, d
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(DOCUMENTS_MODULE, doc.id, doc.title.ifBlank { "document" })
             TextButton(onClick = {
                 deleteBlob(doc.photoBlob)
                 save(data.copy(documents = data.documents.filterNot { it.id == doc.id }))

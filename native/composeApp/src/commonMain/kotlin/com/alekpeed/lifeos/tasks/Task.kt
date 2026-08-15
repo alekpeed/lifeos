@@ -63,9 +63,10 @@ private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
 fun loadTasks(): List<Task> {
     val raw = Storage.read("Tasks")
-    if (raw.isNullOrBlank()) {
-        return listOf(Task(1, "This is a real native app now", status = "done"), Task(2, "Add a task below"))
-    }
+    // Empty means empty. The two starter tasks that used to live here came back every
+    // time the list was cleared, because an emptied store reads as blank — deleting
+    // your last task would silently resurrect them.
+    if (raw.isNullOrBlank()) return emptyList()
     // New format is a JSON array; old format is one tab-delimited line per task.
     if (raw.trimStart().startsWith("[")) {
         return runCatching { json.decodeFromString<List<Task>>(raw) }.getOrElse { emptyList() }

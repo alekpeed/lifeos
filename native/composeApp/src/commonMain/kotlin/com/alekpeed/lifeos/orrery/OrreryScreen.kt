@@ -77,7 +77,6 @@ fun OrreryScreen() {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("The Orrery", style = MaterialTheme.typography.headlineMedium)
         Text(
             "Your life as a solar system: inner planets were touched recently, outer ones are drifting; the count is how much lives there. Most-neglected first.",
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,

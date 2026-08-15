@@ -32,8 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
@@ -89,14 +91,19 @@ fun DateField(
 ) {
     var showPicker by remember { mutableStateOf(false) }
     // Re-derive the display whenever the stored value changes from outside.
-    var text by remember(value) { mutableStateOf(usDate(value)) }
+    // TextFieldValue (not a plain String) so the cursor can be placed explicitly:
+    // onValueChange rewrites the text to insert hyphens as you type, and without
+    // an explicit selection Compose has to guess where the cursor landed after
+    // that rewrite — it guesses wrong, so digits show up out of order.
+    var field by remember(value) { mutableStateOf(TextFieldValue(usDate(value))) }
 
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
-            value = text,
-            onValueChange = { raw ->
-                val digits = raw.filter { it.isDigit() }.take(8)
-                text = formatDigits(digits)
+            value = field,
+            onValueChange = { new ->
+                val digits = new.text.filter { it.isDigit() }.take(8)
+                val formatted = formatDigits(digits)
+                field = TextFieldValue(formatted, selection = TextRange(formatted.length))
                 if (digits.isEmpty()) {
                     onChange("")
                 } else {
@@ -125,7 +132,12 @@ fun DateField(
         DatePickerDialog(
             initial = value,
             onDismiss = { showPicker = false },
-            onPick = { iso -> text = usDate(iso); onChange(iso); showPicker = false },
+            onPick = { iso ->
+                val display = usDate(iso)
+                field = TextFieldValue(display, selection = TextRange(display.length))
+                onChange(iso)
+                showPicker = false
+            },
         )
     }
 }

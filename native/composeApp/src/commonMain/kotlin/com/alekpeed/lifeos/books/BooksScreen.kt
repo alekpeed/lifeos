@@ -60,6 +60,9 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.attach.BOOKS_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.net.httpGet
 import com.alekpeed.lifeos.net.httpGetImageBase64
@@ -78,6 +81,11 @@ import com.alekpeed.lifeos.platform.loadBlobImage
 import com.alekpeed.lifeos.platform.readTextBlob
 import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.platform.saveTextBlob
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
+import com.alekpeed.lifeos.ui.BulkState
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -146,23 +154,24 @@ fun BooksScreen() {
 
     var tab by remember { mutableStateOf("reading") }
     var selected by remember { mutableStateOf<Long?>(null) }
-    var reading by remember { mutableStateOf<Long?>(null) }
+    var reading by remember { mutableStateOf<Pair<Long, Long>?>(null) }
     var input by remember { mutableStateOf("") }
+    val bulk = rememberBulk()
     var scanBusy by remember { mutableStateOf(false) }
     var scanMsg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Reading a book takes over the whole screen.
-    val readingBook = data.books.firstOrNull { it.id == reading }
-    if (readingBook != null) {
-        if (readingBook.pdfBlob.isNotBlank()) PdfReaderScreen(readingBook, data, ::save) { reading = null }
-        else ReaderScreen(readingBook, data, ::save) { reading = null }
+    // Reading takes over the whole screen. A book can hold several files, so what's
+    // open is a (book, file) pair — the reader is chosen by that file's kind.
+    val readingBook = data.books.firstOrNull { it.id == reading?.first }
+    val readingFile = readingBook?.files?.firstOrNull { it.id == reading?.second }
+    if (readingBook != null && readingFile != null) {
+        if (readingFile.kind == "pdf") PdfReaderScreen(readingBook, readingFile, data, ::save) { reading = null }
+        else ReaderScreen(readingBook, readingFile, data, ::save) { reading = null }
         return
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Books", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         FlowRowTabs(
             listOf("reading" to "Reading", "to_read" to "To read", "finished" to "Finished", "shelf" to "Shelf", "stats" to "Stats"),
             tab,
@@ -181,6 +190,8 @@ fun BooksScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(books = data.books + Book(freshId(), t, status = tab))); input = "" }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(BOOKS_MODULE, onImported = { data = loadBooks() })
         }
         if (Native.supportsQrScan) {
             Spacer(Modifier.height(6.dp))
@@ -225,11 +236,29 @@ fun BooksScreen() {
 
         val filtered = data.books.filter { (it.status.ifBlank { "to_read" }) == tab }
         if (filtered.isEmpty()) { Muted("No books here yet."); return@Column }
+        // Tick several and clear the shelf in one go — a book's cover and any files
+        // it holds go with it.
+        BulkBar(
+            bulk = bulk,
+            ids = filtered.map { it.id },
+            noun = "book",
+            onDelete = { ids ->
+                data.books.filter { it.id in ids }.forEach { b ->
+                    if (b.photoBlob.isNotBlank()) deleteBlob(b.photoBlob)
+                    b.files.forEach { file -> if (file.blobId.isNotBlank()) deleteBlob(file.blobId) }
+                }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(books = data.books.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(filtered, key = { it.id }) { book ->
                 Column {
-                    BookCard(book) { selected = if (selected == book.id) null else book.id }
-                    if (selected == book.id) BookDetail(data, ::save, ::freshId, book, onRead = { reading = book.id }) { selected = null }
+                    BookCard(book, bulk) { selected = if (selected == book.id) null else book.id }
+                    if (selected == book.id && !bulk.on) {
+                        BookDetail(data, ::save, ::freshId, book, onRead = { fileId -> reading = book.id to fileId }) { selected = null }
+                    }
                 }
             }
         }
@@ -238,11 +267,16 @@ fun BooksScreen() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BookCard(book: Book, onClick: () -> Unit) {
+private fun BookCard(book: Book, bulk: BulkState, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant).clickable { onClick() }.padding(14.dp),
+            .background(
+                if (bulk.has(book.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+            )
+            .bulkClickable(bulk, book.id) { onClick() }.padding(14.dp),
     ) {
+        BulkTick(bulk, book.id)
         Text("📖", modifier = Modifier.padding(end = 10.dp))
         Column(Modifier.weight(1f)) {
             Text(book.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
@@ -263,7 +297,7 @@ private fun BookCard(book: Book, onClick: () -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -> Long, book: Book, onRead: () -> Unit, onClose: () -> Unit) {
+private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -> Long, book: Book, onRead: (Long) -> Unit, onClose: () -> Unit) {
     fun patch(f: (Book) -> Book) = save(data.copy(books = data.books.map { if (it.id == book.id) f(it) else it }))
     var pagesToday by remember { mutableStateOf("") }
     var showSource by remember { mutableStateOf(false) }
@@ -382,68 +416,76 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
             )
         }
 
-        Label("Ebook")
-        if (book.textBlob.isNotBlank()) {
-            val pct = (book.readFrac * 100).toInt()
-            Button(onClick = onRead) { Text(if (pct > 0) "📖 Continue reading · $pct%" else "📖 Read") }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (Native.supportsFilePick) {
-                    TextButton(onClick = {
-                        importing = true
-                        Native.pickEbook { text ->
-                            importing = false
-                            if (text != null) saveTextBlob(text)?.let { id -> patch { it.copy(textBlob = id, readFrac = 0f) } }
-                        }
-                    }, enabled = !importing) { Text("Replace") }
-                }
-                TextButton(onClick = { patch { it.copy(textBlob = "", readFrac = 0f) } }) { Text("Remove") }
-            }
-        } else if (Native.supportsFilePick) {
-            OutlinedButton(
-                onClick = {
-                    importing = true
-                    Native.pickEbook { text ->
-                        importing = false
-                        if (text != null) saveTextBlob(text)?.let { id -> patch { it.copy(textBlob = id, readFrac = 0f) } }
-                    }
-                },
-                enabled = !importing,
-            ) { Text(if (importing) "Reading file…" else "📖 Add ebook (EPUB / TXT)") }
-        } else {
-            Text("Ebook import needs a file picker.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Files. A book is often more than one file — the EPUB and the PDF of the same
+        // title, a companion workbook — and each keeps its own place, so moving between
+        // them doesn't lose where you were in either.
+        Label("Files")
+        if (book.files.isEmpty()) {
+            Text(
+                "No files yet — add an EPUB, text file, or PDF to read it right here.",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-
-        Label("PDF")
-        if (book.pdfBlob.isNotBlank()) {
-            Button(onClick = onRead) { Text(if (book.pdfPage > 0) "📕 Continue PDF · p.${book.pdfPage + 1}" else "📕 Read PDF") }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (Native.supportsFilePick) {
-                    TextButton(onClick = {
-                        Native.pickAttachment { name, mime, b64 ->
-                            if (b64 != null && (mime?.contains("pdf") == true || name?.endsWith(".pdf", true) == true)) {
-                                deleteBlob(book.pdfBlob); saveBlob(b64)?.let { id -> patch { it.copy(pdfBlob = id, pdfPage = 0) } }
-                            } else if (b64 != null) SaveToast.show("That isn't a PDF")
-                        }
-                    }) { Text("Replace") }
+        book.files.forEach { f ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("${f.icon}  ${f.name.ifBlank { if (f.kind == "pdf") "PDF" else "Ebook" }}", style = MaterialTheme.typography.bodyMedium)
+                    val where = when {
+                        f.kind == "pdf" && f.page > 0 -> "page ${f.page + 1}"
+                        f.kind != "pdf" && f.frac > 0f -> "${(f.frac * 100).toInt()}%"
+                        else -> "not started"
+                    }
+                    Text(where, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                TextButton(onClick = { deleteBlob(book.pdfBlob); patch { it.copy(pdfBlob = "", pdfPage = 0) } }) { Text("Remove") }
+                TextButton(onClick = { onRead(f.id) }) { Text("Read") }
+                TextButton(onClick = {
+                    if (f.kind == "pdf") deleteBlob(f.blobId)
+                    patch { b -> b.copy(files = b.files.filterNot { it.id == f.id }) }
+                }) { Text("×") }
             }
-        } else if (Native.supportsFilePick) {
-            OutlinedButton(onClick = {
-                Native.pickAttachment { name, mime, b64 ->
-                    if (b64 != null && (mime?.contains("pdf") == true || name?.endsWith(".pdf", true) == true)) {
-                        saveBlob(b64)?.let { id -> patch { it.copy(pdfBlob = id, pdfPage = 0) } }
-                    } else if (b64 != null) SaveToast.show("Pick a PDF file")
-                }
-            }) { Text("📕 Add PDF") }
+        }
+        if (Native.supportsFilePick) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(
+                    onClick = {
+                        importing = true
+                        Native.pickEbookNamed { name, text ->
+                            importing = false
+                            if (text != null) {
+                                saveTextBlob(text)?.let { id ->
+                                    patch { b ->
+                                        val nid = (b.files.maxOfOrNull { it.id } ?: 0L) + 1
+                                        b.copy(files = b.files + BookFile(nid, name?.ifBlank { null } ?: "Ebook", "text", id))
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    enabled = !importing,
+                ) { Text(if (importing) "Reading file…" else "📗 Add ebook") }
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(onClick = {
+                    Native.pickAttachment { name, mime, b64 ->
+                        if (b64 != null && (mime?.contains("pdf") == true || name?.endsWith(".pdf", true) == true)) {
+                            saveBlob(b64)?.let { id ->
+                                patch { b ->
+                                    val nid = (b.files.maxOfOrNull { it.id } ?: 0L) + 1
+                                    b.copy(files = b.files + BookFile(nid, name?.ifBlank { null } ?: "PDF", "pdf", id))
+                                }
+                            }
+                        } else if (b64 != null) SaveToast.show("Pick a PDF file")
+                    }
+                }) { Text("📕 Add PDF") }
+            }
         } else {
-            Text("PDF import needs a file picker.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Adding book files needs a file picker.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(BOOKS_MODULE, book.id, book.title.ifBlank { "book" })
             TextButton(onClick = {
                 deleteBlob(book.photoBlob)
                 save(data.copy(books = data.books.filterNot { it.id == book.id }))
@@ -459,10 +501,10 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
 // PdfReader, scaled to the viewport width, with prev/next paging and resume. On a
 // platform with no renderer (desktop) it offers to open the file externally.
 @Composable
-private fun PdfReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit, onClose: () -> Unit) {
-    val b64 = remember(book.pdfBlob) { readBlobBase64(book.pdfBlob) }
+private fun PdfReaderScreen(book: Book, file: BookFile, data: BooksData, save: (BooksData) -> Unit, onClose: () -> Unit) {
+    val b64 = remember(file.blobId) { readBlobBase64(file.blobId) }
     var pageCount by remember { mutableStateOf(-1) }   // -1 loading · 0 failed/unsupported
-    var page by remember { mutableStateOf(book.pdfPage.coerceAtLeast(0)) }
+    var page by remember { mutableStateOf(file.page.coerceAtLeast(0)) }
     var widthPx by remember { mutableStateOf(0) }
     var bmp by remember { mutableStateOf<ImageBitmap?>(null) }
 
@@ -475,10 +517,10 @@ private fun PdfReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Un
             bmp = withContext(Dispatchers.Default) { PdfReader.render(target, widthPx) }
         }
     }
-    DisposableEffect(book.pdfBlob) {
+    DisposableEffect(file.blobId) {
         onDispose {
             val safePage = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
-            save(data.copy(books = data.books.map { if (it.id == book.id) it.copy(pdfPage = safePage) else it }))
+            saveFilePos(data, save, book.id, file.id) { it.copy(page = safePage) }
             PdfReader.close()
         }
     }
@@ -486,7 +528,10 @@ private fun PdfReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Un
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("‹ Close") }
-            Text(book.title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
+            Text(
+                if (book.files.size > 1) "${book.title} · ${file.name}" else book.title,
+                style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1,
+            )
             if (pageCount > 0) Text("${page + 1} / $pageCount", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Box(
@@ -500,7 +545,7 @@ private fun PdfReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Un
                 pageCount == 0 -> Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("This device can't render PDFs in-app.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(10.dp))
-                    if (!b64.isNullOrBlank()) OutlinedButton(onClick = { Native.openAttachment(b64, "${book.title}.pdf", "application/pdf") }) { Text("Open in PDF viewer") }
+                    if (!b64.isNullOrBlank()) OutlinedButton(onClick = { Native.openAttachment(b64, file.name.ifBlank { "${book.title}.pdf" }, "application/pdf") }) { Text("Open in PDF viewer") }
                 }
                 bmp != null -> Image(bmp!!, contentDescription = "Page ${page + 1}", modifier = Modifier.fillMaxWidth(), contentScale = ContentScale.FillWidth)
                 else -> CircularProgressIndicator(Modifier.padding(40.dp))
@@ -520,22 +565,22 @@ private fun PdfReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Un
 // to the screen once, sliced into page-sized line ranges, and you tap the right
 // or left half to turn (with a page-slide). Justified "book" text, adjustable +
 // persisted type size, a page counter, and it remembers your place per book
-// (readFrac) — restored on open, saved on every turn.
+// (per file, not per book) — restored on open, saved on every turn.
 @Composable
-private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit, onClose: () -> Unit) {
-    val raw = remember(book.textBlob) { readTextBlob(book.textBlob) ?: "" }
+private fun ReaderScreen(book: Book, file: BookFile, data: BooksData, save: (BooksData) -> Unit, onClose: () -> Unit) {
+    val raw = remember(file.blobId) { readTextBlob(file.blobId) ?: "" }
     val chaptered = remember(raw) { parseChapters(raw) }
     val text = chaptered.first
     val chapters = chaptered.second
     var showToc by remember { mutableStateOf(false) }
     var pendingChapterStart by remember { mutableStateOf<Int?>(null) }
     var fontSize by remember { mutableStateOf(Storage.read("ReaderFontSize")?.toIntOrNull() ?: 18) }
-    var page by remember { mutableStateOf(-1) }   // -1 until restored from readFrac
+    var page by remember { mutableStateOf(-1) }   // -1 until restored from the file's frac
     var forward by remember { mutableStateOf(true) }
 
     fun persist(p: Int, count: Int) {
         val frac = if (count > 1) p.toFloat() / (count - 1) else 0f
-        save(data.copy(books = data.books.map { if (it.id == book.id) it.copy(readFrac = frac) else it }))
+        saveFilePos(data, save, book.id, file.id) { it.copy(frac = frac) }
     }
 
     val bodyStyle = MaterialTheme.typography.bodyLarge.copy(
@@ -574,7 +619,7 @@ private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit,
             val pageCount = max(1, ceil(layout.lineCount.toFloat() / linesPerPage).toInt())
 
             LaunchedEffect(pageCount) {
-                page = if (page < 0) (book.readFrac * (pageCount - 1)).roundToInt().coerceIn(0, pageCount - 1)
+                page = if (page < 0) (file.frac * (pageCount - 1)).roundToInt().coerceIn(0, pageCount - 1)
                 else page.coerceIn(0, pageCount - 1)
             }
             // Jump to a chapter picked from the table of contents: map its char
@@ -621,7 +666,7 @@ private fun ReaderScreen(book: Book, data: BooksData, save: (BooksData) -> Unit,
         }
 
         // Footer page counter derived from the current fraction (measured inside).
-        val pctPage = if (book.readFrac > 0f) book.readFrac else 0f
+        val pctPage = if (file.frac > 0f) file.frac else 0f
         Text(
             "Tap right to turn · left to go back" + if (page >= 0) "   ·   ${(pctPage * 100).roundToInt()}%" else "",
             style = MaterialTheme.typography.labelSmall,
@@ -772,4 +817,22 @@ private fun Field(value: String, placeholder: String, singleLine: Boolean = true
 @Composable
 private fun Muted(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+// Write a reading position back into one file of one book, leaving everything else
+// alone — both readers persist through here so they can't disagree about the shape.
+private fun saveFilePos(
+    data: BooksData,
+    save: (BooksData) -> Unit,
+    bookId: Long,
+    fileId: Long,
+    f: (BookFile) -> BookFile,
+) {
+    save(
+        data.copy(
+            books = data.books.map { b ->
+                if (b.id != bookId) b else b.copy(files = b.files.map { if (it.id == fileId) f(it) else it })
+            },
+        ),
+    )
 }

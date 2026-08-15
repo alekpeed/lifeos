@@ -1,6 +1,10 @@
 package com.alekpeed.lifeos.data
 
 import com.alekpeed.lifeos.Storage
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.offsetAt
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -139,13 +143,32 @@ fun allRecords(): List<SearchHit> {
     return out
 }
 
-// A compact snapshot of the user's data for grounding an AI answer: lines that
-// match the query first, then a per-module count summary — bounded so the prompt
-// stays small and cheap.
+// What time it is, where. A model has no clock of its own: asked the time — here or
+// anywhere else — it can only say it doesn't know, which is true and useless when the
+// answer is one subtraction away. Handing it the local time, the zone and the UTC offset
+// makes every "what time is it in Tokyo", "how long until Friday" and "is that overdue"
+// answerable. Cheap enough to include in every prompt.
+private fun nowLine(): String = runCatching {
+    val tz = TimeZone.currentSystemDefault()
+    val now = Clock.System.now()
+    val local = now.toLocalDateTime(tz)
+    val hh = local.hour.toString().padStart(2, '0')
+    val mm = local.minute.toString().padStart(2, '0')
+    val raw = tz.offsetAt(now).toString()
+    val offset = if (raw == "Z") "+00:00" else raw
+    "Right now it is ${local.date} $hh:$mm local time (${tz.id}, UTC$offset). " +
+        "Use this for anything time-dependent instead of saying you don't know the time."
+}.getOrDefault("")
+
+// A compact snapshot of the user's data for grounding an AI answer: the current time,
+// then lines that match the query, then a per-module count summary — bounded so the
+// prompt stays small and cheap.
 fun aiContext(query: String, maxMatches: Int = 40): String {
     val matches = searchAll(query).take(maxMatches)
     val counts = DATA_SOURCES.map { it.label to countOf(it.key) }.filter { it.second > 0 }
     return buildString {
+        val now = nowLine()
+        if (now.isNotEmpty()) append(now).append("\n\n")
         if (matches.isNotEmpty()) {
             append("Relevant saved items:\n")
             matches.forEach { append("- [${it.source}] ${it.text}\n") }

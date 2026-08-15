@@ -45,6 +45,10 @@ import com.alekpeed.lifeos.data.minusDays
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.Dispatchers
@@ -71,8 +75,6 @@ fun HealthScreen() {
     var tab by remember { mutableStateOf("daily") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Health", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(10.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("daily" to "Daily", "workouts" to "Workouts", "metrics" to "Metrics", "import" to "Import").forEach { (v, lbl) ->
                 FilterChip(selected = tab == v, onClick = { tab = v }, label = { Text(lbl) })
@@ -180,9 +182,27 @@ private fun WorkoutsTab(data: HealthData, persist: (HealthData) -> Unit) {
         Spacer(Modifier.height(8.dp))
 
         val shown = data.workouts.filter { statType == null || it.type == statType }.sortedByDescending { it.date }
+        val bulk = rememberBulk()
+        BulkBar(
+            bulk = bulk,
+            ids = shown.map { it.id },
+            noun = "workout",
+            onDelete = { ids -> persist(data.copy(workouts = data.workouts.filterNot { it.id in ids })) },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(shown, key = { it.id }) { w ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .background(
+                            if (bulk.has(w.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            else Color.Transparent,
+                        )
+                        .bulkClickable(bulk, w.id) {}
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BulkTick(bulk, w.id)
                     Column(Modifier.weight(1f)) {
                         Text(w.type, style = MaterialTheme.typography.bodyLarge)
                         val meta = buildList {
@@ -194,7 +214,9 @@ private fun WorkoutsTab(data: HealthData, persist: (HealthData) -> Unit) {
                         }
                         Text(meta.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    TextButton(onClick = { persist(data.copy(workouts = data.workouts.filterNot { it.id == w.id })) }) { Text("✕") }
+                    if (!bulk.on) {
+                        TextButton(onClick = { persist(data.copy(workouts = data.workouts.filterNot { it.id == w.id })) }) { Text("✕") }
+                    }
                 }
             }
         }

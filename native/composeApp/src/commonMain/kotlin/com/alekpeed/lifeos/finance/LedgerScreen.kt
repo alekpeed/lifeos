@@ -43,9 +43,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.FINANCE_BILLS_MODULE
+import com.alekpeed.lifeos.attach.FINANCE_ENTRIES_MODULE
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.data.epochMillisAt
 import com.alekpeed.lifeos.data.minusDays
 import com.alekpeed.lifeos.data.parseDateOrNull
@@ -61,6 +66,10 @@ import com.alekpeed.lifeos.platform.saveBlob
 import androidx.compose.ui.layout.ContentScale
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -174,6 +183,11 @@ fun financeBills(): List<BillPoint> = loadData().bills.map {
 data class PaymentPoint(val date: String, val amount: Double)
 fun financeBillPayments(): List<PaymentPoint> =
     loadData().bills.flatMap { b -> b.paymentHistory.map { PaymentPoint(it.date, it.amount) } }
+
+// Ids and names of bills and subscriptions, for the Time Machine's record census —
+// it needs a stable key per record without the private models leaking out.
+fun financeBillStubs(): List<Pair<Long, String>> = loadData().bills.map { it.id to it.name }
+fun financeSubStubs(): List<Pair<Long, String>> = loadData().subscriptions.map { it.id to it.name }
 
 // Create a bill from outside (the Command bar). Monthly by default; schedules
 // the due reminder like the Bills tab does.
@@ -363,6 +377,8 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                     desc = ""; amount = ""; recurring = false
                 }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(FINANCE_ENTRIES_MODULE, onImported = { onChange(loadData()) })
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -439,9 +455,35 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
             )
         }
 
+        // A spend log gets long fast, so ticking a run of entries and clearing them
+        // together is the whole point here.
+        val bulk = rememberBulk()
+        BulkBar(
+            bulk = bulk,
+            ids = entries.map { it.id },
+            noun = "entry",
+            onDelete = { ids ->
+                entries.filter { it.id in ids }.forEach { e ->
+                    if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
+                    if (e.photoBlob.isNotBlank()) deleteBlob(e.photoBlob)
+                }
+                persist(entries.filterNot { it.id in ids })
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             items(entries, key = { it.id }) { e ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .background(
+                            if (bulk.has(e.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            else Color.Transparent,
+                        )
+                        .bulkClickable(bulk, e.id) {}
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BulkTick(bulk, e.id)
                     if (e.photoBlob.isNotBlank()) {
                         val thumb = remember(e.photoBlob) { loadBlobImage(e.photoBlob) }
                         if (thumb != null) {
@@ -464,11 +506,14 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                         )
                     }
                     Text(fmt(e.amount), style = MaterialTheme.typography.bodyLarge, color = if (e.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-                    TextButton(onClick = {
-                        if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
-                        if (e.photoBlob.isNotBlank()) deleteBlob(e.photoBlob)
-                        persist(entries.filterNot { it.id == e.id })
-                    }) { Text("✕") }
+                    if (!bulk.on) {
+                        ExportRecordButton(FINANCE_ENTRIES_MODULE, e.id, e.desc.ifBlank { "entry" })
+                        TextButton(onClick = {
+                            if (e.recurring && Native.supportsNotifications) Native.cancelReminder((e.desc + "recur").hashCode())
+                            if (e.photoBlob.isNotBlank()) deleteBlob(e.photoBlob)
+                            persist(entries.filterNot { it.id == e.id })
+                        }) { Text("✕") }
+                    }
                 }
             }
         }
@@ -524,17 +569,21 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
         Spacer(Modifier.height(8.dp))
         com.alekpeed.lifeos.people.ContactField(contact, placeholder = "Linked contact (optional)") { contact = it }
         Spacer(Modifier.height(8.dp))
-        Button(onClick = {
-            val n = name.trim().replace("\n", " ")
-            val a = amount.trim().toDoubleOrNull()
-            if (n.isNotEmpty() && a != null) {
-                val bill = Bill(nextId, n, a, dueDate.trim(), cadence, autopay, remindDays, contact = contact.trim())
-                nextId += 1
-                persist(listOf(bill) + bills)
-                scheduleBill(bill)
-                name = ""; amount = ""; dueDate = today().toString(); cadence = "monthly"; autopay = false; remindDays = 3; contact = ""
-            }
-        }, modifier = Modifier.fillMaxWidth()) { Text("Add bill") }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(onClick = {
+                val n = name.trim().replace("\n", " ")
+                val a = amount.trim().toDoubleOrNull()
+                if (n.isNotEmpty() && a != null) {
+                    val bill = Bill(nextId, n, a, dueDate.trim(), cadence, autopay, remindDays, contact = contact.trim())
+                    nextId += 1
+                    persist(listOf(bill) + bills)
+                    scheduleBill(bill)
+                    name = ""; amount = ""; dueDate = today().toString(); cadence = "monthly"; autopay = false; remindDays = 3; contact = ""
+                }
+            }, modifier = Modifier.weight(1f)) { Text("Add bill") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(FINANCE_BILLS_MODULE, onImported = { onChange(loadData()) })
+        }
         Spacer(Modifier.height(14.dp))
 
         if (bills.isEmpty()) {
@@ -574,6 +623,7 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                             persist(bills.map { if (it.id == b.id) paid else it })
                             scheduleBill(paid)
                         }) { Text("Paid") }
+                        ExportRecordButton(FINANCE_BILLS_MODULE, b.id, b.name.ifBlank { "bill" })
                         TextButton(onClick = {
                             if (Native.supportsNotifications) Native.cancelReminder(billReminderId(b.name))
                             persist(bills.filterNot { it.id == b.id })

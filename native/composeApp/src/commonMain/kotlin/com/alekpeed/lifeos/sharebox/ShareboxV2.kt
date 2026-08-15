@@ -16,11 +16,10 @@ import kotlinx.serialization.json.put
 // the web app ships (sharebox_spaces / sharebox_members / sharebox_items) over
 // PostgREST. A "space" is a row both people are members of; membership IS the
 // share. Postgres Row Level Security is the access control — the native app just
-// signs in (email account, shared across devices) and calls REST. No Realtime on
-// native yet, so the screen refreshes on open / pull instead of live push.
+// signs in (email account, shared across devices) and calls REST.
 //
-// Files (kind=file) are shown read-only (posted from web); native posts link/note
-// until the attachment layer lands.
+// Files (kind=file) upload to the private `sharebox-files` Storage bucket (see
+// ShareboxStorage); only the object path rides on the row's storage_path.
 
 @Serializable
 data class SpaceRow(
@@ -105,7 +104,15 @@ object ShareboxV2 {
         get("$REST/sharebox_items?space_id=eq.$spaceId&select=*&order=created_at.desc")
     }.map { decodeList(it) }
 
-    suspend fun addItem(spaceId: String, kind: String, url: String?, title: String?, body: String?, urgency: String): Result<Unit> {
+    suspend fun addItem(
+        spaceId: String,
+        kind: String,
+        url: String?,
+        title: String?,
+        body: String?,
+        urgency: String,
+        storagePath: String? = null,
+    ): Result<Unit> {
         val uid = SupabaseAuth.userId() ?: return Result.failure(IllegalStateException("Sign in to post"))
         val rowJson = "[" + buildJsonObject {
             put("space_id", spaceId)
@@ -115,6 +122,7 @@ object ShareboxV2 {
             if (title != null) put("title", title) else put("title", null as String?)
             if (body != null) put("body", body) else put("body", null as String?)
             put("urgency", urgency)
+            if (storagePath != null) put("storage_path", storagePath) else put("storage_path", null as String?)
         }.toString() + "]"
         return req { post("$REST/sharebox_items", rowJson) }.map { }
     }

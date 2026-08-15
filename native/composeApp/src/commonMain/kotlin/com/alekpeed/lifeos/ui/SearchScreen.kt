@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
@@ -60,28 +59,43 @@ fun SearchScreen(title: String, prompt: String) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
+            // Grouped under the module each result came from, in order of how many
+            // matched — the comment above always claimed this and the list never did it.
+            val grouped = hits.groupBy { it.source }.entries.sortedByDescending { it.value.size }
             LazyColumn(Modifier.fillMaxSize()) {
-                items(hits) { hit ->
-                    // Tap a result to jump to the module it lives in.
-                    Row(
-                        Modifier.fillMaxWidth()
-                            .clickable { Nav.open(hit.moduleId) }
-                            .padding(vertical = 6.dp),
-                    ) {
-                        Text(
-                            hit.source,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.width(120.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            hit.text,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                grouped.forEach { (source, rows) ->
+                    item(key = "h:$source") {
+                        Row(
+                            Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp),
+                        ) {
+                            Text(
+                                source.uppercase(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                "${rows.size}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    items(rows) { hit ->
+                        // Tap a result to jump to the module it lives in.
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .clickable { Nav.open(hit.moduleId) }
+                                .padding(vertical = 6.dp),
+                        ) {
+                            Text(
+                                hit.text,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }

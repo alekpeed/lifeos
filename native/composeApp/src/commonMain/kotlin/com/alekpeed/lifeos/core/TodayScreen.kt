@@ -116,8 +116,11 @@ fun TodayScreen() {
         }
     }
 
-    // Surprise me: resurface a random unarchived idea.
-    var surprise by remember { mutableStateOf<String?>(null) }
+    // Surprise me: one thing you said you wanted to get to, from anywhere in the app —
+    // a place on the want-to-go list, an unread book, an untried recipe, a bucket-list
+    // goal, or a stashed idea. Tapping it goes there.
+    var surprise by remember { mutableStateOf<Pick?>(null) }
+    var surpriseTried by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -219,13 +222,26 @@ fun TodayScreen() {
             }
             item {
                 Column(Modifier.fillMaxWidth()) {
-                    TextButton(onClick = {
-                        val ideas = loadIdeas().ideas.filter { !it.archived }
-                        surprise = if (ideas.isEmpty()) "No ideas stashed yet — add some in Ideas."
-                        else "💡 " + ideas.random().text
-                    }) { Text("🎲 Surprise me") }
-                    surprise?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    TextButton(onClick = { surprise = surprisePool().randomOrNull(); surpriseTried = true }) {
+                        Text("🎲 Surprise me")
+                    }
+                    val pick = surprise
+                    when {
+                        pick != null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "${pick.kind}: ${pick.title}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = { Nav.open(pick.moduleId) }) { Text("Go →") }
+                        }
+                        // An empty pool is a real answer, not a broken button — say so.
+                        surpriseTried -> Text(
+                            "Nothing in the queue — add a want-to-go place, an unread book, an untried recipe, or an idea.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -257,4 +273,20 @@ private fun TaskRow(task: Task, showDue: Boolean, onToggle: (Boolean) -> Unit) {
             }
         }
     }
+}
+
+// Everything you've told the app you mean to get to, in one list.
+private data class Pick(val kind: String, val title: String, val moduleId: String)
+
+private fun surprisePool(): List<Pick> = buildList {
+    com.alekpeed.lifeos.places.loadPlaces().let { p ->
+        p.places.filter { it.listType == "wantToGo" }.forEach { add(Pick("Place to visit", it.name.ifBlank { "(untitled)" }, "places")) }
+        p.bucket.filter { !it.done }.forEach { add(Pick("Bucket-list goal", it.title.ifBlank { "(untitled)" }, "places")) }
+    }
+    com.alekpeed.lifeos.books.loadBooks().books.filter { it.status == "to_read" }
+        .forEach { add(Pick("Book to read", it.title.ifBlank { "(untitled)" }, "books")) }
+    com.alekpeed.lifeos.recipes.loadRecipes().recipes.filter { it.cookLogs.isEmpty() }
+        .forEach { add(Pick("Recipe to try", it.title.ifBlank { "(untitled)" }, "recipes")) }
+    loadIdeas().ideas.filter { !it.archived }
+        .forEach { add(Pick("Idea", it.text.ifBlank { "(untitled)" }, "ideas")) }
 }

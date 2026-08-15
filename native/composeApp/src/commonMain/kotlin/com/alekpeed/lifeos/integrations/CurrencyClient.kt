@@ -69,6 +69,26 @@ object CurrencyClient {
         }
     }
 
+    // The USD-relative rate for one currency, or null if it isn't loaded.
+    fun rateOf(code: String): Double? = loaded().rates[code.uppercase()]
+
+    // Override one rate by hand, for a currency the feed gets wrong or doesn't carry
+    // (or to pin a rate you actually got at a counter). Kept in the same cache, so it
+    // converts like any other rate — and a refresh from the feed overwrites it, which
+    // is why the screen says so.
+    fun setRate(code: String, rate: Double): Boolean {
+        val c = code.trim().uppercase()
+        if (c.length !in 2..5 || rate <= 0.0) return false
+        val cur = loaded()
+        val next = cur.copy(
+            fetchedAt = if (cur.fetchedAt == 0L) Clock.System.now().epochSeconds else cur.fetchedAt,
+            rates = cur.rates + (c to rate),
+        )
+        cache = next
+        Storage.write(CACHE_KEY, json.encodeToString(next))
+        return true
+    }
+
     // Convert an amount between two currencies using the USD-based rates. Returns
     // null if rates aren't loaded or a currency is unknown.
     fun convert(amount: Double, from: String, to: String): Double? {

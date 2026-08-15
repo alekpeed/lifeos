@@ -31,7 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.core.runAutomations
 import com.alekpeed.lifeos.interfaces.Interfaces
+import com.alekpeed.lifeos.interfaces.nexus.registerNexus
 import com.alekpeed.lifeos.platform.SystemBackHandler
+import com.alekpeed.lifeos.settings.LockScreen
+import com.alekpeed.lifeos.settings.appLockEnabled
+import com.alekpeed.lifeos.system.ScanConfirmSheet
+import com.alekpeed.lifeos.timemachine.recordBirths
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.delay
 
@@ -41,8 +46,24 @@ fun Shell() {
     val modules = remember { lifeOsModules() }
     var current by remember { mutableStateOf<Module?>(null) }
 
+    // The PIN gate, when one is set: nothing else renders until it's entered. Checked
+    // before any module so a deep link can't route around it.
+    var locked by remember { mutableStateOf(appLockEnabled()) }
+    if (locked) {
+        LockScreen { locked = false }
+        return
+    }
+
+    // Make the graphical interfaces available for selection in Settings.
+    remember { registerNexus() }
+
     // Run the opt-in automation rules once on app open (no-op unless enabled).
     LaunchedEffect(Unit) { runAutomations() }
+
+    // Note the arrival date of any record the census hasn't seen. Done at app open so a
+    // record's "added on" date is the day it actually turned up, not the day the Time
+    // Machine happens to get opened. Writes only when something is new.
+    LaunchedEffect(Unit) { runCatching { recordBirths() } }
 
     // A deep link / app shortcut / NFC tag / shared item can request a module by id.
     LaunchedEffect(Nav.pendingModuleId) {
@@ -64,7 +85,10 @@ fun Shell() {
     Box(Modifier.fillMaxSize()) {
         val c = current
         if (c == null) {
-            HomeScreen(modules) { current = it }
+            // An interface can supply its own home (its navigation artwork); otherwise
+            // the built-in functional launcher.
+            val customHome = Interfaces.home()
+            if (customHome != null) customHome() else HomeScreen(modules) { current = it }
         } else {
             // Android edge-swipe / back button pops to Home instead of leaving the app.
             SystemBackHandler(enabled = true) { current = null }
@@ -85,6 +109,8 @@ fun Shell() {
                 }
             }
         }
+        // A finished scan asks where it goes, over whatever interface is active.
+        ScanConfirmSheet()
         SnackbarHost(snackHost, Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp))
     }
 }

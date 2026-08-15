@@ -20,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import com.alekpeed.lifeos.ui.MicIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -190,7 +191,8 @@ fun AssistantScreen() {
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("Ask the assistant…") },
             )
-            Spacer(Modifier.width(10.dp))
+            MicIconButton { spoken -> input = if (input.isBlank()) spoken else "$input $spoken" }
+            Spacer(Modifier.width(4.dp))
             Button(onClick = { send() }, enabled = !loading) { Text("Send") }
         }
     }

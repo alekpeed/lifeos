@@ -2,7 +2,6 @@ package com.alekpeed.lifeos.milestones
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -41,6 +40,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.attach.MILESTONES_MODULE
+import com.alekpeed.lifeos.attach.ExportRecordButton
+import com.alekpeed.lifeos.attach.ImportRecordButton
 import com.alekpeed.lifeos.books.loadBooks
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
@@ -50,6 +52,10 @@ import com.alekpeed.lifeos.platform.saveBlob
 import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.recipes.loadRecipes
 import com.alekpeed.lifeos.ui.DateField
+import com.alekpeed.lifeos.ui.BulkBar
+import com.alekpeed.lifeos.ui.BulkTick
+import com.alekpeed.lifeos.ui.bulkClickable
+import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import kotlinx.coroutines.launch
@@ -65,11 +71,10 @@ fun MilestonesScreen() {
 
     var tab by remember { mutableStateOf("timeline") }
     var selected by remember { mutableStateOf<Long?>(null) }
+    val bulk = rememberBulk()
     var input by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Milestones", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = tab == "timeline", onClick = { tab = "timeline" }, label = { Text("Timeline") })
             FilterChip(selected = tab == "recap", onClick = { tab = "recap"; selected = null }, label = { Text("Yearly recap") })
@@ -85,11 +90,24 @@ fun MilestonesScreen() {
                 val t = input.trim().replace("\n", " ")
                 if (t.isNotEmpty()) { save(data.copy(milestones = data.milestones + Milestone(freshId(), t, today().toString()))); input = "" }
             }) { Text("Add") }
+            Spacer(Modifier.width(10.dp))
+            ImportRecordButton(MILESTONES_MODULE, onImported = { data = loadMilestones() })
         }
         Spacer(Modifier.height(12.dp))
 
         val sorted = data.milestones.sortedByDescending { it.date.ifBlank { "0000" } }
         if (sorted.isEmpty()) { Muted("No milestones logged yet."); return@Column }
+        BulkBar(
+            bulk = bulk,
+            ids = sorted.map { it.id },
+            noun = "milestone",
+            onDelete = { ids ->
+                data.milestones.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
+                if (selected?.let { it in ids } == true) selected = null
+                save(data.copy(milestones = data.milestones.filterNot { it.id in ids }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             var lastYear = ""
             sorted.forEach { m ->
@@ -101,16 +119,23 @@ fun MilestonesScreen() {
                 item {
                     Column {
                         Row(
-                            Modifier.fillMaxWidth().clickable { selected = if (selected == m.id) null else m.id }.padding(vertical = 6.dp),
+                            Modifier.fillMaxWidth()
+                                .background(
+                                    if (bulk.has(m.id)) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                    else Color.Transparent,
+                                )
+                                .bulkClickable(bulk, m.id) { selected = if (selected == m.id) null else m.id }
+                                .padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            BulkTick(bulk, m.id)
                             Column(Modifier.weight(1f)) {
                                 Text(m.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.bodyLarge)
                                 val meta = listOf(m.category, usDate(m.date).ifBlank { m.date }).filter { it.isNotBlank() }.joinToString(" · ")
                                 if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        if (selected == m.id) MilestoneDetail(data, ::save, m) { selected = null }
+                        if (selected == m.id && !bulk.on) MilestoneDetail(data, ::save, m) { selected = null }
                     }
                 }
             }
@@ -166,6 +191,7 @@ private fun MilestoneDetail(data: MilestonesData, save: (MilestonesData) -> Unit
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("Done") }
             Spacer(Modifier.weight(1f))
+            ExportRecordButton(MILESTONES_MODULE, m.id, m.title.ifBlank { "milestone" })
             TextButton(onClick = { deleteBlob(m.photoBlob); save(data.copy(milestones = data.milestones.filterNot { it.id == m.id })); onClose() }) { Text("Delete", color = DANGER) }
         }
     }
@@ -224,6 +250,12 @@ private fun Recap(data: MilestonesData) {
     val healthLogs = health.logs.count { it.date.startsWith(y) }
     val sleeps = health.logs.filter { it.date.startsWith(y) }.mapNotNull { it.sleepHours }
     val workoutsLogged = health.workouts.count { it.date.startsWith(y) }
+    // Documents and contacts have no date of their own; the record census knows when
+    // each one turned up, which is exactly what the web recap counts. Records that
+    // predate the census read as LEGACY and so aren't attributed to any year.
+    val births = remember(y) { com.alekpeed.lifeos.timemachine.loadBirths() }
+    val docsAdded = births.born.count { (k, v) -> k.startsWith("Documents#") && v.startsWith(y) }
+    val contactsAdded = births.born.count { (k, v) -> k.startsWith("Contacts#") && v.startsWith(y) }
     val ms = data.milestones.filter { it.date.startsWith(y) }.sortedBy { it.date }
     val stats = buildList {
         add("Milestones" to ms.size.toString())
@@ -234,6 +266,8 @@ private fun Recap(data: MilestonesData) {
         add("Pages read" to pagesRead.toString())
         add("Recipes cooked" to "$recipesCooked recipes, $cookSessions sessions")
         add("Bills paid" to "$" + ((billsPaid * 100).toLong() / 100.0).toString())
+        add("Documents added" to docsAdded.toString())
+        add("Contacts added" to contactsAdded.toString())
         add("Habit check-ins" to habitCheckins.toString())
         add("Workouts logged" to workoutsLogged.toString())
         add("Health logs" to healthLogs.toString())

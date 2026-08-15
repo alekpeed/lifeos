@@ -17,6 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import com.alekpeed.lifeos.ui.MicIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -97,8 +98,6 @@ fun AskScreen() {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Ask", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(6.dp))
 
         if (hasKey || canEmbed) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -127,7 +126,8 @@ fun AskScreen() {
                 singleLine = true,
                 placeholder = { Text(if (mode == "find") "e.g. money I owe, that trail we hiked…" else if (hasKey) "Ask about anything…" else "Search everything…") },
             )
-            Spacer(Modifier.width(10.dp))
+            MicIconButton { spoken -> query = if (query.isBlank()) spoken else "$query $spoken" }
+            Spacer(Modifier.width(4.dp))
             when {
                 mode == "find" -> Button(onClick = { find() }, enabled = !searching && !building) { Text("Find") }
                 hasKey -> Button(onClick = { ask() }, enabled = !loading) { Text("Ask") }

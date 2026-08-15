@@ -48,8 +48,6 @@ fun HabitsScreen() {
     var expanded by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Habits", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(14.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
@@ -71,6 +69,16 @@ fun HabitsScreen() {
         }
 
         Spacer(Modifier.height(14.dp))
+
+        if (habits.isEmpty()) {
+            Text(
+                "No habits yet. Add one above — anything you want to do on most days. " +
+                    "Checking in builds a streak, and the streak is the whole point.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
 
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             itemsIndexed(habits) { index, habit ->

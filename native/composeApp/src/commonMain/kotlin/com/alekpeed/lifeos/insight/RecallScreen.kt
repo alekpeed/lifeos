@@ -43,8 +43,6 @@ fun RecallScreen() {
     val upcoming = facts.filterNot { it.isDue() }.sortedBy { it.nextReview }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Recall", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(14.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(

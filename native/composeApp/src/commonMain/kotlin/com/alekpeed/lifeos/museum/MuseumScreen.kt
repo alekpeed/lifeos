@@ -90,7 +90,6 @@ fun MuseumScreen() {
     val totalFinished = wings.sumOf { it.items.size }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Museum of Finished Things", style = MaterialTheme.typography.headlineMedium)
         Text("$totalFinished things finished, and counting.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(14.dp))
 

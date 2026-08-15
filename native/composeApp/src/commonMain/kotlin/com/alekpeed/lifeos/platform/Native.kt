@@ -23,6 +23,10 @@ expect object Native {
     val supportsPdfExport: Boolean
     val supportsDictation: Boolean
 
+    // Whether the app can drive the mic itself (rather than handing off to a system
+    // dictation UI). This is what Whisper transcription needs.
+    val supportsRecording: Boolean
+
     // Text-to-speech: read a briefing aloud, stop it.
     fun speak(text: String)
     fun stopSpeaking()
@@ -44,6 +48,33 @@ expect object Native {
     // recognized text, or null if cancelled / nothing heard / unsupported. Gate the
     // mic button on supportsDictation.
     fun dictate(onResult: (String?) -> Unit)
+
+    // Record from the microphone ourselves, for transcription we control. Start
+    // returns false if it couldn't begin — no mic, no permission yet, already
+    // recording. Stop hands back the take as a base64 16-bit mono 16 kHz WAV, or null
+    // if nothing usable was captured. Cancel throws the take away.
+    fun startRecording(): Boolean
+
+    fun stopRecording(): String?
+
+    fun cancelRecording()
+
+    // Peak level of the last moment of audio, 0f..1f — the only thing that tells you
+    // the mic is actually hearing you while a recording is running.
+    fun micLevel(): Float
+
+    // Full-screen (immersive) mode: hide the system status and navigation bars so a
+    // graphical interface with its own top row owns the whole screen. Swiping from an
+    // edge still reveals the system bars temporarily. No-op where unsupported.
+    fun setImmersive(on: Boolean)
+
+    // Height in px of the display cutout (notch / punch hole) at the top of the
+    // screen, so full-screen art can start just below it. 0 where there is none.
+    fun cutoutTopPx(): Int
+
+    // Height in px of the system navigation / gesture area at the bottom, so a
+    // full-screen interface can keep its own controls out of the home-swipe lane.
+    fun navBottomPx(): Int
 
     // Cooking mode: keep the screen on while true.
     fun keepScreenAwake(on: Boolean)
@@ -85,6 +116,11 @@ expect object Native {
     // cancelled/unsupported. Android launches a scanner; desktop is a no-op.
     fun scanQr(onResult: (String?) -> Unit)
 
+    // Scan ANY supported code — QR, EAN-13/UPC, Code 128, … — in one camera pass, so
+    // a universal scanner doesn't have to ask what kind of code it's looking at.
+    // `onResult` gets the decoded text, or null if cancelled/unsupported.
+    fun scanAnyCode(onResult: (String?) -> Unit)
+
     // Scan a 1D product barcode (EAN-13/UPC — e.g. a book's ISBN) with the camera;
     // `onResult` gets the decoded digits, or null if cancelled/unsupported. Gated
     // by supportsQrScan (same camera scanner). Desktop is a no-op.
@@ -118,9 +154,25 @@ expect object Native {
     // runs to hundreds of MB — the whole file never sits in memory at once.
     fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit)
 
+    // Can this platform grab a picture of the screen? Desktop can (AWT Robot); the
+    // phone can't without a foreground-service dance nobody asked for.
+    val supportsScreenshot: Boolean
+
+    // A PNG of the whole screen as base64, or null. The single most useful thing a
+    // non-technical person can send when something is wrong.
+    fun captureScreen(onResult: (String?) -> Unit)
+
+    // One line describing the machine — OS, architecture, free disk, memory. Attached to
+    // a help request so the first round of "what are you running" is already answered.
+    fun machineSummary(): String
+
     // Pick an ebook (EPUB or .txt) and hand back its readable plain text in
     // reading order, or null if cancelled / unsupported. Backs the Books reader.
     fun pickEbook(onResult: (String?) -> Unit)
+
+    // Same, plus the file's display name — a book can hold several files, and a list
+    // of them only reads properly if each one is named. Both null on cancel.
+    fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit)
 
     // Pick ANY file (PDF, doc, image, …) and hand back its display name, best-effort
     // mime type, and raw bytes as base64 — for the shared attachment layer. All three
@@ -138,4 +190,12 @@ expect object Native {
     // sheet (which offers "Save as PDF" and any installed printer). Android only;
     // desktop no-ops. Gate UI on supportsPdfExport.
     fun exportTextAsPdf(title: String, text: String)
+
+    // Let the user pick exactly where a generated file (a record export package)
+    // is saved, rather than firing it into a share sheet — the point is to end up
+    // somewhere you can find again to move to another device (a synced folder, a
+    // USB drive), not to send it anywhere right now. Android: the system's own
+    // document picker (Storage Access Framework). Desktop: a save dialog.
+    // onResult reports whether it was actually saved (false on cancel too).
+    fun exportPackageFile(suggestedName: String, base64: String, onResult: (Boolean) -> Unit)
 }

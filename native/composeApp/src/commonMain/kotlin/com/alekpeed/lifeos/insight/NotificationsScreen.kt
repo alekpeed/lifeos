@@ -62,6 +62,8 @@ private data class Attention(
 private fun buildAttention(): List<Attention> {
     val now = today()
     val soon = now.plusDays(7)
+    // Bills have their own horizon, set in Settings — a week is only the default.
+    val billSoon = now.plusDays(com.alekpeed.lifeos.settings.billDueSoonDays())
     val out = mutableListOf<Attention>()
 
     loadTasks().filter { !it.done }.forEach { t ->
@@ -72,7 +74,7 @@ private fun buildAttention(): List<Attention> {
     }
     financeBills().filter { !it.settled }.forEach { b ->
         val due = parseDateOrNull(b.dueDate) ?: return@forEach
-        if (due > soon) return@forEach
+        if (due > billSoon) return@forEach
         val label = (if (due < now) relativeLabel(due) else "due ${relativeLabel(due)}") + if (b.autopay) " · autopay" else ""
         out.add(Attention("💵", b.name, label, "finance", due < now && !b.autopay, due.toString()))
     }
@@ -106,9 +108,12 @@ private fun save(items: List<Reminder>) {
 }
 
 // Reminders backed by real device scheduling: "Now" posts immediately, or pick a
-// quick time and it fires later via AlarmManager, even if the app is closed
-// (desktop: saved, but nothing fires — no scheduler there). Any item can also be
-// pinned as the ongoing "next up" ticker.
+// quick time and it fires later — Android via AlarmManager, even with the app fully
+// closed; desktop via a background timer plus the system tray, which only fires
+// while this process is alive (closing the window minimizes to the tray rather than
+// quitting, for exactly this reason). Any item can also be pinned as the ongoing
+// "next up" ticker — the tray tooltip on desktop, a persistent notification on
+// Android.
 @Composable
 fun NotificationsScreen() {
     val items = remember { mutableStateListOf<Reminder>().apply { addAll(loadReminders()) } }
@@ -135,8 +140,6 @@ fun NotificationsScreen() {
     val attention = remember { buildAttention() }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Notifications", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(14.dp))
 
         // Needs attention — tap a row to jump to its module.
         if (attention.isNotEmpty()) {
