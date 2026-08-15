@@ -13,6 +13,9 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 // everywhere. It matters most on desktop, which has no dictation of its own at all,
 // but it's also better than the phone's built-in recognizer: real punctuation, no
 // system dialog taking over the screen, and it doesn't cut you off mid-thought.
+// "Whisper" is kept as this feature's name throughout the app and its storage keys —
+// it's what the setting has always been called — but see the model constant below for
+// which engine actually runs the transcription.
 //
 // Recording is the platform's job (Native.startRecording / stopRecording, which hand
 // back a base64 WAV); this file is only the upload. The endpoint wants
@@ -20,9 +23,19 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 // here as bytes and pushed through httpSendBytes — the same path a Storage upload
 // takes.
 
-// The transcription model. If this starts 404ing, check it against OpenAI's current
-// model list; "whisper-1" is the long-standing fallback that has never gone away.
-const val DEFAULT_WHISPER_MODEL = "whisper-1"
+// The transcription model. `gpt-transcribe` is OpenAI's current recommendation for
+// new integrations and measurably beats the original `whisper-1` on word error rate,
+// so it's what the mic uses; the older `gpt-4o-transcribe` / `gpt-4o-mini-transcribe`
+// pair is legacy now too. Nothing this file sends is Whisper-only — `response_format`
+// stays `json` (the migration guide's own minimal request) and `prompt` is still
+// accepted — and the features that genuinely didn't survive the move (SRT/VTT
+// subtitles, word/segment timestamps, the separate translations endpoint, speaker
+// diarization) are all things the app never asked for.
+//
+// If this ever starts 404ing, check it against OpenAI's current model list;
+// "whisper-1" is the long-standing fallback that has never gone away, and the
+// "WhisperModel" storage key below overrides this without a rebuild.
+const val DEFAULT_TRANSCRIBE_MODEL = "gpt-transcribe"
 
 private const val ENGINE_KEY = "DictationEngine"   // "whisper" | "system"
 private const val BOUNDARY = "----LifeOSAudioBoundary7f3a91"
@@ -31,7 +44,7 @@ object Whisper {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun model(): String = Storage.read("WhisperModel")?.trim()?.ifBlank { null } ?: DEFAULT_WHISPER_MODEL
+    fun model(): String = Storage.read("WhisperModel")?.trim()?.ifBlank { null } ?: DEFAULT_TRANSCRIBE_MODEL
 
     // Whether this device can do it at all: a mic we can drive ourselves, plus a key.
     fun possible(): Boolean = Native.supportsRecording && OpenAiClient.key().isNotEmpty()
