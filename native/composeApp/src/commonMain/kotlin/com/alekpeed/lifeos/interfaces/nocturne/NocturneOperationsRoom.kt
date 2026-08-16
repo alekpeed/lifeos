@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -30,9 +31,14 @@ import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.lifeOsModules
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.platform.loadBase64ImageAsset
 import com.alekpeed.lifeos.platform.loadImageAsset
 
-private const val OPERATIONS_ART = "nocturne-operations-room.webp"
+private val OPERATIONS_ART_PARTS = listOf(
+    "nocturne-operations-room-0.b64",
+    "nocturne-operations-room-1.b64",
+    "nocturne-operations-room-2.b64",
+)
 
 private data class RailTarget(val label: String, val glyph: String, val moduleId: String)
 private data class QuickTarget(val label: String, val glyph: String, val moduleId: String)
@@ -64,7 +70,9 @@ private val quickTargets = listOf(
  */
 @Composable
 fun NocturneOperationsRoom() {
-    val art = remember { loadImageAsset(OPERATIONS_ART) ?: loadImageAsset("nocturne-home.png") }
+    val art = remember {
+        loadBase64ImageAsset(OPERATIONS_ART_PARTS) ?: loadImageAsset("nocturne-home.png")
+    }
     val modules = remember { lifeOsModules() }
     val ready = remember(modules) { modules.count { it.ready } }
 
@@ -83,7 +91,6 @@ fun NocturneOperationsRoom() {
             )
         }
 
-        // Slight scrim only where live UI sits. The room itself remains unobstructed.
         Box(Modifier.fillMaxSize().background(Color(0x19000000)))
 
         DomainRail(
