@@ -1,0 +1,38 @@
+{
+  "screen": "nocturne_operations_room",
+  "theme": "nocturne",
+  "target": "android_phone_portrait",
+  "aspectRatio": "9:19.5",
+  "canvasReference": {"width": 1080, "height": 2340},
+  "backgroundAsset": "nocturne-operations-room.webp",
+  "principle": "The room artwork is static environment. Navigation, status, and quick actions are live overlays; changeable information is never baked into the background.",
+  "regions": [
+    {"id": "domain_rail", "type": "persistent_navigation", "boundsNormalized": {"x": 0.0, "y": 0.0, "width": 0.233, "height": 1.0}, "implementation": "Compose overlay"},
+    {"id": "room_viewport", "type": "environment", "boundsNormalized": {"x": 0.233, "y": 0.0, "width": 0.767, "height": 1.0}, "implementation": "background art, ContentScale.Crop"},
+    {"id": "status_strip", "type": "dynamic_overlay", "boundsNormalized": {"x": 0.25, "y": 0.827, "width": 0.733, "height": 0.064}, "implementation": "Compose overlay", "dynamic": true},
+    {"id": "quick_actions", "type": "contextual_navigation", "boundsNormalized": {"x": 0.25, "y": 0.902, "width": 0.733, "height": 0.082}, "implementation": "Compose overlay"}
+  ],
+  "domainRail": [
+    {"label": "Operations", "route": "operations"},
+    {"label": "Archive", "route": "documents"},
+    {"label": "Logistics", "route": "places"},
+    {"label": "Discovery", "route": "education"},
+    {"label": "Management", "route": "habits"},
+    {"label": "Intelligence", "route": "ask"},
+    {"label": "People", "route": "contacts"},
+    {"label": "System", "route": "settings"}
+  ],
+  "quickActions": [
+    {"label": "Today", "route": "today"},
+    {"label": "Tasks", "route": "tasks"},
+    {"label": "Command", "route": "command"},
+    {"label": "Brief", "route": "briefing"},
+    {"label": "Alerts", "route": "notifications"}
+  ],
+  "homeIntegration": {
+    "source": "nocturne_home",
+    "trigger": "Operations environmental hotspot",
+    "destination": "operations",
+    "behavior": "direct navigation to Nocturne Operations room, bypassing generic domain sheet"
+  }
+}
