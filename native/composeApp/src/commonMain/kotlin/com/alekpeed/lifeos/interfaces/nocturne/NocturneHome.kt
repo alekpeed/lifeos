@@ -43,9 +43,6 @@ private const val ART = "nocturne-home.png"
 private const val ART_W = 864f
 private const val ART_H = 1821f
 
-// Normalized hit regions deliberately correspond to physical objects in the scene,
-// not floating buttons. The same transformed artwork bounds are used for hit testing,
-// so taps stay aligned even when the image is cropped to fill a different phone ratio.
 private data class Region(
     val domain: String,
     val left: Float,
@@ -84,9 +81,6 @@ fun NocturneHome() {
     BoxWithConstraints(Modifier.fillMaxSize().background(NocturneColors.Void)) {
         val viewportW = constraints.maxWidth.toFloat()
         val viewportH = constraints.maxHeight.toFloat()
-
-        // Full-bleed cover scaling. The art always reaches all four physical screen
-        // edges; any mismatch in aspect ratio is cropped evenly rather than letterboxed.
         val scale = maxOf(viewportW / ART_W, viewportH / ART_H)
         val artW = ART_W * scale
         val artH = ART_H * scale
@@ -106,7 +100,9 @@ fun NocturneHome() {
         Box(
             Modifier.fillMaxSize().pointerInput(art, originX, originY, artW, artH) {
                 detectTapGestures { point ->
-                    hitDomain(point, originX, originY, artW, artH)?.let { domain = it }
+                    hitDomain(point, originX, originY, artW, artH)?.let { hit ->
+                        if (hit == "Operations") Nav.open("operations") else domain = hit
+                    }
                 }
             },
         )
@@ -183,4 +179,5 @@ object NocturneColors {
 
 fun registerNocturne() {
     Interfaces.registerHome(NOCTURNE) { NocturneHome() }
+    Interfaces.register(NOCTURNE, "operations") { NocturneOperationsRoom() }
 }
