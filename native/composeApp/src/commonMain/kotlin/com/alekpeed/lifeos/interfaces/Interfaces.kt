@@ -14,15 +14,6 @@ typealias ModuleContent = @Composable () -> Unit
 // screen. This is what keeps interfaces interchangeable: Alek designs a graphical
 // interface, registers its per-module screens under an interface id, and every
 // page can accept it without touching module logic or the data it persists.
-//
-// Registering a graphical interface later looks like:
-//
-//   Interfaces.register("spatial-1", "tasks") { MySpatialTasks() }
-//   Interfaces.register("spatial-1", "habits") { MySpatialHabits() }
-//
-// It then appears in Settings and can be switched on live. Any module without a
-// custom screen for the active interface still renders its functional default, so
-// interfaces can be partial and filled in over time.
 object Interfaces {
     const val DEFAULT = "default"
 
@@ -36,21 +27,19 @@ object Interfaces {
     // Active interface id, observable so switching it in Settings recomposes pages.
     // Persisted, so the interface you picked is still there after a restart.
     private const val K_ACTIVE = "ActiveInterface"
-    private const val K_COMMAND_ROOM_HOME_MIGRATED = "NexusCommandRoomHomeMigrated"
+    private const val K_NOCTURNE_HOME_MIGRATED = "NocturneHomeMigrated"
 
-    // NEXUS is the baseline interface — the graphical home is what Life OS opens into
-    // unless you pick something else in Settings. It falls back to the built-in
-    // functional launcher wherever its artwork isn't available (e.g. desktop).
-    const val BASELINE = "nexus"
+    // Nocturne is the baseline interface. Other graphical interfaces, including
+    // NEXUS, remain registered and selectable in Settings.
+    const val BASELINE = "nocturne"
 
-    // Existing installs can have an older persisted interface selection, including
-    // "default", which would otherwise prevent a newly-installed canonical NEXUS
-    // home from appearing at all. Promote the command-room NEXUS home exactly once
-    // per install. After this migration, Settings choices are respected normally.
+    // Promote Nocturne once on existing installs so the new canonical home actually
+    // becomes visible. After this one-time migration, user interface choices persist
+    // normally and are not overwritten again.
     private var activeState by mutableStateOf(
-        if (Storage.read(K_COMMAND_ROOM_HOME_MIGRATED) != "1") {
+        if (Storage.read(K_NOCTURNE_HOME_MIGRATED) != "1") {
             Storage.write(K_ACTIVE, BASELINE)
-            Storage.write(K_COMMAND_ROOM_HOME_MIGRATED, "1")
+            Storage.write(K_NOCTURNE_HOME_MIGRATED, "1")
             BASELINE
         } else {
             Storage.read(K_ACTIVE)?.ifBlank { null } ?: BASELINE
