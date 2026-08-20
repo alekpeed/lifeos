@@ -37,8 +37,8 @@ if neither exists, so its callers never test a flag themselves.
 
 | Flag | Android | Desktop (Linux / Windows) |
 |---|---|---|
-| `supportsTts` | ✅ | ❌ |
-| `supportsNotifications` | ✅ | ❌ |
+| `supportsTts` | ✅ | ✅ *(probed: needs a system speech engine — see below)* |
+| `supportsNotifications` | ✅ | ✅ *(probed: needs a system tray; in-session only)* |
 | `supportsContacts` | ✅ | ❌ |
 | `supportsKeepAwake` | ✅ | ❌ |
 | `supportsWakeWord` | ✅ | ❌ |
@@ -48,13 +48,15 @@ if neither exists, so its callers never test a flag themselves.
 | `supportsLocation` | ✅ | ❌ |
 | `supportsCamera` | ✅ | ❌ |
 | `supportsFilePick` | ✅ | ✅ |
-| `supportsPdfExport` | ✅ | ❌ |
+| `supportsPdfExport` | ✅ | ✅ |
 | `supportsDictation` | ✅ | ❌ *(no system dictation dialog — see Whisper below)* |
 | `supportsRecording` | ✅ | ✅ *(checked live: an input line must exist)* |
 | `supportsScreenshot` | ❌ | ✅ |
 
-Desktop's `supportsRecording` is the only flag evaluated on each read rather than
-fixed at startup, so plugging a microphone in after launch is noticed.
+Desktop's `supportsRecording`, `supportsTts` and `supportsNotifications` are evaluated
+on read rather than fixed at startup: a microphone plugged in after launch is noticed,
+and the other two report what the machine can actually do (a box with no speech engine,
+or no system tray, hides those controls instead of offering a dead button).
 
 ---
 
@@ -126,8 +128,12 @@ notification at a future time with the app closed (AlarmManager, via
 `setAndAllowWhileIdle` — no exact-alarm permission needed, so Android may shift it by
 a few minutes). Used by Finance for bills and by task reminders.
 
-All three are Android only. On desktop, Notifications is a list of what needs
-attention while the app is open.
+On desktop all three run through the system tray: `postReminder` shows a balloon,
+`setPinnedNextUp` becomes the tray icon's tooltip, and `scheduleReminder` fires from an
+in-process timer. That last one is the real difference between the platforms — Android
+hands the reminder to the OS alarm clock and it arrives with the app closed, whereas the
+desktop timer only runs while Life OS does. Shell re-arms every still-future reminder on
+open, so quitting and relaunching restores them rather than losing them.
 
 ---
 
@@ -139,8 +145,8 @@ attention while the app is open.
 | `pickAttachment` — any file: name, mime, bytes | ✅ | ✅ |
 | `openAttachment` — hand a stored file to the OS to view | ✅ FileProvider + ACTION_VIEW | ✅ system opener |
 | `pickFilteredTextFile` — stream a huge file, keep matching lines | ✅ | ❌ **gap** |
-| `pickEbook` / `pickEbookNamed` — EPUB/TXT → readable text | ✅ | ❌ **gap** |
-| `exportTextAsPdf` — paginated PDF to the print/share sheet | ✅ | ❌ |
+| `pickEbook` / `pickEbookNamed` — EPUB/TXT → readable text | ✅ | ✅ `JFileChooser` |
+| `exportTextAsPdf` — paginated PDF | ✅ print/share sheet | ✅ save dialog, then opens it |
 
 `pickFilteredTextFile` exists for the Apple Health export, whose `export.xml` runs to
 hundreds of megabytes — it streams and keeps only matching lines so the file never sits
@@ -205,19 +211,17 @@ Cross-cutting behaviour that every module gets, implemented once in common code:
 
 Honest list of what a build asks for and doesn't get:
 
-1. **Desktop can't import an ebook.** `pickEbook` / `pickEbookNamed` are no-ops on
-   desktop even though it has a working file picker and the EPUB/TXT parsing is
-   shared. Books on desktop can hold records but not read them.
-2. **Desktop can't import the Apple Health export.** `pickFilteredTextFile` is a
-   no-op there for the same reason.
-3. **Desktop has no notifications.** `postReminder`, `setPinnedNextUp` and
-   `scheduleReminder` all no-op, so nothing can reach you with the app closed.
-   `java.awt.SystemTray` could cover the in-session case.
-4. **Desktop has no read-aloud.** No TTS engine ships with the JVM.
-5. **Desktop can't export a PDF.** Android renders one and hands it to the print
-   sheet; desktop no-ops.
-6. **Android can't screenshot itself**, which is the one direction the helper flow
+1. **Desktop can't import the Apple Health export.** `pickFilteredTextFile` is a
+   no-op there. Deliberately left: Alek doesn't want Health on desktop.
+2. **Desktop reminders don't survive quitting the app.** They fire from an in-process
+   timer, not an OS alarm, so a reminder set for tomorrow needs Life OS to be running
+   when tomorrow arrives (it re-arms on open). Closing that would mean a real
+   platform-level scheduler per OS — systemd timers, Task Scheduler, launchd.
+3. **Desktop read-aloud borrows the OS voice.** It drives speech-dispatcher/eSpeak,
+   `say`, or PowerShell's System.Speech. A machine with none of them installed reports
+   `supportsTts = false` and simply hides the control.
+4. **Android can't screenshot itself**, which is the one direction the helper flow
    would want if the roles were ever reversed.
 
-Items 1, 2 and 3 are the ones with a clear path — the platform can do them and the
-shared code already exists.
+Closed 2026-08-20: desktop ebook import, notifications, read-aloud and PDF export were
+all no-ops and are now real — see the sections above.

@@ -4,13 +4,18 @@ import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 
-// Desktop capabilities. Clipboard works via AWT; the phone-only ones (TTS,
-// notifications, contacts, keep-awake) are no-ops so the shared UI can gate them
-// off via the supports* flags. Outbound "share" falls back to copying to the
-// clipboard, the most useful desktop equivalent.
+// Desktop capabilities. Clipboard works via AWT; the genuinely phone-only ones
+// (contacts, keep-awake, camera, geofencing) stay no-ops so the shared UI can gate them
+// off via the supports* flags. Outbound "share" falls back to copying to the clipboard,
+// the most useful desktop equivalent.
+//
+// TTS, notifications, ebook import and PDF export used to sit in that no-op list too,
+// which made desktop quietly less than "the full app". Each is now real, and each is
+// probed rather than assumed: supportsTts is false on a box with no speech engine
+// installed, supportsNotifications false where there's no system tray.
 actual object Native {
-    actual val supportsTts = false
-    actual val supportsNotifications = false
+    actual val supportsTts: Boolean get() = DesktopTts.available
+    actual val supportsNotifications: Boolean get() = DesktopNotifier.available
     actual val supportsContacts = false
     actual val supportsKeepAwake = false
     actual val supportsWakeWord = false
@@ -24,10 +29,10 @@ actual object Native {
     // No system dictation dialog on desktop, but there is a microphone — which is
     // what makes Whisper the only dictation this build has.
     actual val supportsRecording: Boolean get() = MicRecorder.available
-    actual val supportsPdfExport = false
+    actual val supportsPdfExport = true
 
-    actual fun speak(text: String) {}
-    actual fun stopSpeaking() {}
+    actual fun speak(text: String) = DesktopTts.speak(text)
+    actual fun stopSpeaking() = DesktopTts.stop()
 
     actual fun shareText(text: String) {
         try {
@@ -51,13 +56,16 @@ actual object Native {
 
     actual fun keepScreenAwake(on: Boolean) {}
     actual fun importContacts(): List<PhoneContact> = emptyList()
-    actual fun postReminder(title: String, body: String) {}
-    actual fun setPinnedNextUp(text: String?) {}
+    actual fun postReminder(title: String, body: String) = DesktopNotifier.post(title, body)
+    actual fun setPinnedNextUp(text: String?) = DesktopNotifier.setPinned(text)
     actual fun setWakeWordEnabled(on: Boolean) {}
     actual fun armArrivalHere(label: String) {}
     actual fun clearArrivals() {}
-    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) {}
-    actual fun cancelReminder(id: Int) {}
+    // In-process, so these fire only while Life OS is running — see DesktopNotifier.
+    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) =
+        DesktopNotifier.schedule(id, title, body, atEpochMillis)
+
+    actual fun cancelReminder(id: Int) = DesktopNotifier.cancel(id)
 
     actual fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit) { onResult(false) }
     actual fun hasVoiceprint(): Boolean = false
@@ -83,8 +91,27 @@ actual object Native {
         }
     }
     actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
-    actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
-    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) { onResult(null, null) }
+    actual fun pickEbook(onResult: (String?) -> Unit) = pickEbookNamed { _, text -> onResult(text) }
+
+    // Same 40 MB ceiling as Android, and the same shared parser behind it.
+    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) {
+        try {
+            val chooser = javax.swing.JFileChooser()
+            chooser.dialogTitle = "Choose an EPUB or text file"
+            chooser.fileFilter = javax.swing.filechooser.FileNameExtensionFilter(
+                "Ebooks (*.epub, *.txt)", "epub", "txt",
+            )
+            if (chooser.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) {
+                onResult(null, null); return
+            }
+            val f = chooser.selectedFile
+            if (f == null || !f.exists()) { onResult(null, null); return }
+            if (f.length() > 40_000_000) { onResult(f.name, null); return }
+            onResult(f.name, parseEbook(f.readBytes()))
+        } catch (e: Exception) {
+            onResult(null, null)
+        }
+    }
 
     actual val supportsScreenshot = true
 
@@ -183,5 +210,27 @@ actual object Native {
             // best-effort open
         }
     }
-    actual fun exportTextAsPdf(title: String, text: String) {}
+    // Android renders a PDF and hands it to the print/share sheet. Desktop's equivalent
+    // of that sheet is a save dialog, so ask where it goes, then open it in whatever the
+    // system uses for PDFs.
+    actual fun exportTextAsPdf(title: String, text: String) {
+        try {
+            val safe = title.map { if (it.isLetterOrDigit()) it else '_' }
+                .joinToString("").take(40).ifBlank { "lifeos" }
+            val chooser = javax.swing.JFileChooser()
+            chooser.dialogTitle = "Save PDF"
+            chooser.selectedFile = java.io.File("$safe.pdf")
+            if (chooser.showSaveDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) return
+            var target = chooser.selectedFile ?: return
+            if (!target.name.endsWith(".pdf", ignoreCase = true)) {
+                target = java.io.File(target.parentFile, target.name + ".pdf")
+            }
+            target.writeBytes(DesktopPdf.build(title, text))
+            if (java.awt.Desktop.isDesktopSupported()) {
+                runCatching { java.awt.Desktop.getDesktop().open(target) }
+            }
+        } catch (e: Exception) {
+            // best-effort export
+        }
+    }
 }

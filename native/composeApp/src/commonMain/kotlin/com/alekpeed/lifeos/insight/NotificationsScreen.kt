@@ -127,7 +127,7 @@ fun rearmScheduledReminders(nowMillis: Long) {
 
 // Reminders backed by real device scheduling: "Now" posts immediately, or pick a
 // quick time and it fires later via AlarmManager, even if the app is closed
-// (desktop: saved, but nothing fires — no scheduler there). Any item can also be
+// (desktop: fires via the system tray, but only while the app is running). Any item can also be
 // pinned as the ongoing "next up" ticker.
 @Composable
 fun NotificationsScreen() {
