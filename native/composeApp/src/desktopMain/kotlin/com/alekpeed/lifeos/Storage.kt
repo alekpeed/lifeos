@@ -22,6 +22,15 @@ actual object Storage {
         }
     }
 
+    actual fun keys(): List<String> = try {
+        dir.listFiles()
+            ?.filter { it.isFile && it.name.endsWith(".txt") }
+            ?.map { it.name.removeSuffix(".txt") }
+            ?: emptyList()
+    } catch (e: Exception) {
+        emptyList()
+    }
+
     actual fun remove(name: String) {
         try {
             file(name).takeIf { it.exists() }?.delete()

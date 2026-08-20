@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.core.runAutomations
+import com.alekpeed.lifeos.insight.rearmScheduledReminders
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.interfaces.nexus.registerNexusCommandRoom
 import com.alekpeed.lifeos.interfaces.nocturne.registerNocturne
@@ -40,6 +41,7 @@ import com.alekpeed.lifeos.system.ScanConfirmSheet
 import com.alekpeed.lifeos.timemachine.recordBirths
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
 
 // Home launcher <-> module detail navigation.
 @Composable
@@ -68,6 +70,14 @@ fun Shell() {
     // record's "added on" date is the day it actually turned up, not the day the Time
     // Machine happens to get opened. Writes only when something is new.
     LaunchedEffect(Unit) { runCatching { recordBirths() } }
+
+    // Belt-and-braces re-arm of scheduled reminders. BootReceiver handles the normal
+    // reboot; some OEM battery managers never deliver that broadcast, so re-arming on
+    // open too means a reminder can't quietly go missing. Idempotent — a re-arm
+    // replaces the same alarm id rather than stacking another one.
+    LaunchedEffect(Unit) {
+        runCatching { rearmScheduledReminders(Clock.System.now().toEpochMilliseconds()) }
+    }
 
     // A deep link / app shortcut / NFC tag / shared item can request a module by id.
     LaunchedEffect(Nav.pendingModuleId) {

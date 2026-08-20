@@ -66,12 +66,15 @@ fun OrreryScreen() {
         val tasksOverdue = loadTasks().count { t ->
             !t.done && t.due.isNotBlank() && (parseDateOrNull(t.due)?.toString() ?: "9999") < todayStr
         }
+        // countOf re-reads and re-parses the module's store, so count once and carry
+        // it into the filter rather than paying for every source twice.
         DATA_SOURCES
-            .filter { it.key !in setOf("Orrery", "Entropy") && countOf(it.key) > 0 }
-            .map { ds ->
+            .map { ds -> ds to countOf(ds.key) }
+            .filter { (_, count) -> count > 0 }
+            .map { (ds, count) ->
                 val ts = SyncMeta.metaOf(ds.key)?.updatedAt
                 val days = ts?.let { ((now - it) / DAY_MS).toInt().coerceAtLeast(0) }
-                Planet(ds.label, countOf(ds.key), days, if (ds.key == "Tasks") tasksOverdue else 0)
+                Planet(ds.label, count, days, if (ds.key == "Tasks") tasksOverdue else 0)
             }
             .sortedByDescending { it.days ?: Int.MAX_VALUE }
     }

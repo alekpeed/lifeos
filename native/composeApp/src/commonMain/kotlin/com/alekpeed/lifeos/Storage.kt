@@ -9,4 +9,7 @@ expect object Storage {
     fun write(name: String, text: String)
     // Delete a key's value (leaves a sync tombstone via SyncMeta).
     fun remove(name: String)
+    // Every key currently holding a value. Backup needs this: enumerating a
+    // hard-coded module list silently left everything else behind.
+    fun keys(): List<String>
 }

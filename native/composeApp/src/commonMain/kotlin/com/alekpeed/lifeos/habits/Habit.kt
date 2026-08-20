@@ -31,8 +31,17 @@ data class Habit(val name: String, val checkins: Set<LocalDate>, val notes: Stri
 // name|date1,date2,...|notes (dates sorted, capped to the most recent 366 so the
 // file doesn't grow unbounded but a full year of streak/recap history survives;
 // the notes field is optional so old two-field lines parse unchanged)
+//
+// Both text fields are stripped of the delimiters at the serialization boundary,
+// not just at the input box: a name containing "|" used to shift every later field
+// along on the next load, so the check-in dates parsed as nothing and the streak
+// silently reset to zero. Doing it here covers every construction site (the Habits
+// screen, the command bar, a future import) instead of one at a time.
+private fun sanitizeField(s: String): String =
+    s.replace("|", "/").replace("\n", " ").replace("\r", " ")
+
 private fun Habit.toLine(): String =
-    "$name|${checkins.sorted().takeLast(366).joinToString(",") { it.toString() }}|${notes.replace("|", "/").replace("\n", " ")}"
+    "${sanitizeField(name)}|${checkins.sorted().takeLast(366).joinToString(",") { it.toString() }}|${sanitizeField(notes)}"
 
 private fun parseLine(line: String): Habit {
     val parts = line.split("|")

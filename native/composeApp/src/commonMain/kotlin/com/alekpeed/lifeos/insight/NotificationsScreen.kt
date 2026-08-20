@@ -107,6 +107,24 @@ private fun save(items: List<Reminder>) {
     Storage.write("Notifications", items.joinToString("\n") { "${it.text}\t${it.atEpochMillis ?: ""}" })
 }
 
+// Re-register every still-future reminder with the OS scheduler.
+//
+// Alarms do not survive a reboot — Android drops the whole pending-alarm table —
+// and nothing here re-armed them, so a reminder set on Monday for Friday was
+// silently gone if the phone restarted in between. The reminders themselves were
+// never lost (they persist under "Notifications"); only the alarms were. Safe to
+// call repeatedly: scheduleReminder uses FLAG_UPDATE_CURRENT keyed on the same id,
+// so a re-arm replaces rather than duplicates. Past-due entries are skipped so a
+// restart doesn't fire a backlog of old reminders at once.
+fun rearmScheduledReminders(nowMillis: Long) {
+    if (!Native.supportsNotifications) return
+    loadReminders().forEach { r ->
+        val at = r.atEpochMillis ?: return@forEach
+        if (at <= nowMillis) return@forEach
+        Native.scheduleReminder(r.id(), "Reminder", r.text, at)
+    }
+}
+
 // Reminders backed by real device scheduling: "Now" posts immediately, or pick a
 // quick time and it fires later via AlarmManager, even if the app is closed
 // (desktop: saved, but nothing fires — no scheduler there). Any item can also be

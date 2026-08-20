@@ -1,18 +1,32 @@
 package com.alekpeed.lifeos.core
 
 import com.alekpeed.lifeos.Storage
-import com.alekpeed.lifeos.data.DATA_SOURCES
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-// Manual, Drive-independent backup: a plain JSON object of every module's stored
-// value (keyed by its Storage key). Round-trips all local data. Attachments would
-// ride along once the media layer exists; text data is everything today.
+// Manual, Drive-independent backup: a plain JSON object of every stored value,
+// keyed by its Storage key. Attachments would ride along once the media layer
+// exists; text data is everything today.
+//
+// This enumerates the store itself rather than walking DATA_SOURCES. The module
+// list only names the 23 record modules, so a backup taken through it quietly
+// dropped everything else the app persists — the Daily Paper's editorial and
+// checklist, the AI Assistant transcript, the Time Machine's record-birth census,
+// saved cities/currencies/watchlists, and every setting from the theme and accent
+// to the AI keys. Restoring one looked like it worked and came back missing all of
+// it.
 private val json = Json { prettyPrint = true }
+
+// Sync bookkeeping (the "__"-prefixed manifest and high-water mark) describes THIS
+// device's relationship to the server, not your data. Restoring another device's
+// copy would strand every record on the wrong timestamps, so it stays out.
+private fun backupKey(key: String) = !key.startsWith("__")
 
 fun exportBackupJson(): String {
     val map = LinkedHashMap<String, String>()
-    DATA_SOURCES.forEach { ds -> Storage.read(ds.key)?.takeIf { it.isNotBlank() }?.let { map[ds.key] = it } }
+    Storage.keys().filter(::backupKey).sorted().forEach { key ->
+        Storage.read(key)?.takeIf { it.isNotBlank() }?.let { map[key] = it }
+    }
     return json.encodeToString(map)
 }
 
@@ -20,6 +34,7 @@ fun exportBackupJson(): String {
 // the text isn't a valid backup.
 fun importBackupJson(text: String): Int {
     val map = runCatching { json.decodeFromString<Map<String, String>>(text) }.getOrElse { return -1 }
-    map.forEach { (k, v) -> Storage.write(k, v) }
-    return map.size
+    val restorable = map.filterKeys(::backupKey)
+    restorable.forEach { (k, v) -> Storage.write(k, v) }
+    return restorable.size
 }

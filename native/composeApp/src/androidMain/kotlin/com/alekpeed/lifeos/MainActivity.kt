@@ -313,10 +313,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Actually the evening. The nudge talks about "tomorrow's tasks", so firing it on
+    // a lunchtime top-up read as a bug rather than a ritual.
+    private fun isEvening(): Boolean {
+        val h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        return h >= 19 || h < 3
+    }
+
     // Fires the evening ritual when the phone is plugged in while the app is alive.
     private val chargingReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_POWER_CONNECTED) {
+            if (intent.action == Intent.ACTION_POWER_CONNECTED && isEvening()) {
                 Native.postReminder("Plugged in for the night?", "Evening ritual: glance at tomorrow's tasks.")
             }
         }
@@ -336,7 +343,10 @@ class MainActivity : ComponentActivity() {
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         requestNeededPermissions()
         registerShortcuts()
-        handleIntent(intent)
+        // Only on a genuinely new launch. A recreate (rotation, theme change, process
+        // death) re-delivers the SAME intent, and handling it again appended a second
+        // copy of a shared link / scanned NFC tag to Ideas every time the phone turned.
+        if (savedInstanceState == null) handleIntent(intent)
         setContent { App() }
     }
 

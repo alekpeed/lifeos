@@ -14,11 +14,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.DataSource
-import com.alekpeed.lifeos.data.displayOf
 import com.alekpeed.lifeos.data.linesOf
 import com.alekpeed.lifeos.platform.Native
 
@@ -27,6 +27,10 @@ import com.alekpeed.lifeos.platform.Native
 // always current. Backs "Today" and "Briefing".
 @Composable
 fun SummaryScreen(title: String, intro: String, sources: List<DataSource>) {
+    // Read each source once per open, not once per row per recomposition: linesOf
+    // re-reads the file and re-parses the JSON every call, so the old inline calls
+    // meant scrolling Today re-read every module's store on each frame.
+    val perSource = remember(sources) { sources.map { it to linesOf(it.key) } }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
@@ -34,11 +38,10 @@ fun SummaryScreen(title: String, intro: String, sources: List<DataSource>) {
                 TextButton(onClick = {
                     val speech = buildString {
                         append(title); append(". ")
-                        sources.forEach { src ->
-                            val lines = linesOf(src.key)
+                        perSource.forEach { (src, lines) ->
                             append(src.label); append(", ")
                             append(if (lines.isEmpty()) "nothing. " else "${lines.size}. ")
-                            lines.take(4).forEach { append(displayOf(it)); append(". ") }
+                            lines.take(4).forEach { append(it); append(". ") }
                         }
                     }
                     Native.speak(speech)
@@ -50,9 +53,8 @@ fun SummaryScreen(title: String, intro: String, sources: List<DataSource>) {
         Spacer(Modifier.height(16.dp))
 
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            items(sources.size) { i ->
-                val src = sources[i]
-                val lines = linesOf(src.key)
+            items(perSource.size) { i ->
+                val (src, lines) = perSource[i]
                 Column(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth()) {
                         Text(src.label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -71,7 +73,7 @@ fun SummaryScreen(title: String, intro: String, sources: List<DataSource>) {
                         )
                     } else {
                         lines.take(4).forEach { line ->
-                            Text("• ${displayOf(line)}", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 1.dp))
+                            Text("• $line", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 1.dp))
                         }
                         if (lines.size > 4) {
                             Text(

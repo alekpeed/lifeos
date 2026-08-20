@@ -33,6 +33,10 @@ object SyncEngine {
         for (r in remote) {
             val local = SyncMeta.metaOf(r.key)
             if (local != null && local.updatedAt >= r.updatedAt) continue // ours is newer/equal
+            // A live record with no text is a malformed row, not an instruction to
+            // empty the key. Writing "" here would have silently wiped the local copy
+            // of whatever module it named.
+            if (!r.deleted && r.text == null) continue
             if (r.deleted) {
                 Storage.remove(r.key)
             } else {

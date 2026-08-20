@@ -34,23 +34,23 @@ val DATA_SOURCES: List<DataSource> = listOf(
     DataSource("Habits", "Habits"),
     DataSource("Finance", "Finance"),
     DataSource("Education", "Education"),
-    DataSource("Daily Paper", "Daily Paper"),
-    DataSource("Orrery", "Orrery"),
     DataSource("Quartermaster", "Quartermaster"),
     DataSource("Sharebox", "Sharebox"),
     DataSource("Photos", "Photos"),
-    DataSource("Museum", "Museum"),
-    DataSource("Ghost Days", "Ghost Days"),
     DataSource("Health", "Health"),
-    DataSource("Skill Trees", "Skill Trees"),
     DataSource("Recall", "Recall"),
     DataSource("Notifications", "Notifications"),
-    DataSource("Entropy", "Entropy"),
-    DataSource("Time Machine", "Time Machine"),
     DataSource("Knowledge Graph", "Knowledge Graph"),
-    DataSource("Theme from Photo", "Theme from Photo"),
-    DataSource("Tools", "Tools"),
 )
+
+// Deliberately NOT listed above: Daily Paper, Orrery, Museum, Ghost Days, Skill
+// Trees, Entropy, Time Machine and Tools. Each named a Storage key that nothing
+// ever writes — they're derived views computed from the modules that DO store
+// records — so every one of them cost a file read and a parse per search, per
+// Ask grounding and per Almanac count, and returned nothing every time. "Theme
+// from Photo" is gone for a different reason: it's the accent-colour setting, so
+// it surfaced a hex string as if it were a saved record, and its label maps to no
+// module, meaning a hit on it couldn't be opened.
 
 private val jsonReader = Json { ignoreUnknownKeys = true }
 
@@ -122,8 +122,12 @@ fun searchAll(query: String): List<SearchHit> {
     val hits = mutableListOf<SearchHit>()
     for (src in DATA_SOURCES) {
         for (line in linesOf(src.key)) {
+            // No second displayOf: linesOf already returns display labels, and
+            // re-stripping them cut a JSON-stored title off at its first tab or
+            // "|" — so a book called "Dune | Part Two" matched on the full title
+            // but displayed as "Dune".
             if (line.contains(q, ignoreCase = true)) {
-                hits.add(SearchHit(src.label, displayOf(line)))
+                hits.add(SearchHit(src.label, line))
             }
         }
     }
@@ -136,7 +140,7 @@ fun allRecords(): List<SearchHit> {
     val out = mutableListOf<SearchHit>()
     for (src in DATA_SOURCES) {
         for (line in linesOf(src.key)) {
-            val text = displayOf(line).trim()
+            val text = line.trim()
             if (text.isNotEmpty()) out.add(SearchHit(src.label, text))
         }
     }
@@ -164,8 +168,15 @@ private fun nowLine(): String = runCatching {
 // then lines that match the query, then a per-module count summary — bounded so the
 // prompt stays small and cheap.
 fun aiContext(query: String, maxMatches: Int = 40): String {
-    val matches = searchAll(query).take(maxMatches)
-    val counts = DATA_SOURCES.map { it.label to countOf(it.key) }.filter { it.second > 0 }
+    // One read per module, not two: searchAll and countOf each re-read and re-parse
+    // every store, so building the context used to cost two full passes over all of
+    // your data on every question asked.
+    val perSource = DATA_SOURCES.map { it to linesOf(it.key) }
+    val q = query.trim()
+    val matches = if (q.isEmpty()) emptyList() else perSource.flatMap { (src, lines) ->
+        lines.filter { it.contains(q, ignoreCase = true) }.map { SearchHit(src.label, it) }
+    }.take(maxMatches)
+    val counts = perSource.map { (src, lines) -> src.label to lines.size }.filter { it.second > 0 }
     return buildString {
         val now = nowLine()
         if (now.isNotEmpty()) append(now).append("\n\n")
