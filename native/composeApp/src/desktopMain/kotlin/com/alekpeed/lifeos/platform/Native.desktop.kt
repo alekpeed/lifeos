@@ -52,6 +52,7 @@ actual object Native {
     actual fun setImmersive(on: Boolean) {}
     actual fun cutoutTopPx(): Int = 0
     actual fun navBottomPx(): Int = 0
+    actual fun statusBarTopPx(): Int = 0
 
 
     actual fun keepScreenAwake(on: Boolean) {}

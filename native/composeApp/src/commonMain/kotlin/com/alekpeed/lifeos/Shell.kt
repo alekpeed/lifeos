@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +35,7 @@ import com.alekpeed.lifeos.insight.rearmScheduledReminders
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.interfaces.nexus.registerNexusCommandRoom
 import com.alekpeed.lifeos.interfaces.nocturne.registerNocturne
+import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.platform.SystemBackHandler
 import com.alekpeed.lifeos.settings.LockScreen
 import com.alekpeed.lifeos.settings.appLockEnabled
@@ -48,6 +50,11 @@ import kotlinx.datetime.Clock
 fun Shell() {
     val modules = remember { lifeOsModules() }
     var current by remember { mutableStateOf<Module?>(null) }
+    // Same fix as HomeScreen's header: FullscreenApplication forces edge-to-edge
+    // everywhere, so an ordinary module's back-arrow row has to clear the status
+    // bar itself whenever it's actually showing, not assume it never is.
+    val density = LocalDensity.current
+    val topInset = remember(density) { with(density) { Native.statusBarTopPx().toDp() } }
 
     // The PIN gate, when one is set: nothing else renders until it's entered. Checked
     // before any module so a deep link can't route around it.
@@ -117,7 +124,9 @@ fun Shell() {
             } else {
                 Column(Modifier.fillMaxSize()) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = 10.dp)
+                            .padding(top = maxOf(6.dp, topInset), bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         BackArrow { current = null }

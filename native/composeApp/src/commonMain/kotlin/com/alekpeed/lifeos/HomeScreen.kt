@@ -26,9 +26,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alekpeed.lifeos.platform.Native
 
 // The home launcher, "Console" style: a personal control panel. Pinned modules up
 // top, then every one of the six domains — tap a domain to reveal its modules
@@ -50,10 +52,16 @@ private val PINNED_IDS = listOf("today", "tasks", "briefing", "finance", "comman
 fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
     val pinned = remember(modules) { PINNED_IDS.mapNotNull { id -> modules.firstOrNull { it.id == id } } }
     var expanded by remember { mutableStateOf("") }
+    // This screen draws under a status bar the app doesn't control the visibility
+    // of (see FullscreenApplication) — clearing it for real, not just a fixed
+    // guess, is what keeps "life.os" from landing under the clock whenever the
+    // bar happens to be showing.
+    val density = LocalDensity.current
+    val topInset = remember(density) { with(density) { Native.statusBarTopPx().toDp() } }
 
     LazyColumn(modifier = Modifier.fillMaxSize().background(BG).padding(horizontal = 16.dp)) {
         item {
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(maxOf(22.dp, topInset)))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                 Row(Modifier.weight(1f)) {
                     Text("life", color = TEXT, fontFamily = MONO, fontWeight = FontWeight.Bold, fontSize = 22.sp)

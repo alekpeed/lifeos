@@ -138,6 +138,21 @@ actual object Native {
         0
     }
 
+    // FullscreenApplication forces the window edge-to-edge on every screen, not
+    // just the ones that want full-bleed art (see the file for why). That means
+    // an ordinary screen's own header has to pad for the status bar itself
+    // whenever it's actually showing — after leaving an immersive Nocturne
+    // screen, which explicitly re-shows the bars on the way out, the bar can be
+    // visible while decorFitsSystemWindows is still false, and nothing but this
+    // read stands between that and the header drawing under the clock.
+    actual fun statusBarTopPx(): Int = try {
+        val v = NativeHost.activity?.window?.decorView
+        val insets = if (v != null) androidx.core.view.ViewCompat.getRootWindowInsets(v) else null
+        insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars())?.top ?: 0
+    } catch (e: Exception) {
+        0
+    }
+
     actual fun keepScreenAwake(on: Boolean) {
         val act = NativeHost.activity ?: return
         act.runOnUiThread {

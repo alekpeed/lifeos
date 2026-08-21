@@ -72,6 +72,12 @@ expect object Native {
     // screen, so full-screen art can start just below it. 0 where there is none.
     fun cutoutTopPx(): Int
 
+    // Height in px of the status bar itself (icons/clock), independent of any
+    // cutout — a device can show a status bar with zero cutout, or a cutout
+    // shorter than the bar around it. An ordinary (non-immersive) screen needs
+    // this, not cutoutTopPx, to keep its own header clear of the system bar.
+    fun statusBarTopPx(): Int
+
     // Height in px of the system navigation / gesture area at the bottom, so a
     // full-screen interface can keep its own controls out of the home-swipe lane.
     fun navBottomPx(): Int
