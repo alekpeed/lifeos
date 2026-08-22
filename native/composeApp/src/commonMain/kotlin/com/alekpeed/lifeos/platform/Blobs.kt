@@ -28,3 +28,25 @@ expect fun saveTextBlob(text: String): String?
 
 // Read a stored text blob back, or null if missing.
 expect fun readTextBlob(id: String): String?
+
+// --- Durability (R-01) ---------------------------------------------------------
+//
+// The store was addressable only by an id someone already held, so nothing could ask
+// what it contained. That is the whole reason attachments never reached a backup: an
+// exporter had no way to enumerate them, and a restore had no way to put one back
+// under the id its record still points at.
+
+// Every blob id currently held, image and text alike.
+expect fun blobIds(): List<String>
+
+// Size on disk of one blob in bytes, or 0 if it is missing.
+expect fun blobBytes(id: String): Long
+
+// Read any blob — image or text — as base64 of its raw bytes. readBlobBase64 only
+// ever looked at image blobs, so an exporter using it would silently drop ebooks.
+expect fun readAnyBlobBase64(id: String): String?
+
+// Write a blob back under a SPECIFIC id. Restoring must preserve ids: every record
+// references its attachment by id, so a fresh id would leave the record pointing at
+// nothing. Returns false if it could not be written.
+expect fun restoreBlob(id: String, base64: String): Boolean

@@ -27,6 +27,17 @@ actual object Storage {
         }
     }
 
+    actual fun keys(): List<String> = try {
+        if (!::appContext.isInitialized) emptyList()
+        else appContext.filesDir.listFiles()
+            ?.filter { it.isFile && it.name.endsWith(".txt") }
+            ?.map { it.name.removeSuffix(".txt") }
+            ?.sorted()
+            .orEmpty()
+    } catch (e: Exception) {
+        emptyList()
+    }
+
     actual fun remove(name: String) {
         try {
             if (::appContext.isInitialized) {

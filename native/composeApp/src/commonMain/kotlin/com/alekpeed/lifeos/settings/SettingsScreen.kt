@@ -39,8 +39,13 @@ import com.alekpeed.lifeos.AppTheme
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.Whisper
 import com.alekpeed.lifeos.places.MapTiles
+import com.alekpeed.lifeos.core.auditBlobs
+import com.alekpeed.lifeos.core.exportBackup
 import com.alekpeed.lifeos.core.exportBackupJson
+import com.alekpeed.lifeos.core.formatBytes
+import com.alekpeed.lifeos.core.importBackupFromBase64
 import com.alekpeed.lifeos.core.importBackupJson
+import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.ai.DEFAULT_AI_MODEL
 import com.alekpeed.lifeos.ai.DEFAULT_GEMINI_MODEL
 import com.alekpeed.lifeos.ai.DEFAULT_OPENAI_MODEL
@@ -769,16 +774,61 @@ fun SettingsScreen() {
         Text("BACKUP", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(onClick = { Native.shareText(exportBackupJson()); backupMsg = "Backup shared — paste it somewhere safe." }) { Text("Export (share)") }
+            Button(onClick = {
+                val name = "lifeos-backup-${today()}.json"
+                val where = Native.shareFile(name, "application/json", exportBackup(includeBlobs = true))
+                backupMsg = if (where != null) "Backup written to $where — data and attachments."
+                else "Couldn't write the backup file."
+            }) { Text("Export with attachments") }
+            OutlinedButton(onClick = {
+                Native.pickAttachment { _, _, b64 ->
+                    val r = importBackupFromBase64(b64)
+                    backupMsg = if (!r.ok) "That file isn't a valid backup."
+                    else "Restored ${r.records} module(s) and ${r.blobs} attachment(s)" +
+                        (if (r.blobsFailed > 0) ", ${r.blobsFailed} attachment(s) failed" else "") +
+                        " — reopen a module to see it."
+                }
+            }) { Text("Restore from file") }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(onClick = { Native.shareText(exportBackupJson()); backupMsg = "Text backup shared — data only, no attachments." }) { Text("Export as text") }
             OutlinedButton(onClick = {
                 val n = importBackupJson(Native.readClipboard().orEmpty())
                 backupMsg = if (n >= 0) "Restored $n module(s) from the clipboard — reopen a module to see it." else "The clipboard didn't contain a valid backup."
             }) { Text("Import from clipboard") }
         }
         Text(
-            "Export shares a full JSON of your data; import reads a backup from the clipboard. Drive-independent.",
+            "Export writes one file holding every module and every attachment. The text options " +
+                "carry data only — a photo won't fit through a clipboard. Credentials are never " +
+                "included in either; re-enter your API keys after restoring.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        Spacer(Modifier.height(14.dp))
+        val audit = remember { auditBlobs() }
+        Text("Attachments", style = MaterialTheme.typography.bodyLarge)
+        Text(
+            if (audit.documents.isEmpty()) "No attachments stored yet."
+            else "${audit.documents.size} attachment${if (audit.documents.size == 1) "" else "s"} " +
+                "(${formatBytes(audit.documentBytes)}) — included in the export above.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (audit.dangling.isNotEmpty()) {
+            Text(
+                "${audit.dangling.size} record${if (audit.dangling.size == 1) "" else "s"} point at a " +
+                    "missing file. That's what an attachment looks like after arriving from another " +
+                    "device: the reference syncs, the bytes don't. Restoring a backup that has them fixes it.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+            )
+        }
+        if (audit.orphans.isNotEmpty()) {
+            Text(
+                "${audit.orphans.size} unreferenced file${if (audit.orphans.size == 1) "" else "s"} " +
+                    "(${formatBytes(audit.orphanBytes)}) left behind by deletes.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (backupMsg.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
             Text(backupMsg, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)

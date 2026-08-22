@@ -9,4 +9,9 @@ expect object Storage {
     fun write(name: String, text: String)
     // Delete a key's value (leaves a sync tombstone via SyncMeta).
     fun remove(name: String)
+
+    // Every key currently holding a value. The store was write-and-read-by-name only,
+    // so nothing could ask what it actually contains — which is why the backup had to
+    // walk DATA_SOURCES and silently missed every key not on that list.
+    fun keys(): List<String>
 }

@@ -37,6 +37,18 @@ actual object Native {
         }
     }
 
+    actual fun shareFile(fileName: String, mimeType: String, content: String): String? = try {
+        // Desktop has no share sheet, so the file itself is the deliverable: write it
+        // where the person will find it and hand back the path to show them.
+        val home = java.io.File(System.getProperty("user.home"))
+        val dir = java.io.File(home, "Downloads").takeIf { it.isDirectory } ?: home
+        val file = java.io.File(dir, fileName)
+        file.writeText(content)
+        file.absolutePath
+    } catch (e: Exception) {
+        null
+    }
+
     actual fun readClipboard(): String? = try {
         val cb = Toolkit.getDefaultToolkit().systemClipboard
         if (cb.isDataFlavorAvailable(DataFlavor.stringFlavor)) cb.getData(DataFlavor.stringFlavor) as? String else null

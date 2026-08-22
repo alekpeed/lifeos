@@ -78,3 +78,54 @@ actual fun loadBlobImage(id: String): ImageBitmap? = try {
 } catch (e: Exception) {
     null
 }
+
+// --- Durability (R-01) ---------------------------------------------------------
+
+// Blobs are named "<id>.bin" (images) or "<id>.txt" (text), and the id itself carries
+// the kind in its prefix, so one helper covers both directions.
+private fun blobFileName(id: String) = if (id.startsWith("text_")) "$id.txt" else "$id.bin"
+
+actual fun blobIds(): List<String> = try {
+    blobsDir()?.listFiles()
+        ?.filter { it.isFile }
+        ?.mapNotNull { f ->
+            when {
+                f.name.endsWith(".bin") -> f.name.removeSuffix(".bin")
+                f.name.endsWith(".txt") -> f.name.removeSuffix(".txt")
+                else -> null
+            }
+        }
+        ?.sorted()
+        .orEmpty()
+} catch (e: Exception) {
+    emptyList()
+}
+
+actual fun blobBytes(id: String): Long = try {
+    if (id.isBlank()) 0L
+    else blobsDir()?.let { File(it, blobFileName(id)) }?.takeIf { it.exists() }?.length() ?: 0L
+} catch (e: Exception) {
+    0L
+}
+
+actual fun readAnyBlobBase64(id: String): String? = try {
+    if (id.isBlank()) null
+    else blobsDir()
+        ?.let { File(it, blobFileName(id)) }
+        ?.takeIf { it.exists() }
+        ?.let { Base64.encodeToString(it.readBytes(), Base64.NO_WRAP) }
+} catch (e: Exception) {
+    null
+}
+
+actual fun restoreBlob(id: String, base64: String): Boolean = try {
+    val dir = blobsDir()
+    if (dir == null || id.isBlank()) {
+        false
+    } else {
+        File(dir, blobFileName(id)).writeBytes(Base64.decode(base64, Base64.DEFAULT))
+        true
+    }
+} catch (e: Exception) {
+    false
+}

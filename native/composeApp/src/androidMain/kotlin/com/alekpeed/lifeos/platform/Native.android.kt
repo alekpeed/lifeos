@@ -78,6 +78,31 @@ actual object Native {
         (NativeHost.activity ?: ctx).startActivity(chooser)
     }
 
+    actual fun shareFile(fileName: String, mimeType: String, content: String): String? {
+        val ctx = NativeHost.ctx() ?: return null
+        return try {
+            // The cache root is already exposed through res/xml/file_paths.xml for camera
+            // scans, so this needs no new provider or manifest entry.
+            val file = java.io.File(ctx.cacheDir, fileName)
+            file.writeText(content)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                ctx, "${'$'}{ctx.packageName}.fileprovider", file,
+            )
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(send, "Save backup").apply {
+                if (NativeHost.activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            (NativeHost.activity ?: ctx).startActivity(chooser)
+            fileName
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     actual fun readClipboard(): String? {
         val ctx = NativeHost.ctx() ?: return null
         val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return null

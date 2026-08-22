@@ -34,6 +34,12 @@ expect object Native {
     // Outbound share via the system share sheet (Android) / clipboard (desktop).
     fun shareText(text: String)
 
+    // Write text to a real file and hand it to the OS — the share sheet on Android, the
+    // home folder on desktop. shareText is the only outbound path the app had, and a
+    // backup carrying attachments is far too large to survive a share-sheet string or
+    // the clipboard it is imported from. Returns where it went, or null on failure.
+    fun shareFile(fileName: String, mimeType: String, content: String): String?
+
     // Read the current clipboard text, if any (the "clipboard catcher").
     fun readClipboard(): String?
 
