@@ -2,16 +2,19 @@
 
 ## Native is the product — never pitch the web app (2026-07-16)
 
-**Hard rule, no exceptions:** the native rebuild (Kotlin + Compose Multiplatform)
-is the app. Never suggest, imply, or "offer the honest trade" of going back to /
-sticking with / keeping the legacy web PWA. Do not frame native as a lift "versus"
-the web app. Alek has decided; relitigating it — even framed as transparency — is
-off the table. The web `js/` source is a **reference to port FROM**, nothing else.
+**Hard rule, no exceptions:** the native app (Kotlin + Compose Multiplatform, in
+`native/`) is the product. Never suggest, imply, or "offer the honest trade" of
+going back to a web build. Alek has decided; relitigating it — even framed as
+transparency — is off the table.
 
-The job is to bring native to full feature depth by **porting each module's real
-behavior from the web source into Compose** — real features, not text-box stubs.
-Don't report a module "done" until its actual functionality is there and Alek has
-seen it work on device.
+The legacy web PWA was **deleted** on 2026-08-22 (`REDESIGN_DECISIONS.md` §10).
+There is no `js/` tree to port from any more. If you need to know how a module
+behaved in the web app, read it out of git history (`git show <pre-deletion-rev>:js/...`);
+everything still to be built is specified in `REDESIGN_DECISIONS.md` §5 instead.
+
+The job is to bring native to full feature depth — real features, not text-box
+stubs. Don't report a module "done" until its actual functionality is there and
+Alek has seen it work on device.
 
 ## Backups
 
@@ -23,8 +26,9 @@ automatically after commits/sessions.
 
 ## Project context
 
-This is a vanilla-JS, local-first PWA (IndexedDB, no build step, no
-framework). Read `ARCHITECTURE.md` first for the technical shape, then
+This is a local-first native app — Kotlin + Compose Multiplatform, one codebase
+for Android, Windows and Linux, all of it under `native/`. Read `ARCHITECTURE.md`
+for the technical shape (parts of it still describe the deleted web build), then
 `PROJECT_SPEC.md` / `FEATURE_LIST.md` for what's built and what's queued.
 
 `REDESIGN_DECISIONS.md` is the source of truth for the redesign — what was
@@ -62,9 +66,11 @@ are foundational data-layer rewrites deferred until a concrete trigger fires
 editing for CRDT). Don't list them in "what's open" / status recaps unless
 Alek names one, asks about rearchitecture, or a trigger becomes real.
 
-Deploy: `main` branch via GitHub Pages. Routine convention this session:
-commit + push to `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to
-`main`, push `main`, checkout back to the dev branch.
+Deploy: builds come from the `build-native.yml` GitHub Actions workflow — an
+Android APK, a Windows `.msi` and a Linux `.deb`. (GitHub Pages served the web
+PWA and went with it.) Routine convention this session: commit + push to
+`claude/lifeos-dev-setup-dpipr6`, fast-forward merge to `main`, push `main`,
+checkout back to the dev branch.
 
 ## Build delivery (2026-08-04)
 
@@ -79,12 +85,6 @@ bare repo root — e.g. `github.com/alekpeed/lifeos/tree/<branch>` (or a
 deeper path within it) rather than `github.com/alekpeed/lifeos` alone.
 Standing preference, not just for this one link.
 
-`service-worker.js`'s `CACHE_VERSION` must bump on every shipped change
-(forces the service worker to fetch fresh files instead of serving a stale
-cache). Format switched from integer (`lifeos-v101`) to decimal
-(`lifeos-v1.01`) at v101 — bump the hundredths place per commit
-(`v1.01` → `v1.02` → … → `v1.99` → `v2.00`), not the integer scheme.
-
 ## Graphics / visual design
 
 **Don't design or generate graphics — Alek brings the visual assets, work is
@@ -92,8 +92,8 @@ wiring them up.** This came up concretely with the app's first mobile
 interface (`mobile-1`, 2026-07-12): the first pass reinterpreted his mockup
 as fresh CSS/SVG, which he flagged directly ("you don't do graphics"). The
 fix was to use his actual mockup image as real background art with click
-regions mapped onto it (the same technique Vespera's hub already uses), not
-to redesign it. When Alek gives an image, integrate it as-is — real asset +
+regions mapped onto it — the technique every graphical home has used since —
+not to redesign it. When Alek gives an image, integrate it as-is — real asset +
 real hotspots/data wiring — rather than treating it as inspiration for an
 original build.
 
@@ -102,15 +102,17 @@ thread as above). Alek's plan is several interchangeable mobile interfaces
 over time — don't invent or keep a cool product name for one (the first
 mobile interface was called "NEXUS" mid-session, then explicitly walked
 back: "drop nexus... drop any name brand"). Registry ids/folders use plain,
-generic, numbered names instead (`mobile-1`, `mobile-2`, ...) — see
-`MOBILE_INTERFACES_SPEC.md`. This rule was originally scoped to interfaces
-Alek hadn't named himself, with an explicit carve-out for Equator/Vespera
-as "established, intentional names." **That carve-out was reversed later
-the same day (2026-07-13):** Alek's own explicit call ("pull ALL brands
-from everything except 'test'") extended the no-brand rule to Equator and
-Vespera too, wanting a clean, brand-agnostic interface layer ahead of a
-future handoff. Equator was renamed to "Test Mode" (folder
-`js/interfaces/default/`, registry id `default` unchanged) and Vespera was
-renamed to "Spatial 1" (moved to `js/interfaces/spatial-1/`, registry id
-`spatial-1`; `VESPERA_SPEC.md` renamed to `SPATIAL_INTERFACES_SPEC.md`).
-The rule now applies to every interface without exception.
+generic, numbered names instead (`mobile-1`, `mobile-2`, ...). This rule was
+originally scoped to interfaces Alek hadn't named himself, with an explicit
+carve-out for Equator/Vespera as "established, intentional names." **That
+carve-out was reversed later the same day (2026-07-13):** Alek's own explicit
+call ("pull ALL brands from everything except 'test'") extended the no-brand
+rule to Equator and Vespera too, wanting a clean, brand-agnostic interface
+layer ahead of a future handoff. Equator became "Test Mode" (registry id
+`default`) and Vespera became "Spatial 1" (registry id `spatial-1`). The rule
+applies to every interface without exception.
+
+All of those interfaces have since been deleted — the web ones with `js/`, and
+NEXUS / Nocturne / Machiya on 2026-08-22 (`REDESIGN_DECISIONS.md` §7 D-1). The
+naming rule stands for whatever gets built next; `interfaces/Interfaces.kt` is
+the registry they attach to.

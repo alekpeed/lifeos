@@ -44,7 +44,6 @@ val DATA_SOURCES: List<DataSource> = listOf(
     DataSource("Entropy", "Entropy"),
     DataSource("Time Machine", "Time Machine"),
     DataSource("Knowledge Graph", "Knowledge Graph"),
-    DataSource("Theme from Photo", "Theme from Photo"),
     DataSource("Tools", "Tools"),
 )
 

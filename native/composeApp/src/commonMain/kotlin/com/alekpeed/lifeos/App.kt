@@ -25,10 +25,14 @@ object AppMode {
     var ownerName: String = "Alek"
 }
 
-// Observable theme prefs (mirrors the Interfaces registry pattern), so a change
-// in Settings or Theme-from-Photo re-themes the whole app live. Backed by Storage
-// so the choice survives a restart.
+// Observable theme prefs (mirrors the Interfaces registry pattern), so a change in
+// Settings re-themes the whole app live. Backed by Storage so the choice survives a
+// restart.
 object AppTheme {
+    // Key name is historical: the removed PWA's Theme-from-Photo picker was what wrote
+    // it. Kept verbatim so existing installs keep the accent they already have —
+    // renaming the key would silently reset it. Nothing sets it in-app yet; a future
+    // accent picker calls updateAccent.
     var accentHex by mutableStateOf(Storage.read("Theme from Photo")?.trim().orEmpty())
         private set
     var mode by mutableStateOf(Storage.read("ThemeMode")?.ifBlank { null } ?: "system") // system | light | dark

@@ -663,11 +663,6 @@ fun SettingsScreen() {
             Spacer(Modifier.width(10.dp))
             Text("Compact density", style = MaterialTheme.typography.bodyLarge)
         }
-        Text(
-            "Accent follows your Theme-from-Photo pick and applies app-wide.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
         Spacer(Modifier.height(24.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
         Spacer(Modifier.height(24.dp))
