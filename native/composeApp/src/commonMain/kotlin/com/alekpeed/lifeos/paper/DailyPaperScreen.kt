@@ -173,9 +173,12 @@ private fun loadTasksSafe(): List<TaskLite> =
 private data class TaskLite(val id: Long, val title: String, val due: String, val done: Boolean)
 
 private fun computeOnThisDay(): List<OnThisDay> {
-    val md = today().toString().substring(5, 10)
-    val thisYear = today().toString().take(4)
-    fun on(date: String) = date.length >= 10 && date.substring(5, 10) == md && date.take(4) != thisYear
+    // Parsed, not sliced — stored values may now carry a time. See TodayScreen.onThisDay.
+    val now = today()
+    fun on(date: String): Boolean {
+        val d = parseDateOrNull(date) ?: return false
+        return d.monthNumber == now.monthNumber && d.dayOfMonth == now.dayOfMonth && d.year != now.year
+    }
     val out = mutableListOf<OnThisDay>()
     loadMilestones().milestones.forEach { if (on(it.date)) out.add(OnThisDay("Milestone", it.title.ifBlank { "(untitled)" }, it.date.take(4))) }
     loadPlaces().places.forEach { p -> p.visitDates.forEach { d -> if (on(d)) out.add(OnThisDay("Visited", p.name.ifBlank { "(untitled)" }, d.take(4))) } }

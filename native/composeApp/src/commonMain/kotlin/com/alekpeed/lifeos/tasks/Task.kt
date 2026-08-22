@@ -23,7 +23,7 @@ data class Task(
     val title: String,
     val status: String = "not_started", // not_started | in_progress | waiting | done
     val priority: String = "medium",    // low | medium | high | urgent
-    val due: String = "",               // ISO date or ""
+    val due: String = "",               // "yyyy-MM-dd", "yyyy-MM-ddTHH:mm", or ""
     val project: String = "",
     val tags: List<String> = emptyList(),
     val notes: String = "",

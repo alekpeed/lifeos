@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
+import com.alekpeed.lifeos.data.relativeLabelOf
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.SaveToast
@@ -296,7 +297,7 @@ private fun TaskRow(
             )
             task.dueDate()?.let { due ->
                 Text(
-                    relativeLabel(due), style = MaterialTheme.typography.labelMedium,
+                    relativeLabelOf(task.due), style = MaterialTheme.typography.labelMedium,
                     color = dueColor(due, task.done) ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -518,7 +519,7 @@ private fun BoardCard(
         }
         task.dueDate()?.let { due ->
             Text(
-                relativeLabel(due), style = MaterialTheme.typography.labelSmall,
+                relativeLabelOf(task.due), style = MaterialTheme.typography.labelSmall,
                 color = dueColor(due, task.done) ?: MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -571,7 +572,7 @@ private fun TaskEditor(task: Task, update: (Long, (Task) -> Task) -> Unit, onDel
             TextButton(onClick = { update(task.id) { it.copy(due = "") } }) { Text("Clear") }
         }
         Spacer(Modifier.height(4.dp))
-        DateField(task.due) { v -> update(task.id) { it.copy(due = v) } }
+        DateField(task.due, withTime = true) { v -> update(task.id) { it.copy(due = v) } }
         Label("Repeats")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TASK_RECUR.forEach { (v, lbl) ->
@@ -740,7 +741,7 @@ private fun AddTaskPrompt(
                     }
                 }
                 Spacer(Modifier.height(6.dp))
-                DateField(due) { v -> due = v }
+                DateField(due, withTime = true) { v -> due = v }
             }
         },
         confirmButton = { TextButton(onClick = { submit() }) { Text("Add") } },

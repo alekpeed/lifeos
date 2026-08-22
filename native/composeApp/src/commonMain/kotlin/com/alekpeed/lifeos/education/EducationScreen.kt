@@ -412,7 +412,7 @@ private fun AssignmentDetail(
         Label("Title")
         EditField(a.title, "Title") { v -> patch { it.copy(title = v.replace("\n", " ")) } }
         Label("Due date")
-        DateField(a.dueDate) { v -> patch { it.copy(dueDate = v) } }
+        DateField(a.dueDate, withTime = true) { v -> patch { it.copy(dueDate = v) } }
         Label("Status")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ASSIGNMENT_STATUSES.forEach { (v, lbl) ->

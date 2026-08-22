@@ -36,7 +36,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.parseDateOrNull
+import com.alekpeed.lifeos.data.parseTimeOrNull
+import com.alekpeed.lifeos.data.timeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.data.withTime
+import kotlinx.datetime.LocalTime
 
 // Dates are stored ISO (yyyy-MM-dd) everywhere for the date math, but shown and
 // typed American — MM-DD-YYYY. This is the one shared date input: it formats the
@@ -82,14 +86,20 @@ private fun buildIso(year: Int, month: Int, day: Int): String =
 
 @Composable
 fun DateField(
-    value: String,                 // ISO (yyyy-MM-dd) or ""
+    value: String,                 // "yyyy-MM-dd", "yyyy-MM-ddTHH:mm", or ""
     label: String? = null,
     modifier: Modifier = Modifier,
-    onChange: (String) -> Unit,    // ISO or ""
+    // Opt-in per field, because a time only means something on some of them: a task is
+    // due at 15:00 and a flight departs at 07:25, but a birthday or an expiry date is a
+    // day. Off by default, so every existing field behaves exactly as before.
+    withTime: Boolean = false,
+    onChange: (String) -> Unit,    // stored value, or ""
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    var showTime by remember { mutableStateOf(false) }
     // Re-derive the display whenever the stored value changes from outside.
     var text by remember(value) { mutableStateOf(usDate(value)) }
+    val time = parseTimeOrNull(value)
 
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
@@ -100,8 +110,9 @@ fun DateField(
                 if (digits.isEmpty()) {
                     onChange("")
                 } else {
+                    // Retyping the date must not silently drop a time already set.
                     val iso = digitsToIso(digits)
-                    if (iso != null) onChange(iso)
+                    if (iso != null) onChange(if (time != null) withTime(iso, time) else iso)
                 }
             },
             label = label?.let { { Text(it) } },
@@ -121,13 +132,105 @@ fun DateField(
         }
     }
 
+    // The time sits on its own row rather than crowding the date field, and only appears
+    // once there is a date to attach it to.
+    if (withTime && parseDateOrNull(value) != null) {
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { showTime = true }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    if (time != null) "🕒  ${timeLabel(time)}" else "🕒  Add a time",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (time != null) {
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = { onChange(withTime(value, null)) }) { Text("Clear") }
+            }
+        }
+    }
+
     if (showPicker) {
         DatePickerDialog(
             initial = value,
             onDismiss = { showPicker = false },
-            onPick = { iso -> text = usDate(iso); onChange(iso); showPicker = false },
+            onPick = { iso ->
+                text = usDate(iso)
+                onChange(if (time != null) withTime(iso, time) else iso)
+                showPicker = false
+            },
         )
     }
+
+    if (showTime) {
+        TimePickerDialog(
+            initial = time,
+            onDismiss = { showTime = false },
+            onPick = { picked -> onChange(withTime(value, picked)); showTime = false },
+        )
+    }
+}
+
+// Hour then minute, mirroring the date picker's stepped grids rather than introducing a
+// second interaction style for the same job.
+@Composable
+private fun TimePickerDialog(initial: LocalTime?, onDismiss: () -> Unit, onPick: (LocalTime) -> Unit) {
+    var step by remember { mutableStateOf(0) }  // 0 = hour, 1 = minute
+    var hour24 by remember { mutableStateOf(initial?.hour ?: 9) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (step > 0) {
+                    Text(
+                        "‹ ",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { step -= 1 }.padding(4.dp),
+                    )
+                }
+                Text(
+                    if (step == 0) "Pick an hour" else "${timeLabel(LocalTime(hour24, 0))} · pick the minutes",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+        },
+        text = {
+            if (step == 0) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier.fillMaxWidth().height(260.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items((0..23).toList()) { h ->
+                        Cell(timeLabel(LocalTime(h, 0)), selected = h == hour24) { hour24 = h; step = 1 }
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier.fillMaxWidth().height(160.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items((0..55 step 5).toList()) { m ->
+                        Cell(":${m.toString().padStart(2, '0')}", selected = m == initial?.minute) {
+                            onPick(LocalTime(hour24, m))
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable

@@ -76,9 +76,13 @@ private fun alsoDue(): List<DueLine> {
 // finishes, and place visits.
 private fun onThisDay(): List<String> {
     val now = today()
-    val mmdd = now.toString().substring(5)
-    val year = now.toString().take(4)
-    fun hit(date: String) = date.length >= 10 && date.substring(5) == mmdd && !date.startsWith(year)
+    // Parsed rather than sliced: a stored value may now carry a time ("...T15:00"), and
+    // an unbounded substring(5) would compare "08-22T15:00" against "08-22" and quietly
+    // stop matching the moment any of these fields gains one.
+    fun hit(date: String): Boolean {
+        val d = parseDateOrNull(date) ?: return false
+        return d.monthNumber == now.monthNumber && d.dayOfMonth == now.dayOfMonth && d.year != now.year
+    }
     val out = mutableListOf<String>()
     loadMilestones().milestones.filter { hit(it.date) }.forEach { out.add("🏆 ${it.title} (${it.date.take(4)})") }
     com.alekpeed.lifeos.books.loadBooks().books.filter { hit(it.finishedDate) }.forEach { out.add("📚 Finished ${it.title} (${it.finishedDate.take(4)})") }
