@@ -5,10 +5,16 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-// Packing Lists — ported from the web app's Trip Packing Lists: one checklist
-// per trip, items grouped by category, with built-in templates (weekend / beach
-// / ski / international) that bulk-add common items. Persists as one JSON blob
-// under "Packing"; old flat stubs migrate into a single list.
+// Packing lists — one checklist per trip, items grouped by category, with templates
+// that bulk-add common items. Persists as one JSON blob under "Packing"; old flat stubs
+// migrate into a single list.
+//
+// Absorbed into Travel (§5.1): a packing list is meaningless outside a trip, so it is
+// reached through the trip rather than from its own nav slot. The data deliberately did
+// NOT move — lists stay under the "Packing" key and gained an optional `tripId` instead.
+// Migrating them into TravelData would have rewritten every existing list to gain a
+// nav change, and a list belonging to no trip would have had nowhere to land. Old JSON
+// still loads (the field defaults), and a list with tripId 0 shows as unassigned.
 
 @Serializable
 data class PackItem(val id: Long, val name: String, val category: String = "Other", val packed: Boolean = false)
@@ -19,11 +25,16 @@ data class PackingList(
     val name: String,
     val tripDate: String = "",
     val items: List<PackItem> = emptyList(),
+    // 0 = not attached to a trip.
+    val tripId: Long = 0L,
 )
 
 @Serializable
 data class PackingData(val lists: List<PackingList> = emptyList())
 
+// The built-in starting points. §5.1 also wants user-defined templates — saving a list
+// as a template — which is not built yet; these are still the only ones.
+//
 // name -> list of (category, itemNames). Nothing calls out anywhere; pure data.
 val PACKING_TEMPLATES: List<Pair<String, List<Pair<String, List<String>>>>> = listOf(
     "Weekend trip" to listOf(
@@ -71,3 +82,11 @@ fun loadPacking(): PackingData {
 fun savePacking(data: PackingData) {
     Storage.write("Packing", json.encodeToString(data))
 }
+
+fun packingListsFor(tripId: Long): List<PackingList> =
+    loadPacking().lists.filter { it.tripId == tripId }
+
+// Lists belonging to no trip. They stay reachable after the module lost its nav slot.
+fun unassignedPackingLists(): List<PackingList> = loadPacking().lists.filter { it.tripId == 0L }
+
+fun PackingList.packedCount(): Int = items.count { it.packed }

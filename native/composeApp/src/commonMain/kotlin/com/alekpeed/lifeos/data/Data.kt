@@ -26,6 +26,7 @@ val DATA_SOURCES: List<DataSource> = listOf(
     DataSource("Recipes", "Recipes"),
     DataSource("Documents", "Documents"),
     DataSource("Packing", "Packing"),
+    DataSource("Travel", "Travel"),
     DataSource("Books", "Books"),
     DataSource("Milestones", "Milestones"),
     DataSource("Time Capsules", "Time Capsules"),

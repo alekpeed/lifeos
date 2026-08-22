@@ -11,7 +11,7 @@ import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
 import com.alekpeed.lifeos.milestones.MilestonesScreen
 import com.alekpeed.lifeos.operations.OperationsScreen
-import com.alekpeed.lifeos.packing.PackingScreen
+import com.alekpeed.lifeos.travel.TravelScreen
 import com.alekpeed.lifeos.paper.DailyPaperScreen
 import com.alekpeed.lifeos.places.PlacesScreen
 import com.alekpeed.lifeos.quartermaster.QuartermasterScreen
@@ -83,7 +83,7 @@ fun lifeOsModules(): List<Module> = listOf(
     // Logistics — places, supply & trips
     Module("places", "📍", "Places", "Logistics", true) { PlacesScreen() },
     Module("quartermaster", "📦", "Quartermaster", "Logistics", true) { QuartermasterScreen() },
-    Module("packing", "🧳", "Packing Lists", "Logistics", true) { PackingScreen() },
+    Module("travel", "🧳", "Travel", "Logistics", true) { TravelScreen() },
     // Discovery — learning & curiosity
     Module("education", "🎓", "Education", "Discovery", true) { EducationScreen() },
     Module("skill-trees", "🌳", "Skill Trees", "Discovery", true) { SkillTreesScreen() },

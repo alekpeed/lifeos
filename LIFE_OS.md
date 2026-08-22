@@ -289,11 +289,21 @@ and it catalogues the contents.
 - Uses: AI
 - On Linux: no camera.
 
-### Packing Lists
-One checklist per trip, from four starting templates.
+### Travel
+Trips, and everything hanging off one. Bookings — flights, lodging, rail, cars, tours,
+tables — each with its provider, confirmation number, cost, attachments and a link back
+to where it was booked, timed to the minute so a 07:25 departure reads as one. Plus the
+packing lists (absorbed from their own module), a budget of estimated against booked and
+paid, the people coming, and the documents that have to still be valid when you get back.
 
+Travel documents link to Documents records rather than copying them, so an expiry date
+has one owner; the trip flags anything lapsing before it ends. Trips and bookings appear
+on the Calendar automatically.
+
+- **Trip** — `id`, `name`, `destinations`, `startDate`, `endDate`, `statusOverride`, `notes`, `coverPhotoBlob`, `travelerIds`, `documentIds`, `budgetEstimate`, `currency`
+- **Reservation** — `id`, `tripId`, `type`, `provider`, `confirmationNumber`, `status`, `startDateTime`, `endDateTime`, `location`, `lat`, `lng`, `placeId`, `contactId`, `externalLink`, `cost`, `currency`, `paid`, `attachments`, `notes`
 - **PackItem** — `id`, `name`, `category`, `packed`
-- **PackingList** — `id`, `name`, `tripDate`, `items`
+- **PackingList** — `id`, `name`, `tripDate`, `items`, `tripId`
 
 ---
 

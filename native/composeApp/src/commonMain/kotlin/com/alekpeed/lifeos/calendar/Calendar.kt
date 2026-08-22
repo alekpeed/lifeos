@@ -12,6 +12,9 @@ import com.alekpeed.lifeos.milestones.loadMilestones
 import com.alekpeed.lifeos.people.loadContacts
 import com.alekpeed.lifeos.tasks.loadTasks
 import com.alekpeed.lifeos.timecapsules.loadCapsules
+import com.alekpeed.lifeos.travel.ReservationStatus
+import com.alekpeed.lifeos.travel.ReservationType
+import com.alekpeed.lifeos.travel.loadTravel
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
@@ -34,6 +37,7 @@ enum class DatedKind {
     EVENT,      // happened or will happen: milestones
     RECURRING,  // returns every year: birthdays
     UNSEAL,     // becomes readable: time capsules
+    TRIP,       // you are away: trips and their bookings
 }
 
 data class DatedItem(
@@ -128,6 +132,48 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
         )
     }
 
+    // Travel. A trip lands on its departure day and each booking on its own start —
+    // this is why reservations needed a time of day, and it is the first thing on the
+    // calendar that is an appointment rather than a deadline.
+    val travel = loadTravel()
+    travel.trips.forEach { t ->
+        parseDateOrNull(t.startDate)?.let { d ->
+            if (inRange(d)) {
+                out.add(
+                    DatedItem(
+                        key = "trip-${t.id}", icon = "🧳", title = t.name.ifBlank { "Trip" }, date = d,
+                        time = null, moduleId = "travel", kind = DatedKind.TRIP,
+                        note = t.destinations.filter { x -> x.isNotBlank() }.joinToString(", ").ifBlank { "leaves" },
+                    ),
+                )
+            }
+        }
+        // A trip's return is worth seeing too, but only when it is a different day.
+        parseDateOrNull(t.endDate)?.let { d ->
+            if (inRange(d) && d != parseDateOrNull(t.startDate)) {
+                out.add(
+                    DatedItem(
+                        key = "trip-${t.id}-back", icon = "🧳", title = t.name.ifBlank { "Trip" }, date = d,
+                        time = null, moduleId = "travel", kind = DatedKind.TRIP, note = "back",
+                    ),
+                )
+            }
+        }
+    }
+    travel.reservations.forEach { r ->
+        if (r.status == ReservationStatus.CANCELLED) return@forEach
+        val d = parseDateOrNull(r.startDateTime) ?: return@forEach
+        if (!inRange(d)) return@forEach
+        out.add(
+            DatedItem(
+                key = "res-${r.id}", icon = reservationIcon(r.type),
+                title = r.provider.ifBlank { r.type.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
+                date = d, time = parseTimeOrNull(r.startDateTime), moduleId = "travel",
+                kind = DatedKind.TRIP, note = r.confirmationNumber,
+            ),
+        )
+    }
+
     loadMilestones().milestones.forEach { m ->
         val d = parseDateOrNull(m.date) ?: return@forEach
         if (!inRange(d)) return@forEach
@@ -161,6 +207,19 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
     return out.sortedWith(
         compareBy({ it.date }, { it.time?.toSecondOfDay() ?: -1 }, { it.title.lowercase() }),
     )
+}
+
+private fun reservationIcon(t: ReservationType) = when (t) {
+    ReservationType.FLIGHT -> "✈️"
+    ReservationType.LODGING -> "🏨"
+    ReservationType.RAIL -> "🚆"
+    ReservationType.BUS -> "🚌"
+    ReservationType.CAR -> "🚗"
+    ReservationType.FERRY -> "⛴️"
+    ReservationType.TOUR -> "🧭"
+    ReservationType.RESTAURANT -> "🍽️"
+    ReservationType.EVENT -> "🎟️"
+    ReservationType.OTHER -> "📌"
 }
 
 // "1994-03-07" or "03-07" -> (month, day).
