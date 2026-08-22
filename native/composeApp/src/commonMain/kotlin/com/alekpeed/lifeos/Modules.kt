@@ -5,13 +5,10 @@ import com.alekpeed.lifeos.books.BooksScreen
 import com.alekpeed.lifeos.collections.CollectionsScreen
 import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
-import com.alekpeed.lifeos.ghostdays.GhostDaysScreen
 import com.alekpeed.lifeos.documents.DocumentsScreen
 import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
 import com.alekpeed.lifeos.milestones.MilestonesScreen
-import com.alekpeed.lifeos.museum.MuseumScreen
-import com.alekpeed.lifeos.orrery.OrreryScreen
 import com.alekpeed.lifeos.operations.OperationsScreen
 import com.alekpeed.lifeos.packing.PackingScreen
 import com.alekpeed.lifeos.paper.DailyPaperScreen
@@ -79,14 +76,11 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("links", "🔗", "Links", "Archive", true) { LinksScreen() },
     Module("books", "📚", "Books", "Archive", true) { BooksScreen() },
     Module("photos", "🖼", "Photos", "Archive", true) { PhotosScreen() },
-    Module("museum", "🏛", "Museum", "Archive", true) { MuseumScreen() },
     Module("collections", "🗂", "Collections", "Archive", true) { CollectionsScreen() },
     Module("time-capsules", "⏳", "Time Capsules", "Archive", true) { TimeCapsulesScreen() },
     Module("milestones", "🏆", "Milestones", "Archive", true) { MilestonesScreen() },
-    Module("ghost-days", "👻", "Ghost Days", "Archive", true) { GhostDaysScreen() },
     // Logistics — places, supply & trips
     Module("places", "📍", "Places", "Logistics", true) { PlacesScreen() },
-    Module("orrery", "🪐", "Orrery", "Logistics", true) { OrreryScreen() },
     Module("quartermaster", "📦", "Quartermaster", "Logistics", true) { QuartermasterScreen() },
     Module("packing", "🧳", "Packing Lists", "Logistics", true) { PackingScreen() },
     // Discovery — learning & curiosity
