@@ -10,6 +10,10 @@
 > per-platform, plus the real gaps) and **`LIFE_OS.md`** / **`ANDROID_APP.md`** (what
 > each module is and holds). Kept here as the record of where the port stood at that
 > date.
+>
+> **Further superseded 2026-08-22:** six modules were cut and every graphical interface
+> removed — see `REDESIGN_DECISIONS.md`. The 41-module count below is now 37, and the
+> web source it compares against has been deleted.
 
 ## Original document follows
 

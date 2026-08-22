@@ -1,5 +1,14 @@
 # Life OS — Native session handoff (2026-07-21)
 
+> **⚠️ Superseded (2026-08-22).** Written before the redesign. Six modules were
+> cut (Orrery, Museum, Ghost Days, Station Cat, Recall, and the Command and
+> Notifications screens), every graphical interface was removed, and the web
+> `js/` source was deleted — so module counts, "what's left" lists and any
+> reference to the web build are out of date here. Current state:
+> `REDESIGN_DECISIONS.md`, then `LIFE_OS.md` / `ANDROID_APP.md`. Kept as the
+> record of where things stood at the time.
+
+
 Handoff for a **new session with full network access**. Read this first, then
 `CLAUDE.md`, then `NATIVE_PARITY_AUDIT.md` (its top "Closed since" block is the
 current truth; the matrix below it is the morning snapshot).

@@ -1,5 +1,14 @@
 # Life OS — session handoff prompt
 
+> **⚠️ Superseded (2026-08-22).** Written before the redesign. Six modules were
+> cut (Orrery, Museum, Ghost Days, Station Cat, Recall, and the Command and
+> Notifications screens), every graphical interface was removed, and the web
+> `js/` source was deleted — so module counts, "what's left" lists and any
+> reference to the web build are out of date here. Current state:
+> `REDESIGN_DECISIONS.md`, then `LIFE_OS.md` / `ANDROID_APP.md`. Kept as the
+> record of where things stood at the time.
+
+
 Paste the block below into a fresh session to hand off the native rebuild.
 It orients the new session, sets the ground rules, and requires a progress
 report before any new code is written. Keep this file current as status

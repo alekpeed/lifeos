@@ -5,8 +5,7 @@ and which build actually has it. Written from `platform/Native.kt` and both actu
 (`Native.android.kt`, `Native.desktop.kt`) — not from memory, and not carried over
 from an older document.
 
-Companion to `LIFE_OS.md` (what the app is) and `ANDROID_APP.md` / `DESKTOP_PAGE_MAP.md`
-(the two builds). This file is the one that answers "does this actually work on my
+Companion to `LIFE_OS.md` (what the app is) and `ANDROID_APP.md` (the current build). This file is the one that answers "does this actually work on my
 machine".
 
 > **Source-level, not device-verified.** Everything below is read off the current

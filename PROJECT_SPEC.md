@@ -19,13 +19,12 @@ lets the whole app be redecorated later without rebuilding it:
 - Your data lives on your device first; Drive sync is a backup/relay between
   your two devices, not a requirement to use the app
 - Multiple complete interfaces to choose from — not just color themes, but
-  genuinely different layouts. Built so far: "Test Mode" (a calm sidebar +
-  content layout, the default), "Spatial 1" (a spatial, desktop-only
-  alternative), and a first mobile interface ("mobile-1," built from Alek's
-  own mockup — see `MOBILE_INTERFACES_SPEC.md`). None of these interfaces
-  carry a permanent product-name brand — see the "No permanent name brand"
-  note in `CLAUDE.md`. More mobile interfaces are planned over time,
-  deliberately not tied to a single visual identity — see Section 3.
+  genuinely different layouts. **None ship today**: every graphical interface
+  was removed on 2026-08-22 (`REDESIGN_DECISIONS.md` §7 D-1) and interface work
+  is parked until the app itself is correct. The registry and `Interfaces.Render`
+  fallback are retained so new ones can attach without touching module logic.
+  No interface carries a permanent product-name brand — see the "No permanent
+  name brand" note in `CLAUDE.md`.
 - Light/dark mode, a few accent color choices, and a compact/comfortable
   density toggle, independent of which interface you're using
 
@@ -216,17 +215,6 @@ lets the whole app be redecorated later without rebuilding it:
   explicit instructions to reference one only when a genuine callback adds
   value — never forced, never inventing what a past entry said beyond what's
   shown. See `saveEditorialIssue`/`getRecentEditorials` in `js/data/api.js`.
-- **App-wide spaced repetition** — a new **Recall** module generalizes the
-  flashcard SRS engine originally built for the (now-cut) Languages module
-  to resurface any record in the app — a task, a book, a contact, a place,
-  anything Search can find.
-  Reuses the Knowledge Graph's own foundations rather than duplicating
-  them: schedulable = searchable (same `globalSearch` picker grammar as
-  the graph's "add a connection"), and titles resolve live via
-  `resolveGraphNode` instead of a second lookup table, so a renamed or
-  deleted record never leaves a stale label here either. Grading uses the
-  identical interval scheme as language cards (again resets to 1 day, good
-  doubles, easy triples). See `js/interfaces/default/views/recall.js`.
 - **Notifications** — DONE (2026-07-13), scoped down from the original
   "per-user notifications" framing: a new module (`#/notifications`)
   aggregates the existing due-soon/overdue feed (same `getDueSoonFeed`
@@ -235,7 +223,7 @@ lets the whole app be redecorated later without rebuilding it:
   genuinely per-account signal the app has, since the rest of the app's
   data is local-first with no real second "user" to notify. Viewing the
   page marks Sharebox activity as seen; no separate unread badge in the
-  nav — see `js/interfaces/default/views/notifications.js`.
+  nav.
 - **Predictive forecasting** — The Almanac's correlation section now has a
   companion Forecasts section, same "not enough data yet" honesty, with
   three genuinely computed forecasts over real logged history (no AI, no
@@ -244,7 +232,7 @@ lets the whole app be redecorated later without rebuilding it:
   weekday you're statistically most likely to skip (HabitLogs), and a
   reading-pace extrapolation to an estimated finish date for in-progress
   books (ReadingLogs). Each requires its own minimum sample before showing
-  anything. See `js/interfaces/default/views/almanac.js`.
+  anything.
 - **What-if simulation sandbox** — a companion "What If" section on the
   Almanac forks a forecast instead of just stating it: a sleep slider
   refits the real sleep-vs-habits regression live as you drag it (+/-2h in
@@ -252,10 +240,6 @@ lets the whole app be redecorated later without rebuilding it:
   checklist sums selected subscriptions' yearly cost live as you check them
   off. Both computed from real data on every input change, nothing
   precomputed or AI-generated.
-- **Museum of Finished Things** — a trophy-case view over completions already
-  scattered across other modules: done tasks/assignments, finished books
-  (with covers), milestones, recipes ranked by times cooked, archived
-  projects, and each habit's longest-ever streak (not just the current one).
 - **Time Capsules** — write a note to your future self and seal it until a
   date you choose; it stays hidden (shown as "🔒 Sealed" with a countdown)
   until that date passes, then surfaces on its own.
@@ -282,31 +266,12 @@ lets the whole app be redecorated later without rebuilding it:
 - **Entropy** — a neglect score per module (and one overall), based on how
   long it's been since each area's data was last touched — sorted most-
   neglected first, so you can see at a glance what's been ignored.
-- **The Station Cat** — a small rule-based companion whose mood reflects
-  recent activity (tasks, habits, health logs) — purely cosmetic, no new
-  storage.
-- **Ghost Days** — a fuller "on this day across the years" view than the
-  Dashboard/Daily Paper snippet: adds contact birthdays, recipes cooked, and
-  tasks/assignments completed on this date in past years, on top of the
-  original milestones/places/books sources.
-- **Theme-from-Photo** — pick a gallery photo or upload one, extract a small
-  accent palette via canvas pixel quantization, click a swatch to apply it as
-  the app's accent color (alongside the built-in brass/teal/garnet presets).
 - **Rabbit Hole Journal** — research tangents with freeform notes and a
   running list of links, active/resolved status.
 - **The Almanac** — long-horizon correlations between curated stat pairs
   (sleep vs. habits kept, sleep vs. tasks completed, workout minutes vs.
   sleep) via Pearson correlation, with a "not enough data yet" floor so a
   number never shows on too thin a sample.
-- **Life as Music** — no longer a nav page (the old `#/lifeasmusic` route and
-  view are gone as of 2026-07-13). Now an autonomous background feature: a
-  Settings > "Life as Music" toggle (`ambientMusicEnabled`, off by default)
-  plays a short, quiet ambient chord loop generated from your own numbers
-  (tasks done, habit check-ins, books finished, recipes cooked, places
-  visited, contacts) — one chord per life area, root/quality derived
-  deterministically from each area's count. Regenerates on a timer while
-  it's on, reusing the same Web Audio synth engine the old page used, just
-  quieter — no screen of its own. See `js/audio/lifemusic.js`.
 
 - **Knowledge Graph** — link anything to anything (a task to a contact, a
   book to a milestone…) and walk it as a radial web borrowing the Harmony
@@ -338,14 +303,6 @@ lets the whole app be redecorated later without rebuilding it:
   nothing new — the document-renewal rule is the "surface + act" example
   instead, since it creates a genuinely new record rather than re-showing
   something already shown. See `runAutomations` in `js/data/api.js`.
-- **The Orrery** — the dashboard as a solar system, shipped as an alternate
-  view (its own nav entry; the Dashboard stays the default). Every visual
-  property encodes a real signal: orbit radius = neglect (fresh areas hug
-  the sun, stale ones drift outward, no-data areas park dimmed on the outer
-  ring), planet size = record count (log-scaled), orbital speed = this
-  week's activity, a pulsing red ring = something overdue. Click a planet
-  to fly to its module. The animation loop provably stops on navigation,
-  and prefers-reduced-motion gets a fully static layout.
 - **Time Machine** — scrub a slider (or pick a date) and see what the app
   knew on that day: per-module "existed then → now" counts from createdAt
   timestamps, what was added that day, and — genuinely historical — what
@@ -457,25 +414,18 @@ capability inventory — including which build has what, and the gaps — is
 ### Still to build 📋
 - **Per-user notifications** — depends on accounts existing first.
 
-## 3. Additional interfaces 📋
-- **Spatial 1** — a spatial interface (LifeOS as an orbital station you
-  navigate through, not a dashboard). Started and well underway — see the
-  Built ✅ section above and `SPATIAL_INTERFACES_SPEC.md` for current state.
-  Formerly named "Vespera"; renamed 2026-07-13 to drop the permanent brand
-  name (same "no permanent name brand" rule as the mobile interfaces — see
-  `CLAUDE.md`), registry id `spatial-1`. **Desktop only** — not part of the
-  mobile/APK experience (see the device philosophy note below).
-- **Mobile interface(s)** — deliberately not a single named product (see
-  `MOBILE_INTERFACES_SPEC.md`, naming decision at the top): Alek's plan is
-  several interchangeable mobile interfaces over time, each its own
-  registry entry, sharing one functional/plumbing layer (device detection,
-  curated module set, packaging) but free to look completely different.
-  First one built: **`mobile-1`**, from Alek's own mockup — a real
-  dedicated interface (not a filtered Test Mode), real motion/sound,
-  functional alert-styling. Not yet gated mobile-only, and its own
-  navigation reaches a subset of the curated module list — see
-  `MOBILE_INTERFACES_SPEC.md`'s "Still open" for exactly what's left.
-- Any others that come to mind along the way
+## 3. Additional interfaces ⏸️ PARKED
+All interface work is parked (`REDESIGN_DECISIONS.md` §13.2). Spatial 1 and
+mobile-1 were deleted with the web source; NEXUS, Nocturne and Machiya were
+removed from the native app on 2026-08-22. New ones get built later from a
+different workflow, against a clean registry.
+
+What is preserved is the mechanism: `interfaces/Interfaces.kt` holds the
+registry and the `Interfaces.Render` fallback, so an interface registers
+per-module screens under an interface id and anything it does not supply falls
+back to the functional default. Every module built from here must render
+through `Interfaces.Render`. The "no permanent name brand" rule in `CLAUDE.md`
+applies to whatever gets built next.
 
 **Device philosophy — desktop is the full app, mobile is a remote
 (revised 2026-07-12):** Desktop is the complete app — every module,
@@ -485,8 +435,12 @@ a genuinely stripped-down "controller in your pocket," built around what's
 actually useful away from a desk — quick capture, on-the-go actions,
 glanceable status — not full parity. No Spatial 1, no spatial "living
 world" on mobile; that register stays desktop's. Mobile gets its own
-purpose-built interface(s) (`MOBILE_INTERFACES_SPEC.md`), not a filtered
-version of Test Mode.
+purpose-built interface(s), not a filtered version of Test Mode.
+
+> **Superseded in practice (2026-08-22).** This split described the web build.
+> The native app is one Compose codebase and ships all 37 modules on Android as
+> well as desktop. Kept as the standing product intent for interfaces; revisit
+> when interface work restarts.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly
 as it already works today) — this is a UI-surface decision, not a
@@ -550,7 +504,8 @@ Everything below came out of talking through what would actually feel
 2. ~~AI-powered Daily Paper~~ — DONE (Gemini, device-local Gemini key,
    daily/account-scoped cache); per-user notifications remain open.
 3. ~~The four Tier-2 features~~ — DONE: Knowledge Graph, The Orrery,
-   Time Machine, and QR Airgap Sync all shipped (see Built ✅)
+   Time Machine, and QR Airgap Sync all shipped. (The Orrery was cut
+   2026-08-22 — `REDESIGN_DECISIONS.md` §1.)
 4. ~~AI Assistant (Gemini) + Telegram (send-only)~~ — DONE (see Built ✅,
    switched from Claude to Gemini). A separate ChatGPT panel + full two-way
    Telegram chat are still open, out of scope for this pass. (Cross-LLM
@@ -558,7 +513,8 @@ Everything below came out of talking through what would actually feel
 5. ~~AI-written yearly recap~~ — DONE (see Built ✅, Milestones entry).
 6. ~~Passkey/biometric app lock~~ — DONE (see Built ✅).
 7. ~~AI with continuity~~ — DONE (see Built ✅).
-8. ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall).
+8. ~~App-wide spaced repetition~~ — DONE, then cut 2026-08-22 with the Recall
+   module (`REDESIGN_DECISIONS.md` §4).
 9. ~~Predictive forecasting~~ — DONE (see Built ✅, Almanac Forecasts).
 10. ~~What-if simulation sandbox~~ — DONE (see Built ✅, Almanac What If).
 11. ~~AI-suggested knowledge-graph edges~~ — DONE (see Built ✅, Knowledge
@@ -567,10 +523,8 @@ Everything below came out of talking through what would actually feel
 13. ~~Rules & automation engine~~ — DONE, scoped to 2 built-in rules (see
     Built ✅).
 14. ~~Health-device ingestion~~ — DONE, Apple Health only (see Built ✅).
-15. Remaining routine-build ideas (Rabbit Hole Journal, Ghost Days, The
-    Almanac, Theme-from-photo)
-16. Additional interfaces (Spatial 1; more mobile interfaces beyond
-    `mobile-1`)
+15. Remaining routine-build ideas (Rabbit Hole Journal, The Almanac)
+16. Additional interfaces — ⏸️ parked, see section 3
 17. Someday: a standalone music-practice app (progressions, play-along,
     melody-aware voicing) — deliberately out of LifeOS scope
 
@@ -646,9 +600,6 @@ deal-breaker. See FUTURE_FEATURES.md §7 for the full note.)*
   documented local interface so you (or scripts) can build on it without
   touching core — the same registry philosophy that already governs
   interfaces, extended to data. What turns this from an app into a platform.
-- **Generative "Year in Review" film** — an auto-produced montage from your
-  photos + milestones + stats, scored by the Life-as-Music synth engine
-  you already have. The emotional payoff piece.
 - **Camera-vision cataloging (Quartermaster)** — confirmed direction
   (2026-07), not yet built, moved down from the far tier: photograph a
   shelf/pantry/garage and have it catalog items into Quartermaster.
@@ -691,31 +642,11 @@ deal-breaker. See FUTURE_FEATURES.md §7 for the full note.)*
 feature; heavy on either engineering, storage, or compute)** *(excluded from
 default "what's on our list" recaps as of 2026-07 — Alek's call, see
 CLAUDE.md; stays fully written here, just not surfaced unasked)*
-- ⏸️ PARKED (2026-07-13) — **A true 3D Memory Palace** — not flat districts
-  (spatial-1) but a fully rendered, walkable 3D space (Three.js/WebGL):
-  rooms per module, physical objects representing records, real
-  lighting/physics. Game-engine-scale work; 3D assets/textures push
-  storage into the hundreds of MB+. Shelved, not cut.
-- **A true digital twin / life-simulation engine** — beyond the what-if
-  sandbox's simple parameter nudges: an actual agent-based model of you,
-  with internal state and feedback loops, run forward from your real data to
-  project "future you" — potentially rendered as a visual avatar that
-  visibly evolves over months.
-- **A full bidirectionally-linked personal wiki, built natively** — a real
-  Obsidian/Roam-style note system inside the OS: markdown, backlinks,
-  embeds, transclusion, a living graph view. Its own large, ever-growing
-  note archive.
 - **A real trained ML pattern engine, not just correlation** — The Almanac
   does simple Pearson correlation on curated pairs; this would be an actual
   model that continuously retrains on your entire history and surfaces
   genuinely non-obvious, non-linear patterns (multi-variable interactions a
   human would never manually think to check).
-- **A generative "personal mythology"** — an illustrated, ever-growing
-  storybook of your life: the app periodically composes and illustrates
-  (local image generation) an evolving fantasy chronicle where real
-  milestones and habit streaks become "quests completed" and "trials
-  overcome." Skill Trees taken to its most maximalist extreme — exportable
-  as an actual book.
 
 *(Ruled out 2026-07-13: a local continuous "life recorder," a local
 Whisper-powered audio diary with auto-routing, generative dream
@@ -739,7 +670,8 @@ own Tier 2 flag, not a routine add)**
 - ~~Passkey/biometric app lock~~ — DONE (see Built ✅, Milestones-adjacent
   entry above).
 - ~~AI with continuity~~ — DONE (see Built ✅, Daily Paper entry above).
-- ~~App-wide spaced repetition~~ — DONE (see Built ✅, Recall entry above).
+- ~~App-wide spaced repetition~~ — DONE, then cut 2026-08-22 with the Recall
+  module.
 - ~~Predictive forecasting~~ — DONE (see Built ✅, Almanac Forecasts entry
   above).
 - ~~What-if simulation sandbox~~ — DONE (see Built ✅, Almanac What If entry

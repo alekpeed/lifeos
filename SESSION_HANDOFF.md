@@ -1,5 +1,14 @@
 # Session handoff — Life OS native rebuild (→ next window)
 
+> **⚠️ Superseded (2026-08-22).** Written before the redesign. Six modules were
+> cut (Orrery, Museum, Ghost Days, Station Cat, Recall, and the Command and
+> Notifications screens), every graphical interface was removed, and the web
+> `js/` source was deleted — so module counts, "what's left" lists and any
+> reference to the web build are out of date here. Current state:
+> `REDESIGN_DECISIONS.md`, then `LIFE_OS.md` / `ANDROID_APP.md`. Kept as the
+> record of where things stood at the time.
+
+
 Read this first. `NATIVE_REBUILD_HANDOFF.md` has technical detail, but **trust this
 file's honest accounting over any older "42/42 / 92% done" claims in other docs —
 those were wrong (see §1).**

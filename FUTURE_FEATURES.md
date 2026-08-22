@@ -30,21 +30,6 @@ parked means "not now," not "forgotten" or "cut."
 
 - **Financial Center (Plaid)** — bank/investment linking. Full pricing/
   architecture detail in section 4.
-- **A separate ChatGPT panel** — needs a backend proxy first (OpenAI's API
-  doesn't support direct browser calls). Full detail in section 1.
-- **Bio-futurism/jungle interface theme** — a third, from-scratch interface
-  concept ("40th century meets the Amazon meets the far reaches of the
-  galaxy"), unrelated to Vespera. Mid-exploration: a typography/identity
-  round (Claude Design) and an environment-art round (GPT) were both
-  started, not finished or picked. Full detail in section 5.
-- **Spotify listening stats** — fully scoped, not started. Full detail in
-  section 4, including what's actually buildable given real API limits.
-- **A true 3D Memory Palace** — a fully rendered, walkable 3D space
-  (Three.js/WebGL), game-engine-scale work. Shelved 2026-07-13, not cut —
-  full detail in section 9.
-- **Android Auto voice capture** — in-car capture surface. Parked 2026-07-15
-  (Alek isn't driving yet + it needs Google's app review, which doesn't fit
-  the sideloaded-APK flow). Full detail in section 13.
 
 ## 1. The near-term core: accounts, AI, and notifications
 
@@ -87,13 +72,6 @@ parked means "not now," not "forgotten" or "cut."
   messages you through a bot you create yourself (@BotFather), triggered by
   your own action (a Settings test button, Daily Paper's "Send to
   Telegram"). No listener for incoming messages by design. Still open:
-  - ⏸️ PARKED — A separate ChatGPT panel/toggle option -- needs that proxy
-    server first, since OpenAI can't be called directly from the browser. (An
-    automated cross-LLM relay chaining one question across all three in
-    sequence was considered and struck from the plan — trades real signal
-    for compounding drift/hedging without a human deciding what to keep at
-    each hop. Could still be built as a separate standalone project later
-    if wanted; just not part of the core app.)
   - Full two-way Telegram chat — needs a real backend webhook (a Supabase
     Edge Function) since a static PWA can't listen for incoming messages
     when it's not open; deliberately out of scope for the send-only pass.
@@ -118,15 +96,6 @@ parked means "not now," not "forgotten" or "cut."
   callback adds value — never forced, never inventing what a past entry
   said beyond what's shown. See `saveEditorialIssue`/`getRecentEditorials`
   in `js/data/api.js`.
-- ✅ **App-wide spaced repetition** — DONE: a new **Recall** module
-  generalizes the Languages module's flashcard SRS engine to resurface any
-  record in the app — a task, a book, a contact, a place, anything Search
-  can find. Reuses the Knowledge Graph's own foundations rather than
-  duplicating them: schedulable = searchable (same `globalSearch` picker
-  grammar as the graph's "add a connection"), and titles resolve live via
-  `resolveGraphNode` instead of a second lookup table. Grading uses the
-  identical interval scheme as language cards (again/good/easy). See
-  `js/interfaces/default/views/recall.js`.
 - ✅ **Predictive forecasting** — DONE: The Almanac's correlation section now
   has a companion Forecasts section, same "not enough data yet" honesty,
   three genuinely computed forecasts over real logged history (no AI, no
@@ -191,7 +160,8 @@ parked means "not now," not "forgotten" or "cut."
 ## 2. ~~The four original Tier-2 architecture items~~ — ALL BUILT ✅
 
 Knowledge Graph, The Orrery, Time Machine, and QR Airgap Sync all shipped —
-see PROJECT_SPEC.md's Built section for what each became. (Time Machine
+see PROJECT_SPEC.md's Built section for what each became. (The Orrery was cut
+2026-08-22 — `REDESIGN_DECISIONS.md` §1.) (Time Machine
 shipped as the agreed lightweight approximation; the event-sourced core in
 section 7 below still upgrades it to true any-point-in-time reconstruction
 when it lands.)
@@ -228,32 +198,6 @@ Each of these is its own 🔑 go/no-go, not a routine add.
     backend — the secret key can never touch the browser). The most
     security-sensitive item on this whole document.
   - Crypto tickers: CoinGecko, free/keyless.
-- ⏸️ PARKED — **Spotify listening stats** — needs its own new OAuth flow (a
-  third, alongside Google and Supabase). Scoped in detail (2026-07) before
-  parking, so this doesn't need re-researching later:
-  - As of Feb 2026, Development Mode requires a **Spotify Premium
-    account** on the developer's own account just to use the API at all.
-  - Real-time API access is thinner than it used to be. Available: Recently
-    Played (last 50 tracks only, rolling window), Top Items (ranked
-    artists/tracks across 3 time windows — ~4wk/~6mo/years — but ranking
-    only, no counts attached), Currently Playing, saved/liked
-    tracks+albums, own playlists (read).
-  - **Dead, no workaround**: Audio Features/Analysis (danceability,
-    energy, valence, tempo) — killed for all new apps in Nov 2024. No
-    "your music got sadder in March" style analysis is buildable by
-    anyone anymore, not a LifeOS-specific gap.
-  - **No raw totals via API at all** — no total minutes listened, no
-    per-track play counts, no full listening history. This has been a
-    top-requested, permanently-denied feature on Spotify's own developer
-    forum for years.
-  - The real path to genuine "all-time" stats (confirmed by how stats.fm/
-    Spotistats actually does it, not speculation): a ONE-TIME manual
-    import of Spotify's own "Extended Streaming History" data export
-    (Privacy settings → Download your data → up to 30 days to arrive as a
-    ZIP) for real historical backfill, same shape as LifeOS's existing
-    manual JSON import elsewhere, PLUS ongoing periodic polling of
-    Recently Played to keep it current going forward. Live API alone can
-    never give more than rankings + a thin recent window.
 - ✅ **Google Photos import** — DONE: a "📥 Import from Google Photos"
   option per album (Photos/Gallery), via the Photos Picker API. Reuses the
   existing Google sign-in with a new scope. Not a live sync — Google
@@ -274,30 +218,6 @@ Plaid/Financial Center staying parked above.)*
 
 ## 5. Additional interfaces
 
-- ✅ **Vespera** — STARTED and well underway (not a future idea anymore): a
-  spatial interface, Life OS as an orbital station you navigate through, not
-  a dashboard. Hub (Grand Concourse) with 9 district plaques, district rooms,
-  hotspot/portal geometry actively being refined. See `VESPERA_SPEC.md` and
-  the Built ✅ section of `PROJECT_SPEC.md` for current state. **Desktop
-  only** — not part of the mobile/APK experience, see the device
-  philosophy note below.
-- ✅ **mobile-1** — the first of what's meant to be several interchangeable
-  mobile interfaces (no permanent "name brand" — see
-  `MOBILE_INTERFACES_SPEC.md`'s naming decision). Mobile-first, a new
-  dedicated interface (not a filtered Equator), built from Alek's own
-  mockup image with real click regions mapped onto it, a curated
-  on-the-go module set, real motion + sound, alert-styling tied to actual
-  due/overdue data. See `MOBILE_INTERFACES_SPEC.md` for the draft module
-  list and remaining open questions (mobile-only gating, full module
-  coverage not yet reconciled).
-- ⏸️ PARKED — **Bio-futurism/jungle interface** — a third, from-scratch
-  interface concept: a futuristic tropical/jungle theme ("40th century meets
-  the Amazon meets the far reaches of the galaxy"), unrelated to Vespera or
-  the mobile interface(s) project. Mid-exploration when parked: a
-  typography/identity round (via Claude Design, one direction returned so
-  far) and an environment-art round (via GPT, spec/prompt drafted) were
-  both started but not finished or committed to. Pick back up only when
-  Alek brings it up by name.
 - Any others that come to mind along the way.
 
 ### Device philosophy — desktop is the full app, mobile is a remote (revised 2026-07-12)
@@ -309,7 +229,7 @@ stripped-down "controller in your pocket," built around what's actually
 useful away from a desk — quick capture, on-the-go actions, glanceable
 status — not full parity. No Vespera, no spatial "living world" on
 mobile; that register stays desktop's. Mobile gets its own purpose-built
-interface(s) (`MOBILE_INTERFACES_SPEC.md`), not a filtered version of
+interface(s), not a filtered version of
 Equator.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly
@@ -425,9 +345,6 @@ data already lives local-first and only the AI calls reach out.)*
   documented local interface so you (or scripts) can build on it without
   touching core — the same registry philosophy that already governs
   interfaces, extended to data. What turns this from an app into a platform.
-- **Generative "Year in Review" film** — an auto-produced montage from your
-  photos + milestones + stats, scored by the Life-as-Music synth engine
-  you already have.
 - ✅ **Camera-vision cataloging (Quartermaster)** — the core flow shipped
   2026-07-13: a "📷 Catalog from a photo" input on Quartermaster sends a
   shelf/pantry/garage photo to the active AI provider's vision input,
@@ -485,32 +402,11 @@ call, see CLAUDE.md. Stays fully written here; just not surfaced unasked.)*
 Each of these is closer to its own product than a feature — heavy on
 engineering, storage, or compute, and genuinely speculative.
 
-- ⏸️ PARKED (2026-07-13) — **A true 3D Memory Palace** — not flat districts
-  (spatial-1) but a fully rendered, walkable 3D space (Three.js/WebGL):
-  rooms per module, physical objects representing records, real
-  lighting/physics. Game-engine-scale work; 3D assets/textures push
-  storage into the hundreds of MB+. Shelved, not cut — Alek still plans to
-  use the concept, just not now.
-- **A true digital twin / life-simulation engine** — beyond the what-if
-  sandbox's simple parameter nudges: an actual agent-based model of you,
-  with internal state and feedback loops, run forward from your real data
-  to project "future you" — potentially rendered as a visual avatar that
-  visibly evolves over months.
-- **A full bidirectionally-linked personal wiki, built natively** — a real
-  Obsidian/Roam-style note system inside the OS: markdown, backlinks,
-  embeds, transclusion, a living graph view. Its own large, ever-growing
-  note archive.
 - **A real trained ML pattern engine, not just correlation** — The Almanac
   does simple Pearson correlation on curated pairs; this would be an actual
   model that continuously retrains on your entire history and surfaces
   genuinely non-obvious, non-linear patterns (multi-variable interactions a
   human would never manually think to check).
-- **A generative "personal mythology"** — an illustrated, ever-growing
-  storybook of your life: the app periodically composes and illustrates
-  (local image generation) an evolving fantasy chronicle where real
-  milestones and habit streaks become "quests completed" and "trials
-  overcome." Skill Trees taken to its most maximalist extreme — exportable
-  as an actual book.
 
 *(Ruled out 2026-07-13, dead, not parked, don't resurface: a local
 continuous "life recorder" (screen capture + OCR) and a local
@@ -583,8 +479,7 @@ real requirements instead of guessing.)*
 
 > **Build status (2026-07-15):** the Capacitor Android foundation is BUILT and
 > CI-verified — the app packages into an installable APK via GitHub Actions with
-> no local machine (see `CAPACITOR_BUILD.md` for the web-only build/install
-> runbook). Also built: the capability-detection layer (`js/native/`) every
+> no local machine. Also built: the capability-detection layer (`js/native/`) every
 > feature gates through, plus these native features (all CI-verified, all a
 > no-op on web/iOS): **device reminders** (local notifications), **outbound
 > share**, **keep-awake / cooking mode**, **read-aloud briefing**, **home-screen
@@ -661,7 +556,7 @@ survived Alek's cut):
 
 **Location & presence**
 - Background geofencing (grocery store → Quartermaster low-stock list)
-- Passive on-device location journal feeding Ghost Days / Time Machine
+- Passive on-device location journal feeding Time Machine
 - Arrive/leave triggers (leave work → evening Briefing; arrive home →
   habit check-in)
 - Wi-Fi network triggers — "joined home/work Wi-Fi" as a presence signal:
@@ -686,7 +581,7 @@ survived Alek's cut):
 
 **Passive intelligence**
 - Photo auto-ingest (new camera photos considered automatically: EXIF →
-  Places, dates/faces → Milestones suggestions, best → Photos/Museum)
+  Places, dates/faces → Milestones suggestions, best → Photos)
 - Screen-time mirror (phone usage stats → Entropy/Health — your attention
   data in your own vault)
 
@@ -696,7 +591,7 @@ survived Alek's cut):
 - NFC tags (tag on the pantry shelf → tap → that shelf's restock list;
   tag on the door → packing list)
 - Bluetooth item beacons — cheap BLE tags on physical things in
-  Collections/Museum, so "where is my X" answers with real proximity
+  Collections, so "where is my X" answers with real proximity
 - Nearby/Wi-Fi Direct device-to-device sync — full-bandwidth local sync
   with no internet at all (QR Sync's concept, grown up)
 - Wall/kiosk mode — an old tablet as a permanently-mounted always-on
@@ -710,10 +605,6 @@ survived Alek's cut):
 - Phone contacts / calendar read → one-tap import into Contacts /
   Milestones / Briefing
 
-⏸️ PARKED — **Android Auto voice capture** (see §0): a real in-car
-dashboard presence. Needs Google's app review + Play distribution, which
-doesn't fit the sideloaded-APK flow, and Alek isn't driving yet. The wake
-word covers in-car capture whenever it matters anyway.
 
 *(Ruled out 2026-07-15, dead, not parked, don't resurface: bank-SMS
 ingestion (parsing "you spent $X" texts into Finance), call-log awareness

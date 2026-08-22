@@ -105,16 +105,6 @@ genuine moonshots.
 - **Quartermaster** — a physical inventory with a lending ledger: what you
   own, and who has it right now if you lent it out. Plus camera-vision
   cataloging (see Cross-module polish below).
-- **Museum of Finished Things** — a trophy-case view over completions
-  already scattered across other modules: done tasks/assignments, finished
-  books (with covers), milestones, recipes ranked by times cooked, archived
-  projects, and each habit's longest-ever streak.
-- **Ghost Days** — a fuller "on this day across the years" view: contact
-  birthdays, recipes cooked, and tasks/assignments completed on this date
-  in past years, on top of milestones/places/books.
-- **Theme-from-Photo** — pick a gallery photo or upload one, extract a
-  small accent palette from it, click a swatch to apply it as the app's
-  accent color.
 
 ## Health & habits
 
@@ -133,8 +123,6 @@ genuine moonshots.
 - **Entropy** — a neglect score per module (and one overall), based on how
   long it's been since each area was last touched, sorted most-neglected
   first.
-- **The Station Cat** — a small rule-based companion whose mood reflects
-  recent activity — purely cosmetic.
 - **The Almanac** — long-horizon correlations between curated stat pairs
   (sleep vs. habits kept, sleep vs. tasks completed, workout minutes vs.
   sleep) via real Pearson correlation, with a "not enough data yet" floor
@@ -176,15 +164,6 @@ genuine moonshots.
   today's month/day in a past year.
 - **"Surprise me"** — a Dashboard button offering one random nudge with a
   one-click jump to that module.
-- **Life as Music** — no longer a nav page (the old `#/lifeasmusic` route
-  and view were removed 2026-07-13 along with Chords and Languages). Now
-  an autonomous background feature instead: a Settings > "Life as Music"
-  toggle (off by default) plays a short, quiet ambient chord loop generated
-  from your own numbers (tasks done, habit check-ins, books finished,
-  recipes cooked, places visited, contacts) — one chord per life area,
-  regenerating on a timer while it's on, reusing the same Web Audio synth
-  engine the old page used, just quieter. No screen of its own. See
-  `js/audio/lifemusic.js`.
 
 
 ### Native-era additions ✅
@@ -264,11 +243,6 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
   finalized issue is saved (one per local date + owner), and the last few
   are handed back to the AI next time so it can reference a genuine
   callback when one adds value — never forced, never invented.
-- ✅ **App-wide spaced repetition** — a new **Recall** module generalizes the
-  flashcard SRS engine originally built for the (now-cut) Languages module
-  to resurface any record in the app (tasks, books, contacts, places,
-  anything Search can find), reusing the Knowledge Graph's own picker and
-  title-resolution instead of duplicating them.
 - ✅ **Per-user notifications** (2026-07-13) — a new **Notifications**
   module aggregates the existing due-soon/overdue feed plus Sharebox
   activity from other members since you last checked (the one genuinely
@@ -305,9 +279,7 @@ real design decision first) · 🌙 moonshot (its own sub-project) ·
 ## ~~Four architecture-decision features~~ — ALL BUILT ✅
 
 All four shipped (see Part 1 additions below): **Knowledge Graph** (radial,
-walkable, Search-defined linkability), **The Orrery** (solar-system
-alternate dashboard where orbit = neglect, size = volume, speed = activity,
-pulsing ring = overdue), **Time Machine** (scrub any past date: existence
+walkable, Search-defined linkability), **Time Machine** (scrub any past date: existence
 counts, added-that-day, genuinely-dated lived-that-day, with an on-screen
 honesty note about its limits), and **QR Airgap Sync** (QR = WebRTC pairing
 handshake scannable by a phone's native camera, data peer-to-peer over the
@@ -333,33 +305,25 @@ bug).
   depending on product) plus a live crypto price ticker (free via
   CoinGecko). Needs its own backend token exchange — the most
   security-sensitive item here.
-- ⏸️ PARKED — **Spotify listening stats** — fully scoped, not started. See
-  `FUTURE_FEATURES.md` §4.
 - *(Ruled out — dead, not parked: WhatsApp/Instagram personal DMs, YouTube
   watch history/Watch Later sync, and stock tickers. Not shown in status
   recaps.)*
+- *(Nine further items were cut permanently on 2026-08-22 and struck from this
+  doc — the names are listed in `REDESIGN_DECISIONS.md` §13.1 so they aren't
+  re-proposed. Not shown in status recaps.)*
 
 ## Additional interfaces
 
-- ✅ **Spatial 1 (v1)** — the spatial interface (Life OS as an orbital
-  station you navigate, not a dashboard). Formerly named "Vespera"; renamed
-  2026-07-13 to drop the permanent brand name (registry id `spatial-1`).
-  Hub with seven district plaques matching the generated concourse image
-  (the Conservatory district was removed 2026-07-13 when Languages and
-  Chords were cut from the app — see `CHORDS_APP_HANDOFF.md`), district
-  door screens, travel transitions, and every module hosted inside station
-  chrome via the shared view library. Switch in Settings → Interface. Hub
-  art loads from `js/interfaces/spatial-1/img/hub.png` (CSS starfield until
-  uploaded). Still open from `SPATIAL_INTERFACES_SPEC.md`: per-district
-  room art, richer per-space chrome. **Desktop only** — not part of the
-  mobile/APK experience.
-- ✅ **mobile-1** — the first of what's meant to be several interchangeable
-  mobile interfaces (see `MOBILE_INTERFACES_SPEC.md`), a real dedicated
-  interface (not a filtered Test Mode), built from Alek's own mockup image
-  with real click regions mapped onto it. A curated on-the-go module set,
-  real motion/sound, functional alert-styling — see the spec doc's "Still
-  open" for what's not yet reconciled (mobile-only gating, full module
-  coverage).
+**None ship today.** Every graphical interface has been removed — Spatial 1
+and mobile-1 with the web source, and NEXUS, Nocturne and Machiya from the
+native app (2026-08-22, `REDESIGN_DECISIONS.md` §7 D-1). All interface work
+is parked until the app itself is correct (§13.2).
+
+What survives is the mechanism, deliberately: `interfaces/Interfaces.kt`
+keeps the registry and the `Interfaces.Render` fallback, so a new interface
+can register per-module screens under an interface id and every page accepts
+it without touching module logic or persisted data. Every module built from
+here must render through `Interfaces.Render` so it inherits that for free.
 
 ## Device philosophy: desktop is the full app, mobile is a remote (revised 2026-07-12)
 
@@ -370,8 +334,12 @@ stripped-down "controller in your pocket," built around what's actually
 useful away from a desk — quick capture, on-the-go actions, glanceable
 status — not full parity. No Spatial 1, no spatial "living world" on
 mobile; that register stays desktop's. Mobile gets its own purpose-built
-interface(s) (`MOBILE_INTERFACES_SPEC.md`), not a filtered version of
-Test Mode.
+interface(s), not a filtered version of Test Mode.
+
+> **Superseded in practice (2026-08-22).** This split described the web build.
+> The native app is one Compose codebase and ships all 37 modules on Android as
+> well as desktop. Kept as the standing product intent for interfaces; revisit
+> when interface work restarts.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly
 as it already works) — a UI-surface decision, not a data-sync
@@ -413,8 +381,6 @@ mobile remote itself exists.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest.
 - **Personal local API + plugin SDK** — a documented interface to build on
   without touching core.
-- **Generative "Year in Review" film** — an auto-produced montage scored
-  by the Life-as-Music engine.
 - **Camera-vision cataloging (Quartermaster)** — confirmed direction, not
   yet built: photograph a shelf/pantry and catalog items automatically.
   Manual low-stock flag by default (fill-level from a photo is a harder
@@ -430,17 +396,8 @@ mobile remote itself exists.
 *(Excluded from default "what's on our list" recaps as of 2026-07 — Alek's
 call, see CLAUDE.md. Stays fully written here; just not surfaced unasked.)*
 
-- ⏸️ PARKED (2026-07-13) — **A true 3D Memory Palace** — a walkable, rendered
-  3D space, not flat districts (spatial-1). Shelved, not cut — Alek still
-  plans to use the concept, just not now.
-- **A true digital twin / life-simulation engine** — an agent-based model
-  of you, run forward from your real data.
-- **A full bidirectionally-linked personal wiki** — a native
-  Obsidian/Roam-style note system with backlinks and a graph view.
 - **A real trained ML pattern engine** — beyond simple correlation, a
   model that continuously retrains to surface non-linear patterns.
-- **A generative "personal mythology"** — an illustrated, ever-growing
-  storybook of your life, milestones as "quests completed."
 
 *(Ruled out 2026-07-13, dead, not parked, don't resurface: a local
 continuous "life recorder," a local Whisper-powered audio diary with

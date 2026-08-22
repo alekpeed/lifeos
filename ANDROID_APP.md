@@ -1,10 +1,10 @@
 # Life OS — Android
 
 Everything in the Android application as it stands: how you get into it, the phone
-hardware it uses, and all 40 modules with what each one is and what a record in it
+hardware it uses, and all 37 modules with what each one is and what a record in it
 holds. Written from the Kotlin source.
 
-**40 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
+**37 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
 
 ---
 
@@ -98,7 +98,16 @@ Field names are the real ones the app stores. **On the phone** lists the hardwar
 module actually reaches for.
 
 ## Operations
-*Run your day.* — 6 modules
+*Run your day.* — 7 modules
+
+### ◈  Operations
+A full-screen graphical hub for the day: the module's artwork is the interface, with
+tap regions mapped onto it that open Today, Tasks, Daily Paper, Command, Briefing and
+Notifications, plus the quick-capture controls — dictation, a quick note, the camera
+and a barcode scan. Runs immersive, so it takes the whole display.
+
+- **HitRect** — `id`, `x`, `y`, `width`, `height`
+- On the phone: camera, barcode/QR scanning, immersive full-screen, dictation.
 
 ### 🗓  Today
 The landing page. Everything today asks of you, gathered from every other module: what's
@@ -161,7 +170,6 @@ check in, snooze, renew. The page exists to be emptied.
 - **Conversation** — `id`, `name`, `msgs`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On the phone: notifications, pinned notification, read aloud, scheduled alarms.
 
@@ -179,14 +187,13 @@ What's overdue, due soon, or expiring, and a place to set a reminder.
 - **Area** — `label`, `days`
 - **ChatMsg** — `fromUser`, `text`
 - **Conversation** — `id`, `name`, `msgs`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On the phone: notifications, pinned notification, read aloud, scheduled alarms.
 
 ---
 
 ## Archive
-*What you keep.* — 9 modules
+*What you keep.* — 7 modules
 
 ### 📄  Documents
 Anything with an expiry date — IDs, policies, warranties. Import a scan and AI reads the
@@ -218,13 +225,6 @@ Albums of captioned photos.
 - **Album** — `id`, `name`, `description`, `captions`
 - On the phone: camera, gallery.
 
-### 🏛  Museum
-A hall of everything finished, assembled from six other modules: tasks, books, recipes,
-projects, milestones, streaks.
-
-- **Plaque** — `title`, `meta`, `coverBlob`
-- **Wing** — `title`, `items`
-
 ### 🗂  Collections
 Things you collect, with per-item acquired dates, tags and notes.
 
@@ -246,15 +246,10 @@ across every module and writes a narrative of it.
 - Uses: AI
 - On the phone: camera, gallery.
 
-### 👻  Ghost Days
-This date in previous years, drawn from every dated record in the app.
-
-- **Ghost** — `year`, `kind`, `text`
-
 ---
 
 ## Logistics
-*Places, supply and trips.* — 4 modules
+*Places, supply and trips.* — 3 modules
 
 ### 📍  Places
 Where you've been and where you want to go: ratings, visit dates, private notes-to-self,
@@ -270,12 +265,6 @@ photos, a real street map, and a bucket list.
   Coordinates come from "Use my location" or from geocoding the name/address.
 - Uses: Weather
 - On the phone: arrival geofence, location.
-
-### 🪐  Orrery
-Your life as an orbital system. Modules are bodies; how long since you touched one sets
-its orbit.
-
-- **Planet** — `label`, `count`, `days`, `overdue`
 
 ### 📦  Quartermaster
 What you own, where it is, what's running out, and what you've lent. Photograph a shelf
@@ -346,7 +335,6 @@ Patterns computed from your own data: correlations, forecasts, and what-ifs.
 - **Conversation** — `id`, `name`, `msgs`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On the phone: notifications, pinned notification, read aloud, scheduled alarms.
 
@@ -399,7 +387,7 @@ a receipt and it reads it.
 ---
 
 ## Intelligence
-*The app thinking about you.* — 6 modules
+*The app thinking about you.* — 5 modules
 
 ### 🔎  Ask
 A question about your own records — either an AI answer with its sources, or semantic
@@ -416,7 +404,6 @@ search with no AI at all.
 - **Conversation** — `id`, `name`, `msgs`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On the phone: notifications, pinned notification, read aloud, scheduled alarms.
 
@@ -434,7 +421,6 @@ Named conversations grounded in your data and the current time.
 - **Area** — `label`, `days`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On the phone: notifications, pinned notification, read aloud, scheduled alarms.
 
@@ -445,24 +431,6 @@ doesn't leave a stale label.
 - **Node** — `source`, `label`
 - **Edge** — `aSource`, `aLabel`, `bSource`, `bLabel`
 - Uses: AI
-
-### ♻  Recall
-Spaced repetition over facts you chose to keep.
-
-- **Lin** — `slope`, `intercept`
-- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
-- **Entry** — `s`, `m`, `t`, `v`
-- **Index** — `hash`, `entries`
-- **Ranked** — `source`, `text`, `moduleId`, `score`
-- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
-- **Area** — `label`, `days`
-- **ChatMsg** — `fromUser`, `text`
-- **Conversation** — `id`, `name`, `msgs`
-- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
-- **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
-- Uses: AI
-- On the phone: notifications, pinned notification, read aloud, scheduled alarms.
 
 ### 🌀  Entropy
 What you've been neglecting, module by module.
@@ -478,7 +446,6 @@ What you've been neglecting, module by module.
 - **Conversation** — `id`, `name`, `msgs`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On the phone: notifications, pinned notification, read aloud, scheduled alarms.
 
@@ -566,14 +533,12 @@ backup.
 
 # Where it stands
 
-All 40 modules are built and the build runs on device. Outstanding:
+All 37 modules are built and the build runs on device. Outstanding:
 
 - **Blocked on credentials** — Google Photos import and calendar push; both need an
   OAuth client created in the Google Cloud project.
-- **Awaiting artwork** — the Orrery's orbital view and the Knowledge Graph's radial view.
-  Both work as lists today.
-- **Open decisions** — whether Recall stays flashcards or becomes cross-module
-  resurfacing; whether Notifications adds a shared activity feed; when the animated
-  character gets built.
+- **Awaiting artwork** — the Knowledge Graph's radial view. It works as a list today.
+- **Open decisions** — whether Notifications adds a shared activity feed, and when the
+  animated character gets built.
 - **Small gaps** — projects in Tasks are a text field rather than first-class records,
   and weather is by named city rather than location.

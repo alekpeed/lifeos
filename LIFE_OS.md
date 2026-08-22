@@ -5,7 +5,7 @@ have to do, what you own, what you've read, where you've been, what you spent, w
 know, what you learned — held as records you own, on a machine you own, in an app that
 notices things about them.
 
-**40 modules across 8 domains, in one native application.**
+**37 modules across 8 domains, in one native application.**
 
 ---
 
@@ -17,8 +17,8 @@ disk, and an app that gets more useful as more of your life goes into it — bec
 parts can see each other.
 
 That cross-visibility is the actual point. A habit streak writes itself into Milestones.
-Finishing a book fills a shelf in the Museum and levels a branch in Skill Trees. A
-document nearing expiry becomes a task. The Almanac correlates your sleep against your
+Finishing a book levels a branch in Skill Trees. A document nearing expiry becomes a
+task. The Almanac correlates your sleep against your
 spending. Time Machine can say how much of today's record existed on a day two years
 ago. None of that is possible when the pieces live in different products.
 
@@ -56,15 +56,14 @@ this document should hold to them.
 
 ## Where it stands
 
-All 40 modules are built and compile; the desktop build runs. What remains is short:
+All 37 modules are built and compile; the desktop build runs. What remains is short:
 
 - **Two features blocked on credentials** — importing from Google Photos, and pushing
   to a calendar. Both need an OAuth client the owner has to create.
-- **Two visualizations awaiting artwork** — the Orrery's orbital view and the Knowledge
-  Graph's radial view. Both currently work as functional lists.
-- **Three open product decisions** — whether Recall stays flashcards or becomes
-  cross-module resurfacing; whether Notifications adds a shared activity feed; and when
-  an animated character planned for the app gets built.
+- **One visualization awaiting artwork** — the Knowledge Graph's radial view, which
+  currently works as a functional list.
+- **Two open product decisions** — whether Notifications adds a shared activity feed,
+  and when an animated character planned for the app gets built.
 - **Two small gaps** — projects in Tasks are a text field rather than first-class
   records, and weather is by named city.
 - **Six platform gaps**, all on the desktop side and all listed with their causes in
@@ -104,7 +103,16 @@ Each entry gives what the module is and what a record in it holds. Field names a
 real ones the application stores.
 
 ## Operations
-*Run your day.*  (6 modules)
+*Run your day.*  (7 modules)
+
+### Operations
+A full-screen graphical hub for the day: the module's artwork is the interface, with
+tap regions mapped onto it that open Today, Tasks, Daily Paper, Command, Briefing and
+Notifications, plus the quick-capture controls — dictation, a quick note, the camera
+and a barcode scan. Runs immersive, so it takes the whole display.
+
+- **HitRect** — `id`, `x`, `y`, `width`, `height`
+- On Linux: no camera, no barcode scanning.
 
 ### Today
 The landing page. Everything today asks of you, gathered from every other module: what's
@@ -167,7 +175,6 @@ check in, snooze, renew. The page exists to be emptied.
 - **Conversation** — `id`, `name`, `msgs`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On Linux: no background alerts, no speech.
 
@@ -185,14 +192,13 @@ What's overdue, due soon, or expiring, and a place to set a reminder.
 - **Area** — `label`, `days`
 - **ChatMsg** — `fromUser`, `text`
 - **Conversation** — `id`, `name`, `msgs`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On Linux: no background alerts, no speech.
 
 ---
 
 ## Archive
-*What you keep.*  (9 modules)
+*What you keep.*  (7 modules)
 
 ### Documents
 Anything with an expiry date — IDs, policies, warranties. Import a scan and AI reads the
@@ -223,13 +229,6 @@ Albums of captioned photos.
 - **Album** — `id`, `name`, `description`, `captions`
 - On Linux: no camera.
 
-### Museum
-A hall of everything finished, assembled from six other modules: tasks, books, recipes,
-projects, milestones, streaks.
-
-- **Plaque** — `title`, `meta`, `coverBlob`
-- **Wing** — `title`, `items`
-
 ### Collections
 Things you collect, with per-item acquired dates, tags and notes.
 
@@ -251,15 +250,10 @@ across every module and writes a narrative of it.
 - Uses: AI
 - On Linux: no camera.
 
-### Ghost Days
-This date in previous years, drawn from every dated record in the app.
-
-- **Ghost** — `year`, `kind`, `text`
-
 ---
 
 ## Logistics
-*Places, supply and trips.*  (4 modules)
+*Places, supply and trips.*  (3 modules)
 
 ### Places
 Where you've been and where you want to go: ratings, visit dates, private notes-to-self,
@@ -275,12 +269,6 @@ photos, a real street map, and a bucket list.
   Coordinates come from "Use my location" or from geocoding the name/address.
 - Uses: Weather
 - On Linux: no location.
-
-### Orrery
-Your life as an orbital system. Modules are bodies; how long since you touched one sets
-its orbit.
-
-- **Planet** — `label`, `count`, `days`, `overdue`
 
 ### Quartermaster
 What you own, where it is, what's running out, and what you've lent. Photograph a shelf
@@ -351,7 +339,6 @@ Patterns computed from your own data: correlations, forecasts, and what-ifs.
 - **Conversation** — `id`, `name`, `msgs`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On Linux: no background alerts, no speech.
 
@@ -404,7 +391,7 @@ a receipt and it reads it.
 ---
 
 ## Intelligence
-*The app thinking about you.*  (6 modules)
+*The app thinking about you.*  (5 modules)
 
 ### Ask
 A question about your own records — either an AI answer with its sources, or semantic
@@ -421,7 +408,6 @@ search with no AI at all.
 - **Conversation** — `id`, `name`, `msgs`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On Linux: no background alerts, no speech.
 
@@ -439,7 +425,6 @@ Named conversations grounded in your data and the current time.
 - **Area** — `label`, `days`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On Linux: no background alerts, no speech.
 
@@ -450,24 +435,6 @@ doesn't leave a stale label.
 - **Node** — `source`, `label`
 - **Edge** — `aSource`, `aLabel`, `bSource`, `bLabel`
 - Uses: AI
-
-### Recall
-Spaced repetition over facts you chose to keep.
-
-- **Lin** — `slope`, `intercept`
-- **AlmanacModel** — `corrSleepHabits`, `corrWorkoutSleep`, `corrSleepTasks`, `sleepHabitsLin`, `sleepTrend`, `readingForecasts`, `spendForecast`, `weekdaySkips`, `recurring`, `sleepValues`
-- **Entry** — `s`, `m`, `t`, `v`
-- **Index** — `hash`, `entries`
-- **Ranked** — `source`, `text`, `moduleId`, `score`
-- **BriefLine** — `key`, `text`, `note`, `moduleId`, `action`, `action2`, `resolve2`
-- **Area** — `label`, `days`
-- **ChatMsg** — `fromUser`, `text`
-- **Conversation** — `id`, `name`, `msgs`
-- **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
-- **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
-- Uses: AI
-- On Linux: no background alerts, no speech.
 
 ### Entropy
 What you've been neglecting, module by module.
@@ -483,7 +450,6 @@ What you've been neglecting, module by module.
 - **Conversation** — `id`, `name`, `msgs`
 - **Attention** — `icon`, `title`, `meta`, `moduleId`, `urgent`, `sortKey`
 - **Reminder** — `text`, `atEpochMillis`
-- **Fact** — `text`, `intervalDays`, `nextReview`
 - Uses: AI
 - On Linux: no background alerts, no speech.
 
@@ -562,9 +528,9 @@ backup.
 If you're reading this to generate ideas, these are the seams where the application is
 most likely to be missing something. They're offered as directions, not as a brief.
 
-1. **The parts can see each other, but mostly don't.** Six modules feed the Museum and
-   three feed Skill Trees, yet most pairs never meet. Which connections would earn their
-   keep, and which would just be clever?
+1. **The parts can see each other, but mostly don't.** Three modules feed Skill Trees,
+   yet most pairs never meet. Which connections would earn their keep, and which would
+   just be clever?
 2. **It records well and notices rarely.** The Almanac, Entropy and Time Machine are the
    only places the app draws a conclusion. What else is knowable from records this
    complete?
