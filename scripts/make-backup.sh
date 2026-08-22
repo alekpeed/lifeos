@@ -26,8 +26,6 @@ cp PROJECT_SPEC.md FUTURE_FEATURES.md FEATURE_LIST.md ARCHITECTURE.md \
    VESPERA_SPEC.md SUPABASE_MIGRATION.md PLAID_SPEC.md README.md CLAUDE.md \
    "$OUT_DIR/docs/" 2>/dev/null || true
 cp -r sql "$OUT_DIR/docs/"
-mkdir -p "$OUT_DIR/docs/vespera"
-cp js/interfaces/vespera/img/README.txt "$OUT_DIR/docs/vespera/" 2>/dev/null || true
 
 LAST_COMMIT="$(git log --oneline -1)"
 BRANCH="$(git branch --show-current)"

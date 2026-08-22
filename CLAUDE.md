@@ -27,6 +27,10 @@ This is a vanilla-JS, local-first PWA (IndexedDB, no build step, no
 framework). Read `ARCHITECTURE.md` first for the technical shape, then
 `PROJECT_SPEC.md` / `FEATURE_LIST.md` for what's built and what's queued.
 
+`REDESIGN_DECISIONS.md` is the source of truth for the redesign — what was
+cut, what was kept, why, and what remains. Check it before proposing changes to
+module scope or the module list.
+
 ## Parked items
 
 `FUTURE_FEATURES.md` has a "⏸️ Parked" section (§0) for things Alek has
