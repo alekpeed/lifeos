@@ -3,6 +3,8 @@ package com.alekpeed.lifeos.travel
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.attach.Attachment
 import com.alekpeed.lifeos.data.parseDateOrNull
+import com.alekpeed.lifeos.integrations.CurrencyClient
+import com.alekpeed.lifeos.places.loadPlaces
 import com.alekpeed.lifeos.data.today
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -39,6 +41,8 @@ data class Trip(
     val documentIds: List<Long> = emptyList(),
     val budgetEstimate: Double = 0.0,
     val currency: String = "USD",
+    // Photos album for the trip. The photos live in Photos, not here — this is the link.
+    val albumId: Long? = null,
 ) {
     fun start(): LocalDate? = parseDateOrNull(startDate)
     fun end(): LocalDate? = parseDateOrNull(endDate)
@@ -120,31 +124,94 @@ fun reservationsFor(data: TravelData, tripId: Long): List<Reservation> =
     data.reservations.filter { it.tripId == tripId }
         .sortedWith(compareBy({ it.startDateTime.ifBlank { "9999" } }, { it.provider.lowercase() }))
 
-// Estimated against what the reservations actually add up to. Mixed currencies are
-// reported rather than converted: converting silently at today's rate would state a
-// number the trip never cost.
+// Estimated against what the reservations actually add up to.
+//
+// Foreign-currency bookings are converted through the Tools rates, but kept apart from
+// the native total rather than folded silently into it. A rate is today's, and a booking
+// was paid at whatever the rate was on the day — merging the two produces one confident
+// number that was never true. So the totals report both: what was actually spent in the
+// trip's own currency, and what the rest comes to at today's rate, labelled as such.
 data class TripBudget(
     val estimate: Double,
+    // Costs already in the trip's currency — real, not derived.
     val booked: Double,
     val paid: Double,
     val currency: String,
-    val mixedCurrencies: Set<String>,
+    // Foreign costs converted at today's rate, and what they were before converting.
+    val convertedBooked: Double,
+    val convertedPaid: Double,
+    val foreign: Map<String, Double>,
+    // Currencies with no rate loaded — counted nowhere, so they are named instead.
+    val unconvertible: Set<String>,
 ) {
-    val outstanding: Double get() = booked - paid
-    val overEstimate: Boolean get() = estimate > 0 && booked > estimate
+    val totalBooked: Double get() = booked + convertedBooked
+    val totalPaid: Double get() = paid + convertedPaid
+    val outstanding: Double get() = totalBooked - totalPaid
+    val overEstimate: Boolean get() = estimate > 0 && totalBooked > estimate
+    val hasForeign: Boolean get() = foreign.isNotEmpty()
 }
 
 fun tripBudget(data: TravelData, trip: Trip): TripBudget {
     val rs = reservationsFor(data, trip.id).filter { it.status != ReservationStatus.CANCELLED }
-    val others = rs.map { it.currency.ifBlank { trip.currency } }.filter { it != trip.currency }.toSet()
-    val inTripCurrency = rs.filter { (it.currency.ifBlank { trip.currency }) == trip.currency }
+    val home = trip.currency.ifBlank { "USD" }
+
+    val native = rs.filter { (it.currency.ifBlank { home }) == home }
+    val abroad = rs.filter { (it.currency.ifBlank { home }) != home }
+
+    var convBooked = 0.0
+    var convPaid = 0.0
+    val foreign = mutableMapOf<String, Double>()
+    val stuck = mutableSetOf<String>()
+    abroad.forEach { r ->
+        val code = r.currency.ifBlank { home }
+        foreign[code] = (foreign[code] ?: 0.0) + r.cost
+        val c = CurrencyClient.convert(r.cost, code, home)
+        if (c == null) {
+            stuck += code
+        } else {
+            convBooked += c
+            if (r.paid) convPaid += c
+        }
+    }
+
     return TripBudget(
         estimate = trip.budgetEstimate,
-        booked = inTripCurrency.sumOf { it.cost },
-        paid = inTripCurrency.filter { it.paid }.sumOf { it.cost },
-        currency = trip.currency,
-        mixedCurrencies = others,
+        booked = native.sumOf { it.cost },
+        paid = native.filter { it.paid }.sumOf { it.cost },
+        currency = home,
+        convertedBooked = convBooked,
+        convertedPaid = convPaid,
+        foreign = foreign,
+        unconvertible = stuck,
     )
+}
+
+// Places whose visit dates fall inside the trip, and bucket-list entries worth doing
+// while there — the "what did I actually see" and "what should I plan" halves of §5.1's
+// Places integration. Matching is by destination name, which is what the person typed.
+data class TripPlaces(val visited: List<String>, val suggestions: List<String>)
+
+fun tripPlaces(trip: Trip): TripPlaces {
+    val start = trip.start()
+    val end = trip.end() ?: start
+    val data = loadPlaces()
+
+    val visited = if (start == null || end == null) emptyList() else data.places.filter { p ->
+        p.visitDates.any { d -> parseDateOrNull(d)?.let { it >= start && it <= end } == true }
+    }.map { it.name }
+
+    val where = trip.destinations.map { it.trim().lowercase() }.filter { it.isNotBlank() }
+    fun matches(text: String): Boolean {
+        val t = text.lowercase()
+        return where.any { w -> t.contains(w) || w.contains(t) }
+    }
+
+    val wantToGo = data.places
+        .filter { it.listType == "wantToGo" && (matches(it.name) || matches(it.address)) }
+        .map { it.name }
+    val bucket = data.bucket.filter { !it.done && matches(it.title) }.map { it.title }
+
+    return TripPlaces(visited = visited.distinct(), suggestions = (wantToGo + bucket).distinct())
 }
 
 // Whole days from this date to that one; negative if it already passed.

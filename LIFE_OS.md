@@ -297,10 +297,17 @@ packing lists (absorbed from their own module), a budget of estimated against bo
 paid, the people coming, and the documents that have to still be valid when you get back.
 
 Travel documents link to Documents records rather than copying them, so an expiry date
-has one owner; the trip flags anything lapsing before it ends. Trips and bookings appear
-on the Calendar automatically.
+has one owner; the trip flags anything lapsing before it ends. A Places & photos tab links
+a Photos album to the trip, suggests want-to-go places and bucket-list entries matching the
+destinations, and lists places you actually logged between the dates. Trips and bookings
+appear on the Calendar automatically.
 
-- **Trip** — `id`, `name`, `destinations`, `startDate`, `endDate`, `statusOverride`, `notes`, `coverPhotoBlob`, `travelerIds`, `documentIds`, `budgetEstimate`, `currency`
+Foreign-currency bookings convert through the Tools rates, but the native amounts are kept
+and shown alongside — a rate is today's and a booking was paid at the rate on the day, so
+the converted total is labelled an estimate rather than merged in silently.
+
+- **Trip** — `id`, `name`, `destinations`, `startDate`, `endDate`, `statusOverride`, `notes`, `coverPhotoBlob`, `travelerIds`, `documentIds`, `budgetEstimate`, `currency`, `albumId`
+- **PackTemplate** — `id`, `name`, `groups` (saved from any list)
 - **Reservation** — `id`, `tripId`, `type`, `provider`, `confirmationNumber`, `status`, `startDateTime`, `endDateTime`, `location`, `lat`, `lng`, `placeId`, `contactId`, `externalLink`, `cost`, `currency`, `paid`, `attachments`, `notes`
 - **PackItem** — `id`, `name`, `category`, `packed`
 - **PackingList** — `id`, `name`, `tripDate`, `items`, `tripId`

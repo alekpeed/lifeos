@@ -39,13 +39,19 @@ import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.relativeLabelOf
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.documents.loadDocuments
-import com.alekpeed.lifeos.packing.PACKING_TEMPLATES
+import com.alekpeed.lifeos.integrations.CurrencyClient
+import com.alekpeed.lifeos.packing.allTemplates
+import com.alekpeed.lifeos.packing.deleteTemplate
+import com.alekpeed.lifeos.packing.saveAsTemplate
 import com.alekpeed.lifeos.packing.PackItem
 import com.alekpeed.lifeos.packing.PackingList
 import com.alekpeed.lifeos.packing.loadPacking
 import com.alekpeed.lifeos.packing.packedCount
 import com.alekpeed.lifeos.packing.savePacking
 import com.alekpeed.lifeos.people.loadContacts
+import com.alekpeed.lifeos.photos.Album
+import com.alekpeed.lifeos.photos.loadPhotos
+import com.alekpeed.lifeos.photos.savePhotos
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.SaveToast
@@ -181,7 +187,7 @@ private fun TripRow(trip: Trip, data: TravelData, now: kotlinx.datetime.LocalDat
 @Composable
 private fun TripDetail(trip: Trip, data: TravelData, onChange: (TravelData) -> Unit, onBack: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
-    val tabs = listOf("Trip", "Bookings", "Packing", "Budget", "Documents")
+    val tabs = listOf("Trip", "Bookings", "Packing", "Budget", "Documents", "Places & photos")
 
     fun patch(f: (Trip) -> Trip) {
         onChange(data.copy(trips = data.trips.map { if (it.id == trip.id) f(it) else it }))
@@ -217,7 +223,8 @@ private fun TripDetail(trip: Trip, data: TravelData, onChange: (TravelData) -> U
             1 -> ReservationsTab(trip, data, onChange)
             2 -> PackingTab(trip)
             3 -> BudgetTab(trip, data, ::patch)
-            else -> DocumentsTab(trip, ::patch)
+            4 -> DocumentsTab(trip, ::patch)
+            else -> PlacesPhotosTab(trip, ::patch)
         }
     }
 }
@@ -524,6 +531,7 @@ private fun ReservationEditor(
 @Composable
 private fun PackingTab(trip: Trip) {
     var lists by remember { mutableStateOf(loadPacking().lists) }
+    var templates by remember { mutableStateOf(allTemplates()) }
 
     fun persist(next: List<PackingList>) {
         lists = next
@@ -560,17 +568,19 @@ private fun PackingTab(trip: Trip) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PACKING_TEMPLATES.forEach { (label, groups) ->
-                        OutlinedButton(onClick = {
-                            var next = l.items
-                            var nid = (next.maxOfOrNull { i -> i.id } ?: 0L) + 1_000_000L
-                            groups.forEach { (cat, names) ->
-                                names.forEach { nm -> nid += 1; next = next + PackItem(nid, nm, cat) }
-                            }
-                            val fixed = next
-                            persist(lists.map { pl -> if (pl.id == l.id) pl.copy(items = fixed) else pl })
-                        }) { Text(label, style = MaterialTheme.typography.labelSmall) }
+                templates.chunked(3).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        row.forEach { tpl ->
+                            OutlinedButton(onClick = {
+                                var next = l.items
+                                var nid = (next.maxOfOrNull { i -> i.id } ?: 0L) + 1_000_000L
+                                tpl.groups.forEach { g ->
+                                    g.items.forEach { nm -> nid += 1; next = next + PackItem(nid, nm, g.category) }
+                                }
+                                val fixed = next
+                                persist(lists.map { pl -> if (pl.id == l.id) pl.copy(items = fixed) else pl })
+                            }) { Text(tpl.name, style = MaterialTheme.typography.labelSmall) }
+                        }
                     }
                 }
                 Spacer(Modifier.height(6.dp))
@@ -602,8 +612,35 @@ private fun PackingTab(trip: Trip) {
                         }
                     }
                 }
-                TextButton(onClick = { persist(lists.filterNot { it.id == l.id }) }) {
-                    Text("Delete list", color = MaterialTheme.colorScheme.error)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (l.items.isNotEmpty()) {
+                        TextButton(onClick = {
+                            saveAsTemplate(l, l.name)
+                            templates = allTemplates()
+                            SaveToast.show("Saved as a template")
+                        }) { Text("Save as template") }
+                    }
+                    TextButton(onClick = { persist(lists.filterNot { it.id == l.id }) }) {
+                        Text("Delete list", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+        }
+
+        val saved = templates.filter { it.id > 0 }
+        if (saved.isNotEmpty()) {
+            Spacer(Modifier.height(14.dp))
+            Text("Your templates", style = MaterialTheme.typography.titleSmall)
+            saved.forEach { tpl ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${tpl.name} — ${tpl.groups.sumOf { g -> g.items.size }} items",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { deleteTemplate(tpl.id); templates = allTemplates() }) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }
@@ -665,38 +702,156 @@ private fun BudgetTab(trip: Trip, data: TravelData, patch: ((Trip) -> Trip) -> U
             )
         }
         Spacer(Modifier.height(14.dp))
-        BudgetLine("Booked", "${b.currency} ${b.booked}")
-        BudgetLine("Paid", "${b.currency} ${b.paid}")
-        BudgetLine("Still to pay", "${b.currency} ${b.outstanding}")
+        BudgetLine("Booked in ${b.currency}", money(b.currency, b.booked))
+        if (b.hasForeign) {
+            BudgetLine("Converted at today's rate", money(b.currency, b.convertedBooked))
+            BudgetLine("Booked, all in", money(b.currency, b.totalBooked), bold = true)
+        }
+        BudgetLine("Paid", money(b.currency, b.totalPaid))
+        BudgetLine("Still to pay", money(b.currency, b.outstanding))
         if (b.estimate > 0) {
             BudgetLine(
                 if (b.overEstimate) "Over budget by" else "Left in budget",
-                "${b.currency} ${if (b.overEstimate) b.booked - b.estimate else b.estimate - b.booked}",
+                money(b.currency, if (b.overEstimate) b.totalBooked - b.estimate else b.estimate - b.totalBooked),
                 warn = b.overEstimate,
             )
         }
-        if (b.mixedCurrencies.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
+
+        if (b.hasForeign) {
+            Spacer(Modifier.height(12.dp))
+            Text("Booked in other currencies", style = MaterialTheme.typography.labelLarge)
+            b.foreign.toSortedMap().forEach { (code, amount) ->
+                BudgetLine(code, money(code, amount))
+            }
+            Spacer(Modifier.height(6.dp))
             Text(
-                "Some bookings are in ${b.mixedCurrencies.sorted().joinToString(", ")} and are not counted above. " +
-                    "They are left out rather than converted, because converting at today's rate would state a number the trip never cost.",
+                "Converted through the Tools rates, which are today's. What you actually paid " +
+                    "depended on the rate on the day, so the native amounts above are the real " +
+                    "record and the converted total is an estimate.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (!CurrencyClient.hasRates()) {
+                Text(
+                    "No rates loaded yet — open Tools once to fetch them, and these convert.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+        if (b.unconvertible.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "No rate for ${b.unconvertible.sorted().joinToString(", ")} — those are counted nowhere above.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
             )
         }
     }
 }
 
+// Two decimal places without a platform formatter.
+private fun money(code: String, amount: Double): String {
+    val cents = kotlin.math.round(amount * 100).toLong()
+    val whole = cents / 100
+    val frac = (if (cents < 0) -cents else cents) % 100
+    return "$code $whole.${frac.toString().padStart(2, '0')}"
+}
+
 @Composable
-private fun BudgetLine(label: String, value: String, warn: Boolean = false) {
+private fun BudgetLine(label: String, value: String, warn: Boolean = false, bold: Boolean = false) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Text(
+            label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
+        )
         Text(
             value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = if (warn) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
         )
+    }
+}
+
+// Places and photos: what the trip is near, what it turned out to include, and where the
+// pictures go. Both halves are links — the photos live in Photos and the places in Places.
+@Composable
+private fun PlacesPhotosTab(trip: Trip, patch: ((Trip) -> Trip) -> Unit) {
+    val places = remember(trip.id, trip.startDate, trip.endDate, trip.destinations) { tripPlaces(trip) }
+    var photos by remember { mutableStateOf(loadPhotos()) }
+    val album = trip.albumId?.let { id -> photos.albums.firstOrNull { it.id == id } }
+
+    Column {
+        Text("Photos", style = MaterialTheme.typography.titleSmall)
+        if (album == null) {
+            Text(
+                "No album linked. The photos live in Photos — this just points at the album for this trip.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    val id = (photos.albums.maxOfOrNull { it.id } ?: 0L) + 1
+                    val name = trip.name.ifBlank { "Trip" }
+                    val next = photos.copy(albums = photos.albums + Album(id = id, name = name, description = "Trip photos"))
+                    savePhotos(next)
+                    photos = next
+                    patch { it.copy(albumId = id) }
+                }) { Text("Create an album") }
+            }
+            if (photos.albums.isNotEmpty()) {
+                Text("or link one you already have:", style = MaterialTheme.typography.bodySmall)
+                photos.albums.forEach { a ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("${a.name} (${a.captions.size})", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = { patch { it.copy(albumId = a.id) } }) { Text("Link") }
+                    }
+                }
+            }
+        } else {
+            Text(
+                "📷  ${album.name} — ${album.captions.size} photo${if (album.captions.size == 1) "" else "s"}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { Nav.open("photos") }) { Text("Open in Photos") }
+                TextButton(onClick = { patch { it.copy(albumId = null) } }) { Text("Unlink") }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text("Worth doing there", style = MaterialTheme.typography.titleSmall)
+        if (places.suggestions.isEmpty()) {
+            Text(
+                "Nothing from your want-to-go list or bucket list matches these destinations yet.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            places.suggestions.forEach { name ->
+                Text("○  $name", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 2.dp))
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text("Visited on this trip", style = MaterialTheme.typography.titleSmall)
+        if (places.visited.isEmpty()) {
+            Text(
+                if (trip.startDate.isBlank()) "Set the dates and any place you log while away shows up here."
+                else "Nothing logged in Places between these dates yet.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            places.visited.forEach { name ->
+                Text("📍  $name", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 2.dp))
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        TextButton(onClick = { Nav.open("places") }) { Text("Open Places →") }
     }
 }
 

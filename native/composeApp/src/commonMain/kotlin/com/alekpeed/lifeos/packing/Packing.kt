@@ -29,11 +29,21 @@ data class PackingList(
     val tripId: Long = 0L,
 )
 
+// A saved template. Same shape as the built-ins, but stored, so "save this list as a
+// template" is one button (§5.1).
 @Serializable
-data class PackingData(val lists: List<PackingList> = emptyList())
+data class PackTemplateGroup(val category: String, val items: List<String> = emptyList())
 
-// The built-in starting points. §5.1 also wants user-defined templates — saving a list
-// as a template — which is not built yet; these are still the only ones.
+@Serializable
+data class PackTemplate(val id: Long, val name: String, val groups: List<PackTemplateGroup> = emptyList())
+
+@Serializable
+data class PackingData(
+    val lists: List<PackingList> = emptyList(),
+    val templates: List<PackTemplate> = emptyList(),
+)
+
+// The built-in starting points, always offered alongside any you save yourself.
 //
 // name -> list of (category, itemNames). Nothing calls out anywhere; pure data.
 val PACKING_TEMPLATES: List<Pair<String, List<Pair<String, List<String>>>>> = listOf(
@@ -90,3 +100,30 @@ fun packingListsFor(tripId: Long): List<PackingList> =
 fun unassignedPackingLists(): List<PackingList> = loadPacking().lists.filter { it.tripId == 0L }
 
 fun PackingList.packedCount(): Int = items.count { it.packed }
+
+// Built-ins and saved templates in one list, so a caller never has to know which is which.
+fun allTemplates(): List<PackTemplate> {
+    val builtIn = PACKING_TEMPLATES.mapIndexed { i, (name, groups) ->
+        PackTemplate(
+            id = -(i + 1L), // negative ids: built-ins are not stored and cannot be deleted
+            name = name,
+            groups = groups.map { (cat, items) -> PackTemplateGroup(cat, items) },
+        )
+    }
+    return builtIn + loadPacking().templates
+}
+
+// Turn a list into a reusable template. Packed state is deliberately dropped — a
+// template is what to bring, not what you already put in the bag.
+fun saveAsTemplate(list: PackingList, name: String) {
+    val data = loadPacking()
+    val groups = list.items.groupBy { it.category }
+        .map { (cat, items) -> PackTemplateGroup(cat, items.map { it.name }) }
+    val id = (data.templates.maxOfOrNull { it.id } ?: 0L) + 1
+    savePacking(data.copy(templates = data.templates + PackTemplate(id, name.trim().ifBlank { list.name }, groups)))
+}
+
+fun deleteTemplate(id: Long) {
+    val data = loadPacking()
+    savePacking(data.copy(templates = data.templates.filterNot { it.id == id }))
+}
