@@ -16,7 +16,7 @@ import kotlinx.datetime.plus
 import kotlin.time.Duration.Companion.hours
 
 // A single, real notion of "today" for every module that reasons about dates
-// (Tasks' due date, Habits' streak, Recall's schedule, Today/Briefing). Dates are
+// (Tasks' due date, Habits' streak, skill freshness, Today/Briefing). Dates are
 // stored as ISO strings ("2026-07-16") so a saved line is still human-readable.
 fun today(): LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())
 

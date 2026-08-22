@@ -29,7 +29,6 @@ import com.alekpeed.lifeos.insight.BriefingScreen
 import com.alekpeed.lifeos.insight.EntropyScreen
 import com.alekpeed.lifeos.insight.NotificationsScreen
 import com.alekpeed.lifeos.insight.AlmanacScreen
-import com.alekpeed.lifeos.insight.RecallScreen
 import com.alekpeed.lifeos.knowledge.KnowledgeGraphScreen
 import com.alekpeed.lifeos.timemachine.TimeMachineScreen
 import com.alekpeed.lifeos.people.ContactsScreen
@@ -98,7 +97,6 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("ask", "🔎", "Ask", "Intelligence", true) { AskScreen() },
     Module("ai-assistant", "🤖", "AI Assistant", "Intelligence", true) { AssistantScreen() },
     Module("knowledge-graph", "🕸", "Knowledge Graph", "Intelligence", true) { KnowledgeGraphScreen() },
-    Module("recall", "♻", "Recall", "Intelligence", true) { RecallScreen() },
     Module("entropy", "🌀", "Entropy", "Intelligence", true) { EntropyScreen() },
     Module("time-machine", "⏰", "Time Machine", "Intelligence", true) { TimeMachineScreen() },
     // People — connecting with others & devices
