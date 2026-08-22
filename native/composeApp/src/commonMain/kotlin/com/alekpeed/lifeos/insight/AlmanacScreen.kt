@@ -42,15 +42,23 @@ import kotlin.math.sqrt
 // sandbox, each with a "not enough data yet" floor so a number never shows on
 // too thin a sample. Pure computation — no AI, nothing invented.
 
-private const val CORR_MIN = 5
-private const val TREND_MIN = 5
-private const val MONTHS_MIN = 3
-private const val WEEKDAY_MIN_DAYS = 14
+// Minimum sample sizes. Raised 2026-08-22 — the previous floors (5/5/3/14) let a
+// number reach the screen long before it carried any information, and a precise
+// decimal on six days of self-reported data reads as authoritative when it isn't.
+private const val CORR_MIN = 21
+private const val TREND_MIN = 21
+private const val MONTHS_MIN = 6
+private const val WEEKDAY_MIN_DAYS = 42
+
+// A straight line through two points is not a forecast, it is the line between them
+// extended. Nothing fits under this.
+private const val LINREG_MIN = 6
+private const val READING_MIN = 4
 
 private data class Lin(val slope: Double, val intercept: Double)
 
 private fun pearson(pairs: List<Pair<Double, Double>>): Double? {
-    if (pairs.size < 2) return null
+    if (pairs.size < LINREG_MIN) return null
     val mx = pairs.map { it.first }.average(); val my = pairs.map { it.second }.average()
     var sxy = 0.0; var sxx = 0.0; var syy = 0.0
     for ((x, y) in pairs) { val dx = x - mx; val dy = y - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy }
@@ -59,7 +67,7 @@ private fun pearson(pairs: List<Pair<Double, Double>>): Double? {
 }
 
 private fun linregress(pts: List<Pair<Double, Double>>): Lin? {
-    if (pts.size < 2) return null
+    if (pts.size < LINREG_MIN) return null
     val mx = pts.map { it.first }.average(); val my = pts.map { it.second }.average()
     var sxy = 0.0; var sxx = 0.0
     for ((x, y) in pts) { val dx = x - mx; sxy += dx * (y - my); sxx += dx * dx }
@@ -117,10 +125,10 @@ fun AlmanacScreen() {
 
         // Reading pace → est finish for in-progress books
         val books = loadBooks().books
-        val readingForecasts = books.filter { it.status == "reading" && (it.totalPages ?: 0) > 0 && it.logs.size >= 2 }
+        val readingForecasts = books.filter { it.status == "reading" && (it.totalPages ?: 0) > 0 && it.logs.size >= READING_MIN }
             .mapNotNull { b ->
                 val logs = b.logs.mapNotNull { l -> parseDateOrNull(l.date)?.let { it to l.pagesRead } }.sortedBy { it.first }
-                if (logs.size < 2) return@mapNotNull null
+                if (logs.size < READING_MIN) return@mapNotNull null
                 val spanDays = logs.first().first.daysUntilCompat(logs.last().first).coerceAtLeast(1)
                 val totalLogged = logs.sumOf { it.second }
                 val perDay = totalLogged.toDouble() / spanDays
