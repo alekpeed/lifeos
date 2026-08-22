@@ -31,8 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alekpeed.lifeos.core.runAutomations
 import com.alekpeed.lifeos.interfaces.Interfaces
-import com.alekpeed.lifeos.interfaces.nexus.registerNexusCommandRoom
-import com.alekpeed.lifeos.interfaces.nocturne.registerNocturne
 import com.alekpeed.lifeos.platform.SystemBackHandler
 import com.alekpeed.lifeos.settings.LockScreen
 import com.alekpeed.lifeos.settings.appLockEnabled
@@ -53,12 +51,6 @@ fun Shell() {
     if (locked) {
         LockScreen { locked = false }
         return
-    }
-
-    // Make the graphical interfaces available for selection in Settings.
-    remember {
-        registerNexusCommandRoom()
-        registerNocturne()
     }
 
     // Run the opt-in automation rules once on app open (no-op unless enabled).

@@ -12,10 +12,10 @@ import androidx.core.view.WindowInsetsControllerCompat
 /**
  * Applies real Android immersive edge-to-edge when LifeOS becomes visible.
  *
- * Compose's Nocturne screen also requests immersive mode, but activity-level
+ * A graphical interface may also request immersive mode, but activity-level
  * enforcement here prevents OEM/system-bar timing from leaving a black status
  * or navigation strip during the first frame. Module screens may restore bars
- * through Native.setImmersive(false) after leaving the Nocturne home.
+ * through Native.setImmersive(false) after leaving such a home.
  */
 class FullscreenApplication : Application(), Application.ActivityLifecycleCallbacks {
     override fun onCreate() {
