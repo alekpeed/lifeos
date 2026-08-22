@@ -56,6 +56,10 @@ fun Shell() {
     // Run the opt-in automation rules once on app open (no-op unless enabled).
     LaunchedEffect(Unit) { runAutomations() }
 
+    // Sync on open. Android also syncs on resume; desktop has no resume, so this is
+    // where a laptop picks up what the phone did.
+    LaunchedEffect(Unit) { com.alekpeed.lifeos.sync.AutoSync.onForeground() }
+
     // Note the arrival date of any record the census hasn't seen. Done at app open so a
     // record's "added on" date is the day it actually turned up, not the day the Time
     // Machine happens to get opened. Writes only when something is new.

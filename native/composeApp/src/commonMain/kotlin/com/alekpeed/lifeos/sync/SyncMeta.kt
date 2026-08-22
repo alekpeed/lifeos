@@ -44,6 +44,9 @@ object SyncMeta {
         ensureLoaded()
         meta[key] = RecordMeta(now(), false)
         persist()
+        // Every user write in the app reaches here, on both platforms, already filtered
+        // of internal keys — so this is the one place auto-sync needs to listen.
+        AutoSync.onLocalChange()
     }
 
     // Called from Storage.remove.
@@ -52,6 +55,7 @@ object SyncMeta {
         ensureLoaded()
         meta[key] = RecordMeta(now(), true)
         persist()
+        AutoSync.onLocalChange()
     }
 
     // Set an exact (updatedAt, deleted) — used when applying a remote record so it

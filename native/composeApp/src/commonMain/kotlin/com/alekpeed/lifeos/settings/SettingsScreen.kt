@@ -57,6 +57,7 @@ import com.alekpeed.lifeos.integrations.TelegramClient
 import com.alekpeed.lifeos.integrations.TelegramLink
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.sync.AutoSync
 import com.alekpeed.lifeos.sync.SupabaseAuth
 import com.alekpeed.lifeos.sync.SupabaseSync
 import com.alekpeed.lifeos.sync.SyncEngine
@@ -602,6 +603,44 @@ fun SettingsScreen() {
             }
         } else {
             Text("Signed in as ${SupabaseAuth.email() ?: "?"}", style = MaterialTheme.typography.bodyLarge)
+
+            Spacer(Modifier.height(12.dp))
+            var autoOn by remember { mutableStateOf(AutoSync.enabled) }
+            var autoMobile by remember { mutableStateOf(AutoSync.onMobileData) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = autoOn, onCheckedChange = { AutoSync.enabled = it; autoOn = it })
+                Spacer(Modifier.width(10.dp))
+                Text("Sync automatically", style = MaterialTheme.typography.bodyLarge)
+            }
+            Text(
+                "Sends each change moments after you make it, and again whenever the app opens or closes. Without this, nothing leaves the device until you press the button below.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (autoOn) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = autoMobile, onCheckedChange = { AutoSync.onMobileData = it; autoMobile = it })
+                    Spacer(Modifier.width(10.dp))
+                    Text("Also on mobile data", style = MaterialTheme.typography.bodyLarge)
+                }
+                Text(
+                    if (autoMobile) "Syncing on any connection, including roaming."
+                    else "Wifi only. Anything added on mobile data waits, and goes as soon as you're on wifi.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                AutoSync.blockedReason()?.let { why ->
+                    Text(
+                        "Not syncing right now — $why.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (AutoSync.lastResult.isNotEmpty()) {
+                    Text(
+                        "Last: ${AutoSync.lastResult}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(

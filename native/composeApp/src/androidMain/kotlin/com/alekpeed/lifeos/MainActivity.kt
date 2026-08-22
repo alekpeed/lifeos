@@ -348,6 +348,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Pull whatever the other device did while this one was away.
+        com.alekpeed.lifeos.sync.AutoSync.onForeground()
         NativeHost.activity = this
         enableNfcDispatch()
         val filter = IntentFilter(Intent.ACTION_POWER_CONNECTED)
@@ -359,6 +361,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        // Last safe moment to get a pending change off the device.
+        com.alekpeed.lifeos.sync.AutoSync.onBackground()
         try {
             nfcAdapter?.disableForegroundDispatch(this)
         } catch (e: Exception) {
