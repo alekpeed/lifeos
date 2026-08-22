@@ -30,11 +30,8 @@ import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
-import com.alekpeed.lifeos.documents.ExpiryState
-import com.alekpeed.lifeos.documents.expiryState
-import com.alekpeed.lifeos.documents.loadDocuments
-import com.alekpeed.lifeos.education.loadEducation
-import com.alekpeed.lifeos.finance.financeBills
+import com.alekpeed.lifeos.calendar.datedItems
+import com.alekpeed.lifeos.documents.docExpiryDays
 import com.alekpeed.lifeos.habits.Habit
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.habits.saveHabits
@@ -54,18 +51,31 @@ private fun alsoDue(): List<DueLine> {
     val now = today()
     val soon = now.plusDays(7)
     val out = mutableListOf<DueLine>()
-    financeBills().filter { !it.settled }.forEach { b ->
-        val due = parseDateOrNull(b.dueDate) ?: return@forEach
-        if (due <= soon) out.add(DueLine("💵", b.name, relativeLabel(due) + if (b.autopay) " · autopay" else "", "finance", due < now && !b.autopay))
+
+    // One walk over every dated record, through the shared query (§12.1.1), instead of
+    // this screen keeping its own. The horizons below stay Today's own policy: it gives
+    // bills a flat week where Briefing and Notifications give them billDueSoonDays().
+    // Consolidating the question does not mean flattening each surface's answer.
+    val dated = datedItems(now.plusDays(-3650), now.plusDays(400), includeDone = false)
+
+    dated.filter { it.moduleId == "finance" && it.date <= soon }.forEach { b ->
+        val autopay = b.note == "autopay"
+        out.add(
+            DueLine(
+                "💵", b.title, relativeLabel(b.date) + if (autopay) " · autopay" else "",
+                "finance", b.date < now && !autopay,
+            ),
+        )
     }
-    loadEducation().assignments.filter { !it.done }.forEach { a ->
-        val due = parseDateOrNull(a.dueDate) ?: return@forEach
-        if (due <= soon) out.add(DueLine("🎓", a.title, relativeLabel(due), "education", due < now))
+    dated.filter { it.moduleId == "education" && it.date <= soon }.forEach { a ->
+        out.add(DueLine("🎓", a.title, relativeLabel(a.date), "education", a.date < now))
     }
-    loadDocuments().documents.forEach { d ->
-        when (expiryState(d)) {
-            ExpiryState.EXPIRED -> out.add(DueLine("📄", d.title, "expired", "documents", true))
-            ExpiryState.SOON -> out.add(DueLine("📄", d.title, "expires soon", "documents", false))
+    // Documents keep their own configurable horizon, and an expired one shows however
+    // long ago it lapsed.
+    dated.filter { it.moduleId == "documents" }.forEach { d ->
+        when {
+            d.date < now -> out.add(DueLine("📄", d.title, "expired", "documents", true))
+            d.date <= now.plusDays(docExpiryDays()) -> out.add(DueLine("📄", d.title, "expires soon", "documents", false))
             else -> {}
         }
     }

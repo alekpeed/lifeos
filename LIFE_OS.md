@@ -5,7 +5,7 @@ have to do, what you own, what you've read, where you've been, what you spent, w
 know, what you learned — held as records you own, on a machine you own, in an app that
 notices things about them.
 
-**37 modules across 8 domains, in one native application.**
+**38 modules across 8 domains, in one native application.**
 
 ---
 
@@ -56,7 +56,7 @@ this document should hold to them.
 
 ## Where it stands
 
-All 37 modules are built and compile; the desktop build runs. What remains is short:
+All 38 modules are built and compile; the desktop build runs. What remains is short:
 
 - **Two features blocked on credentials** — importing from Google Photos, and pushing
   to a calendar. Both need an OAuth client the owner has to create.
@@ -103,7 +103,7 @@ Each entry gives what the module is and what a record in it holds. Field names a
 real ones the application stores.
 
 ## Operations
-*Run your day.*  (7 modules)
+*Run your day.*  (8 modules)
 
 ### Operations
 A full-screen graphical hub for the day: the module's artwork is the interface, with
@@ -113,6 +113,16 @@ and a barcode scan. Runs immersive, so it takes the whole display.
 
 - **HitRect** — `id`, `x`, `y`, `width`, `height`
 - On Linux: no camera, no barcode scanning.
+
+### Calendar
+Every dated record in the app on one agenda — tasks and assignments due, bills, document
+expiries, milestones, birthdays and time capsules coming unsealed. A month at a time, with
+the picked day's items listed underneath; tapping one opens the module it came from.
+
+It owns the dated-items query the rest of the app reads: Today is that query for today's
+range, so a new dated module surfaces everywhere by being added here once.
+
+- **DatedItem** — `key`, `icon`, `title`, `date`, `time`, `moduleId`, `kind`, `note`, `done`
 
 ### Today
 The landing page. Everything today asks of you, gathered from every other module: what's

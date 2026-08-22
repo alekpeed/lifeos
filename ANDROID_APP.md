@@ -1,10 +1,10 @@
 # Life OS — Android
 
 Everything in the Android application as it stands: how you get into it, the phone
-hardware it uses, and all 37 modules with what each one is and what a record in it
+hardware it uses, and all 38 modules with what each one is and what a record in it
 holds. Written from the Kotlin source.
 
-**37 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
+**38 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
 
 ---
 
@@ -98,7 +98,7 @@ Field names are the real ones the app stores. **On the phone** lists the hardwar
 module actually reaches for.
 
 ## Operations
-*Run your day.* — 7 modules
+*Run your day.* — 8 modules
 
 ### ◈  Operations
 A full-screen graphical hub for the day: the module's artwork is the interface, with
@@ -108,6 +108,16 @@ and a barcode scan. Runs immersive, so it takes the whole display.
 
 - **HitRect** — `id`, `x`, `y`, `width`, `height`
 - On the phone: camera, barcode/QR scanning, immersive full-screen, dictation.
+
+### 🗓  Calendar
+Every dated record in the app on one agenda — tasks and assignments due, bills, document
+expiries, milestones, birthdays and time capsules coming unsealed. A month at a time, with
+the picked day's items listed underneath; tapping one opens the module it came from.
+
+It owns the dated-items query the rest of the app reads: Today is that query for today's
+range, so a new dated module surfaces everywhere by being added here once.
+
+- **DatedItem** — `key`, `icon`, `title`, `date`, `time`, `moduleId`, `kind`, `note`, `done`
 
 ### 🗓  Today
 The landing page. Everything today asks of you, gathered from every other module: what's
@@ -533,7 +543,7 @@ backup.
 
 # Where it stands
 
-All 37 modules are built and the build runs on device. Outstanding:
+All 38 modules are built and the build runs on device. Outstanding:
 
 - **Blocked on credentials** — Google Photos import and calendar push; both need an
   OAuth client created in the Google Cloud project.

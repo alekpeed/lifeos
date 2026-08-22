@@ -5,6 +5,7 @@ import com.alekpeed.lifeos.books.BooksScreen
 import com.alekpeed.lifeos.collections.CollectionsScreen
 import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
+import com.alekpeed.lifeos.calendar.CalendarScreen
 import com.alekpeed.lifeos.documents.DocumentsScreen
 import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
@@ -69,6 +70,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("tasks", "✅", "Tasks", "Operations", true) { TasksScreen() },
     Module("command", "⌘", "Command", "Operations", true) { CommandScreen() },
     Module("briefing", "📋", "Briefing", "Operations", true) { BriefingScreen() },
+    Module("calendar", "🗓", "Calendar", "Operations", true) { CalendarScreen() },
     Module("notifications", "🔔", "Notifications", "Operations", true) { NotificationsScreen() },
     // Archive — what you keep
     Module("documents", "📄", "Documents", "Archive", true) { DocumentsScreen() },
