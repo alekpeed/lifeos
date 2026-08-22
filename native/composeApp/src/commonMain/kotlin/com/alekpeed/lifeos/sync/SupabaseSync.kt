@@ -14,7 +14,14 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
-data class SyncSummary(val pushed: Int, val applied: Int)
+data class SyncSummary(
+    val pushed: Int,
+    val applied: Int,
+    val blobsUp: Int = 0,
+    val blobsDown: Int = 0,
+    val blobsFailed: Int = 0,
+    val blobsRemaining: Int = 0,
+)
 
 // The transport: pushes local changes and pulls remote ones against the shared
 // `sync_records` table (store = "kv"), then hands the remote rows to SyncEngine's
@@ -28,10 +35,25 @@ object SupabaseSync {
     suspend fun syncNow(): Result<SyncSummary> {
         if (!SupabaseAuth.isSignedIn()) return Result.failure(IllegalStateException("Sign in to sync"))
         return try {
+            // Order matters. Attachments go up before the records that reference them, so
+            // a record never lands on another device ahead of its bytes; and they come
+            // down after the record pull, because that pull is what reveals which ones
+            // this device is missing.
+            val up = BlobSync.push()
             val pushed = push().getOrElse { return Result.failure(it) }
             val applied = pull().getOrElse { return Result.failure(it) }
+            val down = BlobSync.pull()
             SyncEngine.markSynced(now())
-            Result.success(SyncSummary(pushed, applied))
+            Result.success(
+                SyncSummary(
+                    pushed = pushed,
+                    applied = applied,
+                    blobsUp = up.uploaded,
+                    blobsDown = down.downloaded,
+                    blobsFailed = up.failed + down.failed,
+                    blobsRemaining = up.remaining + down.remaining,
+                ),
+            )
         } catch (e: Exception) {
             Result.failure(RuntimeException("Sync failed"))
         }

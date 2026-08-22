@@ -610,7 +610,16 @@ fun SettingsScreen() {
                         sbBusy = true; sbMsg = "Syncing…"
                         scope.launch {
                             SupabaseSync.syncNow()
-                                .onSuccess { sbMsg = "Synced — pushed ${it.pushed}, pulled ${it.applied}" }
+                                .onSuccess {
+                                    sbMsg = buildString {
+                                        append("Synced — pushed ${it.pushed}, pulled ${it.applied}")
+                                        if (it.blobsUp > 0 || it.blobsDown > 0) {
+                                            append(" · attachments ↑${it.blobsUp} ↓${it.blobsDown}")
+                                        }
+                                        if (it.blobsRemaining > 0) append(" · ${it.blobsRemaining} attachment(s) left, sync again")
+                                        if (it.blobsFailed > 0) append(" · ${it.blobsFailed} attachment(s) failed")
+                                    }
+                                }
                                 .onFailure { sbMsg = it.message ?: "Sync failed" }
                             sbBusy = false
                         }
