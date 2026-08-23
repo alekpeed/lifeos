@@ -178,8 +178,11 @@ fun DateField(
 
 // Hour then minute, mirroring the date picker's stepped grids rather than introducing a
 // second interaction style for the same job.
+// Internal rather than private: Settings picks the wake word's listening window with
+// the same dialog (§7 D-2), and a second time picker in one app is a second answer to
+// what "9" means.
 @Composable
-private fun TimePickerDialog(initial: LocalTime?, onDismiss: () -> Unit, onPick: (LocalTime) -> Unit) {
+internal fun TimePickerDialog(initial: LocalTime?, onDismiss: () -> Unit, onPick: (LocalTime) -> Unit) {
     var step by remember { mutableStateOf(0) }  // 0 = hour, 1 = minute
     var hour24 by remember { mutableStateOf(initial?.hour ?: 9) }
 

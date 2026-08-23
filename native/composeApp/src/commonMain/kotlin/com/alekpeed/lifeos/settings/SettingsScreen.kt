@@ -60,6 +60,14 @@ import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.sync.AutoSync
 import com.alekpeed.lifeos.sync.SupabaseAuth
 import com.alekpeed.lifeos.sync.SupabaseSync
+import com.alekpeed.lifeos.ui.TimePickerDialog
+import com.alekpeed.lifeos.wakeword.WakeGates
+import com.alekpeed.lifeos.wakeword.WakePower
+import com.alekpeed.lifeos.wakeword.loadWakeGates
+import com.alekpeed.lifeos.wakeword.saveWakeGates
+import com.alekpeed.lifeos.wakeword.wakePowerLabel
+import com.alekpeed.lifeos.data.timeLabel
+import kotlinx.datetime.LocalTime
 import com.alekpeed.lifeos.sync.SyncEngine
 import com.alekpeed.lifeos.sync.SyncMeta
 import kotlinx.coroutines.launch
@@ -83,6 +91,9 @@ fun SettingsScreen() {
     var wakeWord by remember { mutableStateOf(false) }
     var deviceMsg by remember { mutableStateOf("") }
     var wakePhrase by remember { mutableStateOf(Storage.read("WakePhrase")?.ifBlank { null } ?: "hey life") }
+    var gates by remember { mutableStateOf(loadWakeGates()) }
+    var pickingFrom by remember { mutableStateOf(false) }
+    var pickingUntil by remember { mutableStateOf(false) }
     var onlyMyVoice by remember { mutableStateOf(Native.onlyMyVoiceEnabled()) }
     var hasVoiceprint by remember { mutableStateOf(Native.hasVoiceprint()) }
     var enrolling by remember { mutableStateOf(false) }
@@ -209,6 +220,86 @@ fun SettingsScreen() {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                // §7 D-2. Restarting the service is how a changed gate takes effect —
+                // it re-evaluates on every start, so this is a re-check, not a reboot.
+                fun setGates(g: WakeGates) {
+                    gates = g
+                    saveWakeGates(g)
+                    if (wakeWord) Native.setWakeWordEnabled(true)
+                }
+
+                Spacer(Modifier.height(12.dp))
+                Text("When it listens", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "The system assistant listens on a dedicated low-power chip in the audio hardware. " +
+                        "No other app can reach it, so this one listens on the CPU — and the only thing " +
+                        "that moves the battery cost is when it listens, not how.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(WakePower.CHARGING, WakePower.CHARGING_OR_SCREEN, WakePower.ALWAYS).forEach { p ->
+                        FilterChip(
+                            selected = gates.power == p,
+                            onClick = { setGates(gates.copy(power = p)) },
+                            label = { Text(wakePowerLabel(p)) },
+                        )
+                    }
+                }
+                if (gates.power == WakePower.ALWAYS) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Ungated, this will cost more battery than your phone's own assistant. That's the " +
+                            "hardware limit above, not something an update fixes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Only during these hours", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Nothing is captured while you're asleep, and nothing is listening either.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = gates.hoursEnabled, onCheckedChange = { setGates(gates.copy(hoursEnabled = it)) })
+                }
+                if (gates.hoursEnabled) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { pickingFrom = true }) { Text("From ${timeLabel(gates.from)}") }
+                        OutlinedButton(onClick = { pickingUntil = true }) { Text("Until ${timeLabel(gates.until)}") }
+                    }
+                    if (gates.from > gates.until) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "That window runs overnight, which is allowed — it listens from " +
+                                "${timeLabel(gates.from)} through midnight to ${timeLabel(gates.until)}.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (pickingFrom) {
+                    TimePickerDialog(
+                        initial = gates.from,
+                        onDismiss = { pickingFrom = false },
+                        onPick = { t: LocalTime -> setGates(gates.copy(from = t)); pickingFrom = false },
+                    )
+                }
+                if (pickingUntil) {
+                    TimePickerDialog(
+                        initial = gates.until,
+                        onDismiss = { pickingUntil = false },
+                        onPick = { t: LocalTime -> setGates(gates.copy(until = t)); pickingUntil = false },
+                    )
+                }
             }
 
             if (Native.supportsSpeakerId) {

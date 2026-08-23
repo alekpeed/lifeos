@@ -1,17 +1,34 @@
 package com.alekpeed.lifeos.platform
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.data.epochMillisAt
+import com.alekpeed.lifeos.data.plusDays
+import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.wakeword.DeviceState
+import com.alekpeed.lifeos.wakeword.blockReason
+import com.alekpeed.lifeos.wakeword.loadWakeGates
+import com.alekpeed.lifeos.wakeword.nextHoursFlip
+import com.alekpeed.lifeos.wakeword.wakeDecision
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.json.JSONObject
 import org.vosk.Model
 import org.vosk.Recognizer
@@ -29,6 +46,16 @@ import org.vosk.android.SpeechService
 // This is still software hotword spotting on the CPU, not the phone's dedicated
 // low-power hotword chip (that's reserved for the system assistant) — see the
 // handoff doc's wake-word notes.
+//
+// Which is why the service is GATED (§7 D-2). Because no third-party app can reach the
+// hotword DSP, the only lever on battery is when it listens, not how — so the mic and
+// the decoder run only while the gates in wakeword/Gating.kt are open, and the service
+// otherwise sits as a notification that says why it is quiet. Screen and power changes
+// arrive as broadcasts; the hours boundary is one alarm rather than a poll.
+//
+// The Vosk model stays loaded across a closed gate on purpose. D-2 diagnosed the drain
+// as holding the microphone open on the CPU, not the model — and reloading 40 MB from
+// disk every time the screen turns on would be its own cost, several times an hour.
 class WakeWordService : Service() {
 
     private val main = Handler(Looper.getMainLooper())
@@ -36,6 +63,16 @@ class WakeWordService : Service() {
     private var speakerModel: SpeakerModel? = null
     private var speech: SpeechService? = null
     @Volatile private var running = false
+    @Volatile private var modelReady = false
+
+    // Screen on/off and plug in/out are the two events that move the power gate, and
+    // neither can be declared in the manifest — a dynamically registered receiver on a
+    // running service is the only way to hear them, which suits: when the service is
+    // not running there is nothing to gate.
+    private val gateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) { applyGate() }
+    }
+    private var receiverRegistered = false
 
     private val phrase: String
         get() = Storage.read("WakePhrase")?.trim()?.ifBlank { null } ?: DEFAULT_PHRASE
@@ -46,19 +83,46 @@ class WakeWordService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onCreate() {
+        super.onCreate()
+        // Set here as well as in onStartCommand: a gate broadcast can arrive before the
+        // start command has run, and applyGate reads settings out of the store.
+        Storage.appContext = applicationContext
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_POWER_CONNECTED)
+            addAction(Intent.ACTION_POWER_DISCONNECTED)
+            addAction(ACTION_GATE_TICK)
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(gateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(gateReceiver, filter)
+        }
+        receiverRegistered = true
+    }
+
+    // Re-entrant on purpose: Settings restarts the service after a gate changes, so
+    // this runs again on an already-running service and simply re-evaluates.
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Storage.appContext = applicationContext
         running = true
         startInForeground(statusText())
-        prepareAndStart()
+        if (modelReady) applyGate() else prepareModel()
         return START_STICKY
     }
 
     override fun onDestroy() {
         running = false
         main.removeCallbacksAndMessages(null)
-        try { speech?.stop(); speech?.shutdown() } catch (e: Exception) {}
-        speech = null
+        cancelFlipAlarm()
+        if (receiverRegistered) {
+            try { unregisterReceiver(gateReceiver) } catch (e: Exception) {}
+            receiverRegistered = false
+        }
+        stopRecognition()
         try { model?.close() } catch (e: Exception) {}
         model = null
         try { speakerModel?.close() } catch (e: Exception) {}
@@ -66,9 +130,9 @@ class WakeWordService : Service() {
         super.onDestroy()
     }
 
-    // Fetch the model if needed (off the main thread), then start listening on the
-    // main thread. Vosk's SpeechService owns its own audio thread; we just create it.
-    private fun prepareAndStart() {
+    // Fetch the model if needed (off the main thread), then hand back to the gate.
+    // Vosk's SpeechService owns its own audio thread; we just create it.
+    private fun prepareModel() {
         val ctx = applicationContext
         val needSpeaker = voiceGateActive()
         Thread {
@@ -87,22 +151,92 @@ class WakeWordService : Service() {
                     main.post { if (running) updateNotification("Preparing voiceprint model… $pct%") }
                 }
             }
-            main.post { if (running) startRecognition(ctx) }
+            modelReady = true
+            main.post { if (running) applyGate() }
         }.also { it.isDaemon = true }.start()
+    }
+
+    // ---- the gate ---------------------------------------------------------------
+
+    private fun nowTime() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
+
+    private fun deviceState(): DeviceState {
+        val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        // isInteractive is "the screen is on and not dozing", which is the question.
+        val screenOn = pm?.isInteractive ?: true
+        // The battery-changed broadcast is sticky, so reading it costs a lookup rather
+        // than a subscription.
+        val battery = runCatching { registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) }.getOrNull()
+        val plugged = battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
+        return DeviceState(charging = plugged != 0, screenOn = screenOn)
+    }
+
+    // The one place that decides whether the microphone is open. Everything else —
+    // broadcasts, the alarm, a settings change — comes through here.
+    private fun applyGate() {
+        if (!running) return
+        val gates = loadWakeGates()
+        val decision = wakeDecision(gates, deviceState(), nowTime())
+        scheduleFlipAlarm(nextHoursFlip(gates, nowTime()))
+        if (decision.listening) {
+            if (modelReady && speech == null) startRecognition(applicationContext)
+            if (speech != null) updateNotification(statusText())
+        } else {
+            stopRecognition()
+            updateNotification(blockReason(decision))
+        }
+    }
+
+    // The hours boundary is a known future moment, so it gets one alarm rather than a
+    // timer that wakes the CPU to ask what time it is.
+    private fun scheduleFlipAlarm(at: kotlinx.datetime.LocalTime?) {
+        val am = getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        if (at == null) { cancelFlipAlarm(); return }
+        val now = nowTime()
+        val date = if (at > now) today() else today().plusDays(1)
+        runCatching {
+            am.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                epochMillisAt(date, at.hour, at.minute),
+                flipIntent(),
+            )
+        }
+    }
+
+    private fun cancelFlipAlarm() {
+        val am = getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        runCatching { am.cancel(flipIntent()) }
+    }
+
+    // Broadcast rather than a service start: the service is already alive whenever this
+    // matters, and starting a foreground service from a background alarm is restricted
+    // on modern Android. If the service is gone, nothing is listening for it — which is
+    // the correct outcome.
+    private fun flipIntent(): PendingIntent {
+        val intent = Intent(ACTION_GATE_TICK).setPackage(packageName)
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(this, GATE_ALARM_ID, intent, flags)
+    }
+
+    // Closing the gate stops the microphone and the decoder — the whole of the drain
+    // D-2 identified. The model stays in memory; see the note at the top.
+    private fun stopRecognition() {
+        val svc = speech ?: return
+        speech = null
+        runCatching { svc.stop() }
+        runCatching { svc.shutdown() }
     }
 
     private fun startRecognition(ctx: Context) {
         try {
-            val m = Model(VoskModels.modelDir(ctx).absolutePath)
-            model = m
+            val m = model ?: Model(VoskModels.modelDir(ctx).absolutePath).also { model = it }
             val recognizer = Recognizer(m, SAMPLE_RATE)
             // Attach the speaker model so results carry an "spk" voiceprint we can
             // check against the enrolled owner. Only when the gate is active and the
             // speaker model actually unpacked.
             if (voiceGateActive() && VoskModels.isSpeakerReady(ctx)) {
                 try {
-                    val sm = SpeakerModel(VoskModels.speakerDir(ctx).absolutePath)
-                    speakerModel = sm
+                    val sm = speakerModel ?: SpeakerModel(VoskModels.speakerDir(ctx).absolutePath).also { speakerModel = it }
                     recognizer.setSpeakerModel(sm)
                 } catch (e: Exception) {
                     // Fall back to plain recognition if the speaker model won't load.
@@ -200,6 +334,10 @@ class WakeWordService : Service() {
         private const val NOTIF_ID = 7801
         private const val SAMPLE_RATE = 16000.0f
         private const val DEFAULT_PHRASE = "hey life"
+        private const val GATE_ALARM_ID = 7802
+        // Private to the app: the alarm's only job is to poke this service's own
+        // receiver when the listening window opens or closes.
+        const val ACTION_GATE_TICK = "com.alekpeed.lifeos.WAKE_GATE_TICK"
         private val WS = Regex("\\s+")
     }
 }

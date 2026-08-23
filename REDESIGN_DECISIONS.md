@@ -760,6 +760,51 @@ Levers, in order of effect:
 Always-on, all-day, ungated will cost more than Google. That is a hardware limit,
 not an implementation defect.
 
+**Built 2026-08-23** as `wakeword/Gating.kt` plus the gate in `WakeWordService`.
+
+Two of the five levers turned out to need no work, and saying so is more useful than
+claiming them:
+
+- **Smallest viable model (3)** — already `vosk-model-small-en-us-0.15` at 16 kHz,
+  which is the smallest English model Vosk publishes and the rate it is trained at.
+  There is no smaller one to move to.
+- **Release the wake lock (4)** — there was no wake lock. The service never took one;
+  the foreground service is what keeps the process alive. Nothing to release.
+
+The other three are real, and one of them is the whole thing:
+
+- **Power gate (1).** Three settings — charging only, charging or screen on, always —
+  defaulting to *charging or screen on*, so an existing install becomes gated on
+  upgrade rather than keeping the old cost until somebody notices. Screen and power
+  changes arrive as broadcasts to a receiver the running service registers itself;
+  they cannot be declared in a manifest, which suits, because when the service is not
+  running there is nothing to gate.
+- **Hours gate (2).** Default 07:00–22:00, and it outranks the power gate — a phone
+  charging overnight is the exact case it exists for. The window may run past
+  midnight, which somebody working nights needs and which a naive `from < until` gets
+  wrong. It is one alarm at the next boundary, not a timer that wakes the CPU to ask
+  what time it is.
+- **Speaker ID off the always-on path (5).** The x-vector is computed per decoded
+  speech segment, so it costs nothing while nothing is being said — and now costs
+  nothing at all while a gate is closed, because the decoder is stopped rather than
+  idling. Verifying strictly *after* a trigger is not reachable with Vosk without
+  either buffering audio or splitting the interaction into two utterances; both are
+  worse than what closing the gate already achieves.
+
+Closing a gate stops the microphone and the decoder and leaves the model in memory —
+D-2's own diagnosis is that the drain is the open mic on the CPU, not the model, and
+reloading 40 MB from disk on every screen-on would be its own cost several times an
+hour. The notification says which gate is closed rather than leaving "Life OS is
+listening" over a microphone that is shut.
+
+The policy is pure and lives in commonMain, tested on the desktop JVM (13 cases). It
+is the only part of a microphone service that can be tested without a device, and the
+part where being wrong costs a day of battery while looking exactly like working code.
+
+Ungated remains available and remains labelled, in the Settings copy as well as here:
+it costs more than the system assistant, and that is the hardware limit above rather
+than something an update fixes.
+
 ### D-3 Telegram — KEPT, contingent on scheduled push
 
 **Keep.** Its value depends almost entirely on scheduled sending, which does not
