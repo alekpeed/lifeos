@@ -55,6 +55,9 @@ import com.alekpeed.lifeos.photos.savePhotos
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.ui.DateField
 import com.alekpeed.lifeos.ui.SaveToast
+import androidx.compose.runtime.rememberCoroutineScope
+import com.alekpeed.lifeos.ai.AiClient
+import kotlinx.coroutines.launch
 
 // Travel. A trip list, then everything about one trip behind tabs: what it is, what is
 // booked, what to pack, what it costs, and which of your documents have to be valid for it.
@@ -187,7 +190,11 @@ private fun TripRow(trip: Trip, data: TravelData, now: kotlinx.datetime.LocalDat
 @Composable
 private fun TripDetail(trip: Trip, data: TravelData, onChange: (TravelData) -> Unit, onBack: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
-    val tabs = listOf("Trip", "Bookings", "Packing", "Budget", "Documents", "Places & photos")
+    // The recap tab only exists once the trip is over — a recap of a trip you are still
+    // on is a status report, and the screen already has five of those.
+    val over = tripIsOver(trip)
+    val tabs = listOf("Trip", "Bookings", "Packing", "Budget", "Documents", "Places & photos") +
+        if (over) listOf("Recap") else emptyList()
 
     fun patch(f: (Trip) -> Trip) {
         onChange(data.copy(trips = data.trips.map { if (it.id == trip.id) f(it) else it }))
@@ -224,7 +231,8 @@ private fun TripDetail(trip: Trip, data: TravelData, onChange: (TravelData) -> U
             2 -> PackingTab(trip)
             3 -> BudgetTab(trip, data, ::patch)
             4 -> DocumentsTab(trip, ::patch)
-            else -> PlacesPhotosTab(trip, ::patch)
+            5 -> PlacesPhotosTab(trip, ::patch)
+            else -> RecapTab(trip, data)
         }
     }
 }
@@ -908,5 +916,102 @@ private fun DocumentsTab(trip: Trip, patch: ((Trip) -> Trip) -> Unit) {
         }
         Spacer(Modifier.height(10.dp))
         TextButton(onClick = { Nav.open("documents") }) { Text("Open Documents →") }
+    }
+}
+
+// §11.6 — what the trip came to, once it is over. Every number is counted from records
+// that already exist; nothing here is a field you have to fill in.
+@Composable
+private fun RecapTab(trip: Trip, data: TravelData) {
+    val recap = remember(trip.id, data) { tripRecap(trip, data) }
+    val stats = remember(recap) { tripRecapStats(recap) }
+
+    val scope = rememberCoroutineScope()
+    val hasKey = remember { AiClient.hasKey() }
+    var narrative by remember(trip.id) { mutableStateOf(tripNarrative(trip.id)) }
+    var writing by remember { mutableStateOf(false) }
+
+    fun write() {
+        if (writing) return
+        writing = true
+        scope.launch {
+            val reply = AiClient.ask(TRIP_RECAP_SYSTEM, buildTripRecapContext(recap), maxTokens = 400)
+            narrative = reply.text
+            if (!reply.isError) saveTripNarrative(trip.id, reply.text)
+            writing = false
+        }
+    }
+
+    Column {
+        Text(
+            trip.name.ifBlank { "The trip" } + ", in review",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(8.dp))
+
+        if (!recap.hasAnything) {
+            Text(
+                "Nothing was logged for this trip — no photos, places, bookings or spend. " +
+                    "There is nothing to recap yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
+
+        stats.forEach { (label, value) ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(value, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+
+        if (recap.budget.unconvertible.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "No rate loaded for ${recap.budget.unconvertible.joinToString(", ")} — " +
+                    "those bookings are counted nowhere above.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        Spacer(Modifier.height(14.dp))
+        Text(
+            "Narrative",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        when {
+            !hasKey -> Text(
+                "Add an AI key in Settings to have the trip written up, grounded only in " +
+                    "these numbers.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            narrative.isNotBlank() -> Text(narrative, style = MaterialTheme.typography.bodyMedium)
+            else -> Text(
+                "Not written up yet.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (hasKey) {
+            OutlinedButton(onClick = { write() }, enabled = !writing) {
+                Text(
+                    when {
+                        writing -> "Writing…"
+                        narrative.isBlank() -> "Write it up"
+                        else -> "Write it again"
+                    },
+                )
+            }
+        }
     }
 }

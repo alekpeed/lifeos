@@ -5,6 +5,7 @@ import com.alekpeed.lifeos.data.parseTimeOrNull
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.timeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.documents.docExpiryDays
 import com.alekpeed.lifeos.documents.loadDocuments
 import com.alekpeed.lifeos.education.loadEducation
 import com.alekpeed.lifeos.finance.financeBills
@@ -12,6 +13,7 @@ import com.alekpeed.lifeos.milestones.loadMilestones
 import com.alekpeed.lifeos.people.loadContacts
 import com.alekpeed.lifeos.projects.ProjectStatus
 import com.alekpeed.lifeos.projects.loadProjects
+import com.alekpeed.lifeos.settings.billDueSoonDays
 import com.alekpeed.lifeos.tasks.loadTasks
 import com.alekpeed.lifeos.timecapsules.loadCapsules
 import com.alekpeed.lifeos.travel.ReservationStatus
@@ -52,6 +54,10 @@ data class DatedItem(
     val time: LocalTime?,
     val moduleId: String,
     val kind: DatedKind,
+    // The id of the record this came from, where it has one. Lets a surface act on the
+    // record — Briefing's "Done ✓" and "Renew +1y" need it — without parsing it back out
+    // of `key`. Null for the sources whose records are keyed by name (bills).
+    val recordId: Long? = null,
     val note: String = "",
     val done: Boolean = false,
 ) {
@@ -79,7 +85,7 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
             DatedItem(
                 key = "task-${t.id}", icon = "✅", title = t.title, date = d,
                 time = parseTimeOrNull(t.due), moduleId = "tasks", kind = DatedKind.DUE,
-                done = t.done,
+                recordId = t.id, done = t.done,
             ),
         )
     }
@@ -105,7 +111,7 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
             DatedItem(
                 key = "assign-${a.id}", icon = "🎓", title = a.title, date = d,
                 time = parseTimeOrNull(a.dueDate), moduleId = "education", kind = DatedKind.DUE,
-                done = a.done,
+                recordId = a.id, done = a.done,
             ),
         )
     }
@@ -117,6 +123,7 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
             DatedItem(
                 key = "doc-${doc.id}", icon = "📄", title = doc.title, date = d,
                 time = null, moduleId = "documents", kind = DatedKind.EXPIRY, note = "expires",
+                recordId = doc.id,
             ),
         )
     }
@@ -130,6 +137,7 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
             DatedItem(
                 key = "capsule-${c.id}", icon = "⏳", title = c.title, date = d,
                 time = null, moduleId = "time-capsules", kind = DatedKind.UNSEAL, note = "opens",
+                recordId = c.id,
             ),
         )
     }
@@ -183,6 +191,7 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
             DatedItem(
                 key = "milestone-${m.id}", icon = "🏆", title = m.title, date = d,
                 time = null, moduleId = "milestones", kind = DatedKind.EVENT,
+                recordId = m.id,
             ),
         )
     }
@@ -200,7 +209,7 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
             DatedItem(
                 key = "project-${p.id}", icon = "🗂", title = p.name, date = d,
                 time = null, moduleId = "projects", kind = DatedKind.DUE,
-                note = "project target", done = finished,
+                note = "project target", recordId = p.id, done = finished,
             ),
         )
     }
@@ -217,6 +226,7 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
                 DatedItem(
                     key = "bday-${c.id}-$year", icon = "🎂", title = c.name, date = d,
                     time = null, moduleId = "contacts", kind = DatedKind.RECURRING, note = "birthday",
+                    recordId = c.id,
                 ),
             )
         }
@@ -261,8 +271,35 @@ private fun yearsSpanned(from: LocalDate, to: LocalDate): List<Int> = (from.year
 // Today's range.
 fun datedToday(): List<DatedItem> = today().let { datedItems(it, it, includeDone = false) }
 
-// Overdue and due-soon, which is what a briefing is. Anything already past shows up
-// however far back it goes, so an overdue item can't quietly fall out of the window.
-fun datedDueSoon(days: Int = 7, from: LocalDate = today()): List<DatedItem> =
-    datedItems(from.plusDays(-3650), from.plusDays(days), includeDone = false)
-        .filter { it.kind != DatedKind.EVENT }
+// Overdue and due-soon: the worklist Briefing, Daily Paper and Today's "also due" all
+// are. Anything already past shows up however far back it goes, so an overdue item
+// cannot quietly fall out of the window.
+//
+// The per-module horizons live here rather than in each surface, which is where the
+// drift was: Briefing gave bills billDueSoonDays() and documents docExpiryDays(), Daily
+// Paper gave bills their window but documents a flat week, and Today gave bills a flat
+// week and documents their window. Three answers to "is this due soon" for the same
+// bill. The horizon belongs to the module that owns the setting, not to whoever is
+// drawing the list.
+//
+// Events and birthdays are excluded on purpose. A birthday is not owed; it appears on a
+// calendar, not on a worklist.
+fun datedWorklist(days: Int = 7, from: LocalDate = today()): List<DatedItem> {
+    val billHorizon = from.plusDays(billDueSoonDays())
+    val docHorizon = from.plusDays(docExpiryDays())
+    val general = from.plusDays(days)
+    val furthest = maxOf(billHorizon, docHorizon, general)
+
+    return datedItems(from.plusDays(-3650), furthest, includeDone = false)
+        .filter { it.kind == DatedKind.DUE || it.kind == DatedKind.EXPIRY }
+        .filter { item ->
+            item.date <= when (item.moduleId) {
+                "finance" -> billHorizon
+                "documents" -> docHorizon
+                else -> general
+            }
+        }
+        .sortedWith(
+            compareBy({ !it.isOverdue(from) }, { it.date }, { it.title.lowercase() }),
+        )
+}

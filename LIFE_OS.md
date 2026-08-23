@@ -309,6 +309,11 @@ a Photos album to the trip, suggests want-to-go places and bucket-list entries m
 destinations, and lists places you actually logged between the dates. Trips and bookings
 appear on the Calendar automatically.
 
+Once the end date has passed a Recap tab appears: days away, photos in the linked album,
+places visited inside the range, bookings by kind, and spend against budget — every
+figure counted from records that already exist. With an AI key it will write the trip up
+from exactly those numbers and nothing else.
+
 Foreign-currency bookings convert through the Tools rates, but the native amounts are kept
 and shown alongside — a rate is today's and a booking was paid at the rate on the day, so
 the converted total is labelled an estimate rather than merged in silently.

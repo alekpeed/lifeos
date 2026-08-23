@@ -22,17 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Nav
+import com.alekpeed.lifeos.calendar.datedWorklist
 import com.alekpeed.lifeos.data.linesOf
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
-import com.alekpeed.lifeos.documents.ExpiryState
-import com.alekpeed.lifeos.documents.expiryState
 import com.alekpeed.lifeos.documents.loadDocuments
 import com.alekpeed.lifeos.documents.saveDocuments
-import com.alekpeed.lifeos.education.loadEducation
-import com.alekpeed.lifeos.finance.financeBills
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.habits.saveHabits
 import com.alekpeed.lifeos.platform.Native
@@ -67,10 +64,6 @@ fun BriefingScreen() {
 
     val lines = remember(tick) {
         val now = today()
-        val soon = now.plusDays(7)
-        // Bills use the Settings horizon; everything else stays on the week ahead.
-        val billSoon = now.plusDays(com.alekpeed.lifeos.settings.billDueSoonDays())
-        val tasks = loadTasks()
         val habits = loadHabits()
         val out = mutableListOf<BriefLine>()
 
@@ -84,29 +77,6 @@ fun BriefingScreen() {
             saveTasks(all)
             tick += 1
         }
-        tasks.filter { val d = it.dueDate(); !it.done && d != null && d < now }
-            .sortedBy { it.dueDate() }
-            .forEach { t -> out.add(BriefLine("t${t.id}", t.title, relativeLabel(t.dueDate()!!), "tasks", "Done ✓", { completeTask(t.id) }, "Snooze", { snoozeTask(t.id) })) }
-        tasks.filter { !it.done && it.dueDate() == now }
-            .forEach { t -> out.add(BriefLine("t${t.id}", t.title, "Today", "tasks", "Done ✓", { completeTask(t.id) }, "Snooze", { snoozeTask(t.id) })) }
-        habits.filter { it.streak > 0 && !it.checkedInToday }
-            .forEach { h ->
-                out.add(
-                    BriefLine("h${h.name}", h.name, "${h.streak}-day streak — check in today", "habits", "Check in", {
-                        val all = loadHabits().map { if (it.name == h.name) it.copy(checkins = it.checkins + today()) else it }
-                        saveHabits(all)
-                        tick += 1
-                    }),
-                )
-            }
-        financeBills().filter { !it.settled }.forEach { b ->
-            val due = parseDateOrNull(b.dueDate) ?: return@forEach
-            if (due <= billSoon) out.add(BriefLine("b${b.name}", b.name, relativeLabel(due) + if (b.autopay) " · autopay" else "", "finance"))
-        }
-        loadEducation().assignments.filter { !it.done }.forEach { a ->
-            val due = parseDateOrNull(a.dueDate) ?: return@forEach
-            if (due <= soon) out.add(BriefLine("a${a.id}", a.title, relativeLabel(due), "education"))
-        }
         fun renewDocument(id: Long) {
             val docs = loadDocuments()
             val next = docs.documents.map { doc ->
@@ -118,13 +88,46 @@ fun BriefingScreen() {
             saveDocuments(docs.copy(documents = next))
             tick += 1
         }
-        loadDocuments().documents.forEach { d ->
-            when (expiryState(d)) {
-                ExpiryState.EXPIRED -> out.add(BriefLine("d${d.id}", d.title, "expired", "documents", "Renew +1y", { renewDocument(d.id) }))
-                ExpiryState.SOON -> out.add(BriefLine("d${d.id}", d.title, "expires soon", "documents", "Renew +1y", { renewDocument(d.id) }))
-                else -> {}
+
+        // Everything owed, through the shared query (§12.1.1). This screen used to walk
+        // Tasks, Finance, Education and Documents itself, with its own horizon for each;
+        // the horizons now live in datedWorklist so Briefing, Daily Paper and Today
+        // cannot disagree about whether the same bill is due soon.
+        //
+        // Ordering is by urgency rather than by module, which is what the screen claims
+        // to do: an overdue bill outranks a task due this afternoon.
+        datedWorklist().forEach { item ->
+            val note = when {
+                item.moduleId == "documents" && item.isOverdue(now) -> "expired"
+                item.moduleId == "documents" -> "expires soon"
+                item.date == now -> "Today" + (item.note.ifBlank { "" }.let { if (it.isBlank()) "" else " · $it" })
+                else -> relativeLabel(item.date) + (item.note.ifBlank { "" }.let { if (it.isBlank()) "" else " · $it" })
+            }
+            val id = item.recordId
+            when {
+                item.moduleId == "tasks" && id != null -> out.add(
+                    BriefLine(
+                        item.key, item.title, note, "tasks",
+                        "Done ✓", { completeTask(id) }, "Snooze", { snoozeTask(id) },
+                    ),
+                )
+                item.moduleId == "documents" && id != null -> out.add(
+                    BriefLine(item.key, item.title, note, "documents", "Renew +1y", { renewDocument(id) }),
+                )
+                else -> out.add(BriefLine(item.key, item.title, note, item.moduleId))
             }
         }
+
+        habits.filter { it.streak > 0 && !it.checkedInToday }
+            .forEach { h ->
+                out.add(
+                    BriefLine("h${h.name}", h.name, "${h.streak}-day streak — check in today", "habits", "Check in", {
+                        val all = loadHabits().map { if (it.name == h.name) it.copy(checkins = it.checkins + today()) else it }
+                        saveHabits(all)
+                        tick += 1
+                    }),
+                )
+            }
         // Open threads you've stopped pulling on. Last in the list on purpose: this
         // is the "you left this half-finished" nudge, not something due. Resolving
         // one from here is a real answer — an abandoned thread you're never going

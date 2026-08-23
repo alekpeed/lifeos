@@ -30,8 +30,7 @@ import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
-import com.alekpeed.lifeos.calendar.datedItems
-import com.alekpeed.lifeos.documents.docExpiryDays
+import com.alekpeed.lifeos.calendar.datedWorklist
 import com.alekpeed.lifeos.habits.Habit
 import com.alekpeed.lifeos.habits.loadHabits
 import com.alekpeed.lifeos.habits.saveHabits
@@ -47,39 +46,26 @@ import com.alekpeed.lifeos.tasks.saveTasks
 // One due-soon line from another module, tappable to jump there.
 private data class DueLine(val icon: String, val title: String, val meta: String, val moduleId: String, val urgent: Boolean)
 
+// Everything owed that isn't a task — tasks get their own checkable section above.
+//
+// This screen used to keep its own horizons: a flat week for bills where Briefing used
+// billDueSoonDays(). One bill, two answers to "is this due soon", depending on which
+// screen you happened to open. The horizons live in datedWorklist now (§12.1.1), so all
+// three surfaces agree and a module's setting is honoured wherever it appears.
 private fun alsoDue(): List<DueLine> {
     val now = today()
-    val soon = now.plusDays(7)
-    val out = mutableListOf<DueLine>()
-
-    // One walk over every dated record, through the shared query (§12.1.1), instead of
-    // this screen keeping its own. The horizons below stay Today's own policy: it gives
-    // bills a flat week where Briefing and Notifications give them billDueSoonDays().
-    // Consolidating the question does not mean flattening each surface's answer.
-    val dated = datedItems(now.plusDays(-3650), now.plusDays(400), includeDone = false)
-
-    dated.filter { it.moduleId == "finance" && it.date <= soon }.forEach { b ->
-        val autopay = b.note == "autopay"
-        out.add(
-            DueLine(
-                "💵", b.title, relativeLabel(b.date) + if (autopay) " · autopay" else "",
-                "finance", b.date < now && !autopay,
-            ),
-        )
-    }
-    dated.filter { it.moduleId == "education" && it.date <= soon }.forEach { a ->
-        out.add(DueLine("🎓", a.title, relativeLabel(a.date), "education", a.date < now))
-    }
-    // Documents keep their own configurable horizon, and an expired one shows however
-    // long ago it lapsed.
-    dated.filter { it.moduleId == "documents" }.forEach { d ->
-        when {
-            d.date < now -> out.add(DueLine("📄", d.title, "expired", "documents", true))
-            d.date <= now.plusDays(docExpiryDays()) -> out.add(DueLine("📄", d.title, "expires soon", "documents", false))
-            else -> {}
+    return datedWorklist()
+        .filter { it.moduleId != "tasks" }
+        .map { item ->
+            val autopay = item.note == "autopay"
+            val meta = when {
+                item.moduleId == "documents" && item.date < now -> "expired"
+                item.moduleId == "documents" -> "expires soon"
+                else -> relativeLabel(item.date) + if (autopay) " · autopay" else ""
+            }
+            DueLine(item.icon, item.title, meta, item.moduleId, item.isOverdue(now) && !autopay)
         }
-    }
-    return out.sortedBy { !it.urgent }
+        .sortedBy { !it.urgent }
 }
 
 // "On this day" — same month-day in an earlier year, across milestones, book

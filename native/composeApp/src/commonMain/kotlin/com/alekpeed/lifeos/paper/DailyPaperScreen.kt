@@ -36,11 +36,10 @@ import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.books.loadBooks
 import com.alekpeed.lifeos.data.DATA_SOURCES
 import com.alekpeed.lifeos.data.countOf
+import com.alekpeed.lifeos.calendar.datedWorklist
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.today
-import com.alekpeed.lifeos.documents.loadDocuments
-import com.alekpeed.lifeos.education.loadEducation
 import com.alekpeed.lifeos.habits.Habit
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.habits.loadHabits
@@ -136,41 +135,29 @@ private fun saveTodaysEditorial(text: String) {
 private data class Docket(val kind: String, val title: String, val date: String, val overdue: Boolean, val key: String)
 private data class OnThisDay(val kind: String, val title: String, val year: String)
 
-// The next 7 days of dated obligations: tasks, assignments, bills, and document
-// expiries. Bills use the Settings due-soon window, since that's the horizon the rest
-// of the app flags them on.
-private fun computeDocket(): List<Docket> {
-    val now = today()
-    val horizon = now.plusDays(7)
-    val billHorizon = now.plusDays(com.alekpeed.lifeos.settings.billDueSoonDays())
-    fun soon(d: LocalDate?) = d != null && d <= horizon
-    val out = mutableListOf<Docket>()
-    loadTasksSafe().forEach { (id, title, due, done) ->
-        val d = parseDateOrNull(due)
-        if (!done && soon(d)) out.add(Docket("Task", title, due, d!! < now, "task:$id"))
+// What is owed in the week ahead, through the shared query (§12.1.1). The paper used
+// to walk Tasks, Education, Finance and Documents itself; the only thing left here is
+// how the result reads in print.
+private fun computeDocket(): List<Docket> =
+    datedWorklist().map { item ->
+        Docket(
+            kind = docketKind(item.moduleId),
+            title = if (item.note == "autopay") "${item.title} (autopay)" else item.title,
+            date = item.date.toString(),
+            overdue = item.isOverdue(),
+            key = item.key,
+        )
     }
-    loadEducation().assignments.forEach { a ->
-        val d = parseDateOrNull(a.dueDate)
-        if (!a.done && soon(d)) out.add(Docket("Assignment", a.title, a.dueDate, d!! < now, "asg:${a.id}"))
-    }
-    com.alekpeed.lifeos.finance.financeBills().filter { !it.settled }.forEach { b ->
-        val d = parseDateOrNull(b.dueDate)
-        if (d != null && d <= billHorizon) {
-            val label = if (b.autopay) "${b.name} (autopay)" else b.name
-            out.add(Docket("Bill", label, b.dueDate, d < now, "bill:${b.name}"))
-        }
-    }
-    loadDocuments().documents.forEach { doc ->
-        val d = parseDateOrNull(doc.expiryDate)
-        if (soon(d)) out.add(Docket("Document", doc.title, doc.expiryDate, d!! < now, "doc:${doc.id}"))
-    }
-    return out.sortedBy { it.date }
-}
 
-// Minimal task read (id, title, due, done) without importing the tasks screen deps.
-private fun loadTasksSafe(): List<TaskLite> =
-    com.alekpeed.lifeos.tasks.loadTasks().map { TaskLite(it.id, it.title, it.due, it.done) }
-private data class TaskLite(val id: Long, val title: String, val due: String, val done: Boolean)
+private fun docketKind(moduleId: String) = when (moduleId) {
+    "tasks" -> "Task"
+    "education" -> "Assignment"
+    "finance" -> "Bill"
+    "documents" -> "Document"
+    "projects" -> "Project"
+    "time-capsules" -> "Capsule"
+    else -> moduleId.replaceFirstChar { it.uppercase() }
+}
 
 private fun computeOnThisDay(): List<OnThisDay> {
     // Parsed, not sliced — stored values may now carry a time. See TodayScreen.onThisDay.

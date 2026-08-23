@@ -1346,6 +1346,13 @@ against the trip budget, and places visited that fell inside the date range.
 Reuses the Yearly Recap's narrative pattern (`FEATURE_LIST.md`) at trip scale
 instead of year scale.
 
+**Built 2026-08-23** as `travel/TripRecap.kt` plus a Recap tab that only appears
+once the trip's end date has passed — a recap of a trip you are still on is a
+status report. Every number is derived from records that already exist (the
+linked Photos album, `tripBudget`, `tripPlaces`, the live reservations), so
+there are no new fields for the recap to disagree with later, and the model is
+handed exactly the stat list the screen shows and nothing else.
+
 ---
 
 ## 12. Final architecture — 35 modules, 8 domains
@@ -1392,6 +1399,16 @@ computations.
 - Briefing = that function, overdue and due-soon, with per-row actions
 - Daily Paper = that function, today's range, rendered as prose
 - Calendar = that function, arbitrary range, agenda layout
+
+**Done 2026-08-23.** `calendar/Calendar.kt` owns `datedItems` (any range) and
+`datedWorklist` (overdue plus due-soon). Today, Briefing and Daily Paper are all
+filters over them now. The per-module horizons moved into `datedWorklist`, which
+is where the drift actually was: Briefing gave bills `billDueSoonDays()` and
+documents `docExpiryDays()`, Daily Paper gave bills their window but documents a
+flat week, and Today gave bills a flat week and documents their window — three
+answers to "is this bill due soon" depending on which screen you opened. The
+horizon belongs to the module that owns the setting, not to whoever is drawing
+the list. Notifications still walks its own; retiring that screen is its own item.
 
 **Sequencing:** this is why M-01(b) should not be deferred far behind M-01(a). The
 longer three separate implementations exist, the more expensive the convergence.
