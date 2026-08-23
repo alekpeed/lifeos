@@ -1,6 +1,7 @@
 package com.alekpeed.lifeos.sync
 
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.history.History
 
 // Last-write-wins merge over the SyncMeta record set. Pure and network-free: a
 // backend adapter feeds remote records in (`applyRemote`) and takes local changes
@@ -28,7 +29,10 @@ object SyncEngine {
     // the local value; a remote value overwrites it. Either way the local metadata
     // takes the REMOTE timestamp, so an applied record isn't mistaken for a new local
     // change on the next push. Returns how many records were applied.
-    fun applyRemote(remote: List<SyncRecord>): Int {
+    // Wrapped so the mutation log can tell "the other device did this" from "you did
+    // this" — same change either way, but the activity list should not claim you made an
+    // edit you were asleep for.
+    fun applyRemote(remote: List<SyncRecord>): Int = History.asRemote {
         var applied = 0
         for (r in remote) {
             val local = SyncMeta.metaOf(r.key)
@@ -41,7 +45,7 @@ object SyncEngine {
             SyncMeta.setExact(r.key, r.updatedAt, r.deleted)
             applied++
         }
-        return applied
+        applied
     }
 
     // Call after a successful push+pull, with the server's high-water timestamp.

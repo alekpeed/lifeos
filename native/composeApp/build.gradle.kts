@@ -53,6 +53,14 @@ kotlin {
                 implementation("com.squareup.okhttp3:okhttp:4.12.0")
             }
         }
+        // The desktop JVM is the only target that can run the shared logic without a
+        // device, so anything worth asserting about commonMain gets tested here.
+        // `gradle desktopTest`.
+        val desktopTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
     }
 }
 

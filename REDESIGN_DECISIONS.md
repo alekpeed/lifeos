@@ -238,6 +238,10 @@ replaying the log to that point. That yields what the current version cannot:
 **Build order: R-02/R-03 first, then rebuild Time Machine on the log.** Improving
 the current screen beforehand means building the approximation twice.
 
+*Gate opened 2026-08-23.* The log exists and `History.blobAt(key, at)` returns a
+module's blob as it stood at any moment inside the retention window, by reversing
+every event since. The rebuild is now unblocked work rather than a dependency.
+
 ### Skill Trees — MERGED with Mastery into one module
 
 **Does today:** Three hardcoded branches — Executor, Discipline, Scholar — whose XP
@@ -787,6 +791,12 @@ modules means retrofitting across 49 modules instead of 40:
   through the back door. Doing them separately costs roughly double and produces
   two overlapping mechanisms. Doing them together also makes a real Time Machine
   possible.
+  **Built 2026-08-23** as `history/History.kt` — one app-wide mutation log, hooked
+  into `Storage.write`/`Storage.remove`, with a History module (Trash + Activity)
+  for recovery. The flag was dropped: a flag *and* a log is exactly the two
+  overlapping mechanisms this entry warns about, so soft delete is derived from the
+  log instead — no `deleted` field on 38 data classes, and no filter to forget.
+  `History.blobAt(key, at)` is the replay API the Time Machine rebuild needs.
 - **M-01** calendar and time of day — Travel reservations depend on it, and the
   Notifications reminder engine is its existing seed
 - **W-03** global tag taxonomy

@@ -22,6 +22,7 @@ import com.alekpeed.lifeos.sharebox.ShareboxScreen
 import com.alekpeed.lifeos.timecapsules.TimeCapsulesScreen
 import com.alekpeed.lifeos.finance.FinanceScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
+import com.alekpeed.lifeos.history.HistoryScreen
 import com.alekpeed.lifeos.health.HealthScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.insight.AskScreen
@@ -108,5 +109,6 @@ fun lifeOsModules(): List<Module> = listOf(
     // System — running the OS
     Module("search", "🔍", "Search", "System", true) { SearchScreen("Search", "Search everything…") },
     Module("tools", "🧰", "Tools", "System", true) { ToolsScreen() },
+    Module("history", "↩", "History", "System", true) { HistoryScreen() },
     Module("settings", "⚙", "Settings", "System", true) { SettingsScreen() },
 )

@@ -19,8 +19,13 @@ actual object Storage {
     actual fun write(name: String, text: String) {
         try {
             if (::appContext.isInitialized) {
+                // Read before overwriting: the mutation log diffs the two to work out
+                // which records actually changed (R-02/R-03). Only for keys it tracks —
+                // the map tile cache should not pay for a second full read per write.
+                val previous = if (com.alekpeed.lifeos.history.History.tracks(name)) read(name) else null
                 file(name).writeText(text)
                 com.alekpeed.lifeos.sync.SyncMeta.record(name)
+                com.alekpeed.lifeos.history.History.onWrite(name, previous, text)
             }
         } catch (e: Exception) {
             // best-effort
@@ -41,8 +46,10 @@ actual object Storage {
     actual fun remove(name: String) {
         try {
             if (::appContext.isInitialized) {
+                val previous = if (com.alekpeed.lifeos.history.History.tracks(name)) read(name) else null
                 file(name).takeIf { it.exists() }?.delete()
                 com.alekpeed.lifeos.sync.SyncMeta.tombstone(name)
+                com.alekpeed.lifeos.history.History.onRemove(name, previous)
             }
         } catch (e: Exception) {
             // best-effort

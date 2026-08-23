@@ -57,7 +57,9 @@ private val PREFERRED_FIELDS = listOf(
     "url", "phrase", "word", "question", "front", "notes",
 )
 
-private fun itemLabel(e: JsonElement): String? = when (e) {
+// Shared with the mutation log (core/History.kt), which needs the same "what is this
+// record called" answer so a deleted row in Trash reads the way it read in its module.
+fun recordLabel(e: JsonElement): String? = when (e) {
     is JsonObject -> {
         val byPref = PREFERRED_FIELDS.firstNotNullOfOrNull { k ->
             (e[k] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.ifBlank { null }
@@ -79,7 +81,7 @@ private fun jsonItems(raw: String): List<String> {
         is JsonObject -> root.values.filterIsInstance<JsonArray>()
         else -> emptyList()
     }
-    return arrays.flatMap { arr -> arr.mapNotNull { itemLabel(it) } }
+    return arrays.flatMap { arr -> arr.mapNotNull { recordLabel(it) } }
 }
 
 // The display items stored under a key, dropping blanks. Handles both the old
