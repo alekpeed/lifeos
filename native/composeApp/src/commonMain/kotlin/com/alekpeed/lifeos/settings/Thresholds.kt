@@ -4,7 +4,7 @@ import com.alekpeed.lifeos.Storage
 
 // How far ahead "due soon" reaches, in days. Every screen that flags an upcoming bill
 // reads this instead of hardcoding a week, so changing it in Settings actually moves
-// what Notifications, the Briefing and the Daily Paper call urgent.
+// what the Briefing, the Daily Paper and Today call urgent.
 //
 // The document-expiry counterpart lives with Documents (docExpiryDays) because the
 // Documents screen owns its own control for it; Settings edits the same value.

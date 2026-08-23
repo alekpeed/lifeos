@@ -109,7 +109,7 @@ fun relativeLabelOf(stored: String, from: LocalDate = today()): String {
 fun LocalDate.plusDays(n: Int): LocalDate = this.plus(n, DateTimeUnit.DAY)
 fun LocalDate.minusDays(n: Int): LocalDate = this.minus(n, DateTimeUnit.DAY)
 
-// Epoch-millis helpers backing scheduled reminders (Notifications' quick-pick
+// Epoch-millis helpers backing scheduled reminders (the Calendar's quick-pick
 // times and Finance's recurring-bill nudge).
 fun epochMillisAt(date: LocalDate, hour: Int, minute: Int): Long =
     LocalDateTime(date, LocalTime(hour, minute)).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()

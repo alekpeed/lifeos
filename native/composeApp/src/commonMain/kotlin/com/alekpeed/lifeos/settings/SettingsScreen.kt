@@ -740,7 +740,7 @@ fun SettingsScreen() {
         Text("ALERTS", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
         Text(
-            "How far ahead counts as \"due soon\" — used by Notifications, the Briefing and the Daily Paper.",
+            "How far ahead counts as \"due soon\" — used by the Briefing, the Daily Paper and Today.",
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(10.dp))

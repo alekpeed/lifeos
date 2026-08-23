@@ -15,7 +15,17 @@ import kotlinx.serialization.json.JsonPrimitive
 // aggregate screens (Today, Briefing, The Almanac) and the search screens (Ask,
 // Search) can read across modules without each hard-coding the list. `key` is the
 // exact Storage key the module's screen reads/writes; `label` is how it's shown.
-data class DataSource(val label: String, val key: String)
+// `moduleId` is the registry id a hit navigates to. It defaults to the label with
+// spaces hyphenated, which is right for every module named after its own key — and
+// wrong the moment a key outlives the screen it was named for, which is exactly what
+// happened when Notifications was retired (§2) and its reminders moved to the Calendar.
+// §10.3 warned about this shape: a source left pointing at a screen that no longer
+// exists gives a search result that silently does nothing when tapped.
+data class DataSource(
+    val label: String,
+    val key: String,
+    val moduleId: String = label.lowercase().replace(' ', '-'),
+)
 
 val DATA_SOURCES: List<DataSource> = listOf(
     DataSource("Tasks", "Tasks"),
@@ -43,7 +53,10 @@ val DATA_SOURCES: List<DataSource> = listOf(
     DataSource("Health", "Health"),
     DataSource("Skill Trees", "Skill Trees"),
     DataSource("Skills", "Skills"),
-    DataSource("Notifications", "Notifications"),
+    // The reminders promoted out of the retired Notifications screen (§2). The key
+    // is unchanged so nothing already written is stranded; the label is what the
+    // records actually are, and a search result routes to the Calendar.
+    DataSource("Reminders", "Notifications", "calendar"),
     DataSource("Entropy", "Entropy"),
     DataSource("Time Machine", "Time Machine"),
     DataSource("Knowledge Graph", "Knowledge Graph"),
@@ -109,12 +122,14 @@ fun countOf(key: String): Int = linesOf(key).size
 fun displayOf(line: String): String =
     line.substringBefore("\t").substringBefore("|").trim()
 
-data class SearchHit(val source: String, val text: String) {
-    // The registry id of the module this hit came from ("Rabbit Holes" →
-    // "rabbit-holes") so search results can navigate. A label with no module
-    // (e.g. a removed one) simply no-ops in the Nav bus.
-    val moduleId: String get() = source.lowercase().replace(' ', '-')
-}
+// `moduleId` is where tapping the hit goes. It comes from the DataSource rather than
+// from the label, so a key whose screen has been renamed or retired still lands
+// somewhere real; the derived default is kept for callers that build a hit by hand.
+data class SearchHit(
+    val source: String,
+    val text: String,
+    val moduleId: String = source.lowercase().replace(' ', '-'),
+)
 
 fun searchAll(query: String): List<SearchHit> {
     val q = query.trim()
@@ -123,7 +138,7 @@ fun searchAll(query: String): List<SearchHit> {
     for (src in DATA_SOURCES) {
         for (line in linesOf(src.key)) {
             if (line.contains(q, ignoreCase = true)) {
-                hits.add(SearchHit(src.label, displayOf(line)))
+                hits.add(SearchHit(src.label, displayOf(line), src.moduleId))
             }
         }
     }
@@ -137,7 +152,7 @@ fun allRecords(): List<SearchHit> {
     for (src in DATA_SOURCES) {
         for (line in linesOf(src.key)) {
             val text = displayOf(line).trim()
-            if (text.isNotEmpty()) out.add(SearchHit(src.label, text))
+            if (text.isNotEmpty()) out.add(SearchHit(src.label, text, src.moduleId))
         }
     }
     return out

@@ -124,6 +124,37 @@ it later.
 - The reminder engine and its storage key are **promoted, not deleted** — they
   become the foundation of M-01.
 
+**Built 2026-08-23**, once M-01 existed to promote it into.
+
+The feed needed no merging in the end: Briefing had already moved onto the shared
+dated query (§12.1.1), so the duplication was gone before the screen was. Deleting
+it removed a fifth walk over the same modules, not a feature.
+
+The reminders are `calendar/Reminder.kt`, and they are ordinary dated records now —
+they appear on the month, in the Briefing and in the Daily Paper through the same
+query as everything else, because they enter `datedItems` like every other source
+rather than being read by one screen. The quick-time chips came across intact onto a
+second Calendar tab, which is where a time of day belongs; a reminder is a time with
+a sentence attached, and this is the only screen that understands times.
+
+**The storage key is unchanged.** `"Notifications"` is what every install and every
+synced row already holds, and renaming it would have stranded every reminder anybody
+has written — the precise hazard this entry flagged. The shape inside it upgrades
+from tab-delimited lines to JSON the way Tasks did, and the old format still reads,
+with ids assigned by position on the one pass that needs them.
+
+Three things beyond the brief, each because moving the code exposed them:
+
+- A reminder now has a `done` state. The old screen offered only a delete, which
+  left the notification's own button (§7 D-5) nothing non-destructive to do —
+  marking one done from a lock screen should not throw the text away.
+- What is pinned as the "next up" ticker is persisted. It was a screen-local
+  variable, so the app forgot the moment you navigated away while the notification
+  itself stayed up saying otherwise.
+- `DataSource` gained an explicit `moduleId`. It was derived from the label, which
+  is right until a key outlives the screen it was named for — §10.3's warning about
+  a source pointing at a screen that no longer exists, arriving by a different door.
+
 ### Known consequence
 
 Ask becomes read-and-write. Briefing absorbs a second feed. This trades module
@@ -606,6 +637,11 @@ bill reminders Finance schedules.
 | + Calendar (M-01b) | 35 |
 
 Station Cat is not counted — it was already unreachable.
+
+This table tracks the redesign's own subtractions, not the live registry: the
+modules added since (Projects, Tags, History, Skills, Time Capsules and the rest)
+are counted in §12, not here. `Modules.kt` holds **40** as of 2026-08-23, with
+Notifications removed.
 
 ---
 

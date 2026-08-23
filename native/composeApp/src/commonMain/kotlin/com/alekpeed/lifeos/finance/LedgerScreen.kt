@@ -167,7 +167,7 @@ private fun saveData(data: FinanceData) {
 data class FinancePoint(val desc: String, val amount: Double, val category: String, val recurring: Boolean, val date: String)
 fun financeSeries(): List<FinancePoint> = loadData().entries.map { FinancePoint(it.desc, it.amount, it.category, it.recurring, it.date) }
 
-// Public read-only accessor for the attention feed (Notifications): each bill's
+// Public read-only accessor for the shared dated query and the Briefing: each bill's
 // due facts without leaking the private model. `settled` = a one-time bill that
 // has already been paid (recurring bills advance their due date instead).
 data class BillPoint(val name: String, val amount: Double, val dueDate: String, val autopay: Boolean, val settled: Boolean)

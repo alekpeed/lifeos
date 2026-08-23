@@ -1,5 +1,9 @@
 package com.alekpeed.lifeos.push
 
+import com.alekpeed.lifeos.calendar.REMINDERS_KEY
+import com.alekpeed.lifeos.calendar.completeReminder
+import com.alekpeed.lifeos.calendar.loadReminders
+import com.alekpeed.lifeos.calendar.snoozeReminder
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.platform.Native
@@ -48,6 +52,9 @@ fun labelsFor(raw: String): ActionLabels {
     val s = parseSubject(raw) ?: return ActionLabels(null, null)
     return when (s.key) {
         "Tasks" -> ActionLabels("Done", "Tomorrow")
+        // Standalone reminders (§2). The key is still "Notifications" — see
+        // calendar/Reminder.kt for why renaming it would strand every one ever written.
+        REMINDERS_KEY -> ActionLabels("Done", "Tomorrow")
         "Time Capsules" -> ActionLabels("Mark read", null)
         else -> ActionLabels(null, null)
     }
@@ -69,6 +76,11 @@ fun applyDone(raw: String): Boolean {
             // Nothing left to nudge about. Left armed, the alarm would fire on a task
             // the notification already finished.
             runCatching { Native.cancelReminder(taskReminderId(s.id)) }
+            true
+        }
+        REMINDERS_KEY -> {
+            if (loadReminders().none { it.id == s.id }) return false
+            completeReminder(s.id)
             true
         }
         "Time Capsules" -> {
@@ -98,6 +110,11 @@ fun applySnooze(raw: String): Boolean {
             // since the app-open pass may not run before tomorrow morning.
             runCatching { Native.cancelReminder(taskReminderId(s.id)) }
             moved.firstOrNull { it.id == s.id }?.let { runCatching { scheduleTask(it) } }
+            true
+        }
+        REMINDERS_KEY -> {
+            if (loadReminders().none { it.id == s.id }) return false
+            snoozeReminder(s.id)
             true
         }
         else -> false

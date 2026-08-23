@@ -90,6 +90,23 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
         )
     }
 
+    // Standalone reminders, promoted out of the retired Notifications screen (§2).
+    // They are the one source that carries a real time of day by construction — a
+    // reminder without a moment is just a note, and those keep `atEpochMillis` null and
+    // stay off the calendar rather than landing on midnight of some day.
+    loadReminders().forEach { r ->
+        if (!includeDone && r.done) return@forEach
+        val (d, t) = r.dateTime() ?: return@forEach
+        if (!inRange(d)) return@forEach
+        out.add(
+            DatedItem(
+                key = "reminder-${r.id}", icon = "🔔", title = r.text, date = d,
+                time = t, moduleId = "calendar", kind = DatedKind.DUE,
+                recordId = r.id, done = r.done,
+            ),
+        )
+    }
+
     financeBills().forEach { b ->
         if (!includeDone && b.settled) return@forEach
         val d = parseDateOrNull(b.dueDate) ?: return@forEach

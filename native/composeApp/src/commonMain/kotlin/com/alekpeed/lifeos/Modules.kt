@@ -30,7 +30,6 @@ import com.alekpeed.lifeos.insight.AskScreen
 import com.alekpeed.lifeos.insight.AssistantScreen
 import com.alekpeed.lifeos.insight.BriefingScreen
 import com.alekpeed.lifeos.insight.EntropyScreen
-import com.alekpeed.lifeos.insight.NotificationsScreen
 import com.alekpeed.lifeos.insight.AlmanacScreen
 import com.alekpeed.lifeos.knowledge.KnowledgeGraphScreen
 import com.alekpeed.lifeos.timemachine.TimeMachineScreen
@@ -75,7 +74,6 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("command", "⌘", "Command", "Operations", true) { CommandScreen() },
     Module("briefing", "📋", "Briefing", "Operations", true) { BriefingScreen() },
     Module("calendar", "🗓", "Calendar", "Operations", true) { CalendarScreen() },
-    Module("notifications", "🔔", "Notifications", "Operations", true) { NotificationsScreen() },
     // Archive — what you keep
     Module("documents", "📄", "Documents", "Archive", true) { DocumentsScreen() },
     Module("links", "🔗", "Links", "Archive", true) { LinksScreen() },

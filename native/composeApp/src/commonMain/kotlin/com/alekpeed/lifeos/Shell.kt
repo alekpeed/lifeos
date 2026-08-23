@@ -68,6 +68,11 @@ fun Shell() {
     // notification whose Done / Tomorrow buttons resolve the task itself.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.tasks.rescheduleTaskAlarms() }
 
+    // Standalone reminders, promoted out of the retired Notifications screen (§2).
+    // Same reason as the two above: an alarm does not outlive a reinstall, the record
+    // does.
+    LaunchedEffect(Unit) { com.alekpeed.lifeos.calendar.rescheduleReminderAlarms() }
+
     // Tell the server where to send (§7 D-5 phase 2). No-ops when signed out or where
     // there is no push transport, which is everywhere until a Firebase project exists.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.push.PushRegistration.registerIfNeeded() }

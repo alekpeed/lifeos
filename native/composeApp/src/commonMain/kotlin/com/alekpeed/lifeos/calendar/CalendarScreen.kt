@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,9 +16,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,9 +39,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Nav
+import com.alekpeed.lifeos.data.epochMillisAt
+import com.alekpeed.lifeos.data.formatEpochMillis
+import com.alekpeed.lifeos.data.nextClockTime
+import com.alekpeed.lifeos.data.nowPlusHours
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.platform.Native
+import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
@@ -42,6 +55,12 @@ import kotlinx.datetime.isoDayNumber
 // The agenda. One month at a time, every dated record in the app on it, and the picked
 // day's items underneath — all of it read through `datedItems`, so this is a view over
 // the shared query rather than a fifth walk over the same modules (§12.1.1).
+//
+// The second tab is where the retired Notifications screen's reminders live now (§2).
+// They belong here rather than in a module of their own: a reminder is a time of day
+// with a sentence attached, and this is the screen that understands times of day. The
+// quick-time chips came across intact, since "this evening" is the reason anybody
+// writes a reminder rather than a task.
 
 private val MONTHS = listOf(
     "January", "February", "March", "April", "May", "June",
@@ -57,6 +76,22 @@ private fun daysInMonth(year: Int, month: Int): Int = when (month) {
 
 @Composable
 fun CalendarScreen() {
+    var tab by remember { mutableStateOf(0) }
+    Column(Modifier.fillMaxWidth()) {
+        TabRow(selectedTabIndex = tab) {
+            listOf("Month", "Reminders").forEachIndexed { i, title ->
+                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(title) })
+            }
+        }
+        when (tab) {
+            0 -> MonthTab()
+            else -> RemindersTab()
+        }
+    }
+}
+
+@Composable
+private fun MonthTab() {
     val now = today()
     var year by remember { mutableStateOf(now.year) }
     var month by remember { mutableStateOf(now.monthNumber) }
@@ -241,6 +276,108 @@ private fun AgendaRow(item: DatedItem, now: LocalDate) {
         }
         if (item.isOverdue(now)) {
             Text("overdue", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+// The reminders themselves — the half of the old Notifications screen that was not
+// duplication. "Now" posts immediately; the chips schedule a real alarm that fires with
+// the app closed (desktop keeps the record, but nothing fires — there is no scheduler
+// there). Any line can be pinned as the ongoing "next up" ticker.
+@Composable
+private fun RemindersTab() {
+    var items by remember { mutableStateOf(loadReminders()) }
+    var input by remember { mutableStateOf("") }
+    var pinned by remember { mutableStateOf(pinnedNextUp()) }
+
+    fun persist(next: List<Reminder>) {
+        items = next
+        saveReminders(next)
+        SaveToast.show()
+    }
+
+    fun add(atEpochMillis: Long?) {
+        val text = input.trim().replace("\t", " ").replace("\n", " ")
+        if (text.isEmpty()) return
+        val r = Reminder(id = nextReminderId(items), text = text, atEpochMillis = atEpochMillis)
+        persist(listOf(r) + items)
+        if (Native.supportsNotifications) {
+            if (atEpochMillis == null) Native.postReminder("Reminder", text, reminderSubject(r.id))
+            else scheduleReminderAlarm(r)
+        }
+        input = ""
+    }
+
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        OutlinedTextField(
+            value = input,
+            onValueChange = { input = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Remind me to…") },
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Button(onClick = { add(null) }) { Text("Now") }
+            if (Native.supportsNotifications) {
+                AssistChip(onClick = { add(nowPlusHours(1)) }, label = { Text("In 1h") })
+                AssistChip(onClick = { add(nextClockTime(18)) }, label = { Text("This evening") })
+                AssistChip(onClick = { add(epochMillisAt(today().plusDays(1), 9, 0)) }, label = { Text("Tomorrow AM") })
+            }
+        }
+
+        if (pinned != null) {
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "📌 Pinned: $pinned",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                TextButton(onClick = { setPinned(null); pinned = null }) { Text("Clear") }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        if (items.isEmpty()) {
+            Text(
+                "Nothing set. A reminder is for the things no record owns — everything with a\nhome of its own already shows on the month.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            itemsIndexed(items, key = { _, r -> r.id }) { _, item ->
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            item.text,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (item.done) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (!item.done) {
+                            TextButton(onClick = { completeReminder(item.id); items = loadReminders() }) { Text("Done") }
+                        }
+                        if (Native.supportsNotifications) {
+                            TextButton(onClick = { setPinned(item.text); pinned = item.text }) { Text("Pin") }
+                        }
+                        TextButton(onClick = { deleteReminder(item.id); items = loadReminders() }) { Text("✕") }
+                    }
+                    item.atEpochMillis?.let { millis ->
+                        Text(
+                            (if (item.done) "✓ " else "⏰ ") + formatEpochMillis(millis),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (item.done) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -174,7 +174,6 @@ fun BriefingScreen() {
         listOf(
             "Ideas" to linesOf("Ideas").size,
             "Rabbit Holes" to linesOf("Rabbit Holes").size,
-            "Notifications" to linesOf("Notifications").size,
         ).filter { it.second > 0 }
     }
 

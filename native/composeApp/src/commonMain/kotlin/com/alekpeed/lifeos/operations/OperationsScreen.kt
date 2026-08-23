@@ -215,7 +215,11 @@ private fun CityAmbientLayer(modifier: Modifier) {
 private fun routeHit(hit: String?, scope: CoroutineScope) {
     when (hit) {
         "home" -> Nav.goHome()
-        "bell", "notifications" -> Nav.open("notifications")
+        // The Notifications screen was retired (§2). The bell and its panel both meant
+        // "what needs you now": the feed half of it is the Briefing, and the reminders
+        // half is the Calendar's second tab.
+        "bell" -> Nav.open("calendar")
+        "notifications" -> Nav.open("briefing")
         "status" -> Nav.open("settings")
         "daily-paper" -> Nav.open("daily-paper")
         "tasks" -> Nav.open("tasks")
@@ -237,7 +241,7 @@ private fun OperationsFallback() {
         "Tasks" to "tasks",
         "Command" to "command",
         "Briefing" to "briefing",
-        "Notifications" to "notifications",
+        "Calendar" to "calendar",
     )
     Column(
         modifier = Modifier.fillMaxSize().background(Color(0xFF080B12)).padding(24.dp),
