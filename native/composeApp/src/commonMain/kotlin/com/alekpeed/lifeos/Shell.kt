@@ -64,6 +64,10 @@ fun Shell() {
     // a reinstall or a new device, and a capsule sealed for years will outlive its own.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.timecapsules.rescheduleCapsuleAlarms() }
 
+    // Same for tasks with a due date inside the horizon (§7 D-5 phase 2) — the
+    // notification whose Done / Tomorrow buttons resolve the task itself.
+    LaunchedEffect(Unit) { com.alekpeed.lifeos.tasks.rescheduleTaskAlarms() }
+
     // Turn any free-text project name still sitting on a task into a real project
     // record (W-04). No-op once there is nothing loose, so it costs two reads.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.projects.ensureProjectsMigrated() }

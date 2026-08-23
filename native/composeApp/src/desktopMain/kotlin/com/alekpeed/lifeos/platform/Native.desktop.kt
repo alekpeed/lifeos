@@ -63,12 +63,12 @@ actual object Native {
 
     actual fun keepScreenAwake(on: Boolean) {}
     actual fun importContacts(): List<PhoneContact> = emptyList()
-    actual fun postReminder(title: String, body: String) {}
+    actual fun postReminder(title: String, body: String, subject: String) {}
     actual fun setPinnedNextUp(text: String?) {}
     actual fun setWakeWordEnabled(on: Boolean) {}
     actual fun armArrivalHere(label: String) {}
     actual fun clearArrivals() {}
-    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) {}
+    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long, subject: String) {}
     actual fun cancelReminder(id: Int) {}
 
     actual fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit) { onResult(false) }

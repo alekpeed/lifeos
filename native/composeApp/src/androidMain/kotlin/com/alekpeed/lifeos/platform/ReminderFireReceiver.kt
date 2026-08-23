@@ -11,12 +11,16 @@ class ReminderFireReceiver : BroadcastReceiver() {
     companion object {
         const val EXTRA_TITLE = "title"
         const val EXTRA_BODY = "body"
+        const val EXTRA_SUBJECT = "subject"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         NativeHost.appContext = context.applicationContext
+        // The alarm can fire into a cold process; the notification's buttons will need
+        // the store, and postReminder reads the subject to decide what they say.
+        com.alekpeed.lifeos.Storage.appContext = context.applicationContext
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "Reminder"
         val body = intent.getStringExtra(EXTRA_BODY) ?: return
-        Native.postReminder(title, body)
+        Native.postReminder(title, body, intent.getStringExtra(EXTRA_SUBJECT).orEmpty())
     }
 }

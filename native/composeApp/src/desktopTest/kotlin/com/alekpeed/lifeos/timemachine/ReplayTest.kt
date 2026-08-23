@@ -42,9 +42,17 @@ class ReplayTest {
 
     // The instant just before a given kind of event. Two writes can land in the same
     // millisecond, so "the timestamp of the earlier write" is not a usable boundary —
-    // this one is, and it is exact rather than a sleep.
+    // this one is, and it is exact rather than a sleep. It still needs the two events it
+    // separates to be a millisecond apart, which is what separate() below buys: without
+    // that gap the mark reads as "before the record existed", the replay deletes the
+    // record, and the test fails on timing rather than on a real bug.
     private fun markBefore(kind: Change): Long =
         History.all().first { it.change == kind }.at - 1
+
+    // Age everything written so far, so the next write cannot share a millisecond with
+    // it. Five minutes rather than one, since some of these also care about the burst
+    // window; it only moves what is already logged, so the next write stays recent.
+    private fun separate() = ageLog(minutes = 5)
 
     private fun titles(): List<String> =
         Json.parseToJsonElement(Storage.read("Tasks")!!).jsonObject["items"]!!
@@ -94,6 +102,7 @@ class ReplayTest {
     @Test
     fun `a record reads as it did at a moment, not as it does now`() {
         Storage.write("Tasks", tasks(task(1, "Was this")))
+        separate()
         Storage.write("Tasks", tasks(task(1, "Is now this")))
         val mark = markBefore(Change.UPDATE)
 
@@ -107,6 +116,9 @@ class ReplayTest {
     @Test
     fun `putting a record back rewinds it, through the ordinary write path`() {
         Storage.write("Tasks", tasks(task(1, "Original")))
+        // The edit itself stays recent, which is what keeps the restore inside the burst
+        // window this test is about.
+        separate()
         Storage.write("Tasks", tasks(task(1, "Changed my mind")))
         val mark = markBefore(Change.UPDATE)
 
@@ -125,6 +137,7 @@ class ReplayTest {
     @Test
     fun `a rewind after the burst window is recorded as its own edit`() {
         Storage.write("Tasks", tasks(task(1, "Original")))
+        separate()
         Storage.write("Tasks", tasks(task(1, "Changed my mind")))
 
         // Push the edit out of the coalesce window by ageing it, which is what a real gap
@@ -162,6 +175,7 @@ class ReplayTest {
     @Test
     fun `putting back a deleted record brings it home`() {
         Storage.write("Tasks", tasks(task(1, "Keep"), task(2, "Deleted later")))
+        separate()
         Storage.write("Tasks", tasks(task(1, "Keep")))
         val mark = markBefore(Change.DELETE)
 

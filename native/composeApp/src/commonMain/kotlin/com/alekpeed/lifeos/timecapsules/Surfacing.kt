@@ -59,6 +59,8 @@ fun scheduleCapsule(c: TimeCapsule) {
             title = "A time capsule has opened",
             body = c.title.ifBlank { "Something you sealed for today" },
             atEpochMillis = epochMillisAt(d, 9, 0),
+            // The notification's one button marks it read, so it stops surfacing (§7 D-5).
+            subject = com.alekpeed.lifeos.push.subjectOf("Time Capsules", c.id),
         )
     }
 }

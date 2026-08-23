@@ -29,13 +29,17 @@ private fun ensureChannel(nm: NotificationManager, id: String, name: String, imp
 private fun notifBuilder(ctx: Context, channelId: String): Notification.Builder =
     if (Build.VERSION.SDK_INT >= 26) Notification.Builder(ctx, channelId) else Notification.Builder(ctx)
 
-private fun actionPending(ctx: Context, action: String, notifId: Int): PendingIntent {
+private fun actionPending(ctx: Context, action: String, notifId: Int, subject: String): PendingIntent {
     val intent = Intent(ctx, NotificationActionReceiver::class.java).apply {
         this.action = action
         putExtra(NotificationActionReceiver.EXTRA_ID, notifId)
+        putExtra(NotificationActionReceiver.EXTRA_SUBJECT, subject)
     }
+    // The request code has to separate two pending intents that differ only in their
+    // extras — FLAG_UPDATE_CURRENT would otherwise rewrite one notification's buttons
+    // to point at another's record.
     val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    return PendingIntent.getBroadcast(ctx, (action + notifId).hashCode(), intent, flags)
+    return PendingIntent.getBroadcast(ctx, (action + notifId + subject).hashCode(), intent, flags)
 }
 
 // Real Android capabilities. Each degrades quietly if a permission is missing or
@@ -202,19 +206,26 @@ actual object Native {
     }
 
     @Suppress("DEPRECATION")
-    actual fun postReminder(title: String, body: String) {
+    actual fun postReminder(title: String, body: String, subject: String) {
         val ctx = NativeHost.ctx() ?: return
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
         ensureChannel(nm, CHANNEL_REMINDERS, "Reminders", NotificationManager.IMPORTANCE_DEFAULT)
-        val id = (title + body).hashCode()
-        val n = notifBuilder(ctx, CHANNEL_REMINDERS)
+        val id = (title + body + subject).hashCode()
+        // The buttons say what they will actually do to the record behind the
+        // notification. With no record behind it there is one button, and it dismisses.
+        val labels = com.alekpeed.lifeos.push.labelsFor(subject)
+        val builder = notifBuilder(ctx, CHANNEL_REMINDERS)
             .setContentTitle(title)
             .setContentText(body)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setAutoCancel(true)
-            .addAction(0, "Done", actionPending(ctx, NotificationActionReceiver.ACTION_DONE, id))
-            .addAction(0, "Snooze", actionPending(ctx, NotificationActionReceiver.ACTION_SNOOZE, id))
-            .build()
+        if (labels.done == null && labels.snooze == null) {
+            builder.addAction(0, "Dismiss", actionPending(ctx, NotificationActionReceiver.ACTION_DONE, id, ""))
+        } else {
+            labels.done?.let { builder.addAction(0, it, actionPending(ctx, NotificationActionReceiver.ACTION_DONE, id, subject)) }
+            labels.snooze?.let { builder.addAction(0, it, actionPending(ctx, NotificationActionReceiver.ACTION_SNOOZE, id, subject)) }
+        }
+        val n = builder.build()
         try {
             nm.notify(id, n)
         } catch (e: SecurityException) {
@@ -266,10 +277,11 @@ actual object Native {
         Geofences.clear(NativeHost.ctx())
     }
 
-    private fun reminderPendingIntent(ctx: Context, id: Int, title: String, body: String): PendingIntent {
+    private fun reminderPendingIntent(ctx: Context, id: Int, title: String, body: String, subject: String): PendingIntent {
         val intent = Intent(ctx, ReminderFireReceiver::class.java).apply {
             putExtra(ReminderFireReceiver.EXTRA_TITLE, title)
             putExtra(ReminderFireReceiver.EXTRA_BODY, body)
+            putExtra(ReminderFireReceiver.EXTRA_SUBJECT, subject)
         }
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         return PendingIntent.getBroadcast(ctx, id, intent, flags)
@@ -278,10 +290,10 @@ actual object Native {
     // Uses setAndAllowWhileIdle rather than an exact alarm: no SCHEDULE_EXACT_ALARM
     // permission needed, and Android may still shift it by a few minutes under
     // Doze — an honest tradeoff for a personal reminder, not a deadline-critical one.
-    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long) {
+    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long, subject: String) {
         val ctx = NativeHost.ctx() ?: return
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-        val pi = reminderPendingIntent(ctx, id, title, body)
+        val pi = reminderPendingIntent(ctx, id, title, body, subject)
         try {
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atEpochMillis, pi)
         } catch (e: SecurityException) {
@@ -292,7 +304,8 @@ actual object Native {
     actual fun cancelReminder(id: Int) {
         val ctx = NativeHost.ctx() ?: return
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-        am.cancel(reminderPendingIntent(ctx, id, "", ""))
+        // Extras play no part in PendingIntent matching, so the blanks still name the alarm.
+        am.cancel(reminderPendingIntent(ctx, id, "", "", ""))
     }
 
     actual fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit) {

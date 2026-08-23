@@ -88,8 +88,11 @@ expect object Native {
     // One-tap import of phone contacts (empty if unsupported / not permitted).
     fun importContacts(): List<PhoneContact>
 
-    // An actionable reminder notification (Done / Snooze on Android).
-    fun postReminder(title: String, body: String)
+    // An actionable reminder notification (Done / Snooze on Android). `subject` names
+    // the record the notification is about, as push.subjectOf(storageKey, id) — the
+    // action buttons resolve that record without opening the app. Empty means the
+    // notification is not about a record, and its one button simply dismisses.
+    fun postReminder(title: String, body: String, subject: String = "")
 
     // A pinned, ongoing "next up" notification; pass null to clear it.
     fun setPinnedNextUp(text: String?)
@@ -105,7 +108,7 @@ expect object Native {
 
     // A reminder that fires as a real notification at a future time, even if the
     // app is closed (Android: AlarmManager). `id` identifies it for cancellation.
-    fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long)
+    fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long, subject: String = "")
     fun cancelReminder(id: Int)
 
     // "Only my voice" — speaker verification for the wake word. Enrollment records a
