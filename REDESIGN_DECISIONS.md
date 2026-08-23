@@ -240,7 +240,20 @@ the current screen beforehand means building the approximation twice.
 
 *Gate opened 2026-08-23.* The log exists and `History.blobAt(key, at)` returns a
 module's blob as it stood at any moment inside the retention window, by reversing
-every event since. The rebuild is now unblocked work rather than a dependency.
+every event since.
+
+**Rebuilt 2026-08-23** as `timemachine/Replay.kt` plus a two-tab screen. All six
+bullets above are now real: a record reads as it did on a day, changes carry their
+direction, deletions are visible, two dates diff field by field, and a record can
+be put back to how it read — through the ordinary write path, so the rewind is
+logged like any edit rather than silently rewriting the past.
+
+The one thing added beyond the spec is the boundary. The log started when it was
+built and is capped, so replay is exact only from its first event onwards. The
+screen draws that line rather than blurring it: before it, existence is all that is
+known, which is the old approximation kept and labelled instead of dressed up. The
+counts looked authoritative before and were partly guesswork — that is the failure
+mode worth avoiding twice.
 
 ### Skill Trees — MERGED with Mastery into one module
 

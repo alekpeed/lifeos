@@ -493,10 +493,20 @@ What you've been neglecting, module by module.
 - On Linux: no background alerts, no speech.
 
 ### Time Machine
-What the app knew on a past day: how much of today's record existed then, what arrived
-that day, and what you actually did.
+What the app knew on a past day, replayed off the mutation log: what changed and in
+which direction, what was deleted, how much of today's record existed then, and what you
+actually did. A Compare tab diffs one module between any two days field by field. Any
+record can be put back to how it read on a chosen day, and that rewind is itself a normal
+edit rather than a silent rewrite.
 
-- **Event** — `icon`, `text`, `source`
+Replay is exact from the log's first event onwards, and the screen says where that line
+falls. Before it, only existence is known — the old approximation, kept and labelled
+rather than dressed up.
+
+- **Entry** — `seq`, `at`, `key`, `coll`, `rec`, `label`, `kind`, `fields`, `remote`, `reversible`
+- **FieldDiff** — `field`, `before`, `after`
+- **RecordDiff** — `key`, `coll`, `rec`, `label`, `kind`, `fields`
+- **Horizon** — `from`, `events`
 - **Stub** — `key`, `title`
 - **StoreSnapshot** — `label`, `stubs`
 - **Births** — `seeded`, `born`

@@ -393,6 +393,57 @@ object History {
         return blob.rebuild()
     }
 
+    // One record as it stood at a moment, or null if it did not exist then. The
+    // per-record half of blobAt, for a screen asking about one row rather than a module.
+    fun recordAt(key: String, coll: String, rec: String, at: Long): JsonObject? {
+        val root = blobAt(key, at) ?: return null
+        return Blob.of(root)?.get(coll, rec)
+    }
+
+    // Put a record back to how it read on a day: write the replayed version over the
+    // current one, or remove it if it did not exist then. Returns false when there is
+    // nothing to do — the record is already in that state, or never existed and still
+    // doesn't.
+    //
+    // This is an ordinary write, so it goes through the log like any edit. Undoing a
+    // restore is therefore just another undo, and the trip back is recorded rather than
+    // silently rewriting the past.
+    fun restoreTo(key: String, coll: String, rec: String, at: Long): Boolean {
+        ensureLoaded()
+        val then = recordAt(key, coll, rec, at)
+        val nowRaw = Storage.read(key)
+        val current = if (nowRaw.isNullOrBlank()) null
+        else runCatching { json.parseToJsonElement(nowRaw) }.getOrNull()?.let { Blob.of(it)?.get(coll, rec) }
+
+        if (then == null && current == null) return false
+        if (then != null && current != null && then.toString() == current.toString()) return false
+
+        return editBlob(key, coll) { blob ->
+            if (then == null) blob.remove(coll, rec) else blob.put(coll, rec, then)
+        }
+    }
+
+    // The moment of the log's first event — the point before which replay is guessing
+    // rather than reading. Null when nothing has been recorded yet.
+    fun earliestEventAt(): Long? {
+        ensureLoaded()
+        return log.minOfOrNull { it.at }
+    }
+
+    fun size(): Int {
+        ensureLoaded()
+        return log.size
+    }
+
+    // Drop the in-memory copy and read the log back off disk. Internal because nothing in
+    // the app needs it — the log is local and this object is the only writer — but a test
+    // that edits the stored log directly does.
+    internal fun reload() {
+        log.clear()
+        loaded = false
+        ensureLoaded()
+    }
+
     private fun editBlob(key: String, coll: String, block: (Blob) -> Boolean): Boolean {
         val raw = Storage.read(key)
         val root = if (raw.isNullOrBlank()) null
