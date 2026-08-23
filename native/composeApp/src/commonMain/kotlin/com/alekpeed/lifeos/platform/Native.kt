@@ -94,6 +94,12 @@ expect object Native {
     // notification is not about a record, and its one button simply dismisses.
     fun postReminder(title: String, body: String, subject: String = "")
 
+    // The device's token for server-sent push, or null where there is no such
+    // transport (§7 D-5 phase 2). Asynchronous because FCM's is: fetching one can
+    // need a network round trip on first launch. Desktop has no equivalent and never
+    // will — its half of server push is the Telegram digest, which reaches a laptop.
+    fun devicePushToken(onToken: (String?) -> Unit)
+
     // A pinned, ongoing "next up" notification; pass null to clear it.
     fun setPinnedNextUp(text: String?)
 

@@ -68,6 +68,10 @@ fun Shell() {
     // notification whose Done / Tomorrow buttons resolve the task itself.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.tasks.rescheduleTaskAlarms() }
 
+    // Tell the server where to send (§7 D-5 phase 2). No-ops when signed out or where
+    // there is no push transport, which is everywhere until a Firebase project exists.
+    LaunchedEffect(Unit) { com.alekpeed.lifeos.push.PushRegistration.registerIfNeeded() }
+
     // Turn any free-text project name still sitting on a task into a real project
     // record (W-04). No-op once there is nothing loose, so it costs two reads.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.projects.ensureProjectsMigrated() }

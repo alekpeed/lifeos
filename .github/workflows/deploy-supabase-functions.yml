@@ -6,6 +6,10 @@
 #   GitHub -> repo Settings -> Secrets and variables -> Actions -> add:
 #     SUPABASE_ACCESS_TOKEN   (Supabase dashboard -> Account -> Access Tokens)
 #     VAPID_PRIVATE_KEY       (the private key generated for Web Push)
+#     FCM_SERVICE_ACCOUNT     (the whole Firebase service-account JSON key file, as
+#                              one value -- optional; send-fcm deploys either way and
+#                              stays inert until it is set. It must never be committed
+#                              to this repository or shipped in the app.)
 # The VAPID public key + subject aren't secret, so they're set inline below.
 name: Deploy Supabase Functions
 
@@ -15,6 +19,10 @@ on:
     branches: [main]
     paths:
       - 'supabase/functions/send-push/**'
+      - 'supabase/functions/send-fcm/**'
+      # send-fcm reads module blobs through the digest's shape reader, so a change
+      # there changes what it sends.
+      - 'supabase/functions/telegram-digest/digest.ts'
       - '.github/workflows/deploy-supabase-functions.yml'
 
 jobs:
@@ -25,6 +33,9 @@ jobs:
       PROJECT_REF: ukqdbxxhxxafbcnkmskg
       VAPID_PUBLIC_KEY: BIyvZOWXLeZFcndZ4E1NXgw8Eib0syM5q7iGEtQUyun0dMPJxRyinqiXyefvY6o6qYseZtnfYRLEzadN9ElJJic
       VAPID_SUBJECT: mailto:alekpeed@gmail.com
+      # Read into env rather than used inline: the `secrets` context is not available
+      # to a step's `if`, and this keeps the key off the command line as well.
+      FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,5 +51,28 @@ jobs:
             VAPID_PRIVATE_KEY="${{ secrets.VAPID_PRIVATE_KEY }}" \
             VAPID_SUBJECT="$VAPID_SUBJECT"
 
+      # Set only when the secret exists. Without a Firebase project there is nothing to
+      # set, and writing an empty one would turn a clear "not configured yet" into an
+      # auth error at run time.
+      - name: Push function secrets (FCM)
+        if: env.FCM_SERVICE_ACCOUNT != ''
+        run: |
+          supabase secrets set --project-ref "$PROJECT_REF" \
+            FCM_SERVICE_ACCOUNT="$FCM_SERVICE_ACCOUNT"
+
+      # send-fcm signs its own Google auth JWT and builds its own message shape, and
+      # neither can be exercised without a Firebase project and a real device. The unit
+      # tests are what stands in for that, so they gate the deploy.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Test send-fcm's auth and message shapes
+        run: node --experimental-strip-types --test supabase/functions/send-fcm/send-fcm.test.mjs
+
       - name: Deploy send-push
         run: supabase functions deploy send-push --project-ref "$PROJECT_REF"
+
+      # Keeps its JWT check: pg_cron calls it with the anon key.
+      - name: Deploy send-fcm
+        run: supabase functions deploy send-fcm --project-ref "$PROJECT_REF"

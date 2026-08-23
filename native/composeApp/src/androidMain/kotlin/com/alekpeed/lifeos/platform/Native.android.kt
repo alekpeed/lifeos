@@ -233,6 +233,33 @@ actual object Native {
         }
     }
 
+    // §7 D-5 phase 2 — the one place blocked on something only the account owner can
+    // do. FCM is the only way to wake an Android device with the app closed, and a
+    // token can only be minted by an app registered in a Firebase project.
+    //
+    // Everything downstream of this call is built and tested: PushRegistration uploads
+    // the token, sql/supabase-fcm-schema.sql holds it, supabase/functions/send-fcm
+    // sends to it, and NotificationActionReceiver resolves what arrives. This returns
+    // null until the four steps in sql/supabase-fcm-cron.sql's header are done, which
+    // are, in the app's half:
+    //
+    //   1. Register com.alekpeed.lifeos in a Firebase project; download
+    //      google-services.json into native/composeApp/.
+    //   2. In native/composeApp/build.gradle.kts: apply the com.google.gms.google-services
+    //      plugin and add com.google.firebase:firebase-messaging to androidMain deps.
+    //      (The plugin FAILS THE BUILD without google-services.json, which is why it is
+    //      not applied now — a dependency added early would only add weight.)
+    //   3. A FirebaseMessagingService subclass in the manifest, whose onMessageReceived
+    //      calls Native.postReminder(data.title, data.body, data.subject) — the messages
+    //      send-fcm builds are data-only precisely so the app draws the notification and
+    //      the action buttons exist.
+    //   4. Replace the body of this function with FirebaseMessaging.getInstance().token,
+    //      handing the result to onToken.
+    //
+    // Until then the local alarms (bills, tasks, capsules) and the Telegram digest are
+    // what reach you, and both work today.
+    actual fun devicePushToken(onToken: (String?) -> Unit) { onToken(null) }
+
     actual fun setPinnedNextUp(text: String?) {
         val ctx = NativeHost.ctx() ?: return
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return

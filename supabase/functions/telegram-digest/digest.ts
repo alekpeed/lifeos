@@ -15,7 +15,23 @@ export const DOC_EXPIRY_DAYS = 30;
 // would also drag every photo index and map cache through the function for nothing.
 export const KEYS = ['Tasks', 'Finance', 'Education', 'Documents', 'Projects', 'Time Capsules'];
 
-export type Item = { title: string; when: number; kind: string };
+// `key` and `id` name the record this came out of, so a per-item push can carry a
+// subject its notification's buttons can resolve ("<storage key>|<record id>", the
+// same string the Kotlin side builds in push/Actions.kt). The digest itself only
+// needs the title; it is one message about many things and has nothing to act on.
+export type Item = { title: string; when: number; kind: string; key: string; id: number | null };
+
+// Record ids are Kotlin Longs written as JSON numbers. Anything else — missing, a
+// string, a float — yields no subject rather than a subject that names nothing.
+export function idOf(raw: unknown): number | null {
+  return typeof raw === 'number' && Number.isInteger(raw) ? raw : null;
+}
+
+// Empty when the item cannot be resolved back to a record; the client reads that as
+// "no record behind this notification" and offers a plain Dismiss.
+export function subjectOf(item: Item): string {
+  return item.id === null ? '' : `${item.key}|${item.id}`;
+}
 
 // ---- dates -------------------------------------------------------------------
 
@@ -52,7 +68,7 @@ export function itemsFrom(key: string, blob: unknown): Item[] {
       if (t.status === 'done') continue;
       const n = daysUntil(t.due);
       if (!within(n, DUE_SOON_DAYS)) continue;
-      out.push({ title: String(t.title ?? 'A task'), when: n, kind: 'Task' });
+      out.push({ title: String(t.title ?? 'A task'), when: n, kind: 'Task', key, id: idOf(t.id) });
     }
     return out;
   }
@@ -65,7 +81,7 @@ export function itemsFrom(key: string, blob: unknown): Item[] {
       const n = daysUntil(b.dueDate);
       if (!within(n, DUE_SOON_DAYS)) continue;
       const autopay = b.autopay === true ? ' (autopay)' : '';
-      out.push({ title: `${String(b.name ?? 'A bill')}${autopay}`, when: n, kind: 'Bill' });
+      out.push({ title: `${String(b.name ?? 'A bill')}${autopay}`, when: n, kind: 'Bill', key, id: idOf(b.id) });
     }
     return out;
   }
@@ -75,7 +91,7 @@ export function itemsFrom(key: string, blob: unknown): Item[] {
       if (a.status === 'done') continue;
       const n = daysUntil(a.dueDate);
       if (!within(n, DUE_SOON_DAYS)) continue;
-      out.push({ title: String(a.title ?? 'An assignment'), when: n, kind: 'Assignment' });
+      out.push({ title: String(a.title ?? 'An assignment'), when: n, kind: 'Assignment', key, id: idOf(a.id) });
     }
     return out;
   }
@@ -84,7 +100,7 @@ export function itemsFrom(key: string, blob: unknown): Item[] {
     for (const d of asArray(obj.documents)) {
       const n = daysUntil(d.expiryDate);
       if (!within(n, DOC_EXPIRY_DAYS)) continue;
-      out.push({ title: `${String(d.title ?? 'A document')} expires`, when: n, kind: 'Document' });
+      out.push({ title: `${String(d.title ?? 'A document')} expires`, when: n, kind: 'Document', key, id: idOf(d.id) });
     }
     return out;
   }
@@ -94,7 +110,7 @@ export function itemsFrom(key: string, blob: unknown): Item[] {
       if (p.status === 'DONE' || p.status === 'ARCHIVED') continue;
       const n = daysUntil(p.targetDate);
       if (!within(n, DUE_SOON_DAYS)) continue;
-      out.push({ title: String(p.name ?? 'A project'), when: n, kind: 'Project' });
+      out.push({ title: String(p.name ?? 'A project'), when: n, kind: 'Project', key, id: idOf(p.id) });
     }
     return out;
   }
@@ -107,7 +123,7 @@ export function itemsFrom(key: string, blob: unknown): Item[] {
       if (typeof c.readAt === 'string' && c.readAt) continue;
       const n = daysUntil(c.sealedUntil);
       if (n === null || n > 0) continue;
-      out.push({ title: String(c.title || 'A sealed note'), when: n, kind: 'Capsule' });
+      out.push({ title: String(c.title || 'A sealed note'), when: n, kind: 'Capsule', key, id: idOf(c.id) });
     }
     return out;
   }

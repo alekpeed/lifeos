@@ -64,6 +64,10 @@ actual object Native {
     actual fun keepScreenAwake(on: Boolean) {}
     actual fun importContacts(): List<PhoneContact> = emptyList()
     actual fun postReminder(title: String, body: String, subject: String) {}
+
+    // No push transport on a desktop, by design: the Telegram digest (§7 D-5 phase 1)
+    // is what reaches a laptop, and it needs no token.
+    actual fun devicePushToken(onToken: (String?) -> Unit) { onToken(null) }
     actual fun setPinnedNextUp(text: String?) {}
     actual fun setWakeWordEnabled(on: Boolean) {}
     actual fun armArrivalHere(label: String) {}

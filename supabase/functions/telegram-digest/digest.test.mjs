@@ -112,9 +112,9 @@ test('an unknown key is ignored', () => {
 
 test('the message leads with the most urgent and counts the overdue', () => {
   const items = [
-    { title: 'Later', when: 3, kind: 'Task' },
-    { title: 'Overdue thing', when: -2, kind: 'Bill' },
-    { title: 'Today', when: 0, kind: 'Task' },
+    { title: 'Later', when: 3, kind: 'Task', key: 'Tasks', id: 1 },
+    { title: 'Overdue thing', when: -2, kind: 'Bill', key: 'Finance', id: 2 },
+    { title: 'Today', when: 0, kind: 'Task', key: 'Tasks', id: 3 },
   ];
   const msg = buildMessage(items);
   assert.match(msg, /3 need you, 1 overdue/);
@@ -125,14 +125,14 @@ test('the message leads with the most urgent and counts the overdue', () => {
 });
 
 test('a long list is truncated rather than sent as a wall', () => {
-  const items = Array.from({ length: 40 }, (_, i) => ({ title: `Item ${i}`, when: i, kind: 'Task' }));
+  const items = Array.from({ length: 40 }, (_, i) => ({ title: `Item ${i}`, when: i, kind: 'Task', key: 'Tasks', id: i }));
   const msg = buildMessage(items);
   assert.equal(msg.split('\n').filter((l) => l.startsWith('•')).length, 15);
   assert.match(msg, /and 25 more/);
 });
 
 test('nothing overdue reads as a look-ahead, not an alarm', () => {
-  const msg = buildMessage([{ title: 'Rent', when: 2, kind: 'Bill' }]);
+  const msg = buildMessage([{ title: 'Rent', when: 2, kind: 'Bill', key: 'Finance', id: 1 }]);
   assert.match(msg, /1 coming up/);
   assert.doesNotMatch(msg, /overdue/);
 });
@@ -164,5 +164,9 @@ test('the field names match what the app syncs', () => {
     const found = itemsFrom(key, blob);
     assert.equal(found.length, 1, `${key}: expected one due item — has a field been renamed?`);
     assert.equal(found[0].when, 0);
+    // The id travels with it, because a per-item push (Phase 2) names the record it is
+    // about and its notification's buttons resolve that name.
+    assert.equal(found[0].id, 1, `${key}: the record id did not survive the read`);
+    assert.equal(found[0].key, key);
   }
 });

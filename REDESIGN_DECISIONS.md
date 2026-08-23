@@ -839,6 +839,64 @@ Remaining work:
 - New secrets-handling surface: the service account key lives in Supabase secrets,
   never in the repo or the client
 
+**Built 2026-08-23, in two halves — and the first half was not the transport.**
+
+The premise above is wrong on one point, which reading the tree settled: the action
+buttons already existed. Every reminder notification has rendered a Done and a Snooze
+since the notification path was written. Both called `nm.cancel(id)` and nothing else
+— `NotificationActionReceiver`'s own comment admitted it ("a real timed snooze via
+AlarmManager is a follow-up"). What was missing was not a transport that could carry
+actions; it was the actions doing anything. That needs no Firebase at all, and it
+landed first.
+
+A notification now carries a **subject** — `"<storage key>|<record id>"`. The
+resolution lives in `push/Actions.kt` in commonMain, not in the Android receiver, so
+the same code serves a local alarm and an FCM message alike and can be tested without
+a device. Tasks: Done finishes and stamps `completedDate`; Tomorrow snoozes and
+re-arms. Time Capsules: one button, "Mark read". No subject: one button, "Dismiss" —
+a Done that changes nothing should not be labelled Done. Bills are deliberately
+absent: marking one paid writes a payment with an amount and a date, and doing that
+from a lock screen without seeing the figure is not a convenience. Tasks also gained
+alarms of their own (`tasks/Reminders.kt`), since the module most likely to hold
+something you meant to do today had none, which left the buttons nothing to act on.
+
+The second half is the FCM transport, and the *server* side of it is complete:
+
+- `sql/supabase-fcm-schema.sql` — `fcm_tokens` (one row per device) and `fcm_sent`
+  (one row per record per day), both with RLS. Not an edit of `push_subscriptions`:
+  that table holds Web Push endpoints the Kotlin app cannot receive on.
+- `supabase/functions/send-fcm/` — signs a service-account JWT (RS256, Web Crypto),
+  trades it for a Google access token, and sends per-item pushes. It reads module
+  blobs through `telegram-digest/digest.ts`, so there is one mirror of the Kotlin data
+  shapes rather than three; `digest.ts` gained the record id so a push can name what
+  it is about. 13 unit tests, including a real sign-and-verify round trip, gate the
+  deploy — nothing else in this path can be exercised without a Firebase project.
+- `sql/supabase-fcm-cron.sql` — hourly, versus the digest's once a morning, with each
+  record sent at most once a day so frequency does not become noise.
+- `push/Registration.kt` — uploads the device token at app open, remembers the last
+  one under a reserved key so the ordinary case costs no request, and forgets it on
+  sign-out.
+
+**One correction worth recording:** FCM does not carry notification actions either.
+There is no field for them in the v1 API. What it carries is a payload, and the app
+builds the notification — which is why `send-fcm` sends **data-only** messages. With
+a `notification` block Android draws the notification itself while the app is
+backgrounded, the app never sees the payload, and the buttons never appear. The
+buttons come from our own client code, keyed by the subject, on either transport.
+
+**What is left, and it is only Alek's to do:** create a Firebase project with
+`com.alekpeed.lifeos` registered in it, set `FCM_SERVICE_ACCOUNT` (the whole key file,
+in Supabase secrets or as a GitHub Actions secret — never in this repo), and run the
+two SQL files. The app-side follow-on is four steps written out in full at
+`Native.android.kt`'s `devicePushToken`: `google-services.json` into
+`native/composeApp/`, the `google-services` plugin plus `firebase-messaging`, a
+`FirebaseMessagingService` whose `onMessageReceived` calls
+`postReminder(title, body, subject)`, and the token fetch itself. The plugin **fails
+the build** without `google-services.json`, which is why it is not applied now — a
+dependency added early would be weight with nothing behind it. Until then
+`devicePushToken` returns null, `send-fcm` reports "no registered devices", and the
+local alarms and the Telegram digest are what reach you.
+
 **Division of labor once both exist:**
 - Telegram cron → the scheduled digest, both platforms
 - FCM → individual urgent items with actions, phone only

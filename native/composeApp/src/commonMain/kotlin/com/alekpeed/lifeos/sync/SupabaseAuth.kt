@@ -28,6 +28,9 @@ object SupabaseAuth {
     fun signOut() {
         Storage.write(K_ACCESS, ""); Storage.write(K_REFRESH, "")
         Storage.write(K_UID, ""); Storage.write(K_EMAIL, "")
+        // The next account on this phone registers its own device row rather than
+        // inheriting one that still points at this one (§7 D-5 phase 2).
+        com.alekpeed.lifeos.push.PushRegistration.forget()
     }
 
     private fun baseHeaders() = mapOf(
