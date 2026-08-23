@@ -24,6 +24,10 @@ data class Task(
     val status: String = "not_started", // not_started | in_progress | waiting | done
     val priority: String = "medium",    // low | medium | high | urgent
     val due: String = "",               // "yyyy-MM-dd", "yyyy-MM-ddTHH:mm", or ""
+    // The project this belongs to (W-04). `project` is the free-text field it replaced,
+    // kept so a task written by a device that has not migrated yet still says which
+    // project it meant; migrateProjectStrings() moves it across and clears it.
+    val projectId: Long? = null,
     val project: String = "",
     val tags: List<String> = emptyList(),
     val notes: String = "",

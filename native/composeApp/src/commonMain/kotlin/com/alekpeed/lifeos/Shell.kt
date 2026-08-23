@@ -60,6 +60,10 @@ fun Shell() {
     // where a laptop picks up what the phone did.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.sync.AutoSync.onForeground() }
 
+    // Turn any free-text project name still sitting on a task into a real project
+    // record (W-04). No-op once there is nothing loose, so it costs two reads.
+    LaunchedEffect(Unit) { com.alekpeed.lifeos.projects.ensureProjectsMigrated() }
+
     // Note the arrival date of any record the census hasn't seen. Done at app open so a
     // record's "added on" date is the day it actually turned up, not the day the Time
     // Machine happens to get opened. Writes only when something is new.

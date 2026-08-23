@@ -1,10 +1,10 @@
 # Life OS — Android
 
 Everything in the Android application as it stands: how you get into it, the phone
-hardware it uses, and all 40 modules with what each one is and what a record in it
+hardware it uses, and all 41 modules with what each one is and what a record in it
 holds. Written from the Kotlin source.
 
-**40 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
+**41 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
 
 ---
 
@@ -98,7 +98,7 @@ Field names are the real ones the app stores. **On the phone** lists the hardwar
 module actually reaches for.
 
 ## Operations
-*Run your day.* — 8 modules
+*Run your day.* — 9 modules
 
 ### ◈  Operations
 A full-screen graphical hub for the day: the module's artwork is the interface, with
@@ -147,13 +147,23 @@ priority, any due date, projects, tags, repeats that spawn the next occurrence w
 complete one, snoozing, subtask checklists, and a board view you can drag cards across.
 
 - **Subtask** — `id`, `text`, `done`
-- **Task** — `id`, `title`, `status`, `priority`, `due`, `project`, `tags`, `notes`, `waitingOn`, `subtasks`, `recur`, `snoozedUntil`, `completedDate`
+- **Task** — `id`, `title`, `status`, `priority`, `due`, `projectId`, `tags`, `notes`, `waitingOn`, `subtasks`, `recur`, `snoozedUntil`, `completedDate`
 - The board is a column per status. Press and hold a card to lift it, drag it over
   another column, let go — the target lights up and the board auto-scrolls near either
   edge. ‹ / › on each card do the same one step at a time.
 - The row checkbox *selects* rather than completes, so completing and deleting both act
   on a whole selection from one bar. Completing flips to Reopen when everything picked
   is already done.
+
+### 🗂  Projects
+A project is a record, not a word typed into a task. It has dates, a status, notes and
+tags, and it gathers what belongs to it: its tasks, plus links to the documents, saved
+links, people and milestones already held elsewhere. Progress is the share of its tasks
+that are done, and a target date puts it in the Calendar.
+
+- **Project** — `id`, `name`, `description`, `status`, `startDate`, `targetDate`, `completedDate`, `notes`, `tags`, `documentIds`, `linkIds`, `contactIds`, `milestoneIds`
+- Deleting a project releases its tasks rather than deleting them.
+- Free-text project names on existing tasks turn into records automatically on first run.
 
 ### ⌘  Command
 One input. Type an instruction in plain language and it proposes a record and a
@@ -577,12 +587,11 @@ module it lives in; rename or merge one and it changes everywhere at once.
 
 # Where it stands
 
-All 40 modules are built and the build runs on device. Outstanding:
+All 41 modules are built and the build runs on device. Outstanding:
 
 - **Blocked on credentials** — Google Photos import and calendar push; both need an
   OAuth client created in the Google Cloud project.
 - **Awaiting artwork** — the Knowledge Graph's radial view. It works as a list today.
 - **Open decisions** — whether Notifications adds a shared activity feed, and when the
   animated character gets built.
-- **Small gaps** — projects in Tasks are a text field rather than first-class records,
-  and weather is by named city rather than location.
+- **Small gaps** — weather is by named city rather than location.

@@ -72,6 +72,8 @@ import kotlin.math.roundToInt
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 import com.alekpeed.lifeos.ui.TagField
+import com.alekpeed.lifeos.projects.loadProjects
+import com.alekpeed.lifeos.projects.projectNameOf
 
 private fun dueColor(due: LocalDate?, done: Boolean): Color? {
     if (due == null || done) return null
@@ -93,8 +95,8 @@ private fun priorityColor(p: String): Color? = when (p) {
 
 // The chips shown under a task title (project, status, waiting-on, subtask count,
 // tags, recurrence). Shared by the list rows and the board cards.
-private fun taskMetas(task: Task): List<String> = buildList {
-    if (task.project.isNotBlank()) add(task.project)
+private fun taskMetas(task: Task, projectName: String = task.project): List<String> = buildList {
+    if (projectName.isNotBlank()) add(projectName)
     if (task.status == "in_progress") add("In progress")
     if (task.status == "waiting") add(if (task.waitingOn.isNotBlank()) "Waiting: ${task.waitingOn}" else "Waiting")
     if (task.subtasks.isNotEmpty()) add("${task.subtasks.count { it.done }}/${task.subtasks.size}")
@@ -112,7 +114,8 @@ fun TasksScreen() {
     var nextId by remember { mutableStateOf((tasks.maxOfOrNull { it.id } ?: 0L) + 1) }
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var board by remember { mutableStateOf(false) }
-    var projectFilter by remember { mutableStateOf<String?>(null) }
+    // A project id now, not a name (W-04). Null means every project.
+    var projectFilter by remember { mutableStateOf<Long?>(null) }
     var hideDone by remember { mutableStateOf(false) }
     var showSnoozed by remember { mutableStateOf(false) }
     var sortByPriority by remember { mutableStateOf(false) }
@@ -170,8 +173,12 @@ fun TasksScreen() {
         selected = emptySet()
     }
 
-    val projects = tasks.map { it.project.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
-    fun visible(list: List<Task>) = list.filter { projectFilter == null || it.project.trim() == projectFilter }
+    // Real project records, open ones first. Read once per composition: the list is
+    // short and the screen already reloads its tasks the same way.
+    val allProjects = remember { loadProjects().projects }
+    val projects = allProjects.filter { it.open }.sortedBy { it.name.lowercase() }
+    fun nameOf(t: Task) = projectNameOf(t, allProjects)
+    fun visible(list: List<Task>) = list.filter { projectFilter == null || it.projectId == projectFilter }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
 
@@ -195,7 +202,11 @@ fun TasksScreen() {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(selected = projectFilter == null, onClick = { projectFilter = null }, label = { Text("All") })
                 projects.forEach { p ->
-                    FilterChip(selected = projectFilter == p, onClick = { projectFilter = if (projectFilter == p) null else p }, label = { Text(p) })
+                    FilterChip(
+                        selected = projectFilter == p.id,
+                        onClick = { projectFilter = if (projectFilter == p.id) null else p.id },
+                        label = { Text(p.name) },
+                    )
                 }
             }
         }
@@ -218,10 +229,10 @@ fun TasksScreen() {
         if (adding) {
             AddTaskPrompt(
                 // Adding while filtered to a project drops the new task into that project.
-                project = projectFilter,
+                project = projects.firstOrNull { it.id == projectFilter }?.name,
                 onDismiss = { adding = false },
                 onAdd = { title, due ->
-                    tasks.add(Task(nextId, title, due = due, project = projectFilter ?: ""))
+                    tasks.add(Task(nextId, title, due = due, projectId = projectFilter))
                     nextId += 1
                     persist()
                     adding = false
@@ -232,6 +243,7 @@ fun TasksScreen() {
         if (board) {
             TaskBoard(
                 tasks = visible(tasks),
+                projectName = { t -> nameOf(t) },
                 onOpen = { id -> board = false; expandedId = id },
                 onMove = { task, s -> moveStatus(task, s) },
             )
@@ -258,6 +270,7 @@ fun TasksScreen() {
                 items(shown, key = { it.id }) { task ->
                     TaskRow(
                         task = task,
+                        projectName = nameOf(task),
                         expanded = expandedId == task.id,
                         picked = task.id in selected,
                         onPick = { on ->
@@ -277,6 +290,7 @@ fun TasksScreen() {
 @Composable
 private fun TaskRow(
     task: Task,
+    projectName: String,
     expanded: Boolean,
     picked: Boolean,
     onPick: (Boolean) -> Unit,
@@ -303,7 +317,7 @@ private fun TaskRow(
                 )
             }
         }
-        val metas = taskMetas(task)
+        val metas = taskMetas(task, projectName)
         if (metas.isNotEmpty()) {
             FlowRow(
                 Modifier.padding(start = 40.dp, top = 2.dp),
@@ -331,7 +345,12 @@ private fun TaskRow(
 // buttons stay as the keyboard-and-mouse path and as a fallback if a drag misses.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ColumnScope.TaskBoard(tasks: List<Task>, onOpen: (Long) -> Unit, onMove: (Task, String) -> Unit) {
+private fun ColumnScope.TaskBoard(
+    tasks: List<Task>,
+    projectName: (Task) -> String,
+    onOpen: (Long) -> Unit,
+    onMove: (Task, String) -> Unit,
+) {
     val statusOrder = TASK_STATUSES.map { it.first }
     val scroll = rememberScrollState()
     val density = LocalDensity.current
@@ -423,6 +442,7 @@ private fun ColumnScope.TaskBoard(tasks: List<Task>, onOpen: (Long) -> Unit, onM
                     colTasks.forEach { task ->
                         BoardCard(
                             task = task,
+                            projectName = projectName(task),
                             canPrev = idx > 0,
                             canNext = idx in 0 until statusOrder.lastIndex,
                             lifted = dragTask?.id == task.id,
@@ -456,6 +476,7 @@ private fun ColumnScope.TaskBoard(tasks: List<Task>, onOpen: (Long) -> Unit, onM
             ) {
                 BoardCard(
                     task = task,
+                    projectName = projectName(task),
                     canPrev = false,
                     canNext = false,
                     floating = true,
@@ -472,6 +493,7 @@ private fun ColumnScope.TaskBoard(tasks: List<Task>, onOpen: (Long) -> Unit, onM
 @Composable
 private fun BoardCard(
     task: Task,
+    projectName: String,
     canPrev: Boolean,
     canNext: Boolean,
     onOpen: () -> Unit,
@@ -525,7 +547,7 @@ private fun BoardCard(
             )
         }
         // Status is already implied by the column, so drop the status chips here.
-        val metas = taskMetas(task).filter { it != "In progress" && !it.startsWith("Waiting") }
+        val metas = taskMetas(task, projectName).filter { it != "In progress" && !it.startsWith("Waiting") }
         if (metas.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 metas.forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
@@ -581,19 +603,33 @@ private fun TaskEditor(task: Task, update: (Long, (Task) -> Task) -> Unit, onDel
             }
         }
         Label("Project")
-        val projectOptions = remember { loadTasks().map { it.project.trim() }.filter { it.isNotEmpty() }.distinct().sorted() }
-        if (projectOptions.isNotEmpty()) {
+        val projectOptions = remember { loadProjects().projects.filter { it.open }.sortedBy { p -> p.name.lowercase() } }
+        if (projectOptions.isEmpty()) {
+            Text(
+                "No projects yet — make one in Projects and it appears here.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(
+                    selected = task.projectId == null,
+                    onClick = { update(task.id) { t -> t.copy(projectId = null, project = "") } },
+                    label = { Text("None") },
+                )
                 projectOptions.forEach { p ->
                     FilterChip(
-                        selected = task.project.trim() == p,
-                        onClick = { update(task.id) { t -> t.copy(project = if (t.project.trim() == p) "" else p) } },
-                        label = { Text(p) },
+                        selected = task.projectId == p.id,
+                        onClick = {
+                            update(task.id) { t ->
+                                if (t.projectId == p.id) t.copy(projectId = null) else t.copy(projectId = p.id, project = "")
+                            }
+                        },
+                        label = { Text(p.name) },
                     )
                 }
             }
         }
-        EditField(task.project, "e.g. Home renovation") { v -> update(task.id) { it.copy(project = v.replace("\n", " ")) } }
         Label("Tags")
         TagField(task.tags, "errand, work") { v -> update(task.id) { it.copy(tags = v) } }
         if (task.status == "waiting") {

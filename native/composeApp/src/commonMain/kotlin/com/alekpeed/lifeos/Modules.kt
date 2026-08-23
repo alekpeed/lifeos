@@ -14,6 +14,7 @@ import com.alekpeed.lifeos.operations.OperationsScreen
 import com.alekpeed.lifeos.travel.TravelScreen
 import com.alekpeed.lifeos.paper.DailyPaperScreen
 import com.alekpeed.lifeos.places.PlacesScreen
+import com.alekpeed.lifeos.projects.ProjectsScreen
 import com.alekpeed.lifeos.quartermaster.QuartermasterScreen
 import com.alekpeed.lifeos.rabbitholes.RabbitHolesScreen
 import com.alekpeed.lifeos.recipes.RecipesScreen
@@ -70,6 +71,7 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("today", "🗓", "Today", "Operations", true) { TodayScreen() },
     Module("daily-paper", "📰", "Daily Paper", "Operations", true) { DailyPaperScreen() },
     Module("tasks", "✅", "Tasks", "Operations", true) { TasksScreen() },
+    Module("projects", "🗂", "Projects", "Operations", true) { ProjectsScreen() },
     Module("command", "⌘", "Command", "Operations", true) { CommandScreen() },
     Module("briefing", "📋", "Briefing", "Operations", true) { BriefingScreen() },
     Module("calendar", "🗓", "Calendar", "Operations", true) { CalendarScreen() },

@@ -807,6 +807,12 @@ modules means retrofitting across 49 modules instead of 40:
   actually prevents duplicates; case is preserved rather than folded, with clashing
   spellings surfaced for merging instead of silently rewritten.
 - **W-04** projects as first-class records
+  **Built 2026-08-23** as `projects/Project.kt` plus a Projects module. `Task.project`
+  (free text) becomes `Task.projectId`; the existing names migrate into records on first
+  run, matched case-insensitively so two devices converge on one project rather than
+  two. A project links documents, links, contacts and milestones by id — never copies —
+  and its target date joins the shared Calendar query. Deleting a project releases its
+  tasks; finishing one leaves its open tasks open.
 
 Remaining: 4 L · 9 M · 17 S. The seventeen S items are largely independent and can
 run in any order once the schema work is down.

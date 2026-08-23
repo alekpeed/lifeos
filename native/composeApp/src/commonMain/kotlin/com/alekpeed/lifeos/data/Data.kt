@@ -19,6 +19,7 @@ data class DataSource(val label: String, val key: String)
 
 val DATA_SOURCES: List<DataSource> = listOf(
     DataSource("Tasks", "Tasks"),
+    DataSource("Projects", "Projects"),
     DataSource("Ideas", "Ideas"),
     DataSource("Places", "Places"),
     DataSource("Links", "Links"),

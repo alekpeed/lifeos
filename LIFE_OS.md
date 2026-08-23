@@ -5,7 +5,7 @@ have to do, what you own, what you've read, where you've been, what you spent, w
 know, what you learned — held as records you own, on a machine you own, in an app that
 notices things about them.
 
-**40 modules across 8 domains, in one native application.**
+**41 modules across 8 domains, in one native application.**
 
 ---
 
@@ -56,7 +56,7 @@ this document should hold to them.
 
 ## Where it stands
 
-All 40 modules are built and compile; the desktop build runs. What remains is short:
+All 41 modules are built and compile; the desktop build runs. What remains is short:
 
 - **Two features blocked on credentials** — importing from Google Photos, and pushing
   to a calendar. Both need an OAuth client the owner has to create.
@@ -64,8 +64,7 @@ All 40 modules are built and compile; the desktop build runs. What remains is sh
   currently works as a functional list.
 - **Two open product decisions** — whether Notifications adds a shared activity feed,
   and when an animated character planned for the app gets built.
-- **Two small gaps** — projects in Tasks are a text field rather than first-class
-  records, and weather is by named city.
+- **One small gap** — weather is by named city rather than location.
 - **Six platform gaps**, all on the desktop side and all listed with their causes in
   `NATIVE_FEATURES.md` — the notable ones being no ebook import, no Apple Health
   import, and no notifications when the app is closed.
@@ -103,7 +102,7 @@ Each entry gives what the module is and what a record in it holds. Field names a
 real ones the application stores.
 
 ## Operations
-*Run your day.*  (8 modules)
+*Run your day.*  (9 modules)
 
 ### Operations
 A full-screen graphical hub for the day: the module's artwork is the interface, with
@@ -152,13 +151,21 @@ priority, any due date, projects, tags, repeats that spawn the next occurrence w
 complete one, snoozing, subtask checklists, and a board view you can drag cards across.
 
 - **Subtask** — `id`, `text`, `done`
-- **Task** — `id`, `title`, `status`, `priority`, `due`, `project`, `tags`, `notes`, `waitingOn`, `subtasks`, `recur`, `snoozedUntil`, `completedDate`
+- **Task** — `id`, `title`, `status`, `priority`, `due`, `projectId`, `tags`, `notes`, `waitingOn`, `subtasks`, `recur`, `snoozedUntil`, `completedDate`
 - The board is a column per status. Press and hold a card to lift it, drag it over
   another column, let go — the target lights up and the board auto-scrolls near either
   edge. ‹ / › on each card do the same one step at a time.
 - The row checkbox *selects* rather than completes, so completing and deleting both act
   on a whole selection from one bar. Completing flips to Reopen when everything picked
   is already done.
+
+### Projects
+A project is a record, not a word typed into a task. Dates, a status, notes and tags,
+and it gathers what belongs to it: its tasks, plus links to the documents, saved links,
+people and milestones already held elsewhere. A target date puts it in the Calendar.
+
+- **Project** — `id`, `name`, `description`, `status`, `startDate`, `targetDate`, `completedDate`, `notes`, `tags`, `documentIds`, `linkIds`, `contactIds`, `milestoneIds`
+- Deleting a project releases its tasks rather than deleting them.
 
 ### Command
 One input. Type an instruction in plain language and it proposes a record and a
@@ -582,5 +589,5 @@ most likely to be missing something. They're offered as directions, not as a bri
    archive, or resurface?
 5. **It is single-player by design, with one shared feature.** Where, if anywhere, does
    another person genuinely belong?
-6. **What is missing entirely** — not a better version of one of these 40, but a section
+6. **What is missing entirely** — not a better version of one of these 41, but a section
    a life plainly has and this app has no room for.

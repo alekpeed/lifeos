@@ -10,6 +10,8 @@ import com.alekpeed.lifeos.education.loadEducation
 import com.alekpeed.lifeos.finance.financeBills
 import com.alekpeed.lifeos.milestones.loadMilestones
 import com.alekpeed.lifeos.people.loadContacts
+import com.alekpeed.lifeos.projects.ProjectStatus
+import com.alekpeed.lifeos.projects.loadProjects
 import com.alekpeed.lifeos.tasks.loadTasks
 import com.alekpeed.lifeos.timecapsules.loadCapsules
 import com.alekpeed.lifeos.travel.ReservationStatus
@@ -181,6 +183,24 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
             DatedItem(
                 key = "milestone-${m.id}", icon = "🏆", title = m.title, date = d,
                 time = null, moduleId = "milestones", kind = DatedKind.EVENT,
+            ),
+        )
+    }
+
+    // A project's target date (W-04). Due, not an event: a project past its date is
+    // late in the same sense a task is, and a finished one keeps its place on the day
+    // it was aimed at.
+    loadProjects().projects.forEach { p ->
+        if (p.status == ProjectStatus.ARCHIVED) return@forEach
+        val finished = p.status == ProjectStatus.DONE
+        if (!includeDone && finished) return@forEach
+        val d = parseDateOrNull(p.targetDate) ?: return@forEach
+        if (!inRange(d)) return@forEach
+        out.add(
+            DatedItem(
+                key = "project-${p.id}", icon = "🗂", title = p.name, date = d,
+                time = null, moduleId = "projects", kind = DatedKind.DUE,
+                note = "project target", done = finished,
             ),
         )
     }
