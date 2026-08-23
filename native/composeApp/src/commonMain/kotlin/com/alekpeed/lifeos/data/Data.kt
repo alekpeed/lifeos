@@ -42,6 +42,7 @@ val DATA_SOURCES: List<DataSource> = listOf(
     DataSource("Photos", "Photos"),
     DataSource("Health", "Health"),
     DataSource("Skill Trees", "Skill Trees"),
+    DataSource("Skills", "Skills"),
     DataSource("Notifications", "Notifications"),
     DataSource("Entropy", "Entropy"),
     DataSource("Time Machine", "Time Machine"),

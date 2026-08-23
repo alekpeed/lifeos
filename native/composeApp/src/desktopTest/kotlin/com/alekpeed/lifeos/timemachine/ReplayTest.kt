@@ -40,6 +40,12 @@ class ReplayTest {
     private fun task(id: Int, title: String, done: Boolean = false) =
         """{"id":$id,"title":"$title","done":$done}"""
 
+    // The instant just before a given kind of event. Two writes can land in the same
+    // millisecond, so "the timestamp of the earlier write" is not a usable boundary —
+    // this one is, and it is exact rather than a sleep.
+    private fun markBefore(kind: Change): Long =
+        History.all().first { it.change == kind }.at - 1
+
     private fun titles(): List<String> =
         Json.parseToJsonElement(Storage.read("Tasks")!!).jsonObject["items"]!!
             .jsonArray.map { it.jsonObject["title"]!!.jsonPrimitive.content }
@@ -88,8 +94,8 @@ class ReplayTest {
     @Test
     fun `a record reads as it did at a moment, not as it does now`() {
         Storage.write("Tasks", tasks(task(1, "Was this")))
-        val mark = History.all().last().at
         Storage.write("Tasks", tasks(task(1, "Is now this")))
+        val mark = markBefore(Change.UPDATE)
 
         val then = History.recordAt("Tasks", "items", "1", mark)
         assertNotNull(then)
@@ -101,8 +107,8 @@ class ReplayTest {
     @Test
     fun `putting a record back rewinds it, through the ordinary write path`() {
         Storage.write("Tasks", tasks(task(1, "Original")))
-        val mark = History.all().last().at
         Storage.write("Tasks", tasks(task(1, "Changed my mind")))
+        val mark = markBefore(Change.UPDATE)
 
         assertTrue(History.restoreTo("Tasks", "items", "1", mark))
         assertEquals(listOf("Original"), titles())
@@ -156,8 +162,8 @@ class ReplayTest {
     @Test
     fun `putting back a deleted record brings it home`() {
         Storage.write("Tasks", tasks(task(1, "Keep"), task(2, "Deleted later")))
-        val mark = History.all().last().at
         Storage.write("Tasks", tasks(task(1, "Keep")))
+        val mark = markBefore(Change.DELETE)
 
         assertTrue(History.restoreTo("Tasks", "items", "2", mark))
         assertTrue(titles().contains("Deleted later"))
@@ -166,8 +172,8 @@ class ReplayTest {
     @Test
     fun `putting back a record that did not exist then removes it`() {
         Storage.write("Tasks", tasks(task(1, "Original")))
-        val mark = History.all().last().at
         Storage.write("Tasks", tasks(task(1, "Original"), task(2, "Added after")))
+        val mark = History.all().first { it.rec == "2" }.at - 1
 
         assertTrue(History.restoreTo("Tasks", "items", "2", mark))
         assertEquals(listOf("Original"), titles())

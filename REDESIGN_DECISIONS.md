@@ -477,6 +477,21 @@ Nothing is logged twice, and the hours shown are real hours.
 and any number computed from unrelated activity. Those belong to Standings, in
 their own band, under their own word.
 
+**Built 2026-08-23** as `skilltrees/Standings.kt` and `skilltrees/Skills.kt`, with
+the module's screen split into the two bands. Both fixes landed: a Standing is a
+record with named sources and per-source weights, and the three are seeded rather
+than fixed — deleting one keeps it deleted. `Decay.kt`, salvaged from Recall when
+§10 ran, now has its caller: a skill's rung is derived from its practice history
+rather than stored, so it cannot drift out of step with the logs.
+
+Two things worth recording beyond the spec. Hours are kept apart by origin —
+logged, from linked habits, from linked courses — so the screen can say where an
+hour came from; and a habit check-in on a day that already has a written session
+is skipped, because the same session counted twice is exactly what "the hours
+shown are real hours" was meant to prevent. The two tiers also store separately
+(`Skill Trees` and `Skills`), so a Standing's weights and a skill's practice log
+cannot corrupt each other.
+
 ### 5.3 Collections — overhaul
 
 Category-agnostic by design. Must work equally for baseball cards, stamps,

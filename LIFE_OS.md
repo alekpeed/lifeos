@@ -341,10 +341,31 @@ target, dated checkpoints, and logs of what you actually did against it.
 - **Assignment** — `id`, `courseId`, `title`, `dueDate`, `status`, `percentComplete`, `timeSpentMinutes`, `grade`, `pacingTarget`, `pacingUnit`, `paceCheckpoints`, `progressLogs`
 
 ### Skill Trees
-Your real activity expressed as levels across three branches. Nothing is entered here;
-it reads what you did elsewhere.
+Two tiers, two vocabularies, deliberately walled apart.
 
-- **Skill** — `name`, `icon`, `xp`, `blurb`
+**Standings** count what you have been doing and advance in *ranks*. Each one is a record
+now rather than a hardcoded branch: name it, pick which countable events feed it — tasks
+completed, habit check-ins, recipes cooked, places visited, practice hours — and what each
+is worth. Executor, Discipline and Scholar ship preconfigured at the weights they always
+used, and all three can be renamed, reweighted or deleted. A standing cannot show that you
+got better at anything, only that you did more; the module says so.
+
+**Skills** are what you declared you are learning, and they move in *levels*. A level only
+changes when a benchmark you wrote is met — "play the F barre chord cleanly at 80bpm", not
+a progress bar. Each skill carries its own level scale (A1→C2, belts, grades), sub-skills
+that branch off it, practice sessions with a focus and a self-rated quality, and a decay
+rung salvaged from the removed Recall module: practise and the skill holds longer, leave it
+and it goes cold. A paused skill is exempt.
+
+Practice hours may feed a standing. A standing may never feed a skill's level. Linked
+habits and courses contribute real hours, and a day that already has a session logged
+ignores the habit check-in rather than counting it twice.
+
+- **Standing** — `id`, `name`, `icon`, `blurb`, `sources`, `rankNames`
+- **SourceWeight** — `kind`, `xp`
+- **Skill** — `id`, `name`, `domain`, `parentId`, `startedDate`, `notes`, `photoBlob`, `currentLevel`, `levelScale`, `targetLevel`, `targetDate`, `active`, `habitNames`, `courseIds`, `bookIds`, `minutesPerCheckin`
+- **PracticeLog** — `id`, `skillId`, `date`, `minutes`, `focus`, `quality`, `notes`, `attachments`
+- **Benchmark** — `id`, `skillId`, `label`, `targetLevel`, `achieved`, `achievedDate`
 
 ### Ideas
 Fast capture, tagged and searchable, promotable to a task.
