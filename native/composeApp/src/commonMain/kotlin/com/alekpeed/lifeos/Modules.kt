@@ -3,7 +3,6 @@ package com.alekpeed.lifeos
 import androidx.compose.runtime.Composable
 import com.alekpeed.lifeos.books.BooksScreen
 import com.alekpeed.lifeos.collections.CollectionsScreen
-import com.alekpeed.lifeos.core.CommandScreen
 import com.alekpeed.lifeos.core.TodayScreen
 import com.alekpeed.lifeos.calendar.CalendarScreen
 import com.alekpeed.lifeos.documents.DocumentsScreen
@@ -71,7 +70,6 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("daily-paper", "📰", "Daily Paper", "Operations", true) { DailyPaperScreen() },
     Module("tasks", "✅", "Tasks", "Operations", true) { TasksScreen() },
     Module("projects", "🗂", "Projects", "Operations", true) { ProjectsScreen() },
-    Module("command", "⌘", "Command", "Operations", true) { CommandScreen() },
     Module("briefing", "📋", "Briefing", "Operations", true) { BriefingScreen() },
     Module("calendar", "🗓", "Calendar", "Operations", true) { CalendarScreen() },
     // Archive — what you keep

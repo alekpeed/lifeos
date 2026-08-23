@@ -44,7 +44,7 @@ private val ACCENT = Color(0xFF5EC7A6)
 private val HAIR = Color(0xFF23282E)
 private val MONO = FontFamily.Monospace
 
-private val PINNED_IDS = listOf("today", "tasks", "briefing", "finance", "command", "ask")
+private val PINNED_IDS = listOf("today", "tasks", "briefing", "finance", "calendar", "ask")
 
 @Composable
 fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {

@@ -185,7 +185,7 @@ fun financeBillPayments(): List<PaymentPoint> =
 fun financeBillStubs(): List<Pair<Long, String>> = loadData().bills.map { it.id to it.name }
 fun financeSubStubs(): List<Pair<Long, String>> = loadData().subscriptions.map { it.id to it.name }
 
-// Create a bill from outside (the Command bar). Monthly by default; schedules
+// Create a bill from outside (Ask's capture path). Monthly by default; schedules
 // the due reminder like the Bills tab does.
 fun financeAddBill(name: String, amount: Double, dueDate: String) {
     val data = loadData()

@@ -99,6 +99,32 @@ would delete a capability, not a duplicate.
 by what was typed. This mirrors the propose-then-confirm pattern `SmartScan.kt`
 already runs for the camera.
 
+**Built 2026-08-23** as `core/Capture.kt` plus the fold into `AskScreen.kt`.
+
+"Distinguished by what was typed" is the whole design, and it is a local, keyless
+read: a question mark, an interrogative opening, or an imperative one. The button
+label changes as you type — **Ask** or **Create** — so the reading is visible before
+you commit to it rather than discovered afterwards. Nothing is written on that read:
+a command becomes a proposal, confirmed on a card, exactly as SmartScan proposes what
+it saw in a photo.
+
+Two things the move settled that the entry did not raise:
+
+- **The type is editable on the card.** The old screen's `→ Task` / `→ Idea` buttons
+  were asking the question the classifier now answers, so they became chips on the
+  proposal instead — the machine's read of one sentence is a good first guess and
+  nothing more, and this is what keeps a wrong guess a tap rather than a wrong record.
+- **The classifier leans one way on purpose.** A line that could read either way is
+  treated as a question, because answering something meant as a note costs a moment,
+  while filing something meant as a question leaves a record you did not write. The
+  one place the same verb genuinely means both — "did my workout" against "did I pay
+  the rent" — is separated by the pronoun after it.
+
+The AI parse is still there and still preferred when a key is set, but it is no longer
+load-bearing: an unreachable model or an unparseable reply falls back to the local
+read rather than losing the line. 15 tests cover the classifier, the date extraction,
+the keyless guess, and every record type it can write.
+
 ### Notifications — SCREEN REMOVED, split two ways
 
 Two things are genuinely its own:
@@ -640,8 +666,8 @@ Station Cat is not counted — it was already unreachable.
 
 This table tracks the redesign's own subtractions, not the live registry: the
 modules added since (Projects, Tags, History, Skills, Time Capsules and the rest)
-are counted in §12, not here. `Modules.kt` holds **40** as of 2026-08-23, with
-Notifications removed.
+are counted in §12, not here. `Modules.kt` holds **39** as of 2026-08-23, with
+Notifications and Command removed.
 
 ---
 

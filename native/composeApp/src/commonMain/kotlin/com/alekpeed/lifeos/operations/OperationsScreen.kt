@@ -224,7 +224,9 @@ private fun routeHit(hit: String?, scope: CoroutineScope) {
         "daily-paper" -> Nav.open("daily-paper")
         "tasks" -> Nav.open("tasks")
         "today" -> Nav.open("today")
-        "command", "voice" -> Nav.open("command")
+        // Command was folded into Ask (§2): one box that answers and creates, so the
+        // command frame and the mic both land there.
+        "command", "voice" -> Nav.open("ask")
         "briefing" -> Nav.open("briefing")
         "quick-note" -> Nav.open("ideas")
         "camera" -> scanWithCamera(scope)
@@ -239,7 +241,7 @@ private fun OperationsFallback() {
         "Today" to "today",
         "Daily Paper" to "daily-paper",
         "Tasks" to "tasks",
-        "Command" to "command",
+        "Ask" to "ask",
         "Briefing" to "briefing",
         "Calendar" to "calendar",
     )
