@@ -25,6 +25,10 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_REF: ukqdbxxhxxafbcnkmskg
+      # Read into env rather than used inline, so the steps below can check whether
+      # they are actually set. The `secrets` context is not available to a step's `if`.
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,11 +37,15 @@ jobs:
         with:
           version: latest
 
+      # Guarded, because an unset GitHub secret is an empty string, and this step would
+      # then overwrite a working bot token in Supabase with nothing — turning "the
+      # secret was never added here" into "the bot stopped replying".
       - name: Push function secrets (Telegram)
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_WEBHOOK_SECRET != ''
         run: |
           supabase secrets set --project-ref "$PROJECT_REF" \
-            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
-            TELEGRAM_WEBHOOK_SECRET="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}"
+            TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN" \
+            TELEGRAM_WEBHOOK_SECRET="$TELEGRAM_WEBHOOK_SECRET"
 
       # The digest mirrors six Kotlin data shapes with no compiler holding the two
       # sides together. If a field is renamed there, the digest silently goes empty —
@@ -58,9 +66,12 @@ jobs:
       - name: Deploy telegram-digest
         run: supabase functions deploy telegram-digest --project-ref "$PROJECT_REF"
 
+      # Same guard: with no bot token there is no webhook to register, and curl --fail
+      # would fail the whole deploy over a secret that was never added.
       - name: Register the webhook with Telegram
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_WEBHOOK_SECRET != ''
         run: |
-          curl -sS --fail "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook" \
+          curl -sS --fail "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
             -d "url=https://$PROJECT_REF.supabase.co/functions/v1/telegram-webhook" \
-            -d "secret_token=${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" \
+            -d "secret_token=$TELEGRAM_WEBHOOK_SECRET" \
             -d "allowed_updates=[\"message\"]"
