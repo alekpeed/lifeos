@@ -58,7 +58,11 @@ fun TimeCapsulesScreen() {
     var date by remember { mutableStateOf("") }
 
     val sealed = data.capsules.filter { isSealed(it) }.sortedBy { it.sealedUntil }
-    val opened = data.capsules.filter { !isSealed(it) }.sortedByDescending { it.sealedUntil.ifBlank { it.createdAt } }
+    // Waiting to be read comes first: an opened capsule nobody has looked at is the one
+    // thing on this screen that needs anything from you.
+    val waiting = data.capsules.filter { isUnread(it) }.sortedBy { it.sealedUntil.ifBlank { it.createdAt } }
+    val opened = data.capsules.filter { !isSealed(it) && it.readAt.isNotBlank() }
+        .sortedByDescending { it.sealedUntil.ifBlank { it.createdAt } }
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Write a note now, seal it until a future date, and it surfaces on its own.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -73,7 +77,11 @@ fun TimeCapsulesScreen() {
         Button(onClick = {
             val d = parseDateOrNull(date)
             if (body.trim().isNotEmpty() && d != null) {
-                save(data.copy(capsules = data.capsules + TimeCapsule(freshId(), title.trim(), body.trim(), date, today().toString())))
+                val fresh = TimeCapsule(freshId(), title.trim(), body.trim(), date, today().toString())
+                save(data.copy(capsules = data.capsules + fresh))
+                // Mechanism 1 (§5.4): the alarm is set the moment it is sealed, so it
+                // fires with the app closed years from now.
+                scheduleCapsule(fresh)
                 title = ""; body = ""; date = ""
             }
         }, modifier = Modifier.fillMaxWidth()) { Text("Seal it") }
@@ -82,7 +90,7 @@ fun TimeCapsulesScreen() {
         val bulk = rememberBulk()
         BulkBar(
             bulk = bulk,
-            ids = (sealed + opened).map { it.id },
+            ids = (sealed + waiting + opened).map { it.id },
             noun = "capsule",
             onDelete = { ids ->
                 data.capsules.filter { it.id in ids }.forEach { deleteBlob(it.photoBlob) }
@@ -91,12 +99,17 @@ fun TimeCapsulesScreen() {
         )
         Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (waiting.isNotEmpty()) {
+                item { SectionLabel("Waiting for you (${waiting.size})") }
+                items(waiting, key = { it.id }) { Capsule(data, ::save, it, bulk) }
+            }
+
             item { SectionLabel("Sealed (${sealed.size})") }
             if (sealed.isEmpty()) item { Muted("Nothing sealed right now.") }
             else items(sealed, key = { it.id }) { Capsule(data, ::save, it, bulk) }
 
-            item { SectionLabel("Opened (${opened.size})") }
-            if (opened.isEmpty()) item { Muted("None have opened yet.") }
+            item { SectionLabel("Read (${opened.size})") }
+            if (opened.isEmpty()) item { Muted("None opened and read yet.") }
             else items(opened, key = { it.id }) { Capsule(data, ::save, it, bulk) }
         }
     }
@@ -140,8 +153,25 @@ private fun Capsule(data: TimeCapsulesData, save: (TimeCapsulesData) -> Unit, c:
         if (isSealed(c)) {
             val days = today().daysUntil(parseDateOrNull(c.sealedUntil) ?: today()).coerceAtLeast(1)
             Text("🔒 Sealed — opens in $days day${if (days == 1) "" else "s"} (${usDate(c.sealedUntil)})", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else if (c.readAt.isBlank()) {
+            // An opened capsule that has not been read keeps its body until you open it.
+            // Two reasons: a capsule is a moment, not a paragraph you scroll past — and
+            // `readAt` has to mean something, or the Briefing row and the alarm nag
+            // forever with no way to resolve them (§5.4).
+            Text(
+                if (c.sealedUntil.isNotBlank()) "Ready since ${usDate(c.sealedUntil)}" else "Ready",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(6.dp))
+            Button(onClick = { save(markCapsuleRead(data, c.id)) }) { Text("Open it") }
         } else {
-            Text(if (c.sealedUntil.isNotBlank()) "Opened ${usDate(c.sealedUntil)}" else "Written", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                (if (c.sealedUntil.isNotBlank()) "Opened ${usDate(c.sealedUntil)}" else "Written") +
+                    " · read ${usDate(c.readAt)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(4.dp))
             Text(c.body, style = MaterialTheme.typography.bodyMedium)
 

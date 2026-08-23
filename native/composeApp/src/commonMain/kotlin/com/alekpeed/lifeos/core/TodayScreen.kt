@@ -104,6 +104,10 @@ fun TodayScreen() {
     val pendingHabits = habits.filter { !it.checkedInToday }
     val also = remember { alsoDue() }
     val echoes = remember { onThisDay() }
+    // A capsule that opened and has not been read (§5.4). Surfaced here as well as in
+    // Briefing because Time Capsules is a module with no other reason to visit — left to
+    // itself, a note you sealed for five years sits unopened in a list nobody opens.
+    val capsules = remember { com.alekpeed.lifeos.timecapsules.unreadCapsules() }
 
     // Weather: reuses the city Tools saved; quiet when unset or offline.
     var weather by remember { mutableStateOf<String?>(null) }
@@ -205,6 +209,31 @@ fun TodayScreen() {
                                 Text(
                                     d.meta, style = MaterialTheme.typography.labelMedium,
                                     color = if (d.urgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (capsules.isNotEmpty()) {
+                item {
+                    Section("WAITING FOR YOU", MaterialTheme.colorScheme.primary) {
+                        capsules.take(4).forEach { c ->
+                            Row(
+                                Modifier.fillMaxWidth().clickable { Nav.open("time-capsules") }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("⏳", modifier = Modifier.padding(end = 8.dp))
+                                Text(
+                                    c.title.ifBlank { "A sealed note" },
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    "opened",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }

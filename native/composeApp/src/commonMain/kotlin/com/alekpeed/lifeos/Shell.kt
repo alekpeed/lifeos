@@ -60,6 +60,10 @@ fun Shell() {
     // where a laptop picks up what the phone did.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.sync.AutoSync.onForeground() }
 
+    // Re-arm the alarm on every still-sealed time capsule (§5.4). Alarms do not survive
+    // a reinstall or a new device, and a capsule sealed for years will outlive its own.
+    LaunchedEffect(Unit) { com.alekpeed.lifeos.timecapsules.rescheduleCapsuleAlarms() }
+
     // Turn any free-text project name still sitting on a task into a real project
     // record (W-04). No-op once there is nothing loose, so it costs two reads.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.projects.ensureProjectsMigrated() }

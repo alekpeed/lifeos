@@ -274,9 +274,21 @@ plain-text insurance export to attach to a Documents record.
 - On Linux: no camera.
 
 ### Time Capsules
-A sealed note to your future self, genuinely hidden until its date.
+A sealed note to your future self, genuinely hidden until its date — and, now, one that
+actually comes back to find you.
 
-- **TimeCapsule** — `id`, `title`, `body`, `sealedUntil`, `createdAt`, `photoBlob`
+Two mechanisms, deliberately redundant because they fail differently. An alarm is set the
+moment you seal it, so it fires with the app closed years later; and a Briefing row appears
+on and after the unseal date, computed from the record itself. Alarms do not survive a
+reinstall or a new phone and a five-year capsule will outlive its own, so the alarms are
+re-armed at every app open and the Briefing row is the half that cannot be lost. Today
+carries a count too, because Time Capsules is a module with no other reason to visit.
+
+An opened capsule keeps its body until you press Open it. A capsule is a moment, not a
+paragraph you scroll past — and `readAt` has to mean something, or both mechanisms nag
+forever with no way to resolve them.
+
+- **TimeCapsule** — `id`, `title`, `body`, `sealedUntil`, `createdAt`, `photoBlob`, `readAt`
 - On Linux: no camera.
 
 ### Milestones

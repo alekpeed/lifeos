@@ -118,6 +118,20 @@ fun BriefingScreen() {
             }
         }
 
+        // A capsule that has opened and not been read (§5.4). The durable half of the
+        // surfacing pair: an alarm set five years ago will not survive a new phone, but
+        // this is computed from the record and cannot be lost.
+        com.alekpeed.lifeos.timecapsules.unreadCapsules().forEach { c ->
+            out.add(
+                BriefLine(
+                    "cap${c.id}",
+                    c.title.ifBlank { "A sealed note" },
+                    "a time capsule opened" + if (c.sealedUntil.isNotBlank()) " on ${c.sealedUntil}" else "",
+                    "time-capsules",
+                ),
+            )
+        }
+
         habits.filter { it.streak > 0 && !it.checkedInToday }
             .forEach { h ->
                 out.add(

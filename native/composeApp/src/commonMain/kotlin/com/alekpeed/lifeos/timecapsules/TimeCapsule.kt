@@ -20,6 +20,10 @@ data class TimeCapsule(
     val sealedUntil: String = "",
     val createdAt: String = "",
     val photoBlob: String = "",      // blob-store id of an attached photo, if any
+    // The day the body was actually revealed (§5.4). Without it there is no way to tell
+    // an unopened capsule from one you read last year, and both surfacing mechanisms
+    // would nag forever instead of resolving.
+    val readAt: String = "",
 )
 
 @Serializable

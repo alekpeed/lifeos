@@ -576,6 +576,20 @@ unread, so it does not sit unopened in a module with no other reason to visit.
 way to know whether an unsealed capsule has been seen, which is what makes both
 mechanisms actionable rather than permanent.
 
+**Built 2026-08-23.** Both mechanisms, the Today count, and `readAt`.
+
+One addition the spec did not call for, because building it exposed the gap: an
+opened capsule now keeps its body until you press "Open it". The list used to
+render the body inline the moment the date passed, which would have made `readAt`
+meaningless — there was no moment to stamp. Requiring the press gives the field
+something true to record, and gives a capsule the opening it is supposed to have.
+
+Alarms are also re-armed for every still-sealed capsule at app open. Mechanism 1
+is the one that gets lost, and this is the cheapest way to get it back after a
+reinstall — a couple of reads and one alarm per sealed capsule, of which there are
+never many. Capsule alarm ids sit above 900,000 so they cannot collide with the
+bill reminders Finance schedules.
+
 ---
 
 ## 6. Module count
