@@ -72,6 +72,18 @@ PWA and went with it.) Routine convention this session: commit + push to
 `claude/lifeos-dev-setup-dpipr6`, fast-forward merge to `main`, push `main`,
 checkout back to the dev branch.
 
+## Ship it when it's green (2026-08-23)
+
+**Don't ask to push.** When a piece of work builds clean and its tests pass,
+commit it, push the branch, fast-forward `main`, and push `main` — then say what
+landed. Alek's words: "Anytime something finishes green, push and merge it
+automatically. Just go ahead and do it."
+
+"Green" means the local gate actually passed: `assembleDebug`,
+`compileKotlinDesktop` and `desktopTest` all clean. A failing or unrun check is
+not green — fix it first, and say so rather than merging around it. Report the
+CI result on `main` afterwards; don't wait on CI before merging.
+
 ## Build delivery (2026-08-04)
 
 **Always give the direct GitHub download link for a build — don't attach the file.**
