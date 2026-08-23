@@ -875,6 +875,28 @@ with no confidence.
 
 Nothing is deleted. The numbers simply stop appearing before they mean anything.
 
+**Built — floors 2026-08-22, sample sizes 2026-08-23.** The arithmetic and the floors
+moved into `insight/Almanac.kt`, out of the screen, because a floor is exactly the kind
+of constant that gets quietly lowered to make a demo look better and a test is what
+notices. Ten cases pin them, including that nothing fits on two points.
+
+Every figure now carries its sample, and the types enforce it: a correlation, a trend,
+a spend projection and a reading estimate each travel with their count, so there is no
+way to render one without it. The what-if slider says it too, which is where it matters
+most — it refits nothing, it reads off the same line live and returns a confident number
+for whatever you drag to.
+
+Two things the pass turned up that the entry did not:
+
+- **The sleep↔tasks correlation counted one set and fitted another.** It gated on days
+  with a completed task and then fitted over every day with a sleep figure, scoring the
+  rest as zero. Both are defensible; showing only one number is not, because a hundred
+  zeros and five real days would have printed as a hundred-day finding. It reads
+  `· 100 days, 5 with a task`.
+- **"Most likely to skip X on Monday" had no sample at all** — it named a weekday from
+  a raw count with nothing to judge it by. It now reads `kept 3 of 12`, which is the
+  evidence rather than the conclusion.
+
 ### D-5 Server push — REQUIRED BUILD
 
 **Decision: true server push lands.** Anything needing attention reaches the user

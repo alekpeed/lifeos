@@ -35,54 +35,14 @@ import com.alekpeed.lifeos.health.healthSeries
 import kotlinx.datetime.daysUntil
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 // The Almanac — long-horizon statistics over real logged history: Pearson
 // correlations between curated pairs, a Forecasts section, and a What-If
 // sandbox, each with a "not enough data yet" floor so a number never shows on
 // too thin a sample. Pure computation — no AI, nothing invented.
-
-// Minimum sample sizes. Raised 2026-08-22 — the previous floors (5/5/3/14) let a
-// number reach the screen long before it carried any information, and a precise
-// decimal on six days of self-reported data reads as authoritative when it isn't.
-private const val CORR_MIN = 21
-private const val TREND_MIN = 21
-private const val MONTHS_MIN = 6
-private const val WEEKDAY_MIN_DAYS = 42
-
-// A straight line through two points is not a forecast, it is the line between them
-// extended. Nothing fits under this.
-private const val LINREG_MIN = 6
-private const val READING_MIN = 4
-
-private data class Lin(val slope: Double, val intercept: Double)
-
-private fun pearson(pairs: List<Pair<Double, Double>>): Double? {
-    if (pairs.size < LINREG_MIN) return null
-    val mx = pairs.map { it.first }.average(); val my = pairs.map { it.second }.average()
-    var sxy = 0.0; var sxx = 0.0; var syy = 0.0
-    for ((x, y) in pairs) { val dx = x - mx; val dy = y - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy }
-    if (sxx == 0.0 || syy == 0.0) return null
-    return sxy / sqrt(sxx * syy)
-}
-
-private fun linregress(pts: List<Pair<Double, Double>>): Lin? {
-    if (pts.size < LINREG_MIN) return null
-    val mx = pts.map { it.first }.average(); val my = pts.map { it.second }.average()
-    var sxy = 0.0; var sxx = 0.0
-    for ((x, y) in pts) { val dx = x - mx; sxy += dx * (y - my); sxx += dx * dx }
-    if (sxx == 0.0) return null
-    val slope = sxy / sxx
-    return Lin(slope, my - slope * mx)
-}
-
-private fun strength(r: Double): String {
-    val a = abs(r)
-    val s = when { a >= 0.7 -> "strong"; a >= 0.4 -> "moderate"; a >= 0.2 -> "weak"; else -> "little" }
-    return "$s ${if (r >= 0) "positive" else "negative"}"
-}
-
-private fun fmt1(v: Double): String = ((v * 10).roundToInt() / 10.0).toString()
+//
+// Every figure carries the sample it came from (§7 D-4). The arithmetic and the floors
+// live in Almanac.kt; this file is the screen that has to say what they rest on.
 
 @Composable
 fun AlmanacScreen() {
@@ -113,10 +73,15 @@ fun AlmanacScreen() {
             .groupingBy { it.completedDate }.eachCount()
         val sleepVsTasks = sleep.keys.map { sleep[it]!! to (tasksByDate[it] ?: 0).toDouble() }
 
-        val corrSleepHabits = if (sleepVsHabits.size >= CORR_MIN) pearson(sleepVsHabits) else null
-        val corrWorkoutSleep = if (workoutVsSleep.size >= CORR_MIN) pearson(workoutVsSleep) else null
-        val corrSleepTasks = if (sleepVsTasks.count { it.second > 0 } >= CORR_MIN) pearson(sleepVsTasks) else null
-        val sleepHabitsLin = if (sleepVsHabits.size >= CORR_MIN) linregress(sleepVsHabits) else null
+        // Each figure travels with the number of pairs it was fitted on, because the
+        // screen has to print it beside the figure and there is no recovering it later.
+        val activeTaskDays = sleepVsTasks.count { it.second > 0 }
+        val corrSleepHabits = if (sleepVsHabits.size >= CORR_MIN) pearson(sleepVsHabits)?.let { it to sleepVsHabits.size } else null
+        val corrWorkoutSleep = if (workoutVsSleep.size >= CORR_MIN) pearson(workoutVsSleep)?.let { it to workoutVsSleep.size } else null
+        // Gated on days that actually had a completed task, fitted over every sleep day
+        // with a zero for the rest. Both numbers reach the screen; see sampleWithActive.
+        val corrSleepTasks = if (activeTaskDays >= CORR_MIN) pearson(sleepVsTasks)?.let { it to sleepVsTasks.size } else null
+        val sleepHabitsLin = if (sleepVsHabits.size >= CORR_MIN) linregress(sleepVsHabits)?.let { it to sleepVsHabits.size } else null
 
         // Sleep trend (value over ordered day index)
         val sleepOrdered = sleep.entries.sortedBy { it.key }
@@ -135,7 +100,7 @@ fun AlmanacScreen() {
                 if (perDay <= 0) return@mapNotNull null
                 val remaining = (b.totalPages!! - (b.currentPage ?: 0)).coerceAtLeast(0)
                 val daysLeft = (remaining / perDay).roundToInt()
-                b.title.ifBlank { "(untitled)" } to today().plusDays(daysLeft).toString()
+                ReadingForecast(b.title.ifBlank { "(untitled)" }, today().plusDays(daysLeft).toString(), logs.size)
             }
 
         // Spending trend (monthly total of spending, negative amounts) → next month
@@ -145,7 +110,7 @@ fun AlmanacScreen() {
             .toSortedMap()
         val spendForecast = if (byMonth.size >= MONTHS_MIN)
             linregress(byMonth.values.mapIndexed { i, v -> i.toDouble() to v })?.let { lin ->
-                (lin.slope * byMonth.size + lin.intercept).coerceAtLeast(0.0) to lin.slope
+                SpendForecast((lin.slope * byMonth.size + lin.intercept).coerceAtLeast(0.0), lin.slope, byMonth.size)
             } else null
 
         // Habit weekday-skip
@@ -153,12 +118,11 @@ fun AlmanacScreen() {
             val dates = h.checkins.toList()
             val first = dates.minOrNull() ?: return@mapNotNull null
             val span = first.daysUntilCompat(today())
-            if (span < WEEKDAY_MIN_DAYS) return@mapNotNull null
-            // check-ins per weekday vs weeks elapsed
             val perWd = IntArray(7)
             dates.forEach { perWd[it.dayOfWeek.ordinal] += 1 }
-            val worst = perWd.indices.minByOrNull { perWd[it] } ?: return@mapNotNull null
-            h.name to WEEKDAY_NAMES[worst]
+            // The weekday alone is a claim; the count behind it is the evidence, and
+            // "kept 3 of 12" is what tells you whether to believe it.
+            worstWeekday(perWd, span)?.let { h.name to it }
         }
 
         // Recurring (subscription-like) costs for the what-if
@@ -166,7 +130,7 @@ fun AlmanacScreen() {
             .distinctBy { it.desc }.map { it.desc to abs(it.amount) }
 
         AlmanacModel(
-            corrSleepHabits, corrWorkoutSleep, corrSleepTasks, sleepHabitsLin,
+            corrSleepHabits, corrWorkoutSleep, corrSleepTasks, activeTaskDays, sleepHabitsLin,
             sleepTrend, readingForecasts, spendForecast, weekdaySkips,
             recurring, sleep.values.toList(),
         )
@@ -180,9 +144,15 @@ fun AlmanacScreen() {
             item { Head("Correlations") }
             item {
                 val lines = buildList {
-                    model.corrSleepHabits?.let { add("Sleep vs. habits kept: ${strength(it)} (r = ${fmt1(it)})") }
-                    model.corrWorkoutSleep?.let { add("Workout minutes vs. sleep: ${strength(it)} (r = ${fmt1(it)})") }
-                    model.corrSleepTasks?.let { add("Sleep vs. tasks completed: ${strength(it)} (r = ${fmt1(it)})") }
+                    model.corrSleepHabits?.let { (r, n) ->
+                        add("Sleep vs. habits kept: ${strength(r)} (r = ${fmt1(r)})${sample(n, "day")}")
+                    }
+                    model.corrWorkoutSleep?.let { (r, n) ->
+                        add("Workout minutes vs. sleep: ${strength(r)} (r = ${fmt1(r)})${sample(n, "day")}")
+                    }
+                    model.corrSleepTasks?.let { (r, n) ->
+                        add("Sleep vs. tasks completed: ${strength(r)} (r = ${fmt1(r)})${sampleWithActive(n, model.activeTaskDays, "day")}")
+                    }
                 }
                 if (lines.isEmpty()) Muted("Log sleep, workouts, and habit check-ins on the same days to see how they move together (need $CORR_MIN+ days).")
                 else Column { lines.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) } }
@@ -191,15 +161,22 @@ fun AlmanacScreen() {
             item { Head("Forecasts") }
             item {
                 val f = buildList {
-                    model.sleepTrend?.let { (lin, _) ->
+                    model.sleepTrend?.let { (lin, n) ->
                         val dir = if (lin.slope > 0.02) "trending up" else if (lin.slope < -0.02) "trending down" else "holding steady"
-                        add("Sleep is $dir (${fmt1(lin.slope)}h per night, per day logged).")
+                        add("Sleep is $dir (${fmt1(lin.slope)}h per night, per day logged)${sample(n, "night")}.")
                     }
-                    model.spendForecast?.let { (proj, slope) ->
-                        add("Spending trend: next month ≈ $${proj.roundToInt()} (${if (slope >= 0) "rising" else "falling"}).")
+                    model.spendForecast?.let { sf ->
+                        add("Spending trend: next month ≈ $${sf.projected.roundToInt()} (${if (sf.slope >= 0) "rising" else "falling"})${sample(sf.months, "month")}.")
                     }
-                    model.readingForecasts.forEach { (title, date) -> add("At your pace, you'll finish \"$title\" around $date.") }
-                    model.weekdaySkips.forEach { (habit, wd) -> add("You're most likely to skip \"$habit\" on $wd.") }
+                    model.readingForecasts.forEach { r ->
+                        add("At your pace, you'll finish \"${r.title}\" around ${r.finishDate}${sample(r.logs, "reading log")}.")
+                    }
+                    model.weekdaySkips.forEach { (habit, gap) ->
+                        add(
+                            "You're most likely to skip \"$habit\" on ${WEEKDAY_NAMES[gap.weekday]} " +
+                                "— kept ${gap.kept} of ${gap.elapsed}.",
+                        )
+                    }
                 }
                 if (f.isEmpty()) Muted("Forecasts appear once there's enough logged history — a couple weeks of habits, a few months of spending, a reading log in progress.")
                 else Column { f.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) } }
@@ -215,14 +192,23 @@ fun AlmanacScreen() {
 private fun WhatIf(model: AlmanacModel) {
     Column {
         // Sleep slider → projected habits/day
-        val lin = model.sleepHabitsLin
-        if (lin != null && model.sleepValues.isNotEmpty()) {
+        val fit = model.sleepHabitsLin
+        if (fit != null && model.sleepValues.isNotEmpty()) {
+            val (lin, n) = fit
             val avg = model.sleepValues.average()
             var sleep by remember { mutableStateOf(avg.toFloat()) }
             val projected = (lin.slope * sleep + lin.intercept).coerceAtLeast(0.0)
             Text("If I slept ${fmt1(sleep.toDouble())}h a night…", style = MaterialTheme.typography.bodyMedium)
             Slider(value = sleep, onValueChange = { sleep = it }, valueRange = (avg - 2).toFloat()..(avg + 2).toFloat())
-            Text("…you'd average about ${fmt1(projected)} habits kept per day (from your own sleep↔habits fit).", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // The slider is where a thin fit does the most damage: it refits nothing, it
+            // just reads off the same line, live, and returns a confident number for any
+            // input you drag to. So it says what the line was drawn through.
+            Text(
+                "…you'd average about ${fmt1(projected)} habits kept per day — read off your own " +
+                    "sleep↔habits fit${sample(n, "day")}.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(12.dp))
         } else {
             Muted("Log more sleep and habits to unlock the sleep slider.")
@@ -248,20 +234,21 @@ private fun WhatIf(model: AlmanacModel) {
     }
 }
 
+// Every figure that can appear carries the sample it rests on, and the types say so:
+// there is no way to render one of these without the count beside it (§7 D-4).
 private data class AlmanacModel(
-    val corrSleepHabits: Double?,
-    val corrWorkoutSleep: Double?,
-    val corrSleepTasks: Double?,
-    val sleepHabitsLin: Lin?,
+    val corrSleepHabits: Pair<Double, Int>?,
+    val corrWorkoutSleep: Pair<Double, Int>?,
+    val corrSleepTasks: Pair<Double, Int>?,
+    val activeTaskDays: Int,
+    val sleepHabitsLin: Pair<Lin, Int>?,
     val sleepTrend: Pair<Lin, Int>?,
-    val readingForecasts: List<Pair<String, String>>,
-    val spendForecast: Pair<Double, Double>?,
-    val weekdaySkips: List<Pair<String, String>>,
+    val readingForecasts: List<ReadingForecast>,
+    val spendForecast: SpendForecast?,
+    val weekdaySkips: List<Pair<String, WeekdayGap>>,
     val recurring: List<Pair<String, Double>>,
     val sleepValues: List<Double>,
 )
-
-private val WEEKDAY_NAMES = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 @Composable
 private fun Head(text: String) {
