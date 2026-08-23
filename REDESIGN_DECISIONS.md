@@ -789,6 +789,28 @@ server-side.
 - Borrows Telegram's own push infrastructure — no Firebase, no device tokens, no
   service account
 
+**Built 2026-08-23** as `supabase/functions/telegram-digest/`, scheduled by
+`sql/supabase-telegram-digest-cron.sql`, deployed by the existing Telegram
+workflow (both functions use the same bot, so the secret is already there).
+
+A *new* function rather than an edit of `send-push`, and the reason matters:
+`send-push` queries `store in ('bills','tasks','assignments','documents')` with
+one row per record, which was the web app's schema. The native app syncs one row
+per Storage **key** under `store='kv'`, each holding a whole module's JSON blob in
+`data.text` — so that query matches nothing the native app has ever written.
+Sharing one file would have produced a function that is half dead code whichever
+way it runs. `send-push` stays for Phase 2, which reuses its VAPID plumbing rather
+than its query.
+
+Two things beyond the brief. The pure half is split into `digest.ts` and unit
+tested (16 cases, `node --test`), because this code mirrors six Kotlin data shapes
+across a language boundary with no compiler holding the two sides together: rename
+a field in Kotlin and the digest silently goes empty, and the failure mode is
+silence, which nobody notices. The fixtures are the exact JSON the Kotlin
+serializers emit, so a rename fails the test by name. And the digest stays quiet
+on a day with nothing due — one that arrives every morning regardless is one you
+stop reading.
+
 **Phase 2 — FCM for per-item high-priority alerts.**
 
 **Correction (2026-08-22): far more of this exists than first assessed.** Already
