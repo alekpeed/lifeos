@@ -247,10 +247,30 @@ Albums of captioned photos.
 - On Linux: no camera.
 
 ### Collections
-Things you collect, with per-item acquired dates, tags and notes.
+Category-agnostic by design: nothing in it knows what a baseball card is, and nothing
+needs to. Cards, stamps, coins, vinyl and Pokémon all work on the same screen because
+everything a category would otherwise hardcode is a field you fill in — the catalog system
+is a label (Scott, Beckett, Discogs, Krause), and the condition grades are your own ordered
+list, so Poor→Gem Mint and G→MS-70 both work.
 
-- **CollItem** — `id`, `name`, `acquiredDate`, `tags`, `notes`
-- **Collection** — `id`, `name`, `description`, `items`, `photoBlob`
+A **target set** is what makes it a collection rather than a list: name the catalog
+references that would complete it and you get a real completeness figure and a missing
+list. Without one there is nothing to be missing, and the module says so rather than
+claiming a hundred percent.
+
+Per item: catalog number, series, set, year, variant, condition, professional grading with
+grader and cert number, quantity (duplicates are trade stock, not a data-entry mistake),
+status, what you paid and to whom, estimated value with its source and date, where it is
+stored, provenance, multiple photos, tags and notes.
+
+Views: set completeness, a **want list spanning every collection** — the one you need
+standing in a shop, useless filed per collection — a value rollup that says how much of
+itself is missing, duplicates as trade stock, grouping by series/set/year/condition, and a
+plain-text insurance export to attach to a Documents record.
+
+- **CollItem** — `id`, `name`, `catalogNumber`, `series`, `setName`, `year`, `variant`, `condition`, `graded`, `grader`, `certNumber`, `gradeValue`, `quantity`, `status`, `acquiredDate`, `acquiredFrom`, `acquiredPrice`, `acquiredCurrency`, `estimatedValue`, `valuationDate`, `valuationSource`, `storageLocation`, `provenance`, `photos`, `tags`, `notes`
+- **Collection** — `id`, `name`, `category`, `description`, `coverPhotoBlob`, `catalogSystem`, `conditionScale`, `targetSet`, `defaultCurrency`, `items`
+- Reuses the existing code scanner and photo grid; no new native capability.
 - On Linux: no camera.
 
 ### Time Capsules

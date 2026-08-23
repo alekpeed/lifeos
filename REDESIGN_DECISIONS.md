@@ -540,6 +540,21 @@ Pokémon cards, coins, vinyl, or anything else, without per-category code.
 **Boundary with Quartermaster:** once these fields exist the two modules are
 permanently and obviously distinct. Today they are distinguished only by intent.
 
+**Built 2026-08-23.** Every field and every view above. Two things worth recording.
+
+A collection with no `targetSet` returns *no* completeness rather than 100% — a
+confident number nobody defined is worse than an absent one, and the Set tab says
+what to add to make it real. And the value rollup reports its own coverage: how
+many items have no purchase price and how many have no valuation, because a total
+built from a third of the collection reads exactly like a total built from all of
+it. Quantity carries through cost and value throughout, since three of a card cost
+and are worth three times as much — the alternative silently under-reports every
+duplicate.
+
+The old blob decodes straight into the new shape: every added field has a default,
+so an existing item keeps its name, date, tags and notes and arrives at quantity 1,
+status Owned.
+
 ### 5.4 Time Capsules — wire the surfacing
 
 Two mechanisms, deliberately redundant, because each fails differently.
