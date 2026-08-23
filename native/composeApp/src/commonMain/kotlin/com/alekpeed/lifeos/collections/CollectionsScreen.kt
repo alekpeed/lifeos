@@ -46,6 +46,7 @@ import com.alekpeed.lifeos.ui.BulkTick
 import com.alekpeed.lifeos.ui.bulkClickable
 import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.TagField
 
 private val DANGER = Color(0xFFD64545)
 
@@ -138,7 +139,7 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
     }
     var iName by remember { mutableStateOf("") }
     var iDate by remember { mutableStateOf("") }
-    var iTags by remember { mutableStateOf("") }
+    var iTags by remember { mutableStateOf(listOf<String>()) }
     var iNotes by remember { mutableStateOf("") }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -187,16 +188,15 @@ private fun Detail(data: CollectionsData, save: (CollectionsData) -> Unit, fresh
     DateField(iDate) { v -> iDate = v }
     Spacer(Modifier.height(6.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(iTags, { iTags = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Tags") })
+        TagField(iTags, "Tags", Modifier.weight(1f)) { iTags = it }
         Spacer(Modifier.width(6.dp))
         OutlinedTextField(iNotes, { iNotes = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Notes") })
         Spacer(Modifier.width(6.dp))
         Button(onClick = {
             val n = iName.trim().replace("\n", " ")
             if (n.isNotEmpty()) {
-                val t = iTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                patch { it.copy(items = it.items + CollItem(freshId(), n, iDate, t, iNotes.trim())) }
-                iName = ""; iDate = ""; iTags = ""; iNotes = ""
+                patch { it.copy(items = it.items + CollItem(freshId(), n, iDate, iTags, iNotes.trim())) }
+                iName = ""; iDate = ""; iTags = emptyList(); iNotes = ""
             }
         }) { Text("Add") }
     }

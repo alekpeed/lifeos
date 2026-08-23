@@ -49,6 +49,7 @@ import com.alekpeed.lifeos.ui.bulkClickable
 import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.TagField
 
 private val DANGER = Color(0xFFD64545)
 
@@ -176,10 +177,8 @@ private fun RecipeDetail(
         Field(recipe.title, "Title") { v -> patch { it.copy(title = v.replace("\n", " ")) } }
         Label("Base servings")
         Field(recipe.baseServings.toString(), "4") { v -> v.toIntOrNull()?.let { n -> patch { it.copy(baseServings = n) } } }
-        Label("Tags (comma separated)")
-        Field(recipe.tags.joinToString(", "), "comfort, quick") { v ->
-            patch { it.copy(tags = v.split(",").map { t -> t.trim() }.filter { t -> t.isNotEmpty() }) }
-        }
+        Label("Tags")
+        TagField(recipe.tags, "comfort, quick") { v -> patch { it.copy(tags = v) } }
         Label("Notes")
         Field(recipe.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
 

@@ -71,6 +71,7 @@ import com.alekpeed.lifeos.ui.SaveToast
 import kotlin.math.roundToInt
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
+import com.alekpeed.lifeos.ui.TagField
 
 private fun dueColor(due: LocalDate?, done: Boolean): Color? {
     if (due == null || done) return null
@@ -593,10 +594,8 @@ private fun TaskEditor(task: Task, update: (Long, (Task) -> Task) -> Unit, onDel
             }
         }
         EditField(task.project, "e.g. Home renovation") { v -> update(task.id) { it.copy(project = v.replace("\n", " ")) } }
-        Label("Tags (comma separated)")
-        EditField(task.tags.joinToString(", "), "errand, work") { v ->
-            update(task.id) { it.copy(tags = v.split(",").map { t -> t.trim() }.filter { t -> t.isNotEmpty() }) }
-        }
+        Label("Tags")
+        TagField(task.tags, "errand, work") { v -> update(task.id) { it.copy(tags = v) } }
         if (task.status == "waiting") {
             Label("Waiting on")
             EditField(task.waitingOn, "Who are you waiting on?") { v -> update(task.id) { it.copy(waitingOn = v.replace("\n", " ")) } }

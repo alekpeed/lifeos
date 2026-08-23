@@ -47,10 +47,10 @@ import com.alekpeed.lifeos.ui.bulkClickable
 import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
+import com.alekpeed.lifeos.ui.TagField
 
 private val DANGER = Color(0xFFD64545)
 
-private fun commaList(s: String) = s.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -208,7 +208,7 @@ private fun ContactDetail(data: ContactsData, save: (ContactsData) -> Unit, c: C
             Column(Modifier.weight(1f)) { Label("Birthday"); DateField(c.birthday) { v -> patch { it.copy(birthday = v) } } }
         }
         Label("Address"); Field(c.address, "Street, city…") { v -> patch { it.copy(address = v.replace("\n", " ")) } }
-        Label("Tags (comma separated)"); Field(c.tags.joinToString(", "), "work, gym") { v -> patch { it.copy(tags = commaList(v)) } }
+        Label("Tags"); TagField(c.tags, "work, gym") { v -> patch { it.copy(tags = v) } }
         Label("Notes"); Field(c.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
 
         Label("Photo")

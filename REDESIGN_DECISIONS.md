@@ -800,6 +800,12 @@ modules means retrofitting across 49 modules instead of 40:
 - **M-01** calendar and time of day — Travel reservations depend on it, and the
   Notifications reminder engine is its existing seed
 - **W-03** global tag taxonomy
+  **Built 2026-08-23** as `tags/Tags.kt` plus a Tags module. The vocabulary is derived
+  from the seven modules that carry tags rather than stored in a table of its own — a
+  table drifts the moment the last record using a tag is deleted. `ui/TagField.kt`
+  replaces the seven bespoke comma boxes and suggests tags already in use, which is what
+  actually prevents duplicates; case is preserved rather than folded, with clashing
+  spellings surfaced for merging instead of silently rewritten.
 - **W-04** projects as first-class records
 
 Remaining: 4 L · 9 M · 17 S. The seventeen S items are largely independent and can

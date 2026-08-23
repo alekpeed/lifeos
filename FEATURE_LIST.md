@@ -337,7 +337,7 @@ mobile; that register stays desktop's. Mobile gets its own purpose-built
 interface(s), not a filtered version of Test Mode.
 
 > **Superseded in practice (2026-08-22).** This split described the web build.
-> The native app is one Compose codebase and ships all 39 modules on Android as
+> The native app is one Compose codebase and ships all 40 modules on Android as
 > well as desktop. Kept as the standing product intent for interfaces; revisit
 > when interface work restarts.
 

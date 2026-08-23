@@ -1,6 +1,7 @@
 package com.alekpeed.lifeos.history
 
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.TestHome
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -20,27 +21,15 @@ import kotlin.test.assertTrue
 // real disk to work against — no mocks, and the same code path the app runs.
 class HistoryTest {
 
-    companion object {
-        // Storage fixes its directory the first time anything touches it, so user.home
-        // has to be redirected before that — class init is the only moment early enough.
-        private val home: java.io.File =
-            java.io.File(System.getProperty("java.io.tmpdir"), "lifeos-history-test")
-                .apply { deleteRecursively(); mkdirs() }
-
-        init {
-            System.setProperty("user.home", home.absolutePath)
-        }
-    }
-
     @BeforeTest
     fun setUp() {
-        java.io.File(home, ".lifeos").listFiles()?.forEach { it.delete() }
+        TestHome.clear()
         History.forget()
     }
 
     @AfterTest
     fun tearDown() {
-        java.io.File(home, ".lifeos").listFiles()?.forEach { it.delete() }
+        TestHome.clear()
     }
 
     // Modules store an object whose array fields hold the records, which is the shape

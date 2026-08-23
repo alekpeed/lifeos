@@ -68,6 +68,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
+import com.alekpeed.lifeos.tags.parseTags
+import com.alekpeed.lifeos.ui.TagField
 
 private val DANGER = Color(0xFFD64545)
 
@@ -359,16 +361,15 @@ private fun ItemRow(
 
         if (!expanded) return@Column
 
-        val chips = buildList {
-            if (item.location.isNotBlank()) add("📍 ${item.location}")
-            item.tags.forEach { add("#$it") }
-        }
-        if (chips.isNotEmpty()) {
+        if (item.location.isNotBlank()) {
             Spacer(Modifier.height(4.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                chips.forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
-            }
+            Text("📍 ${item.location}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }
+        // Tags were display-only here: you could set them when adding an item and never
+        // again. The shared field makes them editable and puts them in the vocabulary.
+        Spacer(Modifier.height(6.dp))
+        Text("Tags", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TagField(item.tags, "shelf, camping") { v -> patch { it.copy(tags = v) } }
         Spacer(Modifier.height(6.dp))
         Text("Stock", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -620,7 +621,7 @@ private fun AddItemPrompt(
     fun submit() {
         val n = name.trim().replace("\n", " ")
         if (n.isNotEmpty()) {
-            onAdd(n, loc.trim(), tags.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+            onAdd(n, loc.trim(), parseTags(tags))
         }
     }
 

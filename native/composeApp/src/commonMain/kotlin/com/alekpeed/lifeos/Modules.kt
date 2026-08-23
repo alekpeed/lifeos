@@ -37,6 +37,7 @@ import com.alekpeed.lifeos.people.ContactsScreen
 import com.alekpeed.lifeos.photos.PhotosScreen
 import com.alekpeed.lifeos.settings.SettingsScreen
 import com.alekpeed.lifeos.system.QrSyncScreen
+import com.alekpeed.lifeos.tags.TagsScreen
 import com.alekpeed.lifeos.system.ToolsScreen
 import com.alekpeed.lifeos.tasks.TasksScreen
 import com.alekpeed.lifeos.ui.SearchScreen
@@ -110,5 +111,6 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("search", "🔍", "Search", "System", true) { SearchScreen("Search", "Search everything…") },
     Module("tools", "🧰", "Tools", "System", true) { ToolsScreen() },
     Module("history", "↩", "History", "System", true) { HistoryScreen() },
+    Module("tags", "🏷", "Tags", "System", true) { TagsScreen() },
     Module("settings", "⚙", "Settings", "System", true) { SettingsScreen() },
 )

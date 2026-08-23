@@ -1,10 +1,10 @@
 # Life OS — Android
 
 Everything in the Android application as it stands: how you get into it, the phone
-hardware it uses, and all 39 modules with what each one is and what a record in it
+hardware it uses, and all 40 modules with what each one is and what a record in it
 holds. Written from the Kotlin source.
 
-**39 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
+**40 modules · 8 domains · one Kotlin / Compose Multiplatform codebase.**
 
 ---
 
@@ -519,7 +519,7 @@ Pair another device by scanning a code. Phone-only — the desktop build omits i
 ---
 
 ## System
-*Running the app.* — 4 modules
+*Running the app.* — 5 modules
 
 ### 🔍  Search
 One box across every record in the app, grouped by module.
@@ -553,6 +553,15 @@ gone and a recent edit can be put back field by field.
 - **Mutation** — `seq`, `at`, `key`, `coll`, `rec`, `change`, `label`, `before`, `after`, `remote`, `truncated`
 - Local to the device: the log is never synced and never enters a backup.
 
+### 🏷  Tags
+One vocabulary across the seven modules that carry tags — Tasks, Ideas, Links, Contacts,
+Recipes, Quartermaster, Collections. Pick a tag to see everything carrying it whatever
+module it lives in; rename or merge one and it changes everywhere at once.
+
+- **TagUse** — `tag`, `count`, `sources`
+- **TaggedRecord** — `source`, `moduleId`, `id`, `label`, `tags`
+- Derived from the records rather than stored, so it cannot drift out of step with them.
+
 ---
 
 # Beyond the modules
@@ -568,7 +577,7 @@ gone and a recent edit can be put back field by field.
 
 # Where it stands
 
-All 39 modules are built and the build runs on device. Outstanding:
+All 40 modules are built and the build runs on device. Outstanding:
 
 - **Blocked on credentials** — Google Photos import and calendar push; both need an
   OAuth client created in the Google Cloud project.

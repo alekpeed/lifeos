@@ -47,6 +47,7 @@ import com.alekpeed.lifeos.ui.BulkTick
 import com.alekpeed.lifeos.ui.bulkClickable
 import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.TagField
 
 private val DANGER = Color(0xFFD64545)
 
@@ -207,10 +208,8 @@ private fun LinkDetail(
     ) {
         Label("Title")
         Field(link.title, "(untitled)") { v -> patch { it.copy(title = v.replace("\n", " ")) } }
-        Label("Tags (comma separated)")
-        Field(link.tags.joinToString(", "), "comma, separated, tags") { v ->
-            patch { it.copy(tags = v.split(",").map { t -> t.trim() }.filter { t -> t.isNotEmpty() }) }
-        }
+        Label("Tags")
+        TagField(link.tags, "reading, recipes") { v -> patch { it.copy(tags = v) } }
         Label("Share with")
         Field(link.shareWith, "Who is this for?") { v -> patch { it.copy(shareWith = v.replace("\n", " ")) } }
 

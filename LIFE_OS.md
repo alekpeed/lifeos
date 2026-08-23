@@ -5,7 +5,7 @@ have to do, what you own, what you've read, where you've been, what you spent, w
 know, what you learned — held as records you own, on a machine you own, in an app that
 notices things about them.
 
-**39 modules across 8 domains, in one native application.**
+**40 modules across 8 domains, in one native application.**
 
 ---
 
@@ -56,7 +56,7 @@ this document should hold to them.
 
 ## Where it stands
 
-All 39 modules are built and compile; the desktop build runs. What remains is short:
+All 40 modules are built and compile; the desktop build runs. What remains is short:
 
 - **Two features blocked on credentials** — importing from Google Photos, and pushing
   to a calendar. Both need an OAuth client the owner has to create.
@@ -522,7 +522,7 @@ Pair another device by scanning a code. Phone-only — the desktop build omits i
 ---
 
 ## System
-*Running the app.*  (4 modules)
+*Running the app.*  (5 modules)
 
 ### Search
 One box across every record in the app, grouped by module.
@@ -556,6 +556,13 @@ field by field.
 - **Mutation** — `seq`, `at`, `key`, `coll`, `rec`, `change`, `label`, `before`, `after`
 - Local to the device: the log is never synced and never enters a backup.
 
+### Tags
+One vocabulary across the seven modules that carry tags. Pick a tag to see everything
+carrying it whatever module it lives in; rename or merge one and it changes everywhere.
+
+- **TagUse** — `tag`, `count`, `sources`
+- Derived from the records rather than stored, so it cannot drift out of step with them.
+
 ---
 
 # Questions worth thinking about
@@ -575,5 +582,5 @@ most likely to be missing something. They're offered as directions, not as a bri
    archive, or resurface?
 5. **It is single-player by design, with one shared feature.** Where, if anywhere, does
    another person genuinely belong?
-6. **What is missing entirely** — not a better version of one of these 39, but a section
+6. **What is missing entirely** — not a better version of one of these 40, but a section
    a life plainly has and this app has no room for.

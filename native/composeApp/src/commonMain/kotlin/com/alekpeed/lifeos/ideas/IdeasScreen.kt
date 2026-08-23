@@ -36,6 +36,7 @@ import com.alekpeed.lifeos.ui.BulkTick
 import com.alekpeed.lifeos.ui.bulkClickable
 import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.TagField
 
 // Free-form capture, native on both platforms — now with tags, a tag filter, and
 // an archive so a jotted idea can be tidied away without deleting it.
@@ -47,7 +48,7 @@ fun IdeasScreen() {
     var nextId by remember { mutableStateOf((data.ideas.maxOfOrNull { it.id } ?: 0L) + 1) }
 
     var input by remember { mutableStateOf("") }
-    var tagInput by remember { mutableStateOf("") }
+    var tagList by remember { mutableStateOf(listOf<String>()) }
     var tagFilter by remember { mutableStateOf<String?>(null) }
     var showArchived by remember { mutableStateOf(false) }
     val bulk = rememberBulk()
@@ -63,15 +64,14 @@ fun IdeasScreen() {
         MicButton { spoken -> input = if (input.isBlank()) spoken else "$input $spoken" }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(tagInput, { tagInput = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("Tags (comma-separated)") })
+            TagField(tagList, "Tags", Modifier.weight(1f)) { tagList = it }
             Spacer(Modifier.width(10.dp))
             Button(onClick = {
                 val t = input.trim()
                 if (t.isNotEmpty()) {
-                    val tags = tagInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
-                    save(data.copy(ideas = data.ideas + Idea(nextId, t, tags, false, today().toString())))
+                    save(data.copy(ideas = data.ideas + Idea(nextId, t, tagList, false, today().toString())))
                     nextId += 1
-                    input = ""; tagInput = ""
+                    input = ""; tagList = emptyList()
                 }
             }) { Text("Add") }
         }
