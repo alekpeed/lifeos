@@ -142,6 +142,43 @@ fun BriefingScreen() {
                     }),
                 )
             }
+        // Occasions inside their own lead time (§11.1) — which is what makes a date do
+        // something rather than sit on a calendar you did not open. The gift status is
+        // on the row, because "anniversary in 5 days" and "anniversary in 5 days, gift
+        // wrapped" call for different amounts of panic.
+        val people = com.alekpeed.lifeos.people.loadContacts().contacts
+        com.alekpeed.lifeos.people.dueOccasions(people).forEach { occ ->
+            val gifts = people.firstOrNull { it.id == occ.contactId }
+                ?.let { com.alekpeed.lifeos.people.giftSummary(it, occ.label) } ?: ""
+            val whenText = when {
+                occ.daysAway <= 0 -> "today"
+                occ.daysAway == 1 -> "tomorrow"
+                else -> "in ${occ.daysAway} days"
+            }
+            out.add(
+                BriefLine(
+                    "occ${occ.contactId}-${occ.label}",
+                    "${occ.contactName} — ${occ.label}",
+                    listOf(whenText, gifts).filter { it.isNotBlank() }.joinToString(" · "),
+                    "contacts",
+                ),
+            )
+        }
+
+        // People you meant to stay in touch with, against a target you set yourself
+        // (§11.1). Contacts with no target never appear — you do not owe your dentist a
+        // monthly call, and one global number would be wrong for nearly everyone.
+        com.alekpeed.lifeos.people.overdueContacts(people).forEach { o ->
+            out.add(
+                BriefLine(
+                    "cad${o.id}",
+                    o.name,
+                    "${o.days} days since you spoke — you meant to every ${o.target}",
+                    "contacts",
+                ),
+            )
+        }
+
         // Subscriptions you're paying for and haven't touched in two months (§11.4).
         // Two real answers, both here: it was used and the clock resets, or it wasn't
         // and it should be cancelled — which is the whole reason to surface it.

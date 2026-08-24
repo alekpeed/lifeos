@@ -28,7 +28,61 @@ data class Contact(
     val tags: List<String> = emptyList(),
     val notes: String = "",
     val photoBlob: String = "",          // blob-store id of an attached photo, if any
+    // §11.1, built as one pass because all three extend this same record.
+    val dates: List<RecurringDate> = emptyList(),
+    val gifts: List<Gift> = emptyList(),
+    val interactions: List<Interaction> = emptyList(),
+    // How often you mean to be in touch, in days. Null means no target, and a contact
+    // with no target is never overdue — you do not owe your dentist a monthly call, and
+    // one global number for every person would be wrong for nearly all of them.
+    val cadenceDays: Int? = null,
 )
+
+// A date that comes round every year and is not a birthday: an anniversary, a work
+// anniversary, the day you adopted the dog. Stored the same two ways a birthday is —
+// "1994-03-07" or bare "03-07" — so the year is optional where nobody remembers it.
+@Serializable
+data class RecurringDate(
+    val id: Long,
+    val label: String,
+    val date: String,
+    // How far ahead it should start surfacing. This is what turns a date into
+    // something that does something: a wedding anniversary you learn about on the day
+    // is a date you have already missed.
+    val leadDays: Int = 14,
+)
+
+// A gift idea for an occasion. The idea list is reusable across years, which is why
+// `givenYear` exists rather than deleting a gift once it has been given: "the thing I
+// nearly bought last year" is the most useful entry on the list.
+@Serializable
+data class Gift(
+    val id: Long,
+    val idea: String,
+    val occasion: String = "",
+    val budget: Double? = null,
+    val status: String = GIFT_IDEA,
+    val givenYear: String = "",
+    val notes: String = "",
+)
+
+const val GIFT_IDEA = "idea"
+const val GIFT_BOUGHT = "bought"
+const val GIFT_WRAPPED = "wrapped"
+const val GIFT_GIVEN = "given"
+val GIFT_STATUSES = listOf(GIFT_IDEA, GIFT_BOUGHT, GIFT_WRAPPED, GIFT_GIVEN)
+
+// A dated note about a call, a text or a meetup. Deliberately not Milestones (that is
+// for what mattered) and not journaling (that is about you, not about them).
+@Serializable
+data class Interaction(
+    val id: Long,
+    val date: String,
+    val kind: String = "",
+    val note: String = "",
+)
+
+val INTERACTION_KINDS = listOf("call", "text", "meetup", "email", "letter")
 
 // Split "label: value" into label + value ("" label when bare).
 fun splitLabeled(entry: String): Pair<String, String> {

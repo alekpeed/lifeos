@@ -1565,6 +1565,36 @@ register's **M-10** ("contact cadence"). Building them as one pass:
 **Resolves 12.3's collision:** any gift idea *is* a wishlist entry. No separate
 module.
 
+**Built 2026-08-23**, as one pass, which is what made it worth merging the three items:
+all of them hang off the same record and two of them only mean anything together.
+
+- **Recurring dates** carry a lead time, defaulting to a fortnight, and that lead is the
+  whole of W-07's "birthdays that do something": an anniversary you learn about on the
+  morning of it is one you have already missed. They join the shared Calendar query
+  (§12.1.1) beside birthdays, and the Briefing surfaces one once it is inside its own
+  lead.
+- **Gifts** stay on the list after they are given, stamped with the year rather than
+  deleted — "the thing I nearly bought last year" is the most useful entry on it. The
+  Briefing row carries the gift state, because "anniversary in 5 days" and "anniversary
+  in 5 days, gift wrapped" call for different amounts of panic.
+- **The interaction log** is a dated line per call, text or meetup, with the kind as a
+  chip so logging one is two taps.
+- **Cadence** is derived from that log, through `data/Staleness.kt` (§12.1.2) — its
+  third caller.
+
+**The target is per contact and opt-in**, which is the one decision here that is not
+obvious. Applying Entropy's pattern per person needs a threshold, and one global number
+would be wrong for nearly everybody: you do not owe your dentist a monthly call. So a
+contact with no target never appears as overdue however long it has been, and a target
+with nothing logged does not either — the same "unknown is not stale" rule §11.4 runs
+on, for the same reason. Without that, importing a phone book would produce a screen of
+guilt about acquaintances on day one.
+
+Two date edges worth recording: today is today rather than eleven months away (the
+projection counts the current year's date as due if it has not passed), and 29 February
+resolves to the next leap year rather than sliding to the 28th, because moving somebody's
+date is inventing a fact.
+
 ### 11.2 Health — two independent additions
 
 - **Mood log** — daily 1–5 scale, one entry per day, optional note. Feeds the

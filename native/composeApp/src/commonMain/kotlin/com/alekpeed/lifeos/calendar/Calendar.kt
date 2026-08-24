@@ -235,17 +235,33 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
     // the year they were stored with. They are also the one field stored two ways —
     // "1994-03-07" or bare "03-07" — so both are read.
     loadContacts().contacts.forEach { c ->
-        val md = birthdayMonthDay(c.birthday) ?: return@forEach
-        yearsSpanned(from, to).forEach { year ->
-            val d = runCatching { LocalDate(year, md.first, md.second) }.getOrNull() ?: return@forEach
-            if (!inRange(d)) return@forEach
-            out.add(
-                DatedItem(
-                    key = "bday-${c.id}-$year", icon = "🎂", title = c.name, date = d,
-                    time = null, moduleId = "contacts", kind = DatedKind.RECURRING, note = "birthday",
-                    recordId = c.id,
-                ),
-            )
+        birthdayMonthDay(c.birthday)?.let { md ->
+            yearsSpanned(from, to).forEach { year ->
+                val d = runCatching { LocalDate(year, md.first, md.second) }.getOrNull() ?: return@forEach
+                if (!inRange(d)) return@forEach
+                out.add(
+                    DatedItem(
+                        key = "bday-${c.id}-$year", icon = "🎂", title = c.name, date = d,
+                        time = null, moduleId = "contacts", kind = DatedKind.RECURRING, note = "birthday",
+                        recordId = c.id,
+                    ),
+                )
+            }
+        }
+        // Anniversaries and the rest (§11.1) — the same projection, a different label.
+        c.dates.forEach { r ->
+            val md = birthdayMonthDay(r.date) ?: return@forEach
+            yearsSpanned(from, to).forEach { year ->
+                val d = runCatching { LocalDate(year, md.first, md.second) }.getOrNull() ?: return@forEach
+                if (!inRange(d)) return@forEach
+                out.add(
+                    DatedItem(
+                        key = "occ-${c.id}-${r.id}-$year", icon = "🎉", title = c.name, date = d,
+                        time = null, moduleId = "contacts", kind = DatedKind.RECURRING,
+                        note = r.label.ifBlank { "occasion" }, recordId = c.id,
+                    ),
+                )
+            }
         }
     }
 

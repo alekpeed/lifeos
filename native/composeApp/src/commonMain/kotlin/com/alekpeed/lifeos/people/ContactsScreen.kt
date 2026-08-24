@@ -48,6 +48,9 @@ import com.alekpeed.lifeos.ui.rememberBulk
 import com.alekpeed.lifeos.ui.SaveToast
 import com.alekpeed.lifeos.ui.usDate
 import com.alekpeed.lifeos.ui.TagField
+import com.alekpeed.lifeos.data.agoLabel
+import com.alekpeed.lifeos.data.today
+import androidx.compose.material3.FilterChip
 
 private val DANGER = Color(0xFFD64545)
 
@@ -161,6 +164,11 @@ fun ContactsScreen() {
                                 if (c.company.isNotBlank()) add(c.company)
                                 if (c.birthday.isNotBlank()) add("🎂 ${usDate(c.birthday).ifBlank { c.birthday }}")
                                 c.phones.firstOrNull()?.let { add(it) }
+                                // §11.1 cadence, derived from the interaction log.
+                                daysSinceContact(c)?.let { d ->
+                                    val target = c.cadenceDays
+                                    add("💬 ${agoLabel(d)}" + if (target != null && d >= target) " · overdue" else "")
+                                }
                                 c.tags.forEach { add("#$it") }
                             }
                             if (chips.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -210,6 +218,14 @@ private fun ContactDetail(data: ContactsData, save: (ContactsData) -> Unit, c: C
         Label("Address"); Field(c.address, "Street, city…") { v -> patch { it.copy(address = v.replace("\n", " ")) } }
         Label("Tags"); TagField(c.tags, "work, gym") { v -> patch { it.copy(tags = v) } }
         Label("Notes"); Field(c.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
+
+        OccasionsSection(c) { next -> patch { it.copy(dates = next) } }
+        GiftsSection(c) { next -> patch { it.copy(gifts = next) } }
+        InteractionsSection(
+            c,
+            onLog = { kind, note -> patch { logInteraction(it, kind, note) } },
+            onCadence = { target -> patch { it.copy(cadenceDays = target) } },
+        ) { next -> patch { it.copy(interactions = next) } }
 
         Label("Photo")
         val photo = remember(c.photoBlob) { loadBlobImage(c.photoBlob) }
@@ -295,4 +311,160 @@ private fun Field(value: String, placeholder: String, singleLine: Boolean = true
 @Composable
 private fun Muted(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+// ---- §11.1: occasions, gifts, and the interaction log ------------------------
+
+// Recurring dates that are not birthdays, each with a lead time. The lead is the
+// point: a wedding anniversary you learn about on the day is one you already missed.
+@Composable
+private fun OccasionsSection(c: Contact, onChange: (List<RecurringDate>) -> Unit) {
+    var label by remember { mutableStateOf("") }
+    Label("Dates")
+    c.dates.forEach { r ->
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Field(r.label, "anniversary") { v ->
+                    onChange(c.dates.map { if (it.id == r.id) it.copy(label = v.replace("\n", " ")) else it })
+                }
+                DateField(r.date) { v -> onChange(c.dates.map { if (it.id == r.id) it.copy(date = v) else it }) }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(0, 7, 14, 30).forEach { lead ->
+                        FilterChip(
+                            selected = r.leadDays == lead,
+                            onClick = { onChange(c.dates.map { if (it.id == r.id) it.copy(leadDays = lead) else it }) },
+                            label = { Text(if (lead == 0) "on the day" else "${lead}d ahead") },
+                        )
+                    }
+                }
+            }
+            TextButton(onClick = { onChange(c.dates.filterNot { it.id == r.id }) }) { Text("✕") }
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            label, { label = it }, modifier = Modifier.weight(1f), singleLine = true,
+            placeholder = { Text("Add a yearly date") },
+        )
+        TextButton(onClick = {
+            val t = label.trim().replace("\n", " ")
+            if (t.isNotEmpty()) {
+                onChange(c.dates + RecurringDate((c.dates.maxOfOrNull { it.id } ?: 0L) + 1, t, ""))
+                label = ""
+            }
+        }) { Text("Add") }
+    }
+}
+
+// The gift tracker. An idea stays on the list after it is given, stamped with the year
+// — "the thing I nearly bought last year" is the most useful entry on it.
+@Composable
+private fun GiftsSection(c: Contact, onChange: (List<Gift>) -> Unit) {
+    var idea by remember { mutableStateOf("") }
+    Label("Gifts")
+    c.gifts.forEach { g ->
+        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    g.idea + if (g.givenYear.isNotBlank()) " · given ${g.givenYear}" else "",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (g.status == GIFT_GIVEN) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
+                )
+                TextButton(onClick = { onChange(c.gifts.filterNot { it.id == g.id }) }) { Text("✕") }
+            }
+            Field(g.occasion, "for which occasion") { v ->
+                onChange(c.gifts.map { if (it.id == g.id) it.copy(occasion = v.replace("\n", " ")) else it })
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                GIFT_STATUSES.forEach { st ->
+                    FilterChip(
+                        selected = g.status == st,
+                        onClick = {
+                            onChange(
+                                c.gifts.map {
+                                    if (it.id != g.id) it
+                                    // Stamping the year on the way to "given" is what
+                                    // keeps the idea list reusable next time round.
+                                    else it.copy(status = st, givenYear = if (st == GIFT_GIVEN) today().year.toString() else "")
+                                },
+                            )
+                        },
+                        label = { Text(st) },
+                    )
+                }
+            }
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            idea, { idea = it }, modifier = Modifier.weight(1f), singleLine = true,
+            placeholder = { Text("Gift idea") },
+        )
+        TextButton(onClick = {
+            val t = idea.trim().replace("\n", " ")
+            if (t.isNotEmpty()) {
+                onChange(listOf(Gift((c.gifts.maxOfOrNull { it.id } ?: 0L) + 1, t)) + c.gifts)
+                idea = ""
+            }
+        }) { Text("Add") }
+    }
+}
+
+// The interaction log, and the cadence derived from it. The target is per person and
+// opt-in: one number for everybody would be wrong for nearly everybody.
+@Composable
+private fun InteractionsSection(
+    c: Contact,
+    onLog: (String, String) -> Unit,
+    onCadence: (Int?) -> Unit,
+    onChange: (List<Interaction>) -> Unit,
+) {
+    var note by remember { mutableStateOf("") }
+    var kind by remember { mutableStateOf(INTERACTION_KINDS.first()) }
+
+    Label("In touch")
+    val since = daysSinceContact(c)
+    Text(
+        if (since == null) "Nothing logged yet." else "Last spoken ${agoLabel(since)}." +
+            (c.cadenceDays?.let { " You meant to every $it days." } ?: ""),
+        style = MaterialTheme.typography.labelSmall,
+        color = if (since != null && c.cadenceDays != null && since >= c.cadenceDays!!) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    // The target is opt-in and defaults to none: nothing here nags about somebody you
+    // never said you wanted to keep up with.
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        listOf(null, 7, 30, 90, 180).forEach { target ->
+            FilterChip(
+                selected = c.cadenceDays == target,
+                onClick = { onCadence(target) },
+                label = { Text(if (target == null) "no target" else "every ${target}d") },
+            )
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        INTERACTION_KINDS.forEach { k ->
+            FilterChip(selected = kind == k, onClick = { kind = k }, label = { Text(k) })
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            note, { note = it }, modifier = Modifier.weight(1f), singleLine = true,
+            placeholder = { Text("What happened?") },
+        )
+        TextButton(onClick = { onLog(kind, note.trim()); note = "" }) { Text("Log") }
+    }
+    c.interactions.take(8).forEach { i ->
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                listOf(usDate(i.date).ifBlank { i.date }, i.kind, i.note).filter { it.isNotBlank() }.joinToString(" · "),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = { onChange(c.interactions.filterNot { it.id == i.id }) }) { Text("✕") }
+        }
+    }
 }
