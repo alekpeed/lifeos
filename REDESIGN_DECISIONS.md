@@ -1597,6 +1597,24 @@ untouched 60+ days as a Briefing row — reuses the same neglect pattern as Entr
 and the new Contacts cadence in §11.1, applied a third time to the same shape of
 problem.
 
+**Built 2026-08-23**, on `data/Staleness.kt` (§12.1.2) — its second caller, which is
+what deciding that utility early was for.
+
+**An unmarked subscription is unknown, not unused**, and never reaches the Briefing.
+That is the whole difference between a useful row and a screen full of guilt on day
+one: nothing else in the app can know whether you watched anything last month, so a
+blank `lastUsedDate` says nothing rather than saying "never". The tab shows "not
+marked" and a one-tap "Used today" so there is somewhere to start.
+
+The Briefing row carries the cost — `unused 74 days — still $12.99/mo` — because the
+number is the argument, and offers both real answers: **Used today**, which resets the
+clock, and **Cancel**, which is the reason to surface it at all. Cancelling keeps the
+row struck through rather than deleting it; the history of what you were paying for is
+worth having.
+
+Thresholds are Finance's own: sixty days to want a second look, four months to read as
+abandoned. A gym membership is not on a rabbit hole's clock.
+
 ### 11.5 Books — reading highlights export
 
 The in-app EPUB reader has no way to capture a passage. Add: select text while

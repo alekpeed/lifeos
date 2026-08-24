@@ -142,6 +142,30 @@ fun BriefingScreen() {
                     }),
                 )
             }
+        // Subscriptions you're paying for and haven't touched in two months (§11.4).
+        // Two real answers, both here: it was used and the clock resets, or it wasn't
+        // and it should be cancelled — which is the whole reason to surface it.
+        com.alekpeed.lifeos.finance.financeUnusedSubscriptions().forEach { u ->
+            out.add(
+                BriefLine(
+                    "sub${u.id}",
+                    u.name,
+                    "unused ${u.days} days — still ${u.monthly}/mo",
+                    "finance",
+                    "Used today",
+                    {
+                        com.alekpeed.lifeos.finance.financeMarkSubscriptionUsed(u.id)
+                        tick += 1
+                    },
+                    "Cancel",
+                    {
+                        com.alekpeed.lifeos.finance.financeCancelSubscription(u.id)
+                        tick += 1
+                    },
+                ),
+            )
+        }
+
         // Open threads you've stopped pulling on. Last in the list on purpose: this
         // is the "you left this half-finished" nudge, not something due. Resolving
         // one from here is a real answer — an abandoned thread you're never going

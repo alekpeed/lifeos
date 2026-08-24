@@ -47,12 +47,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.ai.AiClient
+import com.alekpeed.lifeos.data.StaleRule
+import com.alekpeed.lifeos.data.agoLabel
+import com.alekpeed.lifeos.data.daysSinceDate
 import com.alekpeed.lifeos.data.epochMillisAt
 import com.alekpeed.lifeos.data.minusDays
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.relativeLabel
+import com.alekpeed.lifeos.data.stalenessOf
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.data.worstFirst
 import com.alekpeed.lifeos.integrations.CoinPrice
 import com.alekpeed.lifeos.integrations.MarketsClient
 import com.alekpeed.lifeos.platform.Native
@@ -119,6 +124,10 @@ private data class Subscription(
     val active: Boolean = true,
     val category: String = "Subscriptions",
     val renewalDate: String = "",  // next renewal / bill date, ISO
+    // The last time you actually used it (§11.4). Marked by hand, because nothing else
+    // in the app can know — and blank means unknown rather than unused, which is why an
+    // unmarked subscription never appears in the Briefing.
+    val lastUsedDate: String = "",
     val notes: String = "",
 )
 
@@ -179,6 +188,51 @@ fun financeBills(): List<BillPoint> = loadData().bills.map {
 data class PaymentPoint(val date: String, val amount: Double)
 fun financeBillPayments(): List<PaymentPoint> =
     loadData().bills.flatMap { b -> b.paymentHistory.map { PaymentPoint(it.date, it.amount) } }
+
+// Subscriptions you are paying for and may not be using (§11.4). Sixty days to want
+// a second look, four months to read as abandoned — a gym membership and a streaming
+// service are not on the same clock as a rabbit hole, which is why the thresholds live
+// here and only the arithmetic is shared (§12.1.2).
+val SUBSCRIPTION_RULE = StaleRule(staleAfter = 60, neglectedAfter = 120)
+
+// `monthly` arrives formatted: the money formatter is this module's, and a caller that
+// had to reproduce it would be a second answer to what $8.5 looks like.
+data class UnusedSub(val id: Long, val name: String, val monthly: String, val days: Int)
+
+// Only active ones, only those with a date to go on. An unmarked subscription is
+// unknown, not unused, and nagging about it would be a guess with a price attached.
+fun financeUnusedSubscriptions(): List<UnusedSub> {
+    val out = loadData().subscriptions
+        .filter { it.active }
+        .mapNotNull { s ->
+            val days = daysSinceDate(s.lastUsedDate) ?: return@mapNotNull null
+            if (!stalenessOf(days, SUBSCRIPTION_RULE).isStale) return@mapNotNull null
+            UnusedSub(s.id, s.name, fmt(monthlyEquiv(s.amount, s.cycle)), days)
+        }
+    return worstFirst(out) { it.days }
+}
+
+// Stamp one as used today, from the Briefing as well as from the tab.
+fun financeMarkSubscriptionUsed(id: Long) {
+    val data = loadData()
+    if (data.subscriptions.none { it.id == id }) return
+    saveData(
+        data.copy(
+            subscriptions = data.subscriptions.map {
+                if (it.id == id) it.copy(lastUsedDate = today().toString()) else it
+            },
+        ),
+    )
+}
+
+// The other real answer to an unused subscription, from wherever it was surfaced.
+// Cancelled rather than deleted: the row stays on the list, struck through, and drops
+// out of the monthly total — the history of what you were paying for is worth keeping.
+fun financeCancelSubscription(id: Long) {
+    val data = loadData()
+    if (data.subscriptions.none { it.id == id }) return
+    saveData(data.copy(subscriptions = data.subscriptions.map { if (it.id == id) it.copy(active = false) else it }))
+}
 
 // Ids and names of bills and subscriptions, for the Time Machine's record census —
 // it needs a stable key per record without the private models leaking out.
@@ -725,6 +779,18 @@ private fun SubscriptionsTab(data: FinanceData, onChange: (FinanceData) -> Unit)
                                 if (!s.active) add("cancelled")
                             }.joinToString(" · ")
                             Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            // §11.4. Said in the row rather than only in the Briefing,
+                            // because this is the screen where you decide to cancel.
+                            val unused = daysSinceDate(s.lastUsedDate)?.takeIf {
+                                s.active && stalenessOf(it, SUBSCRIPTION_RULE).isStale
+                            }
+                            if (unused != null) {
+                                Text(
+                                    "unused $unused days · ${fmt(monthlyEquiv(s.amount, s.cycle))}/mo since",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
                         }
                         Text(fmt(s.amount), style = MaterialTheme.typography.bodyLarge)
                         TextButton(onClick = {
@@ -736,6 +802,18 @@ private fun SubscriptionsTab(data: FinanceData, onChange: (FinanceData) -> Unit)
                         Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Renews", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             DateField(s.renewalDate) { v -> patchSub(s.id) { it.copy(renewalDate = v) } }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Last used" + (daysSinceDate(s.lastUsedDate)?.let { " · ${agoLabel(it)}" } ?: " · not marked"),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(onClick = { patchSub(s.id) { it.copy(lastUsedDate = today().toString()) } }) {
+                                    Text("Used today")
+                                }
+                            }
+                            DateField(s.lastUsedDate) { v -> patchSub(s.id) { it.copy(lastUsedDate = v) } }
                             OutlinedTextField(
                                 s.category, { v -> patchSub(s.id) { it.copy(category = v.replace("\n", " ")) } },
                                 modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Category") },
