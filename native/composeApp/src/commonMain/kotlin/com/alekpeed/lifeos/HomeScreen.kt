@@ -36,74 +36,46 @@ import com.alekpeed.lifeos.data.today
 
 // The home launcher.
 //
-// Forty-one modules across eight domains. At that size the screen's job is not to display
-// the app, it is to get you out of it and into the one thing you came for — so the order
-// of the page is search, then what you chose to keep to hand, then what you actually
-// opened, then everything else.
+// Forty-one modules across eight domains, and exactly two ways to reach one: type a few
+// letters, or open the domain it lives in. Pinned and Recent rows were built and then
+// removed — with a search box and every domain already on the screen they were a third
+// and fourth route to the same place, and two rows of duplicated navigation pushed the
+// real content down a screen that has a notch eating the top of it.
 //
-// Three deliberate changes from the version this replaces:
-//
-//   · **It follows the theme.** The old one committed to its own dark palette while every
-//     module screen followed the app's, which put a seam at the first tap. Light, dark and
-//     the accent now carry all the way through.
-//   · **Search.** Six modules can be remembered by position; forty-one cannot, and the
-//     alternative was expanding domains until you found the right one.
-//   · **The pins are yours.** They were a hardcoded list of six. The defaults are still
-//     those six, so nothing moves on upgrade, but they are editable now.
+// It follows the app theme rather than committing to its own dark palette, which is what
+// the version before this did — that put a visible seam at the first tap.
 //
 // One line reads live data — what is owed today — and only that one. A launcher that
-// summarises everything becomes a worse Briefing; a launcher that says nothing at all
-// makes you open Briefing to find out whether you needed to. It is wrapped so a slow or
-// broken read costs the line and not the screen.
+// summarises everything becomes a worse Briefing; one that says nothing at all makes you
+// open Briefing to find out whether you needed to. It is wrapped so a slow or broken read
+// costs the line and not the first screen of the app.
 //
-// Type is doing the work here rather than ornament: monospace for the chrome (labels,
-// counts, the wordmark), the theme's own face for anything that is a name. There is no
-// artwork in this file by design — a graphical interface attaches through the Interfaces
-// registry, and this is the functional one that holds the fort until it does.
+// Type does the work rather than ornament: monospace for chrome, the theme's own face for
+// names. No artwork here by design — a graphical interface attaches through the
+// Interfaces registry, and this is the functional one holding the fort until it does.
 
 private val MONO = FontFamily.Monospace
 
 @Composable
 fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
     var query by remember { mutableStateOf("") }
-    var pins by remember { mutableStateOf(loadPins()) }
-    var editingPins by remember { mutableStateOf(false) }
     var openDomains by remember { mutableStateOf(setOf<String>()) }
-    var recents by remember { mutableStateOf(recentModules(modules, pins)) }
 
     // The one live read. Once per composition, and a failure is silence rather than a
     // crash on the first screen of the app.
     val owed = remember { runCatching { datedWorklist() }.getOrDefault(emptyList()) }
     val overdue = remember(owed) { owed.count { it.isOverdue() } }
 
-    fun open(m: Module) {
-        noteOpened(m.id)
-        onOpen(m)
-    }
-
-    fun tapTile(m: Module) {
-        if (editingPins) {
-            pins = togglePin(pins, m.id)
-            savePins(pins)
-            recents = recentModules(modules, pins)
-        } else {
-            open(m)
-        }
-    }
-
     val results = remember(query, modules) { searchModules(modules, query) }
     val searching = query.isNotBlank()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         item {
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(8.dp))
             Header(moduleCount = modules.size, owed = owed.size, overdue = overdue) {
-                modules.firstOrNull { it.id == "briefing" }?.let { open(it) }
+                modules.firstOrNull { it.id == "briefing" }?.let(onOpen)
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -114,7 +86,7 @@ fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
                     if (searching) TextButton(onClick = { query = "" }) { Text("Clear") }
                 },
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
         }
 
         if (searching) {
@@ -128,47 +100,11 @@ fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    TileGrid(results, editingPins, pins) { tapTile(it) }
+                    TileGrid(results, onOpen)
                 }
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(24.dp))
             }
             return@LazyColumn
-        }
-
-        item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Label(if (editingPins) "TAP TO PIN OR UNPIN" else "PINNED", Modifier.weight(1f))
-                TextButton(onClick = { editingPins = !editingPins }) {
-                    Text(if (editingPins) "Done" else "Edit", style = MaterialTheme.typography.labelMedium)
-                }
-            }
-            Spacer(Modifier.height(4.dp))
-            val pinned = pinnedModules(modules, pins)
-            if (pinned.isEmpty()) {
-                Text(
-                    if (editingPins) "Tap any module below to keep it up here."
-                    else "Nothing pinned. Edit to choose what sits at the top.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                TileGrid(pinned, editingPins, pins) { tapTile(it) }
-            }
-            Spacer(Modifier.height(18.dp))
-        }
-
-        if (recents.isNotEmpty() && !editingPins) {
-            item {
-                Label("RECENT")
-                Spacer(Modifier.height(8.dp))
-                TileGrid(recents, false, pins) { tapTile(it) }
-                Spacer(Modifier.height(18.dp))
-            }
-        }
-
-        item {
-            Label("DOMAINS")
-            Spacer(Modifier.height(2.dp))
         }
 
         for (group in MODULE_GROUPS) {
@@ -183,12 +119,12 @@ fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
                 }
                 if (isOpen) {
                     Spacer(Modifier.height(10.dp))
-                    TileGrid(mods, editingPins, pins) { tapTile(it) }
+                    TileGrid(mods, onOpen)
                     Spacer(Modifier.height(10.dp))
                 }
             }
         }
-        item { Spacer(Modifier.height(28.dp)) }
+        item { Spacer(Modifier.height(16.dp)) }
     }
 }
 
@@ -217,7 +153,6 @@ private fun Header(moduleCount: Int, owed: Int, overdue: Int, onOpenBriefing: ()
             )
         }
         Spacer(Modifier.height(4.dp))
-        // The date, and the one thing worth knowing before you have tapped anything.
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
                 .clickable(enabled = owed > 0, onClick = onOpenBriefing)
@@ -298,30 +233,21 @@ private fun DomainRow(group: String, mods: List<Module>, isOpen: Boolean, onTogg
 }
 
 @Composable
-private fun TileGrid(
-    mods: List<Module>,
-    editing: Boolean,
-    pins: List<String>,
-    onTap: (Module) -> Unit,
-) {
+private fun TileGrid(mods: List<Module>, onOpen: (Module) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (row in mods.chunked(3)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (m in row) {
-                    val isPinned = m.id in pins
                     Column(
                         Modifier.weight(1f)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (editing && isPinned) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant,
-                            )
-                            .clickable { onTap(m) }
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { onOpen(m) }
                             .padding(vertical = 13.dp, horizontal = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(7.dp),
                     ) {
-                        Text(if (editing) (if (isPinned) "★" else "☆") else m.icon, fontSize = 20.sp)
+                        Text(m.icon, fontSize = 20.sp)
                         Text(
                             m.label,
                             style = MaterialTheme.typography.labelLarge,

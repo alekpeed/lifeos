@@ -38,6 +38,8 @@ import com.alekpeed.lifeos.settings.appLockEnabled
 import com.alekpeed.lifeos.system.ScanConfirmSheet
 import com.alekpeed.lifeos.timemachine.recordBirths
 import com.alekpeed.lifeos.ui.SaveToast
+import com.alekpeed.lifeos.ui.safeArea
+import com.alekpeed.lifeos.ui.safeAreaBottom
 import kotlinx.coroutines.delay
 
 // Home launcher <-> module detail navigation.
@@ -114,16 +116,27 @@ fun Shell() {
             // An interface can supply its own home (its navigation art); otherwise
             // the built-in functional launcher.
             val customHome = Interfaces.home()
-            if (customHome != null) customHome() else HomeScreen(modules) { current = it }
+            // The safe area is applied here rather than inside each screen so every one
+            // of them clears the notch and the home-swipe lane without having to
+            // remember to. A graphical interface supplying its own home takes the same
+            // treatment — its art can bleed to the edges, its controls should not.
+            if (customHome != null) {
+                Box(Modifier.fillMaxSize().safeArea()) { customHome() }
+            } else {
+                Box(Modifier.fillMaxSize().safeArea()) { HomeScreen(modules) { current = it } }
+            }
         } else {
             // Android edge-swipe / back button pops to Home instead of leaving the app.
             SystemBackHandler(enabled = true) { current = null }
             if (c.immersive) {
-                Box(Modifier.fillMaxSize()) {
+                // Immersive screens are edge-to-edge on purpose — that is what the flag
+                // means — so only the bottom is held back, because a control under the
+                // home-swipe lane is unreachable however deliberate the art is.
+                Box(Modifier.fillMaxSize().safeAreaBottom()) {
                     Interfaces.Render(c.id, c.content)
                 }
             } else {
-                Column(Modifier.fillMaxSize()) {
+                Column(Modifier.fillMaxSize().safeArea()) {
                     // Where you are, and the domain it belongs to — the second half is
                     // what makes the eight groups on the home screen learnable rather
                     // than a filing system you have to memorise separately.
