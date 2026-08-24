@@ -5,17 +5,17 @@ import com.alekpeed.lifeos.data.parseTimeOrNull
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.timeLabel
 import com.alekpeed.lifeos.data.today
+import com.alekpeed.lifeos.archive.MomentKind
+import com.alekpeed.lifeos.archive.archiveMoments
 import com.alekpeed.lifeos.documents.docExpiryDays
 import com.alekpeed.lifeos.documents.loadDocuments
 import com.alekpeed.lifeos.education.loadEducation
 import com.alekpeed.lifeos.finance.financeBills
-import com.alekpeed.lifeos.milestones.loadMilestones
 import com.alekpeed.lifeos.people.loadContacts
 import com.alekpeed.lifeos.projects.ProjectStatus
 import com.alekpeed.lifeos.projects.loadProjects
 import com.alekpeed.lifeos.settings.billDueSoonDays
 import com.alekpeed.lifeos.tasks.loadTasks
-import com.alekpeed.lifeos.timecapsules.loadCapsules
 import com.alekpeed.lifeos.travel.ReservationStatus
 import com.alekpeed.lifeos.travel.ReservationType
 import com.alekpeed.lifeos.travel.loadTravel
@@ -147,14 +147,19 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
 
     // Time capsules. Surfacing an unseal date is the module's one job and was never
     // wired anywhere (§5.4); a calendar is the honest place for it to show up.
-    loadCapsules().capsules.forEach { c ->
-        val d = parseDateOrNull(c.sealedUntil) ?: return@forEach
+    // Archive's single-moment records, through the shape they share (§12.1.4).
+    // Milestones and capsules were two hand-written blocks here that differed only in
+    // which field held the date and which held the note; a third moment type now joins
+    // by implementing Moment rather than by a third block.
+    archiveMoments().forEach { m ->
+        val d = parseDateOrNull(m.date) ?: return@forEach
         if (!inRange(d)) return@forEach
         out.add(
             DatedItem(
-                key = "capsule-${c.id}", icon = "⏳", title = c.title, date = d,
-                time = null, moduleId = "time-capsules", kind = DatedKind.UNSEAL, note = "opens",
-                recordId = c.id,
+                key = "${m.kind.moduleId}-${m.id}", icon = m.kind.icon, title = m.title, date = d,
+                time = null, moduleId = m.kind.moduleId,
+                kind = if (m.kind == MomentKind.OPENS) DatedKind.UNSEAL else DatedKind.EVENT,
+                note = m.kind.calendarNote, recordId = m.id,
             ),
         )
     }
@@ -197,18 +202,6 @@ fun datedItems(from: LocalDate, to: LocalDate, includeDone: Boolean = true): Lis
                 title = r.provider.ifBlank { r.type.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
                 date = d, time = parseTimeOrNull(r.startDateTime), moduleId = "travel",
                 kind = DatedKind.TRIP, note = r.confirmationNumber,
-            ),
-        )
-    }
-
-    loadMilestones().milestones.forEach { m ->
-        val d = parseDateOrNull(m.date) ?: return@forEach
-        if (!inRange(d)) return@forEach
-        out.add(
-            DatedItem(
-                key = "milestone-${m.id}", icon = "🏆", title = m.title, date = d,
-                time = null, moduleId = "milestones", kind = DatedKind.EVENT,
-                recordId = m.id,
             ),
         )
     }

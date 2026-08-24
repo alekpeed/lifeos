@@ -1,6 +1,8 @@
 package com.alekpeed.lifeos.timecapsules
 
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.archive.Moment
+import com.alekpeed.lifeos.archive.MomentKind
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
 import kotlinx.serialization.Serializable
@@ -14,17 +16,24 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class TimeCapsule(
-    val id: Long,
-    val title: String,
+    override val id: Long,
+    override val title: String,
     val body: String,
     val sealedUntil: String = "",
     val createdAt: String = "",
-    val photoBlob: String = "",      // blob-store id of an attached photo, if any
+    override val photoBlob: String = "",      // blob-store id of an attached photo, if any
     // The day the body was actually revealed (§5.4). Without it there is no way to tell
     // an unopened capsule from one you read last year, and both surfacing mechanisms
     // would nag forever instead of resolving.
     val readAt: String = "",
-)
+) : Moment {
+    // The shared Archive shape (§12.1.4). A capsule's moment is the day it opens —
+    // that is the day it is about — and its note is the body it was written with.
+    // Getters, not fields: nothing here changes how a capsule is stored.
+    override val date: String get() = sealedUntil
+    override val note: String get() = body
+    override val kind: MomentKind get() = MomentKind.OPENS
+}
 
 @Serializable
 data class TimeCapsulesData(val capsules: List<TimeCapsule> = emptyList())

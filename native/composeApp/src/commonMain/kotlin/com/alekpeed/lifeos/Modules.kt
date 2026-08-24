@@ -104,7 +104,9 @@ fun lifeOsModules(): List<Module> = listOf(
     // People — connecting with others & devices
     Module("contacts", "👤", "Contacts", "People", true) { ContactsScreen() },
     Module("sharebox", "🤝", "Sharebox", "People", true) { ShareboxScreen() },
-    Module("qr-sync", "🔳", "QR Sync", "People", true) { QrSyncScreen() },
+    // Device pairing, not people (§12). It was under People only because that is where
+    // the original build put it.
+    Module("qr-sync", "🔳", "QR Sync", "System", true) { QrSyncScreen() },
     // System — running the OS
     Module("search", "🔍", "Search", "System", true) { SearchScreen("Search", "Search everything…") },
     Module("tools", "🧰", "Tools", "System", true) { ToolsScreen() },

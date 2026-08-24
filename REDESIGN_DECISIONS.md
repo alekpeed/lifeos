@@ -1726,15 +1726,15 @@ deletions there, §5 and §12 specify everything new or changed.
 | Discovery | 5 | Education · Skill Trees (rebuilt, two tiers, §5.2) · Ideas · Rabbit Holes · Almanac (raised floors, §7 D-4) |
 | Management | 4 | Habits · Health (+ mood log, + medication, §11.2) · Recipes · Finance (+ unused-subscription flag, §11.4) |
 | Intelligence | 5 | Ask (+ Command's create function) · AI Assistant · Knowledge Graph · Entropy · Time Machine (rebuild gated on R-02/R-03) |
-| People | 3 | Contacts (expanded: gifts, dates, cadence, §11.1) · Sharebox · QR Sync* |
-| System | 3 | Search · Tools · Settings |
+| People | 2 | Contacts (expanded: gifts, dates, cadence, §11.1) · Sharebox |
+| System | 4 | Search · Tools · Settings · QR Sync (moved, §12) |
 
 **Total: 35.** Cross-checks against §6: 40 − 6 cut (Orrery, Museum, Ghost Days,
 Station Cat, Command screen, Notifications screen, Recall) + 1 (Calendar) = 35.
 
-**\* QR Sync recategorized** — device pairing, not people. Listed under People only
-because that is where the original build put it; move to System when §10 is
-executed. Cosmetic, no functional change.
+**QR Sync recategorized** — device pairing, not people. It was under People only
+because that is where the original build put it. **Moved 2026-08-23**; cosmetic, no
+functional change.
 
 ### 12.1 Consolidations — ACCEPTED 2026-08-22
 
@@ -1847,6 +1847,25 @@ screens and semantics.
 - Both surface through the same Briefing and Calendar paths once §12.1.1 lands
 
 Not a module merge. One is future-facing, one is past — they stay distinct.
+
+**Built 2026-08-23** as `archive/Moment.kt` — an interface both records implement, not
+a record either of them stores.
+
+Every member is either an existing field or a getter over one, so nothing is
+serialized and no saved blob changes shape: a milestone still writes `notes`, a capsule
+still writes `body`, and neither gains a field. What the shape adds is a common way to
+read them — a capsule's moment is the day it opens, because that is the day it is
+about — and a `MomentKind` that carries the two things they do not share.
+
+The consolidation this bought is real rather than notional: the Calendar had two
+hand-written blocks for these, differing only in which field held the date and which
+held the note. They are one loop now, and a third moment type joins by implementing the
+interface rather than by a third block. The kind is also what keeps this from becoming
+a merge — one is visible the moment it is written, the other is hidden until it
+unseals, and that difference lives in the type.
+
+**QR Sync moved to System at the same time**, as this section said to do when §10 was
+executed. Device pairing, not people; one line in the registry, no functional change.
 
 ## 13. Future features — reviewed 2026-08-22
 

@@ -1,6 +1,8 @@
 package com.alekpeed.lifeos.milestones
 
 import com.alekpeed.lifeos.Storage
+import com.alekpeed.lifeos.archive.Moment
+import com.alekpeed.lifeos.archive.MomentKind
 import com.alekpeed.lifeos.data.parseDateOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -14,13 +16,18 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class Milestone(
-    val id: Long,
-    val title: String,
-    val date: String = "",
+    override val id: Long,
+    override val title: String,
+    override val date: String = "",
     val category: String = "",
     val notes: String = "",
-    val photoBlob: String = "",
-)
+    override val photoBlob: String = "",
+) : Moment {
+    // The shared Archive shape (§12.1.4). Getters, not fields — nothing here changes
+    // how a milestone is stored, and `notes` stays the name the module has always used.
+    override val note: String get() = notes
+    override val kind: MomentKind get() = MomentKind.HAPPENED
+}
 
 @Serializable
 data class MilestonesData(val milestones: List<Milestone> = emptyList())
