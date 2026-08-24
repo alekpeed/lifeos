@@ -20,8 +20,16 @@
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- Cleartext is on for one reason: a Home Assistant hub on a home LAN is almost
+         always plain http, and §13.3's whole premise is that a native app can reach it
+         where an HTTPS PWA could not. The cost is honest and worth stating: this is an
+         app-wide switch, not a per-host one, because a network security config can only
+         name literal hosts and the hub's address is whatever the user typed. Everything
+         else the app talks to — Supabase, the AI providers, Telegram, map tiles — is
+         https:// in its own code and unaffected. -->
     <application
         android:name=".FullscreenApplication"
+        android:usesCleartextTraffic="true"
         android:label="LifeOS"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity

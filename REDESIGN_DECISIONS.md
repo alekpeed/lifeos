@@ -1912,6 +1912,33 @@ Carried forward, not scheduled.
   ~$5 ESP32 bridge). Ties into arrival geofences. **Note: `FUTURE_FEATURES.md` §14
   flags a mixed-content wall stopping an HTTPS PWA reaching a local `http://` hub —
   that wall does not exist for the native app, which improves the case.**
+
+  **Built 2026-08-23** as the Home module (`home/`), 40 in the registry. The app's side
+  only: the hub, the ESP32 bridge and the remote-access choice remain Alek's to stand up,
+  and the screen says so rather than reporting an empty house.
+
+  It knows about exactly one thing, and it is not a light bulb. One `/api/states` read
+  for the list, one `/api/services` post to act — no Tuya code, no Bluetooth, no vendor
+  cloud, because HA is holding all three on the other side. The transport wall is
+  genuinely gone: Android's cleartext block is opted out of in the manifest, with the
+  cost stated there, since a hub on a home LAN is almost always plain `http`.
+
+  Four things the build settled that the entry did not raise:
+
+  - **An https address keeps its port.** The bare-host rule appends `:8123`, which is
+    right for a local hub and wrong for a Nabu Casa or Tailscale hostname on 443 — the
+    only route that works away from home. Caught by a test, not by reading it.
+  - **"Not answering" is not "off".** A hub reports a device it has lost rather than
+    dropping it, and the difference is the whole reason to look at the screen.
+  - **The token never enters a backup.** It joins the API keys in `SECRET_KEYS`: a
+    long-lived HA token is a key to the locks and cameras in a house, and the backup is
+    shared through the OS share sheet on purpose. The address stays, so a restore is not
+    a re-setup.
+  - **The arrival hook defaults to off.** A geofence can run a scene when you get home
+    (§13.3's tie-in), bounded to eight seconds inside `goAsync` and never retried —
+    arriving home is not worth an ANR, and a late second attempt is worse than none. It
+    does nothing until a scene is chosen, which is the right default for something that
+    turns lights on in a house.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest; the sync
   server holds ciphertext it cannot read.
 - **Garmin / Fitbit ingestion** — OAuth health imports. Apple Health already ships.

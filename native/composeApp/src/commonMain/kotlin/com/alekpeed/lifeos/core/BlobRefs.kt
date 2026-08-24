@@ -33,7 +33,7 @@ private val CACHE_KEYS = setOf("MapTileIndex")
 // changes it has not. The three credentials are excluded because a backup is shared
 // through the OS share sheet — the whole point is to hand it to something else.
 private const val INTERNAL_PREFIX = "__"
-private val SECRET_KEYS = setOf("ApiKey", "GeminiKey", "OpenAiKey")
+private val SECRET_KEYS = setOf("ApiKey", "GeminiKey", "OpenAiKey", "HomeToken")
 
 fun isBackupKey(key: String): Boolean =
     !key.startsWith(INTERNAL_PREFIX) && key !in SECRET_KEYS && key !in CACHE_KEYS

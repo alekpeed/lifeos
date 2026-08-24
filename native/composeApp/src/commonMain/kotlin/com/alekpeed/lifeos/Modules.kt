@@ -24,6 +24,7 @@ import com.alekpeed.lifeos.finance.FinanceScreen
 import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.history.HistoryScreen
 import com.alekpeed.lifeos.health.HealthScreen
+import com.alekpeed.lifeos.home.HomeScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.insight.AskScreen
 import com.alekpeed.lifeos.insight.AssistantScreen
@@ -82,6 +83,8 @@ fun lifeOsModules(): List<Module> = listOf(
     Module("milestones", "🏆", "Milestones", "Archive", true) { MilestonesScreen() },
     // Logistics — places, supply & trips
     Module("places", "📍", "Places", "Logistics", true) { PlacesScreen() },
+    // §13.3 — one list of the house, through a Home Assistant hub.
+    Module("home", "🏠", "Home", "Logistics", true) { HomeScreen() },
     Module("quartermaster", "📦", "Quartermaster", "Logistics", true) { QuartermasterScreen() },
     Module("travel", "🧳", "Travel", "Logistics", true) { TravelScreen() },
     // Discovery — learning & curiosity
