@@ -3,6 +3,7 @@ package com.alekpeed.lifeos.health
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -76,13 +77,14 @@ fun HealthScreen() {
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("daily" to "Daily", "workouts" to "Workouts", "metrics" to "Metrics", "import" to "Import").forEach { (v, lbl) ->
+            listOf("daily" to "Daily", "workouts" to "Workouts", "meds" to "Meds", "metrics" to "Metrics", "import" to "Import").forEach { (v, lbl) ->
                 FilterChip(selected = tab == v, onClick = { tab = v }, label = { Text(lbl) })
             }
         }
         Spacer(Modifier.height(12.dp))
         when (tab) {
             "workouts" -> WorkoutsTab(data) { persist(it) }
+            "meds" -> MedsTab(data) { persist(it) }
             "metrics" -> MetricsTab(data) { persist(it) }
             "import" -> ImportTab(data) { persist(it) }
             else -> DailyTab(data) { persist(it) }
@@ -282,6 +284,7 @@ private fun DailyTab(data: HealthData, persist: (HealthData) -> Unit) {
                             }
                             log.waterOz?.let { add("💧 ${num(it)}oz") }
                             log.weightLb?.let { add("⚖ ${num(it)}") }
+                            log.mood?.let { add(moodFace(it)) }
                         }
                         Text(chips.joinToString("  "), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
@@ -336,6 +339,21 @@ private fun DailyEditor(log: DailyLog, onChange: (DailyLog) -> Unit, onDelete: (
         }
         Label("Weight (lb)")
         NumField(log.weightLb?.let { num(it) } ?: "", "optional") { v -> onChange(log.copy(weightLb = v)) }
+        // §11.2. Five faces rather than a number field: a mood you have to type is a
+        // mood you stop logging, and the Almanac needs the run of days more than it
+        // needs precision. Pressing the current one clears it — a day logged by
+        // accident should be removable without deleting the whole row.
+        Label("Mood")
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            MOOD_FACES.forEachIndexed { i, face ->
+                val v = i + 1
+                FilterChip(
+                    selected = log.mood == v,
+                    onClick = { onChange(log.copy(mood = if (log.mood == v) null else v)) },
+                    label = { Text(face) },
+                )
+            }
+        }
         Label("Notes")
         OutlinedTextField(
             log.notes, { onChange(log.copy(notes = it)) },
@@ -547,4 +565,155 @@ private fun Label(text: String) {
     Spacer(Modifier.height(8.dp))
     Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(4.dp))
+}
+
+// ---- Medications -------------------------------------------------------------
+
+// §11.2, and deliberately the small version: name, dose, schedule, and today's
+// answer. It is the first slice of M-05 Medical, shipped alone so it folds into that
+// module when it lands rather than being rebuilt.
+//
+// The two numbers on a row are taken-out-of-answered, never taken-out-of-elapsed. A day
+// you did not answer is missing data; scoring it as a miss would turn "I forgot to log
+// it" into "I forgot to take it", which is a different and much worse claim to make
+// about somebody's medication.
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MedsTab(data: HealthData, persist: (HealthData) -> Unit) {
+    val meds = data.medications
+    var name by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf<Long?>(null) }
+    val todayIso = today().toString()
+    val windowStart = today().minusDays(29).toString()
+
+    fun patch(id: Long, f: (Medication) -> Medication) =
+        persist(data.copy(medications = meds.map { if (it.id == id) f(it) else it }))
+
+    Column(Modifier.fillMaxSize()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                name, { name = it }, modifier = Modifier.weight(1f), singleLine = true,
+                placeholder = { Text("Medication name") },
+            )
+            Spacer(Modifier.width(10.dp))
+            Button(onClick = {
+                val n = name.trim().replace("\n", " ")
+                if (n.isNotEmpty()) {
+                    val id = (meds.maxOfOrNull { it.id } ?: 0L) + 1
+                    persist(data.copy(medications = listOf(Medication(id, n)) + meds))
+                    name = ""
+                }
+            }) { Text("Add") }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        if (meds.isEmpty()) {
+            Text(
+                "Nothing scheduled. Add a medication to answer for it daily — the log is what " +
+                    "makes an adherence figure mean anything.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return
+        }
+
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(meds, key = { it.id }) { m ->
+                val todays = medEventOn(m, todayIso)
+                val a = adherence(m, windowStart, todayIso)
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(
+                            Modifier.weight(1f).clickable { expanded = if (expanded == m.id) null else m.id },
+                        ) {
+                            Text(
+                                m.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (m.active) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            val meta = buildList {
+                                if (m.dose.isNotBlank()) add(m.dose)
+                                if (m.schedule.isNotBlank()) add(m.schedule)
+                                // The count, not just the percentage — 30 days of
+                                // perfect logging and 2 days of it read very differently.
+                                if (a.answered > 0) add("taken ${a.taken} of ${a.answered} answered")
+                                if (!m.active) add("stopped")
+                            }.joinToString(" · ")
+                            if (meta.isNotBlank()) {
+                                Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                    if (m.active) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(
+                                selected = todays?.taken == true,
+                                onClick = { persist(markMedication(data, m.id, todayIso, true)) },
+                                label = { Text("Taken today") },
+                            )
+                            FilterChip(
+                                selected = todays?.taken == false,
+                                onClick = { persist(markMedication(data, m.id, todayIso, false)) },
+                                label = { Text("Skipped") },
+                            )
+                            if (todays == null) {
+                                Text(
+                                    "not answered yet",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.align(Alignment.CenterVertically),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        // The last two weeks at a glance: filled for taken, hollow for
+                        // skipped, faint for a day nobody answered.
+                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            (13 downTo 0).forEach { back ->
+                                val d = today().minusDays(back).toString()
+                                val e = medEventOn(m, d)
+                                Box(
+                                    Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(
+                                        when {
+                                            e == null -> MaterialTheme.colorScheme.surfaceVariant
+                                            e.taken -> MaterialTheme.colorScheme.primary
+                                            else -> Color(0xFFD64545)
+                                        },
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                    if (expanded == m.id) {
+                        Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                m.dose, { v -> patch(m.id) { it.copy(dose = v.replace("\n", " ")) } },
+                                modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Dose") },
+                            )
+                            OutlinedTextField(
+                                m.schedule, { v -> patch(m.id) { it.copy(schedule = v.replace("\n", " ")) } },
+                                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                                label = { Text("Schedule") },
+                                placeholder = { Text("1 tablet, mornings, with food") },
+                            )
+                            OutlinedTextField(
+                                m.notes, { v -> patch(m.id) { it.copy(notes = v) } },
+                                modifier = Modifier.fillMaxWidth(), label = { Text("Notes") },
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                TextButton(onClick = { patch(m.id) { it.copy(active = !it.active) } }) {
+                                    Text(if (m.active) "Stop taking" else "Resume")
+                                }
+                                TextButton(onClick = {
+                                    persist(data.copy(medications = meds.filterNot { it.id == m.id }))
+                                    expanded = null
+                                }) { Text("Delete", color = Color(0xFFD64545)) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

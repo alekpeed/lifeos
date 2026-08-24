@@ -28,11 +28,15 @@ data class DailyLog(
     val workoutMinutes: Double? = null,
     val waterOz: Double? = null,
     val weightLb: Double? = null,
+    // How the day felt, 1–5 (§11.2). It belongs on this row rather than in a list of
+    // its own: the daily log is already one row per day, and a second one-row-per-day
+    // store would be two answers to what happened on the 14th.
+    val mood: Int? = null,
     val notes: String = "",
 ) {
     val isEmpty: Boolean
         get() = sleepHours == null && workoutType.isBlank() && workoutMinutes == null &&
-            waterOz == null && weightLb == null && notes.isBlank()
+            waterOz == null && weightLb == null && mood == null && notes.isBlank()
 }
 
 // One logged workout session. Distance is optional and unit-tagged (meters for
@@ -48,12 +52,64 @@ data class Workout(
     val notes: String = "",
 )
 
+// One medication, and what you did about it (§11.2). Deliberately small: this is the
+// first slice of M-05 Medical, shipped alone so it folds into that module when it lands
+// rather than being rebuilt. `schedule` is free text on purpose — "1 tablet, mornings,
+// with food" is what a label says, and parsing it into a structure would be inventing a
+// grammar nobody asked for before there is a reminder engine to use it.
+@Serializable
+data class Medication(
+    val id: Long,
+    val name: String,
+    val dose: String = "",
+    val schedule: String = "",
+    val active: Boolean = true,
+    val notes: String = "",
+    val log: List<MedEvent> = emptyList(),
+)
+
+// One day's answer. Absent means the day was never answered, which is not the same as
+// skipped — an unanswered day is missing data and must never be counted as a miss.
+@Serializable
+data class MedEvent(val date: String, val taken: Boolean)
+
 @Serializable
 data class HealthData(
     val readings: List<Reading> = emptyList(),
     val logs: List<DailyLog> = emptyList(),
     val workouts: List<Workout> = emptyList(),
+    val medications: List<Medication> = emptyList(),
 )
+
+val MOOD_FACES = listOf("😖", "🙁", "😐", "🙂", "😄")
+
+fun moodFace(v: Int?): String = MOOD_FACES.getOrNull((v ?: 0) - 1) ?: ""
+
+// ---- Medications ------------------------------------------------------------
+
+// Answer today, or change today's answer. One entry per date per medication: pressing
+// "Taken" after "Skipped" corrects the record rather than adding a second one.
+fun markMedication(data: HealthData, id: Long, date: String, taken: Boolean): HealthData =
+    data.copy(
+        medications = data.medications.map { m ->
+            if (m.id != id) m
+            else m.copy(log = m.log.filterNot { it.date == date } + MedEvent(date, taken))
+        },
+    )
+
+fun medEventOn(m: Medication, date: String): MedEvent? = m.log.firstOrNull { it.date == date }
+
+// Taken out of answered, over a window — never out of elapsed days. A day you did not
+// answer is missing data, and scoring it as a miss would turn "I forgot to log it" into
+// "I forgot to take it", which is a different and much worse claim.
+data class Adherence(val taken: Int, val answered: Int) {
+    val percent: Int? get() = if (answered == 0) null else (taken * 100) / answered
+}
+
+fun adherence(m: Medication, from: String, to: String): Adherence {
+    val window = m.log.filter { it.date in from..to }
+    return Adherence(window.count { it.taken }, window.size)
+}
 
 val WORKOUT_TYPES = listOf("Rowing", "Run", "Walk", "Cycle", "Swim", "Lift", "Yoga", "Other")
 
@@ -141,6 +197,7 @@ fun healthSeries(): List<HealthPoint> {
             }
             log.waterOz?.let { add(HealthPoint("Water", it, log.date)) }
             log.weightLb?.let { add(HealthPoint("Weight", it, log.date)) }
+            log.mood?.let { add(HealthPoint("Mood", it.toDouble(), log.date)) }
         }
     }
     // A structured log wins over a same-day free-form reading of the same metric,

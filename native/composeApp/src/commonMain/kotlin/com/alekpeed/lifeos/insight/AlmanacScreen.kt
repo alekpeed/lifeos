@@ -54,6 +54,9 @@ fun AlmanacScreen() {
                 .associate { it.date to it.value }
         val sleep = byDate("Sleep")
         val workout = byDate("Workout")
+        // §11.2 — the mood log's reason for existing. Paired against sleep and against
+        // habits kept, under the same raised floors as everything else here.
+        val mood = byDate("Mood")
 
         val habits = loadHabits()
         fun habitsKept(date: String): Int {
@@ -75,6 +78,9 @@ fun AlmanacScreen() {
 
         // Each figure travels with the number of pairs it was fitted on, because the
         // screen has to print it beside the figure and there is no recovering it later.
+        val moodVsSleep = mood.keys.filter { sleep.containsKey(it) }.map { mood[it]!! to sleep[it]!! }
+        val moodVsHabits = mood.keys.map { mood[it]!! to habitsKept(it).toDouble() }
+
         val activeTaskDays = sleepVsTasks.count { it.second > 0 }
         val corrSleepHabits = if (sleepVsHabits.size >= CORR_MIN) pearson(sleepVsHabits)?.let { it to sleepVsHabits.size } else null
         val corrWorkoutSleep = if (workoutVsSleep.size >= CORR_MIN) pearson(workoutVsSleep)?.let { it to workoutVsSleep.size } else null
@@ -82,6 +88,8 @@ fun AlmanacScreen() {
         // with a zero for the rest. Both numbers reach the screen; see sampleWithActive.
         val corrSleepTasks = if (activeTaskDays >= CORR_MIN) pearson(sleepVsTasks)?.let { it to sleepVsTasks.size } else null
         val sleepHabitsLin = if (sleepVsHabits.size >= CORR_MIN) linregress(sleepVsHabits)?.let { it to sleepVsHabits.size } else null
+        val corrMoodSleep = if (moodVsSleep.size >= CORR_MIN) pearson(moodVsSleep)?.let { it to moodVsSleep.size } else null
+        val corrMoodHabits = if (moodVsHabits.size >= CORR_MIN) pearson(moodVsHabits)?.let { it to moodVsHabits.size } else null
 
         // Sleep trend (value over ordered day index)
         val sleepOrdered = sleep.entries.sortedBy { it.key }
@@ -130,7 +138,8 @@ fun AlmanacScreen() {
             .distinctBy { it.desc }.map { it.desc to abs(it.amount) }
 
         AlmanacModel(
-            corrSleepHabits, corrWorkoutSleep, corrSleepTasks, activeTaskDays, sleepHabitsLin,
+            corrSleepHabits, corrWorkoutSleep, corrSleepTasks, corrMoodSleep, corrMoodHabits,
+            activeTaskDays, sleepHabitsLin,
             sleepTrend, readingForecasts, spendForecast, weekdaySkips,
             recurring, sleep.values.toList(),
         )
@@ -153,8 +162,14 @@ fun AlmanacScreen() {
                     model.corrSleepTasks?.let { (r, n) ->
                         add("Sleep vs. tasks completed: ${strength(r)} (r = ${fmt1(r)})${sampleWithActive(n, model.activeTaskDays, "day")}")
                     }
+                    model.corrMoodSleep?.let { (r, n) ->
+                        add("Mood vs. sleep: ${strength(r)} (r = ${fmt1(r)})${sample(n, "day")}")
+                    }
+                    model.corrMoodHabits?.let { (r, n) ->
+                        add("Mood vs. habits kept: ${strength(r)} (r = ${fmt1(r)})${sample(n, "day")}")
+                    }
                 }
-                if (lines.isEmpty()) Muted("Log sleep, workouts, and habit check-ins on the same days to see how they move together (need $CORR_MIN+ days).")
+                if (lines.isEmpty()) Muted("Log sleep, workouts, mood and habit check-ins on the same days to see how they move together (need $CORR_MIN+ days).")
                 else Column { lines.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) } }
             }
 
@@ -240,6 +255,8 @@ private data class AlmanacModel(
     val corrSleepHabits: Pair<Double, Int>?,
     val corrWorkoutSleep: Pair<Double, Int>?,
     val corrSleepTasks: Pair<Double, Int>?,
+    val corrMoodSleep: Pair<Double, Int>?,
+    val corrMoodHabits: Pair<Double, Int>?,
     val activeTaskDays: Int,
     val sleepHabitsLin: Pair<Lin, Int>?,
     val sleepTrend: Pair<Lin, Int>?,

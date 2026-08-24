@@ -1575,6 +1575,30 @@ module.
   whole thing. Ships alone, folds into Medical when that lands rather than being
   rebuilt.
 
+**Both built 2026-08-23.**
+
+**Mood** is a field on the daily log, not a list of its own — that row is already one
+per day, and a second one-per-day store would be two answers to what happened on the
+14th. Five faces rather than a number field: a mood you have to type is a mood you stop
+logging, and the Almanac needs the run of days more than it needs precision. It reaches
+`healthSeries()` as `Mood`, so the correlation engine picks it up like any other metric,
+and it is paired against sleep and against habits kept under the same raised floors and
+with the same sample sizes beside it (§7 D-4). A day with no mood contributes no point
+rather than a zero — zero is not on the scale, and a line fitted through it would be
+fiction.
+
+**Medications** are name, dose, free-text schedule and a take/skip log. The schedule
+stays free text on purpose: "1 tablet, mornings, with food" is what a label says, and
+parsing it into a grammar before there is a reminder engine to use it would be inventing
+structure nobody asked for.
+
+The one figure it shows is **taken out of answered, never out of elapsed**. A day you
+did not answer is missing data; scoring it as a miss would turn "I forgot to log it"
+into "I forgot to take it", which is a different and much worse claim to make about
+somebody's medication. A medication with nothing logged has no percentage at all rather
+than 0%, for the same reason. The row prints the count alongside, because thirty days of
+perfect logging and two days of it read very differently.
+
 ### 11.3 Wishlist — not built as a separate module
 
 Proposed as a shareable list of wanted items. Collides with two things already
