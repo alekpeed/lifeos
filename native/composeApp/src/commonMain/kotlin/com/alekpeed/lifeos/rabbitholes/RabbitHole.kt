@@ -1,9 +1,9 @@
 package com.alekpeed.lifeos.rabbitholes
 
 import com.alekpeed.lifeos.Storage
-import com.alekpeed.lifeos.data.parseDateOrNull
+import com.alekpeed.lifeos.data.StaleRule
+import com.alekpeed.lifeos.data.daysSinceDate
 import com.alekpeed.lifeos.data.today
-import kotlinx.datetime.daysUntil
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -59,11 +59,14 @@ fun saveHoles(data: RabbitHolesData) {
 fun touched(h: RabbitHole): RabbitHole = h.copy(touchedDate = today().toString())
 
 // How long a hole has been sitting, in days — null when there's no date to go on.
-fun daysCold(h: RabbitHole): Int? {
-    val last = parseDateOrNull(h.touchedDate.ifBlank { h.startedDate }) ?: return null
-    val n = last.daysUntil(today())
-    return if (n < 0) 0 else n
-}
+// One line over the shared staleness utility (§12.1.2): this module keeps its own
+// vocabulary, because "cold" is the right word for an abandoned thread and "neglected"
+// is not, but the arithmetic behind it is the arithmetic Entropy uses.
+fun daysCold(h: RabbitHole): Int? = daysSinceDate(h.touchedDate.ifBlank { h.startedDate })
 
 // The point at which an open thread reads as abandoned rather than in progress.
 const val COLD_AFTER_DAYS = 21
+
+// Three weeks cold, six weeks abandoned. The thresholds are this module's; the
+// computation is not.
+val COLD_RULE = StaleRule(staleAfter = COLD_AFTER_DAYS, neglectedAfter = COLD_AFTER_DAYS * 2)

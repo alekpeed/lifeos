@@ -26,50 +26,46 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.data.DATA_SOURCES
+import com.alekpeed.lifeos.data.StaleLevel
+import com.alekpeed.lifeos.data.StaleRule
+import com.alekpeed.lifeos.data.agoLabel
 import com.alekpeed.lifeos.data.countOf
+import com.alekpeed.lifeos.data.daysSinceMillis
+import com.alekpeed.lifeos.data.levelFor
+import com.alekpeed.lifeos.data.worstFirst
 import com.alekpeed.lifeos.sync.SyncMeta
-import kotlinx.datetime.Clock
 import kotlin.math.roundToInt
 
 // Entropy — a computed neglect dashboard, not a list. For each area that holds
 // data, how long since it was last touched (from the per-record timestamps the
 // sync layer tracks), most-neglected first, with an overall average. Stores
 // nothing itself.
+//
+// The arithmetic is the shared staleness utility (§12.1.2) — the same one Rabbit Holes
+// counts cold days with, and the one Contacts cadence and the unused-subscription flag
+// will use. Only the thresholds and the colours are this screen's.
 private data class Area(val label: String, val days: Int?)
 
-private const val DAY_MS = 86_400_000L
+// A week to want attention, a month to count as left. These numbers are Entropy's own:
+// a module untouched for ten days is fine, a contact unspoken to for ten days may not be.
+private val AREA_RULE = StaleRule(staleAfter = 7, neglectedAfter = 30)
 
-private fun fresh() = Color(0xFF2F9E57)
-private fun stale() = Color(0xFFC98A1A)
-private fun neglected() = Color(0xFFE05C5C)
-private fun unknown() = Color(0xFF8A94A3)
-
-private fun sevColor(days: Int?): Color = when {
-    days == null -> unknown()
-    days <= 6 -> fresh()
-    days <= 29 -> stale()
-    else -> neglected()
-}
-
-private fun sevLabel(days: Int?): String = when {
-    days == null -> "no timestamp yet"
-    days == 0 -> "today"
-    days == 1 -> "1 day ago"
-    else -> "$days days ago"
+private fun sevColor(days: Int?): Color = when (levelFor(days, AREA_RULE)) {
+    StaleLevel.UNKNOWN -> Color(0xFF8A94A3)
+    StaleLevel.FRESH -> Color(0xFF2F9E57)
+    StaleLevel.STALE -> Color(0xFFC98A1A)
+    StaleLevel.NEGLECTED -> Color(0xFFE05C5C)
 }
 
 @Composable
 fun EntropyScreen() {
     val areas = remember {
-        val now = Clock.System.now().toEpochMilliseconds()
-        DATA_SOURCES
+        val list = DATA_SOURCES
             .filter { it.key != "Entropy" && countOf(it.key) > 0 }
-            .map { ds ->
-                val ts = SyncMeta.metaOf(ds.key)?.updatedAt
-                val days = ts?.let { ((now - it) / DAY_MS).toInt().coerceAtLeast(0) }
-                Area(ds.label, days)
-            }
-            .sortedByDescending { it.days ?: -1 }
+            .map { ds -> Area(ds.label, daysSinceMillis(SyncMeta.metaOf(ds.key)?.updatedAt)) }
+        // Worst first, and an area with no timestamp yet sorts last rather than first —
+        // it is the thing we cannot say anything about, not the most neglected thing.
+        worstFirst(list) { it.days }
     }
     val known = areas.mapNotNull { it.days }
     val overall = if (known.isNotEmpty()) known.average().roundToInt() else null
@@ -116,7 +112,7 @@ fun EntropyScreen() {
                         Spacer(Modifier.width(12.dp))
                         Text(a.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                         Text(
-                            sevLabel(a.days),
+                            agoLabel(a.days),
                             style = MaterialTheme.typography.bodyMedium,
                             color = sevColor(a.days),
                         )

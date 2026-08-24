@@ -1698,6 +1698,34 @@ deliberately different one: it uses a rung ladder rather than a flat threshold.
   is a different model, not a special case of the flat threshold. Forcing them
   together would distort both.
 
+**Built 2026-08-23** as `data/Staleness.kt`, before the second implementation shipped —
+which was the whole point of deciding it early.
+
+`daysSinceDate` / `daysSinceMillis` for the count, `StaleRule` and `levelFor` for the
+verdict, `agoLabel` for the phrasing and `worstFirst` for the order. Entropy and Rabbit
+Holes are on it now; Contacts cadence (§11.1) and the subscription flag (§11.4) have it
+waiting. `Decay.kt` was left alone, as decided.
+
+**Thresholds stay with the caller**, and that is not a hedge: three weeks is a cold
+thread, sixty days is an unused subscription, and a friend you speak to twice a year is
+not neglected. Sharing the numbers would have been the opposite mistake to sharing the
+arithmetic.
+
+Rabbit Holes was the fourth instance the entry did not count — `daysCold` was the same
+computation under a better domain name. It kept the name and lost the arithmetic: one
+line over the shared call, because "cold" is right for an abandoned thread and
+"neglected" is not.
+
+Three edges are now decided in one place rather than three, and each was a real
+disagreement waiting to happen:
+
+- **A record with no timestamp is not fresh.** It is the commonest case on a new
+  install, and reading it as zero days would render a neglect dashboard entirely green.
+- **A date in the future is a clock skew, not negative neglect.** Two devices and one
+  wrong clock is enough to produce one.
+- **Unknowns sort last in a worst-first list**, not first — they are what we cannot say
+  anything about, and putting them on top buries the answers under the questions.
+
 #### 12.1.3 Skill Trees evidence inputs — ACCEPTED as a build constraint
 
 Skill Trees reads from Habits, Education, Books and Tasks. Every additional
