@@ -1,6 +1,7 @@
 package com.alekpeed.lifeos
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,17 +124,29 @@ fun Shell() {
                 }
             } else {
                 Column(Modifier.fillMaxSize()) {
+                    // Where you are, and the domain it belongs to — the second half is
+                    // what makes the eight groups on the home screen learnable rather
+                    // than a filing system you have to memorise separately.
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         BackArrow { current = null }
                         Spacer(Modifier.width(10.dp))
+                        Text("${c.icon}  ${c.label}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                         Text(
-                            "${c.icon}  ${c.label}",
-                            style = MaterialTheme.typography.titleMedium,
+                            c.group.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    // A hairline, so a screen that starts with a list has an edge to start
+                    // from rather than floating under the title.
+                    Box(
+                        Modifier.fillMaxWidth().height(1.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    )
                     Box(Modifier.fillMaxWidth().weight(1f)) {
                         Interfaces.Render(c.id, c.content)
                     }
