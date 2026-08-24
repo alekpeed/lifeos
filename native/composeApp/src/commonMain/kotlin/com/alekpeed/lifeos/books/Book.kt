@@ -63,6 +63,27 @@ data class Book(
     // the older one-file-per-kind shape; loadBooks() folds them in here on read, so
     // existing books keep their file and their place in it.
     val files: List<BookFile> = emptyList(),
+    // Passages worth keeping (§11.5). The reader had no way to capture one, which made
+    // the whole library read-only in the way that matters least — you can finish a book
+    // and keep nothing out of it.
+    val highlights: List<Highlight> = emptyList(),
+)
+
+// One saved passage, and where in the book it came from.
+//
+// `where` is a label rather than a number because a text file and a PDF measure
+// position differently and neither can be converted into the other's units: an EPUB has
+// no pages, a PDF has no percentage of the whole. Storing what each one honestly knows
+// beats storing a page number invented from a fraction.
+@Serializable
+data class Highlight(
+    val id: Long,
+    val text: String,
+    val note: String = "",
+    val fileId: Long = 0,
+    val fileName: String = "",
+    val where: String = "",
+    val date: String = "",
 )
 
 @Serializable
@@ -82,6 +103,52 @@ fun readingStreak(allDates: Set<String>): Int {
         cursor = cursor.minusDays(1)
     }
     return streak
+}
+
+fun addHighlight(b: Book, text: String, note: String, file: BookFile?, where: String): Book {
+    val clean = text.trim()
+    if (clean.isEmpty()) return b
+    val id = (b.highlights.maxOfOrNull { it.id } ?: 0L) + 1
+    return b.copy(
+        highlights = listOf(
+            Highlight(
+                id = id, text = clean, note = note.trim(),
+                fileId = file?.id ?: 0L, fileName = file?.name.orEmpty(),
+                where = where, date = today().toString(),
+            ),
+        ) + b.highlights,
+    )
+}
+
+// §11.5, build two: every highlight in one document.
+//
+// Plain text with light Markdown, because the useful destinations for this are a note
+// app, an email and a text file, and all three take Markdown as prose without rendering
+// it. Grouped by the file it came from and ordered oldest-captured first — reading
+// order, near enough, and better than newest-first for something meant to be read
+// straight through.
+fun exportHighlights(b: Book): String {
+    if (b.highlights.isEmpty()) return ""
+    val head = buildList {
+        add("# ${b.title.ifBlank { "(untitled)" }}")
+        if (b.author.isNotBlank()) add("*${b.author}*")
+        add("${b.highlights.size} highlight${if (b.highlights.size == 1) "" else "s"}")
+    }
+    val body = b.highlights
+        .sortedBy { it.id }
+        .groupBy { it.fileName }
+        .flatMap { (file, hs) ->
+            buildList {
+                if (file.isNotBlank() && b.highlights.map { it.fileName }.distinct().size > 1) add("## $file")
+                hs.forEach { h ->
+                    add("> ${h.text.trim().replace("\n", "\n> ")}")
+                    val meta = listOf(h.where, h.date).filter { it.isNotBlank() }.joinToString(" · ")
+                    if (meta.isNotBlank()) add("— $meta")
+                    if (h.note.isNotBlank()) add(h.note.trim())
+                }
+            }
+        }
+    return (head + "" + body).joinToString("\n\n").trim() + "\n"
 }
 
 private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }

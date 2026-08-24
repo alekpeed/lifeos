@@ -1676,6 +1676,26 @@ reading, save as a highlight with a page/location reference, per book. An export
 action compiles all of a book's highlights into one document — genuinely useful
 only once highlighting exists, so this is two builds in sequence, not one.
 
+**Both built 2026-08-23**, in the stated order.
+
+**The gesture is "the page you're on, trimmed", not a text selection**, and that is a
+choice rather than a shortcut. The reader paints one measured page and lays invisible
+tap zones over it for page turns; a selection container underneath would never see a
+drag, and Compose gives no way to read back what a selection container holds in any
+case. So ✎ opens a sheet pre-filled with what is on screen, and you cut it down to the
+sentence you meant — two seconds of editing against a gesture that would not work. A PDF
+page is an image, so that sheet opens empty with the page number already filled in.
+
+**The reference says what each format honestly knows** — `34%` for a text file, `p. 143`
+for a PDF. An EPUB has no pages and a PDF has no percentage of the whole; converting
+either into the other's units would put a made-up citation on a real quotation.
+
+The export is plain text with light Markdown, because the destinations that matter — a
+note app, an email, a text file — all take Markdown as prose. It reads oldest-first,
+which is reading order; the on-screen list stays newest-first, which is what you just
+saved. A book with nothing captured exports nothing at all rather than an empty document
+with a title on it.
+
 ### 11.6 Travel — end-of-trip recap
 
 Extends Travel (§5.1), not a new module. Once a trip's `endDate` passes: a

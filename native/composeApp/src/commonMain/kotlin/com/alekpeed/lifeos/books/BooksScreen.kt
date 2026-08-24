@@ -348,6 +348,44 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
         }
         Label("Notes"); Field(book.notes, "Notes", singleLine = false) { v -> patch { it.copy(notes = v) } }
 
+        // §11.5, build two. The list is where a highlight is worth anything after the
+        // fact; the export is the point of having captured them at all.
+        Label("Highlights")
+        if (book.highlights.isEmpty()) {
+            Text(
+                "Nothing kept yet. Tap ✎ while reading to save a passage.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            book.highlights.forEach { h ->
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(h.text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = {
+                            patch { it.copy(highlights = it.highlights.filterNot { x -> x.id == h.id }) }
+                        }) { Text("✕") }
+                    }
+                    val meta = listOf(h.fileName, h.where, h.date).filter { it.isNotBlank() }.joinToString(" · ")
+                    if (meta.isNotBlank()) {
+                        Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (h.note.isNotBlank()) {
+                        Text(h.note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = { Native.shareText(exportHighlights(book)); SaveToast.show("Shared") }) {
+                    Text("↗ Export highlights")
+                }
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = { Native.copyToClipboard(exportHighlights(book)); SaveToast.show("Copied") }) {
+                    Text("Copy")
+                }
+            }
+        }
+
         Label("Files")
         com.alekpeed.lifeos.attach.AttachmentsSection(book.attachments, { list -> patch { it.copy(attachments = list) } }, label = "PDF & other files")
 
@@ -501,6 +539,9 @@ private fun PdfReaderScreen(book: Book, file: BookFile, data: BooksData, save: (
     var page by remember { mutableStateOf(file.page.coerceAtLeast(0)) }
     var widthPx by remember { mutableStateOf(0) }
     var bmp by remember { mutableStateOf<ImageBitmap?>(null) }
+    // §11.5. A PDF page is an image, so there is nothing to pre-fill — the sheet opens
+    // empty with the page number already filled in as the reference.
+    var highlighting by remember { mutableStateOf(false) }
 
     LaunchedEffect(b64) {
         pageCount = if (b64.isNullOrBlank()) 0 else withContext(Dispatchers.Default) { PdfReader.open(b64) }
@@ -526,6 +567,7 @@ private fun PdfReaderScreen(book: Book, file: BookFile, data: BooksData, save: (
                 if (book.files.size > 1) "${book.title} · ${file.name}" else book.title,
                 style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1,
             )
+            if (pageCount > 0) TextButton(onClick = { highlighting = true }) { Text("✎") }
             if (pageCount > 0) Text("${page + 1} / $pageCount", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Box(
@@ -553,6 +595,19 @@ private fun PdfReaderScreen(book: Book, file: BookFile, data: BooksData, save: (
             }
         }
     }
+
+    if (highlighting) {
+        HighlightSheet(initial = "", where = "p. ${page + 1}", onDismiss = { highlighting = false }) { text, note ->
+            save(
+                data.copy(
+                    books = data.books.map {
+                        if (it.id == book.id) addHighlight(it, text, note, file, "p. ${page + 1}") else it
+                    },
+                ),
+            )
+            highlighting = false
+        }
+    }
 }
 
 // Full-screen reader that lays the ebook out as real pages: the text is measured
@@ -571,6 +626,10 @@ private fun ReaderScreen(book: Book, file: BookFile, data: BooksData, save: (Boo
     var fontSize by remember { mutableStateOf(Storage.read("ReaderFontSize")?.toIntOrNull() ?: 18) }
     var page by remember { mutableStateOf(-1) }   // -1 until restored from the file's frac
     var forward by remember { mutableStateOf(true) }
+    // §11.5. What is on screen right now, kept so the highlight sheet can open
+    // pre-filled with it — see HighlightSheet for why that is the capture gesture.
+    var visibleText by remember { mutableStateOf("") }
+    var highlighting by remember { mutableStateOf(false) }
 
     fun persist(p: Int, count: Int) {
         val frac = if (count > 1) p.toFloat() / (count - 1) else 0f
@@ -589,6 +648,7 @@ private fun ReaderScreen(book: Book, file: BookFile, data: BooksData, save: (Boo
             TextButton(onClick = onClose) { Text("‹ Library") }
             Text(book.title.ifBlank { "Reading" }, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
             if (chapters.size > 1) TextButton(onClick = { showToc = true }) { Text("☰ Chapters") }
+            TextButton(onClick = { highlighting = true }) { Text("✎") }
             TextButton(onClick = { fontSize = (fontSize - 1).coerceAtLeast(12); Storage.write("ReaderFontSize", fontSize.toString()) }) { Text("A−") }
             TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(30); Storage.write("ReaderFontSize", fontSize.toString()) }) { Text("A+") }
         }
@@ -651,6 +711,7 @@ private fun ReaderScreen(book: Book, file: BookFile, data: BooksData, save: (Boo
                 ) { p ->
                     Text(pageText(p), style = bodyStyle, modifier = Modifier.fillMaxSize())
                 }
+                LaunchedEffect(page, pageCount, fontSize, wPx) { visibleText = pageText(page) }
                 // Invisible tap zones: left third → back, right two-thirds → forward.
                 Row(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f).fillMaxHeight().clickable { go(-1) })
@@ -667,6 +728,23 @@ private fun ReaderScreen(book: Book, file: BookFile, data: BooksData, save: (Boo
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 12.dp),
         )
+    }
+
+    if (highlighting) {
+        HighlightSheet(
+            initial = visibleText,
+            where = "${(file.frac * 100).roundToInt()}%",
+            onDismiss = { highlighting = false },
+        ) { text, note ->
+            save(
+                data.copy(
+                    books = data.books.map {
+                        if (it.id == book.id) addHighlight(it, text, note, file, "${(file.frac * 100).roundToInt()}%") else it
+                    },
+                ),
+            )
+            highlighting = false
+        }
     }
 
     if (showToc) {
@@ -828,5 +906,58 @@ private fun saveFilePos(
                 if (b.id != bookId) b else b.copy(files = b.files.map { if (it.id == fileId) f(it) else it })
             },
         ),
+    )
+}
+
+// §11.5 — capturing a passage.
+//
+// The gesture is "the page you're on, trimmed", not a text selection, and that is a
+// deliberate choice rather than a shortcut. This reader paints one measured page and
+// puts invisible tap zones over it for page turns; a selection container underneath
+// would never see a drag, and Compose gives no way to read back what a selection
+// container holds anyway. So the sheet opens pre-filled with what is on screen and you
+// cut it down to the sentence you meant — which is two seconds of editing against a
+// gesture that would not work.
+//
+// A PDF page is an image, so there is nothing to pre-fill; that sheet opens empty with
+// the page number already filled in as the reference.
+@Composable
+private fun HighlightSheet(
+    initial: String,
+    where: String,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit,
+) {
+    var text by remember { mutableStateOf(initial) }
+    var note by remember { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (where.isBlank()) "Save a highlight" else "Save a highlight · $where") },
+        text = {
+            Column {
+                Text(
+                    if (initial.isBlank()) "Type or paste the passage."
+                    else "Trim this down to the passage you want to keep.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    text, { text = it },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 260.dp),
+                    label = { Text("Passage") },
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    note, { note = it },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("Why it matters (optional)") },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = text.isNotBlank(), onClick = { onSave(text, note) }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
