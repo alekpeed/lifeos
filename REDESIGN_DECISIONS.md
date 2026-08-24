@@ -1941,6 +1941,42 @@ Carried forward, not scheduled.
     turns lights on in a house.
 - **Zero-knowledge encrypted vault** — end-to-end encryption at rest; the sync
   server holds ciphertext it cannot read.
+
+  **Built 2026-08-23** as the Vault module (`vault/`), 41 in the registry, under System.
+
+  **A vault, not app-wide encryption, and the reason is a real conflict rather than a
+  scoping preference.** The Telegram digest and the FCM sender read module blobs
+  server-side to work out what is due (§7 D-5). They cannot read what they cannot
+  decrypt. You cannot have server-side digests and zero-knowledge storage for the same
+  records — encrypting everything would have silently emptied the two things that reach
+  you when the app is closed. So this is one opt-in module, and the setup copy says that
+  outright rather than leaving it to be discovered.
+
+  AES-256-GCM with a fresh IV per encryption; PBKDF2-HMAC-SHA256 at 210,000 rounds, the
+  count stored per vault so raising it later does not strand old ones. Both from the
+  platform's own provider — nothing here implements a cipher. The passphrase is never
+  stored; the derived key lives in memory and is wiped on lock, and the screen locks
+  itself when you navigate away.
+
+  Four decisions worth recording:
+
+  - **There is no recovery**, and the only exit from a forgotten passphrase is deletion,
+    behind a dialogue that says so. A recovery path is a second way in, which is the
+    thing this exists not to have.
+  - **A verifier blob** — a known string encrypted at creation — is what separates "wrong
+    passphrase" from "corrupt data". Without it the app would tell you your notes were
+    damaged when you had simply mistyped.
+  - **The ciphertext belongs in the backup**, unlike the API keys. It is unreadable, and
+    the salt beside it is public by construction; leaving either out would produce a
+    restore that looks fine and cannot be opened.
+  - **Changing the passphrase re-encrypts the contents.** Deriving a new key without
+    rewriting the blob is the classic way to lock somebody out with the passphrase they
+    just set.
+
+  The two leak guards were verified by breaking the encryption on purpose and confirming
+  the tests caught it: writing plaintext to the store fails ten tests, including the one
+  that reads the mutation log back — `Storage.write` diffs every write, so a decrypted
+  vault handed to it would outlive the lock inside `__history`.
 - **Garmin / Fitbit ingestion** — OAuth health imports. Apple Health already ships.
 - **Personal local API + plugin SDK** — a documented interface to build against
   without touching core.

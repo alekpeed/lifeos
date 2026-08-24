@@ -25,6 +25,7 @@ import com.alekpeed.lifeos.habits.HabitsScreen
 import com.alekpeed.lifeos.history.HistoryScreen
 import com.alekpeed.lifeos.health.HealthScreen
 import com.alekpeed.lifeos.home.HomeScreen
+import com.alekpeed.lifeos.vault.VaultScreen
 import com.alekpeed.lifeos.ideas.IdeasScreen
 import com.alekpeed.lifeos.insight.AskScreen
 import com.alekpeed.lifeos.insight.AssistantScreen
@@ -110,6 +111,8 @@ fun lifeOsModules(): List<Module> = listOf(
     // Device pairing, not people (§12). It was under People only because that is where
     // the original build put it.
     Module("qr-sync", "🔳", "QR Sync", "System", true) { QrSyncScreen() },
+    // §13.3 — encrypted at rest, ciphertext everywhere but here.
+    Module("vault", "🔐", "Vault", "System", true) { VaultScreen() },
     // System — running the OS
     Module("search", "🔍", "Search", "System", true) { SearchScreen("Search", "Search everything…") },
     Module("tools", "🧰", "Tools", "System", true) { ToolsScreen() },
