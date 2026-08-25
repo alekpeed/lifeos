@@ -289,6 +289,18 @@ private fun scheduleBill(bill: Bill) {
     )
 }
 
+// Re-arm every bill's reminder. Bills were armed on save and swept nowhere, so unlike
+// tasks, capsules and reminders they did not come back after a reboot, an app update or
+// a restore onto a new phone — the one obligation in the app that actually costs money
+// to miss was the one with the least durable alarm.
+//
+// `scheduleBill` already declines a settled one-time bill and anything without a
+// parseable date, so this is a filter-free loop over what the module holds.
+fun rescheduleBillAlarms() {
+    if (!Native.supportsNotifications) return
+    runCatching { loadData().bills.forEach { scheduleBill(it) } }
+}
+
 // Finance — a four-tab money hub. Ledger is the running balance and log;
 // Bills tracks recurring/one-time obligations with due dates, autopay, and a
 // paid-history that advances the next due date and reschedules the reminder;

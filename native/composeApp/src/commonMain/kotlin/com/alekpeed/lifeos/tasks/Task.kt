@@ -2,6 +2,7 @@ package com.alekpeed.lifeos.tasks
 
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.parseDateOrNull
+import com.alekpeed.lifeos.platform.Native
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
@@ -93,6 +94,15 @@ private fun migrateLine(id: Long, line: String): Task {
     )
 }
 
+// Every writer goes through here, which is why the alarms are reconciled here too
+// rather than at the nine call sites — the same reasoning that puts the mutation log
+// inside `Storage.write` instead of asking every module to remember it.
+//
+// The read of the previous list is skipped where there are no notifications at all
+// (desktop, and the tests), so it costs nothing on the targets that would never use it.
 fun saveTasks(tasks: List<Task>) {
+    val before = if (Native.supportsNotifications) loadTasks() else emptyList()
     Storage.write("Tasks", json.encodeToString(tasks))
+    // After the write, deliberately: an alarm that fails to arm must not cost the save.
+    applyTaskAlarms(before, tasks)
 }

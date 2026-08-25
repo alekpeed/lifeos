@@ -63,18 +63,12 @@ fun Shell() {
     // where a laptop picks up what the phone did.
     LaunchedEffect(Unit) { com.alekpeed.lifeos.sync.AutoSync.onForeground() }
 
-    // Re-arm the alarm on every still-sealed time capsule (§5.4). Alarms do not survive
-    // a reinstall or a new device, and a capsule sealed for years will outlive its own.
-    LaunchedEffect(Unit) { com.alekpeed.lifeos.timecapsules.rescheduleCapsuleAlarms() }
-
-    // Same for tasks with a due date inside the horizon (§7 D-5 phase 2) — the
-    // notification whose Done / Tomorrow buttons resolve the task itself.
-    LaunchedEffect(Unit) { com.alekpeed.lifeos.tasks.rescheduleTaskAlarms() }
-
-    // Standalone reminders, promoted out of the retired Notifications screen (§2).
-    // Same reason as the two above: an alarm does not outlive a reinstall, the record
-    // does.
-    LaunchedEffect(Unit) { com.alekpeed.lifeos.calendar.rescheduleReminderAlarms() }
+    // Re-arm every alarm the app owns — capsules, tasks, reminders and bills. Alarms do
+    // not survive a reboot, an app update, a reinstall or a new device; the records do.
+    // The same sweep runs from BootReceiver, which is what covers the case this could
+    // not: a phone restarted overnight, with nobody opening the app before the morning
+    // the alarm was for.
+    LaunchedEffect(Unit) { com.alekpeed.lifeos.alarms.rearmAllAlarms() }
 
     // Tell the server where to send (§7 D-5 phase 2). No-ops when signed out or where
     // there is no push transport, which is everywhere until a Firebase project exists.
