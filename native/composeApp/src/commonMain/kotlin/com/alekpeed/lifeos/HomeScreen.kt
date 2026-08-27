@@ -59,7 +59,7 @@ private val MONO = FontFamily.Monospace
 @Composable
 fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
     var query by remember { mutableStateOf("") }
-    var openDomains by remember { mutableStateOf(setOf<String>()) }
+    var openDomain by remember { mutableStateOf<String?>(null) }
 
     // The one live read. Once per composition, and a failure is silence rather than a
     // crash on the first screen of the app.
@@ -115,11 +115,14 @@ fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
             val mods = modules.filter { it.group == group }
             if (mods.isEmpty()) continue
             item {
-                val isOpen = group in openDomains
+                val isOpen = group == openDomain
                 DomainRow(group, mods, isOpen) {
-                    // Several at once: closing one to open another means losing your place
-                    // every time you compare two domains.
-                    openDomains = if (isOpen) openDomains - group else openDomains + group
+                    // One at a time. Opening a second domain used to leave the first open,
+                    // which pushed the rest of the list off the bottom of the screen and
+                    // made the eight headings stop reading as a single index you can scan.
+                    // Tapping the open one still closes it, so there is a way back to all
+                    // eight without opening a ninth thing.
+                    openDomain = if (isOpen) null else group
                 }
                 if (isOpen) {
                     Spacer(Modifier.height(10.dp))
