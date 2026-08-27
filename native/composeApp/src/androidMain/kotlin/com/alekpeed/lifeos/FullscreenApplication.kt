@@ -20,6 +20,12 @@ import androidx.core.view.WindowInsetsControllerCompat
 class FullscreenApplication : Application(), Application.ActivityLifecycleCallbacks {
     override fun onCreate() {
         super.onCreate()
+        // Before anything else, and before the Activity exists: a crash during startup
+        // is exactly the one nobody can describe afterwards. Storage is pointed at the
+        // app context here for the same reason — the handler needs somewhere to write
+        // even if MainActivity never got as far as setting it.
+        Storage.appContext = applicationContext
+        com.alekpeed.lifeos.diag.installCrashHandler()
         registerActivityLifecycleCallbacks(this)
     }
 

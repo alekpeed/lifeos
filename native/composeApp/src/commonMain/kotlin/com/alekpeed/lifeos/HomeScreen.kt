@@ -76,6 +76,10 @@ fun HomeScreen(modules: List<Module>, onOpen: (Module) -> Unit) {
                 modules.firstOrNull { it.id == "briefing" }?.let(onOpen)
             }
             Spacer(Modifier.height(12.dp))
+            // Only after a crash, and only until dismissed. The home screen is the one
+            // place it is guaranteed to be seen, since a crash returns you here. It
+            // composes nothing at all when there is no report, so it costs no layout.
+            com.alekpeed.lifeos.diag.CrashBanner()
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },

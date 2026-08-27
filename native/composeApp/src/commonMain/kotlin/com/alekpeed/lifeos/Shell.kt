@@ -104,6 +104,11 @@ fun Shell() {
         snackHost.showSnackbar(SaveToast.message, duration = SnackbarDuration.Short)
     }
 
+    // Which screen is open, so an uncaught exception can name it. Written on every
+    // change rather than only on open: the crash we most want named is the one on the
+    // way in, and that is the same instant this changes.
+    LaunchedEffect(current) { com.alekpeed.lifeos.diag.Crash.noteScreen(current?.id) }
+
     Box(Modifier.fillMaxSize()) {
         val c = current
         if (c == null) {
