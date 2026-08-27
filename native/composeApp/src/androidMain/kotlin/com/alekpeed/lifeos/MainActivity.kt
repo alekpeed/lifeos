@@ -459,7 +459,7 @@ class MainActivity : ComponentActivity() {
         }
         try {
             mgr.dynamicShortcuts = listOf(
-                shortcut("command", "Capture", android.R.drawable.ic_menu_edit),
+                shortcut("ask", "Ask", android.R.drawable.ic_menu_edit),
                 shortcut("today", "Today", android.R.drawable.ic_menu_my_calendar),
                 shortcut("tasks", "Tasks", android.R.drawable.ic_menu_agenda),
             )

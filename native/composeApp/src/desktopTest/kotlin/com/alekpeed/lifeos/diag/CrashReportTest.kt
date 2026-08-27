@@ -18,8 +18,8 @@ class CrashReportTest {
     fun `the screen is named`() {
         // Without this the report says an exception happened somewhere in a 42-module
         // app, which is barely more than "it crashed".
-        val out = crashReport("operations", "main", "2026-08-26T10:00:00Z", listOf(frame("E", "boom", 3)))
-        assertContains(out, "screen: operations")
+        val out = crashReport("finance", "main", "2026-08-26T10:00:00Z", listOf(frame("E", "boom", 3)))
+        assertContains(out, "screen: finance")
     }
 
     @Test
@@ -34,7 +34,7 @@ class CrashReportTest {
         // so a report that stops at the top level names a Compose internal for what is
         // actually a null dereference three frames down in module code.
         val out = crashReport(
-            "operations", "main", "2026-08-26T10:00:00Z",
+            "finance", "main", "2026-08-26T10:00:00Z",
             listOf(
                 frame("androidx.compose.Wrapper", "composition failed", 2),
                 frame("java.lang.NullPointerException", "art was null", 2),

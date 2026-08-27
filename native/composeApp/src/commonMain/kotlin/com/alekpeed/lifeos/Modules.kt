@@ -9,7 +9,6 @@ import com.alekpeed.lifeos.documents.DocumentsScreen
 import com.alekpeed.lifeos.education.EducationScreen
 import com.alekpeed.lifeos.links.LinksScreen
 import com.alekpeed.lifeos.milestones.MilestonesScreen
-import com.alekpeed.lifeos.operations.OperationsScreen
 import com.alekpeed.lifeos.travel.TravelScreen
 import com.alekpeed.lifeos.paper.DailyPaperScreen
 import com.alekpeed.lifeos.places.PlacesScreen
@@ -67,7 +66,6 @@ val MODULE_GROUPS = listOf(
 
 fun lifeOsModules(): List<Module> = listOf(
     // Operations — run your day
-    Module("operations", "◈", "Operations", "Operations", true, immersive = true) { OperationsScreen() },
     Module("today", "🗓", "Today", "Operations", true) { TodayScreen() },
     Module("daily-paper", "📰", "Daily Paper", "Operations", true) { DailyPaperScreen() },
     Module("tasks", "✅", "Tasks", "Operations", true) { TasksScreen() },
