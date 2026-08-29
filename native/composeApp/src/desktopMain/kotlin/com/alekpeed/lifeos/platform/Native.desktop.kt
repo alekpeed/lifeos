@@ -10,7 +10,10 @@ import java.awt.datatransfer.StringSelection
 // clipboard, the most useful desktop equivalent.
 actual object Native {
     actual val supportsTts = false
-    actual val supportsNotifications = false
+    // Computed, not asserted: true only where a notification posted now would
+    // actually be seen. Headless (CI, desktopTest) is false, which keeps every
+    // notification path dormant in tests exactly as before.
+    actual val supportsNotifications = DesktopNotifications.available
     actual val supportsContacts = false
     actual val supportsKeepAwake = false
     actual val supportsWakeWord = false
@@ -63,17 +66,47 @@ actual object Native {
 
     actual fun keepScreenAwake(on: Boolean) {}
     actual fun importContacts(): List<PhoneContact> = emptyList()
-    actual fun postReminder(title: String, body: String, subject: String) {}
+    // Desktop has no notification action buttons, so `subject` — which names the
+    // record Android's Done / Snooze buttons resolve — has nothing to act on here.
+    // The notification still tells you; you act in the app.
+    actual fun postReminder(title: String, body: String, subject: String) {
+        DesktopNotifications.notify(title, body)
+    }
 
     // No push transport on a desktop, by design: the Telegram digest (§7 D-5 phase 1)
     // is what reaches a laptop, and it needs no token.
     actual fun devicePushToken(onToken: (String?) -> Unit) { onToken(null) }
-    actual fun setPinnedNextUp(text: String?) {}
+    actual fun setPinnedNextUp(text: String?) = DesktopNotifications.setTooltip(text)
     actual fun setWakeWordEnabled(on: Boolean) {}
     actual fun armArrivalHere(label: String) {}
     actual fun clearArrivals() {}
-    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long, subject: String) {}
-    actual fun cancelReminder(id: Int) {}
+    // In-process, and that is the whole story: see DesktopNotifications for why a
+    // desktop JVM cannot hand a future alarm to the OS. A reminder set for a moment
+    // when the app is shut does not fire, and the app-open sweep re-arms only what is
+    // still ahead.
+    //
+    // Re-arming is idempotent because scheduling the same id twice cancels the first:
+    // the sweep runs on every launch, and without this each one would stack another
+    // timer and you would get the same reminder N times.
+    actual fun scheduleReminder(id: Int, title: String, body: String, atEpochMillis: Long, subject: String) {
+        if (!supportsNotifications) return
+        cancelReminder(id)
+        val delay = atEpochMillis - System.currentTimeMillis()
+        if (delay <= 0) return
+        runCatching {
+            val future = reminderScheduler.schedule(
+                { pendingReminders.remove(id); DesktopNotifications.notify(title, body) },
+                delay, java.util.concurrent.TimeUnit.MILLISECONDS,
+            )
+            pendingReminders[id] = future
+        }
+    }
+
+    actual fun cancelReminder(id: Int) {
+        // false: a notification already being posted is left to finish rather than
+        // interrupted halfway.
+        runCatching { pendingReminders.remove(id)?.cancel(false) }
+    }
 
     actual fun enrollVoice(onStatus: (String) -> Unit, onResult: (Boolean) -> Unit) { onResult(false) }
     actual fun hasVoiceprint(): Boolean = false
@@ -256,3 +289,18 @@ private fun chooseFile(title: String): java.io.File? {
     if (chooser.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) return null
     return chooser.selectedFile?.takeIf { it.exists() && it.isFile }
 }
+
+// One thread for every pending reminder — they do nothing but sleep, and a pool would
+// be threads to spare for work that is a single `notify` call.
+//
+// Daemon, deliberately: a pending reminder must never be the reason the JVM refuses to
+// exit when the window is closed.
+private val reminderScheduler: java.util.concurrent.ScheduledExecutorService =
+    java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "lifeos-reminders").apply { isDaemon = true }
+    }
+
+// Live timers by reminder id, so one can be cancelled or replaced by id the way
+// AlarmManager does on Android.
+private val pendingReminders =
+    java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.ScheduledFuture<*>>()
