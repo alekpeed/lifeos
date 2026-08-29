@@ -438,9 +438,22 @@ world" on mobile; that register stays desktop's. Mobile gets its own
 purpose-built interface(s), not a filtered version of Test Mode.
 
 > **Superseded in practice (2026-08-22).** This split described the web build.
-> The native app is one Compose codebase and ships all 41 modules on Android as
-> well as desktop. Kept as the standing product intent for interfaces; revisit
-> when interface work restarts.
+> The native app is one Compose codebase and ships all 40 modules on Android as
+> well as desktop.
+
+> **Resolved 2026-08-29 (Alek).** Desktop is the endpoint — the main surface,
+> where everything is ultimately controlled from. Mobile is not a cut-down copy
+> and not a remote either: it is the **capture device**, and the split falls out
+> of hardware rather than product tiering. The phone has a camera and a
+> microphone, so scanning, dictation, the wake word, geofences and photography
+> live there because that is where the sensors are. Everything else belongs on
+> desktop, in full.
+>
+> The practical consequence, and it cuts the other way from the old framing: a
+> desktop feature gap is now a **defect**, not a deliberate tier. Anything the
+> JVM can do that the desktop build currently stubs out — notifications, PDF
+> export, the ebook and CSV file pickers — is a hole to fill, not a decision
+> already made. Only the sensor-bound capabilities are legitimately phone-only.
 
 Sync model: the same underlying data everywhere (Drive/Supabase, exactly
 as it already works today) — this is a UI-surface decision, not a
