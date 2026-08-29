@@ -159,8 +159,8 @@ expect object Native {
     fun capturePhoto(onResult: (String?) -> Unit)
 
     // Pick a text/CSV file and hand back its UTF-8 contents (size-capped), or null
-    // if the user cancelled / the platform has no file picker. Android opens the
-    // system document picker; desktop has none and returns null.
+    // if the user cancelled. Android opens the system document picker; desktop uses
+    // a Swing file chooser.
     fun pickTextFile(onResult: (String?) -> Unit)
 
     // Pick a potentially huge text file and stream it, keeping only lines that
@@ -182,7 +182,8 @@ expect object Native {
     fun machineSummary(): String
 
     // Pick an ebook (EPUB or .txt) and hand back its readable plain text in
-    // reading order, or null if cancelled / unsupported. Backs the Books reader.
+    // reading order, or null if cancelled. Backs the Books reader. Both targets
+    // parse through the same `jvmShared` code, so a book opens identically on each.
     fun pickEbook(onResult: (String?) -> Unit)
 
     // Same, plus the file's display name — a book can hold several files, and a list

@@ -98,9 +98,54 @@ actual object Native {
             onResult(null)
         }
     }
-    actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) { onResult(null) }
-    actual fun pickEbook(onResult: (String?) -> Unit) { onResult(null) }
-    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) { onResult(null, null) }
+    // The three pickers below were stubs returning null, which read as a platform
+    // limit and was not one: `pickTextFile` and `pickAttachment` in this same file
+    // already drive a JFileChooser. Under "desktop is the endpoint" (REDESIGN §
+    // device philosophy, resolved 2026-08-29) that made two things impossible on the
+    // machine best suited to them — reading a book on a big screen, and importing a
+    // health export, which is about as desktop-shaped as a task gets.
+    //
+    // The parsing is shared with Android in `jvmShared`, so an EPUB opens the same
+    // way on both and a fix lands once.
+
+    // Streamed and filtered rather than read whole: the Apple Health export is
+    // hundreds of megabytes of XML, and this is the one picker that must not slurp.
+    actual fun pickFilteredTextFile(substrings: List<String>, onResult: (String?) -> Unit) {
+        try {
+            val f = chooseFile("Choose an export file") ?: run { onResult(null); return }
+            // Off the UI thread: a big export takes seconds, and freezing the window
+            // while it reads looks exactly like a hang.
+            Thread {
+                val text = runCatching {
+                    f.inputStream().use { readFilteredText(it, substrings) }
+                }.getOrNull()
+                onResult(text)
+            }.start()
+        } catch (e: Exception) {
+            onResult(null)
+        }
+    }
+
+    actual fun pickEbook(onResult: (String?) -> Unit) {
+        pickEbookNamed { _, text -> onResult(text) }
+    }
+
+    actual fun pickEbookNamed(onResult: (name: String?, text: String?) -> Unit) {
+        try {
+            val f = chooseFile("Choose an EPUB or text file") ?: run { onResult(null, null); return }
+            Thread {
+                val out = runCatching {
+                    // Same 40MB ceiling Android uses. An EPUB is unzipped entirely in
+                    // memory, so this is the size the parser can actually survive.
+                    val bytes = f.readBytes()
+                    if (bytes.size > 40_000_000) null else parseEbook(bytes)
+                }.getOrNull()
+                onResult(if (out == null) null else f.name, out)
+            }.start()
+        } catch (e: Exception) {
+            onResult(null, null)
+        }
+    }
 
     actual val supportsScreenshot = true
 
@@ -200,4 +245,14 @@ actual object Native {
         }
     }
     actual fun exportTextAsPdf(title: String, text: String) {}
+}
+
+// A file-open dialog, or null if the user cancelled. Swing's chooser is what the
+// other desktop pickers in this file already use; sharing it keeps one answer to
+// "what does cancel look like".
+private fun chooseFile(title: String): java.io.File? {
+    val chooser = javax.swing.JFileChooser()
+    chooser.dialogTitle = title
+    if (chooser.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) return null
+    return chooser.selectedFile?.takeIf { it.exists() && it.isFile }
 }

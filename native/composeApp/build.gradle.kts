@@ -25,7 +25,16 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
             }
         }
+        // Android and desktop are both JVM targets, so code that needs java.* but is
+        // otherwise identical belongs in one place rather than copied into two. The
+        // ebook parser is what forced this: ~90 lines of zip + regex that would
+        // silently drift the moment one copy was fixed and the other was not.
+        // commonMain cannot hold it — that source set has to stay platform-agnostic.
+        val jvmShared by creating {
+            dependsOn(commonMain)
+        }
         val androidMain by getting {
+            dependsOn(jvmShared)
             dependencies {
                 implementation("androidx.activity:activity-compose:1.8.2")
                 // WindowCompat / WindowInsetsControllerCompat — immersive full screen for
@@ -46,6 +55,7 @@ kotlin {
             }
         }
         val desktopMain by getting {
+            dependsOn(jvmShared)
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation("com.google.zxing:core:3.5.3")
