@@ -27,7 +27,9 @@ actual object Native {
     // No system dictation dialog on desktop, but there is a microphone — which is
     // what makes Whisper the only dictation this build has.
     actual val supportsRecording: Boolean get() = MicRecorder.available
-    actual val supportsPdfExport = false
+    // Computed like supportsNotifications: true only where a print dialog can
+    // actually appear and something can receive the job.
+    actual val supportsPdfExport = DesktopPdf.available
 
     actual fun speak(text: String) {}
     actual fun stopSpeaking() {}
@@ -277,7 +279,10 @@ actual object Native {
             // best-effort open
         }
     }
-    actual fun exportTextAsPdf(title: String, text: String) {}
+    // Android renders a PDF and hands it to the system print sheet; desktop reaches
+    // the same place through the OS print dialog, which offers Save as PDF alongside
+    // any real printer. Same destination, no PDF library.
+    actual fun exportTextAsPdf(title: String, text: String) = DesktopPdf.export(title, text)
 }
 
 // A file-open dialog, or null if the user cancelled. Swing's chooser is what the
