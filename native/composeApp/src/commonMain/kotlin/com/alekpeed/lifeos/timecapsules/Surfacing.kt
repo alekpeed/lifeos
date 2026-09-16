@@ -27,7 +27,7 @@ import com.alekpeed.lifeos.platform.Native
 // two modules cannot collide on the same alarm slot.
 private const val CAPSULE_ALARM_BASE = 900_000
 
-fun capsuleReminderId(capsuleId: Long): Int = CAPSULE_ALARM_BASE + (capsuleId % 90_000).toInt()
+fun capsuleReminderId(capsuleId: Long): Int = com.alekpeed.lifeos.data.recordAlarmId("capsule", capsuleId, CAPSULE_ALARM_BASE)
 
 // A capsule that has opened and has not been read. What both mechanisms surface.
 fun isUnread(c: TimeCapsule): Boolean = !isSealed(c) && c.readAt.isBlank()

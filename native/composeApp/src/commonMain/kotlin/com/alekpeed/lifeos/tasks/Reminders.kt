@@ -24,7 +24,7 @@ import kotlinx.datetime.LocalDate
 private const val TASK_ALARM_BASE = 800_000
 
 // Distinct by construction from the capsule block at 900_000.
-fun taskReminderId(taskId: Long): Int = TASK_ALARM_BASE + (taskId % 90_000).toInt()
+fun taskReminderId(taskId: Long): Int = com.alekpeed.lifeos.data.recordAlarmId("task", taskId, TASK_ALARM_BASE)
 
 // A snooze past the due date moves the nudge; a snooze before it does not, since the
 // task is still owed on the day it is owed.

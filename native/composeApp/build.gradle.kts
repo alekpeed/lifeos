@@ -83,8 +83,8 @@ android {
         applicationId = "com.alekpeed.lifeos"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.1.1"
         // Baked-in default OpenAI key, injected from the OPENAI_API_KEY build
         // environment (a GitHub Actions secret in CI) — never committed to source.
         // Empty for local/desktop/PR builds, where the app falls back to a

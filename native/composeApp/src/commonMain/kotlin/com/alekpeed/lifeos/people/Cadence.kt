@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.people
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.data.StaleRule
 import com.alekpeed.lifeos.data.daysSinceDate
 import com.alekpeed.lifeos.data.today
@@ -47,7 +49,7 @@ fun overdueContacts(contacts: List<Contact>, from: LocalDate = today()): List<Ov
 fun cadenceRule(target: Int): StaleRule = StaleRule(staleAfter = target, neglectedAfter = target * 2)
 
 fun logInteraction(c: Contact, kind: String, note: String, date: String = today().toString()): Contact {
-    val id = (c.interactions.maxOfOrNull { it.id } ?: 0L) + 1
+    val id = newRecordId()
     return c.copy(interactions = listOf(Interaction(id, date, kind, note)) + c.interactions)
 }
 

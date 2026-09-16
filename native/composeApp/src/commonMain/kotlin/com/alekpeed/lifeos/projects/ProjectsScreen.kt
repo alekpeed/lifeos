@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.projects
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -155,7 +157,7 @@ fun ProjectsScreen() {
                 TextButton({
                     val n = newName.trim().replace("\n", " ")
                     if (n.isNotEmpty()) {
-                        val id = (data.projects.maxOfOrNull { it.id } ?: 0L) + 1
+                        val id = newRecordId()
                         persist(data.copy(projects = data.projects + Project(id, n)))
                         openId = id
                     }
@@ -314,7 +316,7 @@ private fun ProjectDetail(
             Button({
                 val t = newTask.trim().replace("\n", " ")
                 if (t.isNotEmpty()) {
-                    val id = (tasks.maxOfOrNull { it.id } ?: 0L) + 1
+                    val id = newRecordId()
                     onTasks(tasks + Task(id, t, projectId = project.id))
                     newTask = ""
                 }

@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.core
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.documents.ExpiryState
@@ -31,12 +33,11 @@ fun runAutomations() {
     val md = loadMilestones()
     val existing = md.milestones.map { it.title }.toMutableSet()
     val newMilestones = mutableListOf<Milestone>()
-    var mid = md.milestones.maxOfOrNull { it.id } ?: 0L
     habits.forEach { h ->
         STREAK_THRESHOLDS.forEach { thr ->
             if (h.streak >= thr) {
                 val title = "🔥 ${h.name}: $thr-day streak"
-                if (existing.add(title)) { mid += 1; newMilestones.add(Milestone(mid, title, today().toString(), "Habit")) }
+                if (existing.add(title)) { newMilestones.add(Milestone(newRecordId(), title, today().toString(), "Habit")) }
             }
         }
     }
@@ -47,12 +48,11 @@ fun runAutomations() {
     val tasks = loadTasks()
     val taskTitles = tasks.map { it.title }.toMutableSet()
     val newTasks = mutableListOf<Task>()
-    var tid = tasks.maxOfOrNull { it.id } ?: 0L
     docs.forEach { d ->
         val st = expiryState(d)
         if (st == ExpiryState.EXPIRED || st == ExpiryState.SOON) {
             val title = "Renew: ${d.title.ifBlank { "document" }}"
-            if (taskTitles.add(title)) { tid += 1; newTasks.add(Task(tid, title)) }
+            if (taskTitles.add(title)) { newTasks.add(Task(newRecordId(), title)) }
         }
     }
     if (newTasks.isNotEmpty()) saveTasks(tasks + newTasks)

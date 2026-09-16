@@ -162,7 +162,7 @@ class RemindersTest {
     fun `ids do not repeat, even after the middle of the list is deleted`() {
         saveReminders(listOf(Reminder(1, "One"), Reminder(2, "Two"), Reminder(3, "Three")))
         deleteReminder(2)
-        assertEquals(4L, nextReminderId())
+        assertTrue(nextReminderId() !in loadReminders().map { it.id })
     }
 
     @Test

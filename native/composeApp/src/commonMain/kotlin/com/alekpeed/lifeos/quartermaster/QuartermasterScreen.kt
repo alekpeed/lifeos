@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.quartermaster
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -102,8 +104,7 @@ private fun parseCatalog(raw: String): List<String> {
 @Composable
 fun QuartermasterScreen() {
     var data by remember { mutableStateOf(loadInventory()) }
-    var counter by remember { mutableStateOf(data.items.maxOfOrNull { it.id } ?: 0L) }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: QuartermasterData) { data = d; saveInventory(d); SaveToast.show() }
 
     var name by remember { mutableStateOf("") }

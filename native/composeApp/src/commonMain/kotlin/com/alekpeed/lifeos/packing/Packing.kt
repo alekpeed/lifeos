@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.packing
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -119,7 +121,7 @@ fun saveAsTemplate(list: PackingList, name: String) {
     val data = loadPacking()
     val groups = list.items.groupBy { it.category }
         .map { (cat, items) -> PackTemplateGroup(cat, items.map { it.name }) }
-    val id = (data.templates.maxOfOrNull { it.id } ?: 0L) + 1
+    val id = newRecordId()
     savePacking(data.copy(templates = data.templates + PackTemplate(id, name.trim().ifBlank { list.name }, groups)))
 }
 

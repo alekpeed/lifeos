@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.milestones
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -62,8 +64,7 @@ private val DANGER = Color(0xFFD64545)
 @Composable
 fun MilestonesScreen() {
     var data by remember { mutableStateOf(loadMilestones()) }
-    var counter by remember { mutableStateOf(data.milestones.maxOfOrNull { it.id } ?: 0L) }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: MilestonesData) { data = d; saveMilestones(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("timeline") }

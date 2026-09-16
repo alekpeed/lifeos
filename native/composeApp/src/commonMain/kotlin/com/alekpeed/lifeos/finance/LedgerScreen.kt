@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.finance
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -243,7 +245,7 @@ fun financeSubStubs(): List<Pair<Long, String>> = loadData().subscriptions.map {
 // the due reminder like the Bills tab does.
 fun financeAddBill(name: String, amount: Double, dueDate: String) {
     val data = loadData()
-    val bill = Bill((data.bills.maxOfOrNull { it.id } ?: 0L) + 1, name.trim(), amount, dueDate)
+    val bill = Bill(newRecordId(), name.trim(), amount, dueDate)
     saveData(data.copy(bills = listOf(bill) + data.bills))
     scheduleBill(bill)
 }
@@ -357,7 +359,6 @@ private fun parseReceipt(raw: String): Entry? {
 private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     val entries = data.entries
     fun persist(next: List<Entry>) { onChange(data.copy(entries = next)) }
-    var nextId by remember { mutableStateOf((entries.maxOfOrNull { it.id } ?: 0L) + 1) }
     var desc by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("General") }
@@ -382,7 +383,7 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                     if (e == null) { scanErr = "Couldn't read a total off that receipt."; return@launch }
                     // Keep the source photo so the entry has a receipt of record.
                     val blobId = saveBlob(b64) ?: ""
-                    persist(listOf(e.copy(id = nextId, photoBlob = blobId)) + entries); nextId += 1
+                    persist(listOf(e.copy(id = newRecordId(), photoBlob = blobId)) + entries)
                 }
             }
         }
@@ -425,8 +426,8 @@ private fun LedgerTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                 val d = desc.trim().replace("\n", " ")
                 val a = amount.trim().toDoubleOrNull()
                 if (d.isNotEmpty() && a != null) {
-                    val e = Entry(nextId, d, a, category, recurring, today().toString())
-                    nextId += 1
+                    val e = Entry(newRecordId(), d, a, category, recurring, today().toString())
+
                     persist(listOf(e) + entries)
                     if (recurring && Native.supportsNotifications) {
                         Native.scheduleReminder(
@@ -590,7 +591,6 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
     var expandedBill by remember { mutableStateOf<Long?>(null) }
     var payDate by remember { mutableStateOf(today().toString()) }
     var payAmount by remember { mutableStateOf("") }
-    var nextId by remember { mutableStateOf((bills.maxOfOrNull { it.id } ?: 0L) + 1) }
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var dueDate by remember { mutableStateOf(today().toString()) }
@@ -632,8 +632,8 @@ private fun BillsTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
             val n = name.trim().replace("\n", " ")
             val a = amount.trim().toDoubleOrNull()
             if (n.isNotEmpty() && a != null) {
-                val bill = Bill(nextId, n, a, dueDate.trim(), cadence, autopay, remindDays, contact = contact.trim())
-                nextId += 1
+                val bill = Bill(newRecordId(), n, a, dueDate.trim(), cadence, autopay, remindDays, contact = contact.trim())
+
                 persist(listOf(bill) + bills)
                 scheduleBill(bill)
                 name = ""; amount = ""; dueDate = today().toString(); cadence = "monthly"; autopay = false; remindDays = 3; contact = ""
@@ -734,7 +734,6 @@ private fun SubscriptionsTab(data: FinanceData, onChange: (FinanceData) -> Unit)
     fun persist(next: List<Subscription>) { onChange(data.copy(subscriptions = next)) }
     fun patchSub(id: Long, f: (Subscription) -> Subscription) = persist(subs.map { if (it.id == id) f(it) else it })
     var expandedSub by remember { mutableStateOf<Long?>(null) }
-    var nextId by remember { mutableStateOf((subs.maxOfOrNull { it.id } ?: 0L) + 1) }
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var cycle by remember { mutableStateOf("monthly") }
@@ -760,8 +759,8 @@ private fun SubscriptionsTab(data: FinanceData, onChange: (FinanceData) -> Unit)
                 val n = name.trim().replace("\n", " ")
                 val a = amount.trim().toDoubleOrNull()
                 if (n.isNotEmpty() && a != null) {
-                    persist(listOf(Subscription(nextId, n, a, cycle, true)) + subs)
-                    nextId += 1
+                    persist(listOf(Subscription(newRecordId(), n, a, cycle, true)) + subs)
+
                     name = ""; amount = ""; cycle = "monthly"
                 }
             }) { Text("Add") }
@@ -1118,9 +1117,9 @@ private fun ImportTab(data: FinanceData, onChange: (FinanceData) -> Unit) {
                             } else bill
                         }
                     }
-                    var id = (data.entries.maxOfOrNull { it.id } ?: 0L) + 1
+
                     val entries = list.filterIndexed { i, _ -> i !in payIdx }
-                        .map { Entry(id++, it.desc, it.amount, "Imported", false, it.date) }
+                        .map { Entry(newRecordId(), it.desc, it.amount, "Imported", false, it.date) }
                     onChange(data.copy(entries = entries + data.entries, bills = bills))
                     txns = null
                 }) { Text("Import ($ledgerCount ledger, $payCount paid)") }

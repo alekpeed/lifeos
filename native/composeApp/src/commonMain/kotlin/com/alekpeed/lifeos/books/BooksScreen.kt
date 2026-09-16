@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.books
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -141,12 +143,7 @@ private fun spineColor(book: Book): Color {
 @Composable
 fun BooksScreen() {
     var data by remember { mutableStateOf(loadBooks()) }
-    var counter by remember {
-        mutableStateOf(
-            maxOf(data.books.maxOfOrNull { it.id } ?: 0L, data.books.flatMap { it.logs }.maxOfOrNull { it.id } ?: 0L),
-        )
-    }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: BooksData) { data = d; saveBooks(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("reading") }
@@ -487,7 +484,7 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
                             if (text != null) {
                                 saveTextBlob(text)?.let { id ->
                                     patch { b ->
-                                        val nid = (b.files.maxOfOrNull { it.id } ?: 0L) + 1
+                                        val nid = newRecordId()
                                         b.copy(files = b.files + BookFile(nid, name?.ifBlank { null } ?: "Ebook", "text", id))
                                     }
                                 }
@@ -502,7 +499,7 @@ private fun BookDetail(data: BooksData, save: (BooksData) -> Unit, freshId: () -
                         if (b64 != null && (mime?.contains("pdf") == true || name?.endsWith(".pdf", true) == true)) {
                             saveBlob(b64)?.let { id ->
                                 patch { b ->
-                                    val nid = (b.files.maxOfOrNull { it.id } ?: 0L) + 1
+                                    val nid = newRecordId()
                                     b.copy(files = b.files + BookFile(nid, name?.ifBlank { null } ?: "PDF", "pdf", id))
                                 }
                             }

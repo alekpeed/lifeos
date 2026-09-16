@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.calendar
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.epochMillisAt
 import com.alekpeed.lifeos.data.plusDays
@@ -84,13 +86,13 @@ fun saveReminders(items: List<Reminder>) {
 }
 
 fun nextReminderId(existing: List<Reminder> = loadReminders()): Long =
-    (existing.maxOfOrNull { it.id } ?: 0L) + 1L
+    newRecordId()
 
 // Distinct by construction from the task block at 800_000 and the capsule block at
 // 900_000: two modules sharing an AlarmManager id would silently cancel each other.
 private const val REMINDER_ALARM_BASE = 700_000
 
-fun reminderAlarmId(id: Long): Int = REMINDER_ALARM_BASE + (id % 90_000).toInt()
+fun reminderAlarmId(id: Long): Int = com.alekpeed.lifeos.data.recordAlarmId("reminder", id, REMINDER_ALARM_BASE)
 
 fun reminderSubject(id: Long): String = subjectOf(REMINDERS_KEY, id)
 

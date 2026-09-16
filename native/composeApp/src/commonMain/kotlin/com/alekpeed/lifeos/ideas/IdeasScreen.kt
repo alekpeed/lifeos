@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.ideas
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,7 +47,6 @@ import com.alekpeed.lifeos.ui.TagField
 fun IdeasScreen() {
     var data by remember { mutableStateOf(loadIdeas()) }
     fun save(d: IdeasData) { data = d; saveIdeas(d); SaveToast.show() }
-    var nextId by remember { mutableStateOf((data.ideas.maxOfOrNull { it.id } ?: 0L) + 1) }
 
     var input by remember { mutableStateOf("") }
     var tagList by remember { mutableStateOf(listOf<String>()) }
@@ -69,8 +70,8 @@ fun IdeasScreen() {
             Button(onClick = {
                 val t = input.trim()
                 if (t.isNotEmpty()) {
-                    save(data.copy(ideas = data.ideas + Idea(nextId, t, tagList, false, today().toString())))
-                    nextId += 1
+                    save(data.copy(ideas = data.ideas + Idea(newRecordId(), t, tagList, false, today().toString())))
+
                     input = ""; tagList = emptyList()
                 }
             }) { Text("Add") }
@@ -140,7 +141,7 @@ fun IdeasScreen() {
                             if (!idea.archived) {
                                 TextButton(onClick = {
                                     val tasks = com.alekpeed.lifeos.tasks.loadTasks()
-                                    val tid = (tasks.maxOfOrNull { it.id } ?: 0L) + 1
+                                    val tid = newRecordId()
                                     com.alekpeed.lifeos.tasks.saveTasks(
                                         tasks + com.alekpeed.lifeos.tasks.Task(tid, idea.text.replace("\n", " "), tags = idea.tags),
                                     )

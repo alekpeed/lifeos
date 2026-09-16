@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.people
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -54,13 +56,11 @@ import androidx.compose.material3.FilterChip
 
 private val DANGER = Color(0xFFD64545)
 
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ContactsScreen() {
     var data by remember { mutableStateOf(loadContacts()) }
-    var counter by remember { mutableStateOf(data.contacts.maxOfOrNull { it.id } ?: 0L) }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: ContactsData) { data = d; saveContacts(d); SaveToast.show() }
 
     var input by remember { mutableStateOf("") }
@@ -349,7 +349,7 @@ private fun OccasionsSection(c: Contact, onChange: (List<RecurringDate>) -> Unit
         TextButton(onClick = {
             val t = label.trim().replace("\n", " ")
             if (t.isNotEmpty()) {
-                onChange(c.dates + RecurringDate((c.dates.maxOfOrNull { it.id } ?: 0L) + 1, t, ""))
+                onChange(c.dates + RecurringDate(newRecordId(), t, ""))
                 label = ""
             }
         }) { Text("Add") }
@@ -405,7 +405,7 @@ private fun GiftsSection(c: Contact, onChange: (List<Gift>) -> Unit) {
         TextButton(onClick = {
             val t = idea.trim().replace("\n", " ")
             if (t.isNotEmpty()) {
-                onChange(listOf(Gift((c.gifts.maxOfOrNull { it.id } ?: 0L) + 1, t)) + c.gifts)
+                onChange(listOf(Gift(newRecordId(), t)) + c.gifts)
                 idea = ""
             }
         }) { Text("Add") }

@@ -25,7 +25,7 @@ object ShareboxStorage {
     // object path (what goes in sharebox_items.storage_path), or a failure.
     suspend fun upload(spaceId: String, name: String, mime: String, base64: String): Result<String> {
         if (!FirebaseAuth.isSignedIn()) return Result.failure(IllegalStateException("Sign in to share files"))
-        val path = "$spaceId/${Clock.System.now().toEpochMilliseconds()}-${safeName(name)}"
+        val path = "$spaceId/${com.alekpeed.lifeos.data.newRecordId()}-${safeName(name)}"
         val contentType = mime.ifBlank { "application/octet-stream" }
         val res = sendUpload(path, contentType, base64)
         val ok = if (res.status == 401 && FirebaseAuth.refresh()) sendUpload(path, contentType, base64) else res

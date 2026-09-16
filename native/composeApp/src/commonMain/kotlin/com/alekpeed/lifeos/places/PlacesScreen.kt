@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.places
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -57,12 +59,7 @@ private val STAR_ON = Color(0xFFE0A63C)
 @Composable
 fun PlacesScreen() {
     var data by remember { mutableStateOf(loadPlaces()) }
-    var counter by remember {
-        mutableStateOf(
-            maxOf(data.places.maxOfOrNull { it.id } ?: 0L, data.bucket.maxOfOrNull { it.id } ?: 0L),
-        )
-    }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: PlacesData) { data = d; savePlaces(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("visited") }

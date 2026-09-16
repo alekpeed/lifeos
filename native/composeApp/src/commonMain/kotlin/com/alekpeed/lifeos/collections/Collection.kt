@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.collections
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.attach.Attachment
 import com.alekpeed.lifeos.data.parseDateOrNull
@@ -122,9 +124,9 @@ fun saveCollections(data: CollectionsData) {
     Storage.write("Collections", json.encodeToString(data))
 }
 
-fun nextCollectionId(d: CollectionsData): Long = (d.collections.maxOfOrNull { it.id } ?: 0L) + 1
+fun nextCollectionId(d: CollectionsData): Long = newRecordId()
 
-fun nextItemId(c: Collection): Long = (c.items.maxOfOrNull { it.id } ?: 0L) + 1
+fun nextItemId(c: Collection): Long = newRecordId()
 
 // ---- the views §5.3 asks for --------------------------------------------------------------
 

@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.skilltrees
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.books.loadBooks
 import com.alekpeed.lifeos.collections.loadCollections
@@ -203,4 +205,4 @@ fun saveStandings(data: StandingsData) {
     Storage.write("Skill Trees", json.encodeToString(data.copy(seeded = true)))
 }
 
-fun nextStandingId(data: StandingsData): Long = (data.standings.maxOfOrNull { it.id } ?: 0L) + 1
+fun nextStandingId(data: StandingsData): Long = newRecordId()

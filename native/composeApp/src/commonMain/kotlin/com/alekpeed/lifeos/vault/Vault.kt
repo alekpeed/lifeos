@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.vault
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.today
 import kotlinx.serialization.Serializable
@@ -176,7 +178,7 @@ object Vault {
         Storage.write(VAULT_META_KEY, "")
     }
 
-    fun nextId(data: VaultData): Long = (data.entries.maxOfOrNull { it.id } ?: 0L) + 1
+    fun nextId(data: VaultData): Long = newRecordId()
 
     fun put(data: VaultData, entry: VaultEntry): VaultData {
         val stamped = entry.copy(updated = today().toString())

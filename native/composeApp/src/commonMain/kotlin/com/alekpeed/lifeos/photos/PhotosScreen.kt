@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.photos
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,10 +56,7 @@ private val DANGER = Color(0xFFD64545)
 @Composable
 fun PhotosScreen() {
     var data by remember { mutableStateOf(loadPhotos()) }
-    var counter by remember {
-        mutableStateOf(maxOf(data.albums.maxOfOrNull { it.id } ?: 0L, data.albums.flatMap { it.captions }.maxOfOrNull { it.id } ?: 0L))
-    }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: PhotosData) { data = d; savePhotos(d); SaveToast.show() }
 
     var openId by remember { mutableStateOf<Long?>(null) }
@@ -72,7 +71,6 @@ fun PhotosScreen() {
 @Composable
 private fun AlbumsList(data: PhotosData, save: (PhotosData) -> Unit, freshId: () -> Long, onOpen: (Long) -> Unit) {
     var input by remember { mutableStateOf("") }
-
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(input, { input = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("New album") })

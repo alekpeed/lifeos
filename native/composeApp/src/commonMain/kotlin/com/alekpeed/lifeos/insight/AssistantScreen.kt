@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.insight
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -99,7 +101,7 @@ fun AssistantScreen() {
     }
 
     fun newConversation() {
-        val id = (data.conversations.maxOfOrNull { it.id } ?: 0L) + 1
+        val id = newRecordId()
         persist(data.copy(conversations = data.conversations + Conversation(id, "Chat $id"), activeId = id))
     }
 

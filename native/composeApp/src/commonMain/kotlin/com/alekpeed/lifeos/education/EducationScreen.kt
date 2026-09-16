@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.education
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,17 +54,7 @@ private val OVERDUE = Color(0xFFE05C5C)
 @Composable
 fun EducationScreen() {
     var data by remember { mutableStateOf(loadEducation()) }
-    var counter by remember {
-        mutableStateOf(
-            maxOf(
-                data.semesters.maxOfOrNull { it.id } ?: 0L,
-                data.courses.maxOfOrNull { it.id } ?: 0L,
-                data.assignments.maxOfOrNull { it.id } ?: 0L,
-                data.assignments.flatMap { it.progressLogs }.maxOfOrNull { it.id } ?: 0L,
-            ),
-        )
-    }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: EducationData) { data = d; saveEducation(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("coursework") }
@@ -490,7 +482,7 @@ private fun PacingSection(a: Assignment, patch: ((Assignment) -> Assignment) -> 
     }
     LogAdder(unit) { units ->
         patch {
-            val id = (it.progressLogs.maxOfOrNull { l -> l.id } ?: 0L) + 1
+            val id = newRecordId()
             it.copy(progressLogs = it.progressLogs + ProgressLog(id, today().toString(), units))
         }
     }

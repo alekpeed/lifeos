@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.recipes
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -56,17 +58,7 @@ private val DANGER = Color(0xFFD64545)
 @Composable
 fun RecipesScreen() {
     var data by remember { mutableStateOf(loadRecipes()) }
-    var counter by remember {
-        mutableStateOf(
-            maxOf(
-                data.recipes.maxOfOrNull { it.id } ?: 0L,
-                data.recipes.flatMap { it.ingredients }.maxOfOrNull { it.id } ?: 0L,
-                data.recipes.flatMap { it.steps }.maxOfOrNull { it.id } ?: 0L,
-                data.recipes.flatMap { it.cookLogs }.maxOfOrNull { it.id } ?: 0L,
-            ),
-        )
-    }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: RecipesData) { data = d; saveRecipes(d); SaveToast.show() }
 
     var tab by remember { mutableStateOf("recipes") }

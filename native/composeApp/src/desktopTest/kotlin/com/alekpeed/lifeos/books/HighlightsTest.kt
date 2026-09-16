@@ -49,7 +49,7 @@ class HighlightsTest {
         var b = addHighlight(book(), "First", "", epub, "10%")
         b = addHighlight(b, "Second", "", epub, "20%")
         assertEquals(listOf("Second", "First"), b.highlights.map { it.text })
-        assertEquals(listOf(2L, 1L), b.highlights.map { it.id })
+        assertEquals(2, b.highlights.map { it.id }.toSet().size)
     }
 
     @Test

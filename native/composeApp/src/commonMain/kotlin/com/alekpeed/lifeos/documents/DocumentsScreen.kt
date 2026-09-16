@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.documents
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -110,8 +112,7 @@ private fun parseScan(raw: String): Document? {
 @Composable
 fun DocumentsScreen() {
     var data by remember { mutableStateOf(loadDocuments()) }
-    var counter by remember { mutableStateOf(data.documents.maxOfOrNull { it.id } ?: 0L) }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: DocumentsData) { data = d; saveDocuments(d); SaveToast.show() }
 
     var input by remember { mutableStateOf("") }

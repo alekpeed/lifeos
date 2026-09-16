@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.sharebox
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,8 +59,7 @@ fun ShareboxScreen() {
 @Composable
 private fun LocalShareboxTab() {
     var data by remember { mutableStateOf(loadSharebox()) }
-    var counter by remember { mutableStateOf(data.items.maxOfOrNull { it.id } ?: 0L) }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: ShareboxData) { data = d; saveSharebox(d); SaveToast.show() }
 
     var kind by remember { mutableStateOf("link") }
@@ -117,7 +118,7 @@ private fun LocalShareboxTab() {
         }
         Spacer(Modifier.height(14.dp))
 
-        val sorted = data.items.sortedWith(compareBy({ urgencyRank(it.urgency) }, { -it.id }))
+        val sorted = data.items.asReversed().sortedBy { urgencyRank(it.urgency) }
         Text("Shared (${data.items.size})", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
         if (sorted.isEmpty()) {

@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.projects
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.parseDateOrNull
 import com.alekpeed.lifeos.data.today
@@ -135,12 +137,11 @@ fun migrateProjectStrings(): Int {
 
     val byName = data.projects.associateBy { it.name.trim().lowercase() }.toMutableMap()
     val created = mutableListOf<Project>()
-    var nextId = (data.projects.maxOfOrNull { it.id } ?: 0L) + 1
 
     for (name in loose.map { it.project.trim() }.filter { it.isNotEmpty() }.distinct()) {
         val key = name.lowercase()
         if (byName.containsKey(key)) continue
-        val p = Project(id = nextId++, name = name)
+        val p = Project(id = newRecordId(), name = name)
         created.add(p)
         byName[key] = p
     }

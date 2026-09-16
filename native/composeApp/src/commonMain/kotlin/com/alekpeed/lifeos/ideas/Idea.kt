@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.ideas
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -44,6 +46,6 @@ fun appendIdea(text: String) {
     val clean = text.trim().replace("\n", " ")
     if (clean.isEmpty()) return
     val data = loadIdeas()
-    val nextId = (data.ideas.maxOfOrNull { it.id } ?: 0L) + 1
+    val nextId = newRecordId()
     saveIdeas(data.copy(ideas = data.ideas + Idea(nextId, clean)))
 }

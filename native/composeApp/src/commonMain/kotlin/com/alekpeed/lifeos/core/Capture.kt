@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.core
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.data.plusDays
 import com.alekpeed.lifeos.data.today
 import com.alekpeed.lifeos.habits.loadHabits
@@ -162,7 +164,7 @@ fun createRecord(cmd: CaptureCmd): CaptureResult {
             val (title, localDue) = extractDue(t)
             val due = cmd.due.ifBlank { localDue }
             val tasks = loadTasks()
-            val id = (tasks.maxOfOrNull { it.id } ?: 0L) + 1
+            val id = newRecordId()
             saveTasks(tasks + Task(id, title, due = due))
             CaptureResult("Added task: “$title”" + if (due.isNotBlank()) " (due $due)" else "", "tasks")
         }
@@ -173,7 +175,7 @@ fun createRecord(cmd: CaptureCmd): CaptureResult {
         "idea" -> { appendIdea(t); CaptureResult("Added idea: “$t”", "ideas") }
         "contact" -> {
             val cd = loadContacts()
-            val id = (cd.contacts.maxOfOrNull { it.id } ?: 0L) + 1
+            val id = newRecordId()
             saveContacts(cd.copy(contacts = cd.contacts + Contact(id, t)))
             CaptureResult("Added contact: “$t”", "contacts")
         }

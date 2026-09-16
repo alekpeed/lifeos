@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.travel
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -114,7 +116,7 @@ fun TravelScreen() {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Trips", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             Button(onClick = {
-                val id = (data.trips.maxOfOrNull { it.id } ?: 0L) + 1
+                val id = newRecordId()
                 persist(data.copy(trips = data.trips + Trip(id = id, name = "New trip")))
                 openTripId = id
             }) { Text("New trip") }
@@ -361,7 +363,7 @@ private fun ReservationsTab(trip: Trip, data: TravelData, onChange: (TravelData)
 
     Column {
         Button(onClick = {
-            val id = (data.reservations.maxOfOrNull { it.id } ?: 0L) + 1
+            val id = newRecordId()
             onChange(data.copy(reservations = data.reservations + Reservation(id = id, tripId = trip.id)))
             openId = id
         }) { Text("Add a booking") }
@@ -551,7 +553,7 @@ private fun PackingTab(trip: Trip) {
 
     Column {
         Button(onClick = {
-            val id = (lists.maxOfOrNull { it.id } ?: 0L) + 1
+            val id = newRecordId()
             persist(lists + PackingList(id = id, name = "Packing for ${trip.name.ifBlank { "the trip" }}", tripId = trip.id))
         }) { Text("New list") }
         Spacer(Modifier.height(10.dp))
@@ -581,9 +583,8 @@ private fun PackingTab(trip: Trip) {
                         row.forEach { tpl ->
                             OutlinedButton(onClick = {
                                 var next = l.items
-                                var nid = (next.maxOfOrNull { i -> i.id } ?: 0L) + 1_000_000L
                                 tpl.groups.forEach { g ->
-                                    g.items.forEach { nm -> nid += 1; next = next + PackItem(nid, nm, g.category) }
+                                    g.items.forEach { nm -> next = next + PackItem(newRecordId(), nm, g.category) }
                                 }
                                 val fixed = next
                                 persist(lists.map { pl -> if (pl.id == l.id) pl.copy(items = fixed) else pl })
@@ -593,7 +594,7 @@ private fun PackingTab(trip: Trip) {
                 }
                 Spacer(Modifier.height(6.dp))
                 AddItemRow { name, cat ->
-                    val nid = (l.items.maxOfOrNull { i -> i.id } ?: 0L) + 1
+                    val nid = newRecordId()
                     persist(
                         lists.map { pl ->
                             if (pl.id == l.id) pl.copy(items = pl.items + PackItem(nid, name, cat)) else pl
@@ -802,7 +803,7 @@ private fun PlacesPhotosTab(trip: Trip, patch: ((Trip) -> Trip) -> Unit) {
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = {
-                    val id = (photos.albums.maxOfOrNull { it.id } ?: 0L) + 1
+                    val id = newRecordId()
                     val name = trip.name.ifBlank { "Trip" }
                     val next = photos.copy(albums = photos.albums + Album(id = id, name = name, description = "Trip photos"))
                     savePhotos(next)

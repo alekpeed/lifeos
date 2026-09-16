@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.tasks
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -111,7 +113,6 @@ fun TasksScreen() {
     fun persist() { saveTasks(tasks); SaveToast.show() }
     // Adding starts from the button, not the keyboard: hit Add and the prompt comes up.
     var adding by remember { mutableStateOf(false) }
-    var nextId by remember { mutableStateOf((tasks.maxOfOrNull { it.id } ?: 0L) + 1) }
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var board by remember { mutableStateOf(false) }
     // A project id now, not a name (W-04). Null means every project.
@@ -132,8 +133,8 @@ fun TasksScreen() {
     fun spawnRecurrence(task: Task) {
         task.dueDate()?.let { d ->
             nextRecurDate(d, task.recur)?.let { nd ->
-                tasks.add(task.copy(id = nextId, status = "not_started", due = nd.toString(), subtasks = task.subtasks.map { it.copy(done = false) }))
-                nextId += 1
+                tasks.add(task.copy(id = newRecordId(), status = "not_started", due = nd.toString(), subtasks = task.subtasks.map { it.copy(done = false) }))
+
             }
         }
     }
@@ -232,8 +233,8 @@ fun TasksScreen() {
                 project = projects.firstOrNull { it.id == projectFilter }?.name,
                 onDismiss = { adding = false },
                 onAdd = { title, due ->
-                    tasks.add(Task(nextId, title, due = due, projectId = projectFilter))
-                    nextId += 1
+                    tasks.add(Task(newRecordId(), title, due = due, projectId = projectFilter))
+
                     persist()
                     adding = false
                 },
@@ -664,7 +665,7 @@ private fun TaskEditor(task: Task, update: (Long, (Task) -> Task) -> Unit, onDel
             Button(onClick = {
                 val txt = newSub.trim()
                 if (txt.isNotEmpty()) {
-                    val sid = (task.subtasks.maxOfOrNull { it.id } ?: 0L) + 1
+                    val sid = newRecordId()
                     update(task.id) { it.copy(subtasks = it.subtasks + Subtask(sid, txt)) }
                     newSub = ""
                 }

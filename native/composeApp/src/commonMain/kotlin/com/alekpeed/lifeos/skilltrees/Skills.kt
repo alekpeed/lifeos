@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.skilltrees
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.attach.Attachment
 import com.alekpeed.lifeos.books.loadBooks
@@ -106,9 +108,9 @@ fun saveSkills(data: SkillsData) {
     Storage.write("Skills", json.encodeToString(data))
 }
 
-fun nextSkillId(d: SkillsData): Long = (d.skills.maxOfOrNull { it.id } ?: 0L) + 1
-fun nextLogId(d: SkillsData): Long = (d.logs.maxOfOrNull { it.id } ?: 0L) + 1
-fun nextBenchmarkId(d: SkillsData): Long = (d.benchmarks.maxOfOrNull { it.id } ?: 0L) + 1
+fun nextSkillId(d: SkillsData): Long = newRecordId()
+fun nextLogId(d: SkillsData): Long = newRecordId()
+fun nextBenchmarkId(d: SkillsData): Long = newRecordId()
 
 // ---- hours, and where they came from ---------------------------------------------------
 

@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.health
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -100,7 +102,6 @@ fun HealthScreen() {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkoutsTab(data: HealthData, persist: (HealthData) -> Unit) {
-    var nextId by remember { mutableStateOf((data.workouts.maxOfOrNull { it.id } ?: 0L) + 1) }
     var type by remember { mutableStateOf("Rowing") }
     var minutes by remember { mutableStateOf("") }
     var distance by remember { mutableStateOf("") }
@@ -137,8 +138,8 @@ private fun WorkoutsTab(data: HealthData, persist: (HealthData) -> Unit) {
                 val m = minutes.trim().toDoubleOrNull()
                 val d = distance.trim().toDoubleOrNull()
                 if (m != null || d != null) {
-                    val w = Workout(nextId, today().toString(), type, m, d, if (d != null) unit else "", notes.trim())
-                    nextId += 1
+                    val w = Workout(newRecordId(), today().toString(), type, m, d, if (d != null) unit else "", notes.trim())
+
                     persist(data.copy(workouts = listOf(w) + data.workouts))
                     minutes = ""; distance = ""; notes = ""
                 }
@@ -382,7 +383,6 @@ private fun NumField(value: String, placeholder: String, onChange: (Double?) -> 
 @Composable
 private fun MetricsTab(data: HealthData, persist: (HealthData) -> Unit) {
     val readings = data.readings
-    var nextId by remember { mutableStateOf((readings.maxOfOrNull { it.id } ?: 0L) + 1) }
     var metric by remember { mutableStateOf("") }
     var value by remember { mutableStateOf("") }
     var unit by remember { mutableStateOf("") }
@@ -413,8 +413,8 @@ private fun MetricsTab(data: HealthData, persist: (HealthData) -> Unit) {
                 val v = value.trim().toDoubleOrNull()
                 val u = unit.trim().replace("\n", " ")
                 if (m.isNotEmpty() && v != null) {
-                    persist(data.copy(readings = readings + Reading(nextId, m, v, u, today().toString())))
-                    nextId += 1
+                    persist(data.copy(readings = readings + Reading(newRecordId(), m, v, u, today().toString())))
+
                     value = ""
                 }
             }) { Text("Log") }
@@ -599,7 +599,7 @@ private fun MedsTab(data: HealthData, persist: (HealthData) -> Unit) {
             Button(onClick = {
                 val n = name.trim().replace("\n", " ")
                 if (n.isNotEmpty()) {
-                    val id = (meds.maxOfOrNull { it.id } ?: 0L) + 1
+                    val id = newRecordId()
                     persist(data.copy(medications = listOf(Medication(id, n)) + meds))
                     name = ""
                 }

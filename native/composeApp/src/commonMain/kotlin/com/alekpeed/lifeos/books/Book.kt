@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.books
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.minusDays
 import com.alekpeed.lifeos.data.today
@@ -108,7 +110,7 @@ fun readingStreak(allDates: Set<String>): Int {
 fun addHighlight(b: Book, text: String, note: String, file: BookFile?, where: String): Book {
     val clean = text.trim()
     if (clean.isEmpty()) return b
-    val id = (b.highlights.maxOfOrNull { it.id } ?: 0L) + 1
+    val id = newRecordId()
     return b.copy(
         highlights = listOf(
             Highlight(
@@ -135,7 +137,7 @@ fun exportHighlights(b: Book): String {
         add("${b.highlights.size} highlight${if (b.highlights.size == 1) "" else "s"}")
     }
     val body = b.highlights
-        .sortedBy { it.id }
+        .asReversed()
         .groupBy { it.fileName }
         .flatMap { (file, hs) ->
             buildList {
@@ -158,14 +160,16 @@ private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 // clear on the next save) there is nothing left to fold.
 private fun withFiles(b: Book): Book {
     if (b.textBlob.isBlank() && b.pdfBlob.isBlank()) return b
-    var next = b.files.maxOfOrNull { it.id } ?: 0L
+    // Legacy decoding must return the same IDs on repeated reads before a save.
+    // New attachments use newRecordId; only this old-format conversion uses a counter.
+    var legacyId = b.files.maxOfOrNull { it.id } ?: 0L
     val folded = buildList {
         addAll(b.files)
         if (b.textBlob.isNotBlank() && b.files.none { it.blobId == b.textBlob }) {
-            add(BookFile(++next, "Ebook", "text", b.textBlob, frac = b.readFrac))
+            add(BookFile(++legacyId, "Ebook", "text", b.textBlob, frac = b.readFrac))
         }
         if (b.pdfBlob.isNotBlank() && b.files.none { it.blobId == b.pdfBlob }) {
-            add(BookFile(++next, "PDF", "pdf", b.pdfBlob, page = b.pdfPage))
+            add(BookFile(++legacyId, "PDF", "pdf", b.pdfBlob, page = b.pdfPage))
         }
     }
     return b.copy(files = folded, textBlob = "", pdfBlob = "", readFrac = 0f, pdfPage = 0)

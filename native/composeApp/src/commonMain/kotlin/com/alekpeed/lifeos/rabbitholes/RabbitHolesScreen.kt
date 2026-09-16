@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.rabbitholes
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -50,10 +52,7 @@ private val DANGER = Color(0xFFD64545)
 @Composable
 fun RabbitHolesScreen() {
     var data by remember { mutableStateOf(loadHoles()) }
-    var counter by remember {
-        mutableStateOf(maxOf(data.holes.maxOfOrNull { it.id } ?: 0L, data.holes.flatMap { it.links }.maxOfOrNull { it.id } ?: 0L))
-    }
-    fun freshId(): Long { counter += 1; return counter }
+    fun freshId(): Long = newRecordId()
     fun save(d: RabbitHolesData) { data = d; saveHoles(d); SaveToast.show() }
     var openId by remember { mutableStateOf<Long?>(null) }
 

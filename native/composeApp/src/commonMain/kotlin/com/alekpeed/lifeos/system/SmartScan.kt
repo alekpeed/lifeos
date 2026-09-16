@@ -1,5 +1,7 @@
 package com.alekpeed.lifeos.system
 
+import com.alekpeed.lifeos.data.newRecordId
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -188,10 +190,10 @@ fun commitScan(p: ScanProposal, dest: ScanDest) {
         when (dest) {
             ScanDest.TASKS -> {
                 val existing = loadTasks()
-                var next = (existing.maxOfOrNull { it.id } ?: 0L) + 1
+
                 val titles = p.items.ifEmpty { listOf(p.title) }
                 val added = titles.map { t ->
-                    Task(id = next++, title = t, due = p.fields["date"].orEmpty())
+                    Task(id = newRecordId(), title = t, due = p.fields["date"].orEmpty())
                 }
                 saveTasks(existing + added)
                 SaveToast.show(if (added.size == 1) "Added 1 task" else "Added ${added.size} tasks")
@@ -199,10 +201,10 @@ fun commitScan(p: ScanProposal, dest: ScanDest) {
 
             ScanDest.QUARTERMASTER -> {
                 val data = loadInventory()
-                var next = (data.items.maxOfOrNull { it.id } ?: 0L) + 1
+
                 val names = p.items.ifEmpty { listOf(p.title) }
                 val added = names.map { n ->
-                    InventoryItem(id = next++, name = n, stockStatus = "Out", stockCheckedAt = today().toString())
+                    InventoryItem(id = newRecordId(), name = n, stockStatus = "Out", stockCheckedAt = today().toString())
                 }
                 saveInventory(data.copy(items = data.items + added))
                 SaveToast.show("Added ${added.size} to Quartermaster")
@@ -210,13 +212,12 @@ fun commitScan(p: ScanProposal, dest: ScanDest) {
 
             ScanDest.RECIPES -> {
                 val data = loadRecipes()
-                val next = (data.recipes.maxOfOrNull { it.id } ?: 0L) + 1
-                var ing = 0L
+                val next = newRecordId()
                 saveRecipes(
                     data.copy(
                         recipes = data.recipes + Recipe(
                             id = next, title = p.title,
-                            ingredients = p.items.map { Ingredient(id = ++ing, name = it) },
+                            ingredients = p.items.map { Ingredient(id = newRecordId(), name = it) },
                             notes = p.text,
                             photoBlob = saveBlob(p.photoB64).orEmpty(),
                         ),
@@ -227,7 +228,7 @@ fun commitScan(p: ScanProposal, dest: ScanDest) {
 
             ScanDest.CONTACTS -> {
                 val data = loadContacts()
-                val next = (data.contacts.maxOfOrNull { it.id } ?: 0L) + 1
+                val next = newRecordId()
                 saveContacts(
                     data.copy(
                         contacts = data.contacts + Contact(
@@ -246,7 +247,7 @@ fun commitScan(p: ScanProposal, dest: ScanDest) {
 
             ScanDest.BOOKS -> {
                 val data = loadBooks()
-                val next = (data.books.maxOfOrNull { it.id } ?: 0L) + 1
+                val next = newRecordId()
                 saveBooks(
                     data.copy(
                         books = data.books + Book(
@@ -262,7 +263,7 @@ fun commitScan(p: ScanProposal, dest: ScanDest) {
 
             ScanDest.DOCUMENTS -> {
                 val data = loadDocuments()
-                val next = (data.documents.maxOfOrNull { it.id } ?: 0L) + 1
+                val next = newRecordId()
                 val extra = listOfNotNull(
                     p.fields["merchant"]?.let { "Merchant: $it" },
                     p.fields["total"]?.let { "Total: $it" },
@@ -284,12 +285,12 @@ fun commitScan(p: ScanProposal, dest: ScanDest) {
 
             ScanDest.IDEAS -> {
                 val data = loadIdeas()
-                var next = (data.ideas.maxOfOrNull { it.id } ?: 0L) + 1
+
                 val lines = p.items.ifEmpty {
                     listOf(p.summary.ifBlank { p.text }.ifBlank { p.title })
                 }
                 val added = lines.filter { it.isNotBlank() }
-                    .map { Idea(id = next++, text = it, created = today().toString()) }
+                    .map { Idea(id = newRecordId(), text = it, created = today().toString()) }
                 saveIdeas(data.copy(ideas = data.ideas + added))
                 SaveToast.show("Saved to Ideas")
             }
@@ -326,7 +327,7 @@ private suspend fun fileCode(code: String) {
             val url = if (code.lowercase().startsWith("http")) code else "https://$code"
             val data = loadLinks()
             val vid = parseYouTubeId(url)
-            val next = (data.links.maxOfOrNull { it.id } ?: 0L) + 1
+            val next = newRecordId()
             saveLinks(
                 data.copy(
                     links = data.links + Link(
@@ -347,7 +348,7 @@ private suspend fun fileCode(code: String) {
                 return
             }
             val data = loadBooks()
-            val next = (data.books.maxOfOrNull { it.id } ?: 0L) + 1
+            val next = newRecordId()
             saveBooks(data.copy(books = data.books + draft.copy(id = next, photoBlob = downloadCover(code))))
             SaveToast.show("Added ${draft.title}")
             Nav.open("books")
@@ -360,7 +361,7 @@ private suspend fun fileCode(code: String) {
 private fun fileLooseText(text: String) {
     if (text.isBlank()) return
     val data = loadIdeas()
-    val next = (data.ideas.maxOfOrNull { it.id } ?: 0L) + 1
+    val next = newRecordId()
     saveIdeas(data.copy(ideas = data.ideas + Idea(id = next, text = text, created = today().toString())))
     SaveToast.show("Saved to Ideas")
     Nav.open("ideas")

@@ -283,7 +283,9 @@ class VaultTest {
         data = Vault.put(data, VaultEntry(Vault.nextId(data), "A"))
         data = Vault.put(data, VaultEntry(Vault.nextId(data), "B"))
         data = Vault.put(data, VaultEntry(Vault.nextId(data), "C"))
-        data = Vault.remove(data, 2)
-        assertEquals(4L, Vault.nextId(data))
+        val removedId = data.entries[1].id
+        data = Vault.remove(data, removedId)
+        assertTrue(Vault.nextId(data) != removedId)
+        assertTrue(Vault.nextId(data) !in data.entries.map { it.id })
     }
 }
