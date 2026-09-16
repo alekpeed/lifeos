@@ -35,13 +35,6 @@ object AutoSync {
     private val gate = Mutex()
     private var pending: Job? = null
 
-    // Applying a remote record writes to Storage, which would trigger another sync, which
-    // would apply again. The flag breaks that loop: writes made *by* a sync are not local
-    // changes. It is set for the whole run rather than per write, because applyRemote
-    // writes many keys.
-    @Volatile
-    private var applying = false
-
     // A change that arrives while a sync is already running would otherwise be dropped:
     // its debounce timer gets cancelled, and the run in flight may have already collected
     // its records. This marks the run stale so it goes round once more instead.
@@ -59,7 +52,7 @@ object AutoSync {
     // Why a sync would not happen right now, or null if it would.
     fun blockedReason(): String? = when {
         !enabled -> "Auto-sync is off"
-        !SupabaseAuth.isSignedIn() -> "Not signed in"
+        !FirebaseAuth.isSignedIn() -> "Not signed in"
         networkKind() == NetworkKind.NONE -> "No connection"
         networkKind() == NetworkKind.METERED && !onMobileData -> "On mobile data"
         else -> null
@@ -67,11 +60,12 @@ object AutoSync {
 
     // Called for every local change. Cheap and non-blocking: it only restarts a timer.
     fun onLocalChange() {
-        if (applying || !enabled) return
+        if (!enabled) return
         dirty = true
         pending?.cancel()
         pending = scope.launch {
             delay(QUIET_MS)
+            pending = null
             run()
         }
     }
@@ -110,16 +104,13 @@ object AutoSync {
             return
         }
         try {
-            applying = true
-            try {
+            run {
                 var passes = 0
                 do {
                     dirty = false
                     syncUntilDrained()
                     passes += 1
                 } while (dirty && passes < 3 && blockedReason() == null)
-            } finally {
-                applying = false
             }
         } finally {
             gate.unlock()
@@ -131,7 +122,7 @@ object AutoSync {
         var round = 0
         while (round < MAX_ROUNDS) {
             round += 1
-            val summary = SupabaseSync.syncNow().getOrElse {
+            val summary = FirebaseSync.syncNow().getOrElse {
                 lastResult = it.message ?: "Sync failed"
                 return
             }

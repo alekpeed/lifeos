@@ -11,7 +11,7 @@ import kotlinx.serialization.json.Json
 //
 // **What "zero-knowledge" means here, exactly.** The passphrase is never stored, never
 // synced, and never leaves the device. The key derived from it lives in memory and only
-// while unlocked. Supabase receives what is on disk, and what is on disk is a blob it
+// while unlocked. Firebase receives what is on disk, and what is on disk is a blob it
 // cannot read. Nobody with the database — including a future me with a service-role key
 // — can open it.
 //

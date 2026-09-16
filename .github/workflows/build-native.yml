@@ -41,6 +41,12 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Test common and desktop code
+        working-directory: native
+        env:
+          JAVA_TOOL_OPTIONS: -Djava.awt.headless=true
+        run: gradle :composeApp:desktopTest --no-daemon --stacktrace
+
       - name: Build native Android APK
         working-directory: native
         env:

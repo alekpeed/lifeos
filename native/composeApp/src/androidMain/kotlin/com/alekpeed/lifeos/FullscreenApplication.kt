@@ -20,11 +20,19 @@ import androidx.core.view.WindowInsetsControllerCompat
 class FullscreenApplication : Application(), Application.ActivityLifecycleCallbacks {
     override fun onCreate() {
         super.onCreate()
+        if (com.google.firebase.FirebaseApp.getApps(this).isEmpty()) {
+            com.google.firebase.FirebaseApp.initializeApp(this, com.google.firebase.FirebaseOptions.Builder()
+                .setApplicationId("1:1048112000254:android:4764b10d8d9516becb09af")
+                .setApiKey(com.alekpeed.lifeos.sync.FirebaseConfig.API_KEY)
+                .setProjectId("lifeos-501716").setGcmSenderId("1048112000254")
+                .setStorageBucket("lifeos-501716.firebasestorage.app").build())
+        }
         // Before anything else, and before the Activity exists: a crash during startup
         // is exactly the one nobody can describe afterwards. Storage is pointed at the
         // app context here for the same reason — the handler needs somewhere to write
         // even if MainActivity never got as far as setting it.
         Storage.appContext = applicationContext
+        com.alekpeed.lifeos.platform.NativeHost.appContext = applicationContext
         com.alekpeed.lifeos.diag.installCrashHandler()
         registerActivityLifecycleCallbacks(this)
     }

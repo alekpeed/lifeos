@@ -1,0 +1,1 @@
+{"functions":[{"source":"firebase/functions","codebase":"lifeos","runtime":"nodejs22"}],"firestore":{"database":"lifeos","location":"us-east1","edition":"enterprise","rules":"firebase/firestore.rules","indexes":"firebase/firestore.indexes.json"},"storage":{"rules":"firebase/storage.rules"}}

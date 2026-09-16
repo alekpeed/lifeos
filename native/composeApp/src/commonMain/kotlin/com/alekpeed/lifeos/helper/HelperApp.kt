@@ -46,7 +46,7 @@ import com.alekpeed.lifeos.realtime.openShareboxRealtime
 import com.alekpeed.lifeos.sharebox.ItemRow
 import com.alekpeed.lifeos.sharebox.ShareboxStorage
 import com.alekpeed.lifeos.sharebox.ShareboxV2
-import com.alekpeed.lifeos.sync.SupabaseAuth
+import com.alekpeed.lifeos.sync.FirebaseAuth
 import kotlinx.coroutines.launch
 
 // The helper build — the whole app for someone who is not going to administer anything.
@@ -67,7 +67,7 @@ private val URGENCY = listOf(
 
 @Composable
 fun HelperApp(ownerName: String = "Alek") {
-    var signedIn by remember { mutableStateOf(SupabaseAuth.isSignedIn()) }
+    var signedIn by remember { mutableStateOf(FirebaseAuth.isSignedIn()) }
     if (!signedIn) {
         SignIn { signedIn = true }
         return
@@ -222,7 +222,7 @@ fun HelperApp(ownerName: String = "Alek") {
 
 @Composable
 private fun FeedRow(item: ItemRow, ownerName: String, scope: kotlinx.coroutines.CoroutineScope) {
-    val mine = item.postedBy == SupabaseAuth.userId()
+    val mine = item.postedBy == FirebaseAuth.userId()
     val who = if (mine) "you" else ownerName
     val icon = when {
         item.title?.startsWith("🔧") == true -> "🔧"
@@ -356,7 +356,7 @@ private fun SignIn(onDone: () -> Unit) {
                 onClick = {
                     busy = true; msg = "Signing in…"
                     scope.launch {
-                        val r = SupabaseAuth.signIn(email.trim(), password)
+                        val r = FirebaseAuth.signIn(email.trim(), password)
                         busy = false
                         if (r.isSuccess) onDone() else msg = "That didn't work — check the email and password."
                     }

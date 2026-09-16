@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 // and notes, each with an urgency flag and a "posted by" name, sorted urgent →
 // normal. Persists as one JSON blob under "Sharebox" (so it rides the existing
 // device sync). The web app's friend-sharing backends (a Drive shared folder,
-// or Supabase spaces + Realtime with a second person's account) are a separate
+// or Firebase spaces + Realtime with a second person's account) are a separate
 // multi-user backend that native doesn't have yet — deferred, not a stub. Files
 // wait on the attachment layer.
 

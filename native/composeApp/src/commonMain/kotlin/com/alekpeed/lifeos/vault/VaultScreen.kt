@@ -105,7 +105,7 @@ private fun CreatePane(onCreate: (String) -> Unit) {
     Spacer(Modifier.height(10.dp))
     Text(
         "Anything in here is encrypted on this device before it is written down or synced. " +
-            "The passphrase never leaves the device and is never stored, so what reaches Supabase " +
+            "The passphrase never leaves the device and is never stored, so what reaches Firebase " +
             "is a blob nobody — including whoever holds the database — can open.",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -4,47 +4,41 @@ import com.alekpeed.lifeos.net.NetResponse
 import com.alekpeed.lifeos.net.httpGet
 import com.alekpeed.lifeos.net.httpPostJson
 import com.alekpeed.lifeos.net.httpRequest
-import com.alekpeed.lifeos.sync.SupabaseAuth
-import com.alekpeed.lifeos.sync.SupabaseConfig
+import com.alekpeed.lifeos.sync.FirebaseAuth
+import com.alekpeed.lifeos.sync.FirebaseConfig
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.random.Random
 
-// Two-way Telegram — the client half of linking a chat to the account. The bot itself
-// is the telegram-webhook Edge Function, which reads incoming messages, files ideas and
-// tasks, and answers questions; nothing here listens. All this does is mint the one-time
-// token that lets the bot know which account a chat belongs to, then hand back the t.me
-// link that starts the conversation.
-//
-// Same tables and same token flow the web app uses, so a chat linked from either side is
-// linked for both. Requires being signed in — the link is per account, not per device.
+// Link a chat to the signed-in Firebase account through its Cloud Function webhook.
 object TelegramLink {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-    private const val LINKS = "${SupabaseConfig.URL}/rest/v1/telegram_links"
-    private const val TOKENS = "${SupabaseConfig.URL}/rest/v1/telegram_link_tokens"
+    private const val LINKS = "${FirebaseConfig.URL}/rest/v1/telegram_links"
+    private const val TOKENS = "${FirebaseConfig.URL}/rest/v1/telegram_link_tokens"
 
     data class State(val signedIn: Boolean, val linked: Boolean)
 
     private fun headers(): Map<String, String> = buildMap {
-        put("apikey", SupabaseConfig.ANON_KEY)
-        SupabaseAuth.accessToken()?.let { put("Authorization", "Bearer $it") }
+        // Firebase ID token is the only authorization credential.
+        FirebaseAuth.accessToken()?.let { put("Authorization", "Bearer $it") }
         put("content-type", "application/json")
     }
 
     private suspend fun authed(call: suspend (Map<String, String>) -> NetResponse): NetResponse {
         var res = call(headers())
-        if (res.status == 401 && SupabaseAuth.refresh()) res = call(headers())
+        if (res.status == 401 && FirebaseAuth.refresh()) res = call(headers())
         return res
     }
 
     // Is a chat linked to this account right now? Silent on failure — offline or signed
     // out both mean "not linked" as far as the screen is concerned.
     suspend fun state(): State {
-        val uid = SupabaseAuth.userId() ?: return State(signedIn = false, linked = false)
-        if (!SupabaseAuth.isSignedIn()) return State(signedIn = false, linked = false)
+        val uid = FirebaseAuth.userId() ?: return State(signedIn = false, linked = false)
+        if (!FirebaseAuth.isSignedIn()) return State(signedIn = false, linked = false)
         val res = runCatching {
             authed { h -> httpGet("$LINKS?user_id=eq.$uid&select=telegram_chat_id", h) }
         }.getOrNull() ?: return State(signedIn = true, linked = false)
@@ -66,20 +60,15 @@ object TelegramLink {
         if (botToken.isEmpty()) {
             return Result.failure(IllegalStateException("Add your bot token above first (from @BotFather)."))
         }
-        val uid = SupabaseAuth.userId()
-        if (uid == null || !SupabaseAuth.isSignedIn()) {
+        val uid = FirebaseAuth.userId()
+        if (uid == null || !FirebaseAuth.isSignedIn()) {
             return Result.failure(IllegalStateException("Sign in to your account first — the link is per account."))
         }
 
-        val username = runCatching {
-            val me = httpGet("https://api.telegram.org/bot$botToken/getMe")
-            val root = json.parseToJsonElement(me.body).jsonObject
-            if (root["ok"]?.jsonPrimitive?.content != "true") null
-            else root["result"]?.jsonObject?.get("username")?.jsonPrimitive?.content
-        }.getOrNull()
-        if (username.isNullOrBlank()) {
-            return Result.failure(RuntimeException("Couldn't read the bot — double-check the bot token above."))
-        }
+        val configured = com.alekpeed.lifeos.sync.FirebaseSync.request("POST", "/telegram/configure",
+            kotlinx.serialization.json.buildJsonObject { put("token", botToken) }.toString())
+        if (!configured.ok) return Result.failure(RuntimeException("Couldn't configure the Firebase Telegram webhook (HTTP ${configured.status})"))
+        val username = json.parseToJsonElement(configured.body).jsonObject.getValue("username").jsonPrimitive.content
 
         val token = freshToken()
         val res = runCatching {
@@ -92,7 +81,7 @@ object TelegramLink {
     }
 
     suspend fun unlink(): Result<Unit> {
-        val uid = SupabaseAuth.userId() ?: return Result.success(Unit)
+        val uid = FirebaseAuth.userId() ?: return Result.success(Unit)
         val res = runCatching {
             authed { h -> httpRequest("DELETE", "$LINKS?user_id=eq.$uid", h, null) }
         }.getOrNull()

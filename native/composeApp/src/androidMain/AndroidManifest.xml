@@ -29,13 +29,16 @@
          where an HTTPS PWA could not. The cost is honest and worth stating: this is an
          app-wide switch, not a per-host one, because a network security config can only
          name literal hosts and the hub's address is whatever the user typed. Everything
-         else the app talks to — Supabase, the AI providers, Telegram, map tiles — is
+         else the app talks to — Firebase, the AI providers, Telegram, map tiles — is
          https:// in its own code and unaffected. -->
     <application
         android:name=".FullscreenApplication"
         android:usesCleartextTraffic="true"
         android:label="LifeOS"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <service android:name=".push.LifeMessagingService" android:exported="false">
+            <intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT" /></intent-filter>
+        </service>
         <activity
             android:name=".MainActivity"
             android:exported="true"

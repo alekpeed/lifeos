@@ -30,7 +30,7 @@ suspend fun httpPostJson(url: String, headers: Map<String, String>, body: String
 
 // Upload raw bytes (decoded from `base64Body`) as the request body — the binary
 // counterpart of httpRequest, which UTF-8-encodes its String body and would
-// corrupt binary. Used to PUT/POST a file to Supabase Storage. Never throws;
+// corrupt binary. Used to PUT/POST a file to Firebase Storage. Never throws;
 // network failure comes back as status -1.
 expect suspend fun httpSendBytes(
     method: String,

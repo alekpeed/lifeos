@@ -37,11 +37,12 @@ kotlin {
             dependsOn(jvmShared)
             dependencies {
                 implementation("androidx.activity:activity-compose:1.8.2")
+                implementation("com.google.firebase:firebase-messaging:25.1.3")
                 // WindowCompat / WindowInsetsControllerCompat — immersive full screen for
                 // graphical interfaces that supply their own status row.
                 implementation("androidx.core:core-ktx:1.12.0")
                 implementation("com.google.android.gms:play-services-location:21.0.1")
-                // WebSocket client for Supabase Realtime (Phoenix channels). minSdk 24
+                // HTTP streaming client for Firebase shared-space updates. minSdk 24
                 // rules out java.net.http.WebSocket (API 34+), so OkHttp carries it on
                 // both JVM targets.
                 implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -82,8 +83,8 @@ android {
         applicationId = "com.alekpeed.lifeos"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
         // Baked-in default OpenAI key, injected from the OPENAI_API_KEY build
         // environment (a GitHub Actions secret in CI) — never committed to source.
         // Empty for local/desktop/PR builds, where the app falls back to a

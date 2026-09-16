@@ -1,3 +1,5 @@
+> **2026-09-16 backend update:** LifeOS now uses Firebase Auth, Firestore, Storage, Cloud Functions, Scheduler, and FCM. See [firebase/README.md](firebase/README.md) for current setup, migration results, and limits. Supabase details below are historical.
+
 # Life OS — Architecture
 
 > **One codebase.** The **native application** — Kotlin Multiplatform + Compose

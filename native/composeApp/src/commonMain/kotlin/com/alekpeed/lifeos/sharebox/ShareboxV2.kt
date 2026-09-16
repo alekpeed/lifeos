@@ -2,8 +2,8 @@ package com.alekpeed.lifeos.sharebox
 
 import com.alekpeed.lifeos.net.NetResponse
 import com.alekpeed.lifeos.net.httpRequest
-import com.alekpeed.lifeos.sync.SupabaseAuth
-import com.alekpeed.lifeos.sync.SupabaseConfig
+import com.alekpeed.lifeos.sync.FirebaseAuth
+import com.alekpeed.lifeos.sync.FirebaseConfig
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -12,14 +12,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
-// Sharebox v2 — the real multi-user backend, talking to the same Supabase tables
-// the web app ships (sharebox_spaces / sharebox_members / sharebox_items) over
-// PostgREST. A "space" is a row both people are members of; membership IS the
-// share. Postgres Row Level Security is the access control — the native app just
-// signs in (email account, shared across devices) and calls REST.
-//
-// Files (kind=file) upload to the private `sharebox-files` Storage bucket (see
-// ShareboxStorage); only the object path rides on the row's storage_path.
+// Shared spaces use the authenticated Firebase gateway. The server checks membership
+// for every item and file access; space IDs are invitation codes.
 
 @Serializable
 data class SpaceRow(
@@ -53,7 +47,7 @@ data class ItemRow(
 
 object ShareboxV2 {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-    private val REST = "${SupabaseConfig.URL}/rest/v1"
+    private val REST = "${FirebaseConfig.URL}/rest/v1"
 
     // ---- spaces & membership ----
 
@@ -79,7 +73,7 @@ object ShareboxV2 {
     // Join (or update display name in) a space someone shared the id of. Idempotent
     // via upsert on the (space_id, user_id) primary key.
     suspend fun joinSpace(spaceId: String, displayName: String): Result<Unit> {
-        val uid = SupabaseAuth.userId() ?: return Result.failure(IllegalStateException("Sign in to join a space"))
+        val uid = FirebaseAuth.userId() ?: return Result.failure(IllegalStateException("Sign in to join a space"))
         val body = "[" + buildJsonObject {
             put("space_id", spaceId)
             put("user_id", uid)
@@ -113,7 +107,7 @@ object ShareboxV2 {
         urgency: String,
         storagePath: String? = null,
     ): Result<Unit> {
-        val uid = SupabaseAuth.userId() ?: return Result.failure(IllegalStateException("Sign in to post"))
+        val uid = FirebaseAuth.userId() ?: return Result.failure(IllegalStateException("Sign in to post"))
         val rowJson = "[" + buildJsonObject {
             put("space_id", spaceId)
             put("posted_by", uid)
@@ -130,7 +124,7 @@ object ShareboxV2 {
     suspend fun removeItem(id: String): Result<Unit> =
         req { delete("$REST/sharebox_items?id=eq.$id") }.map { }
 
-    // ---- REST plumbing (mirrors SupabaseSync: authed request, refresh on 401) ----
+    // ---- REST plumbing (mirrors FirebaseSync: authed request, refresh on 401) ----
 
     private class Call(val method: String, val url: String, val body: String?, val extra: Map<String, String>)
 
@@ -139,10 +133,10 @@ object ShareboxV2 {
     private fun delete(url: String) = Call("DELETE", url, null, emptyMap())
 
     private suspend fun req(build: () -> Call): Result<String> {
-        if (!SupabaseAuth.isSignedIn()) return Result.failure(IllegalStateException("Sign in to use shared spaces"))
+        if (!FirebaseAuth.isSignedIn()) return Result.failure(IllegalStateException("Sign in to use shared spaces"))
         val call = build()
         var res = send(call)
-        if (res.status == 401 && SupabaseAuth.refresh()) res = send(call)
+        if (res.status == 401 && FirebaseAuth.refresh()) res = send(call)
         return if (res.ok) Result.success(res.body)
         else Result.failure(RuntimeException(errorText(res)))
     }
@@ -151,8 +145,8 @@ object ShareboxV2 {
         httpRequest(call.method, call.url, headers() + call.extra, call.body)
 
     private fun headers(): Map<String, String> = buildMap {
-        put("apikey", SupabaseConfig.ANON_KEY)
-        SupabaseAuth.accessToken()?.let { put("Authorization", "Bearer $it") }
+        // Firebase ID token is the only authorization credential.
+        FirebaseAuth.accessToken()?.let { put("Authorization", "Bearer $it") }
         put("content-type", "application/json")
     }
 

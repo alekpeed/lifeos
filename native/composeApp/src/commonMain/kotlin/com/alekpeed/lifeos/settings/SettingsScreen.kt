@@ -58,8 +58,8 @@ import com.alekpeed.lifeos.integrations.TelegramLink
 import com.alekpeed.lifeos.interfaces.Interfaces
 import com.alekpeed.lifeos.platform.Native
 import com.alekpeed.lifeos.sync.AutoSync
-import com.alekpeed.lifeos.sync.SupabaseAuth
-import com.alekpeed.lifeos.sync.SupabaseSync
+import com.alekpeed.lifeos.sync.FirebaseAuth
+import com.alekpeed.lifeos.sync.FirebaseSync
 import com.alekpeed.lifeos.ui.TimePickerDialog
 import com.alekpeed.lifeos.wakeword.WakeGates
 import com.alekpeed.lifeos.wakeword.WakePower
@@ -118,9 +118,9 @@ fun SettingsScreen() {
     var billDays by remember { mutableStateOf(billDueSoonDays().toString()) }
     var expiryDays by remember { mutableStateOf(docExpiryDays().toString()) }
     // Pre-fill from a QR-Sync pairing scan ("__pair_email") when not already signed in.
-    var sbEmail by remember { mutableStateOf(SupabaseAuth.email() ?: Storage.read("__pair_email")?.ifBlank { null } ?: "") }
+    var sbEmail by remember { mutableStateOf(FirebaseAuth.email() ?: Storage.read("__pair_email")?.ifBlank { null } ?: "") }
     var sbPassword by remember { mutableStateOf("") }
-    var sbSignedIn by remember { mutableStateOf(SupabaseAuth.isSignedIn()) }
+    var sbSignedIn by remember { mutableStateOf(FirebaseAuth.isSignedIn()) }
     var sbBusy by remember { mutableStateOf(false) }
     var sbMsg by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
@@ -639,7 +639,7 @@ fun SettingsScreen() {
         Text("SYNC", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Cross-device sync via your Supabase account. Sign in with the same email on each device to share your data.",
+            "Cross-device sync via your Firebase account. Sign in with the same email on each device to share your data.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -668,7 +668,7 @@ fun SettingsScreen() {
                     onClick = {
                         sbBusy = true; sbMsg = "Signing in…"
                         scope.launch {
-                            SupabaseAuth.signIn(sbEmail.trim(), sbPassword)
+                            FirebaseAuth.signIn(sbEmail.trim(), sbPassword)
                                 .onSuccess { sbSignedIn = true; sbPassword = ""; sbMsg = "Signed in" }
                                 .onFailure { sbMsg = it.message ?: "Sign-in failed" }
                             sbBusy = false
@@ -680,7 +680,7 @@ fun SettingsScreen() {
                     onClick = {
                         sbBusy = true; sbMsg = "Creating account…"
                         scope.launch {
-                            SupabaseAuth.signUp(sbEmail.trim(), sbPassword)
+                            FirebaseAuth.signUp(sbEmail.trim(), sbPassword)
                                 .onSuccess { session ->
                                     sbSignedIn = session
                                     sbMsg = if (session) "Account created — signed in" else "Account created — confirm your email, then sign in"
@@ -693,7 +693,7 @@ fun SettingsScreen() {
                 ) { Text("Create account") }
             }
         } else {
-            Text("Signed in as ${SupabaseAuth.email() ?: "?"}", style = MaterialTheme.typography.bodyLarge)
+            Text("Signed in as ${FirebaseAuth.email() ?: "?"}", style = MaterialTheme.typography.bodyLarge)
 
             Spacer(Modifier.height(12.dp))
             var autoOn by remember { mutableStateOf(AutoSync.enabled) }
@@ -739,7 +739,7 @@ fun SettingsScreen() {
                     onClick = {
                         sbBusy = true; sbMsg = "Syncing…"
                         scope.launch {
-                            SupabaseSync.syncNow()
+                            FirebaseSync.syncNow()
                                 .onSuccess {
                                     sbMsg = buildString {
                                         append("Synced — pushed ${it.pushed}, pulled ${it.applied}")
@@ -757,7 +757,7 @@ fun SettingsScreen() {
                 ) { Text("Sync now") }
                 OutlinedButton(
                     enabled = !sbBusy,
-                    onClick = { SupabaseAuth.signOut(); sbSignedIn = false; sbMsg = "Signed out" },
+                    onClick = { FirebaseAuth.signOut(); sbSignedIn = false; sbMsg = "Signed out" },
                 ) { Text("Sign out") }
             }
         }
@@ -775,7 +775,7 @@ fun SettingsScreen() {
         Text("$totalItems items saved locally", style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.height(4.dp))
         val trackedRecords = remember { SyncMeta.all().size }
-        val pendingChanges = remember { SyncEngine.pendingCount() }
+        val pendingChanges = remember { FirebaseSync.pendingCount() }
         Text(
             "$trackedRecords records tracked for sync · $pendingChanges changed since last sync",
             style = MaterialTheme.typography.bodySmall,

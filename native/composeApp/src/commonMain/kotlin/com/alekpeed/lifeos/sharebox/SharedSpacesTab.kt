@@ -36,7 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.alekpeed.lifeos.Nav
 import com.alekpeed.lifeos.platform.Native
-import com.alekpeed.lifeos.sync.SupabaseAuth
+import com.alekpeed.lifeos.sync.FirebaseAuth
 import com.alekpeed.lifeos.ui.SaveToast
 import kotlinx.coroutines.launch
 
@@ -48,7 +48,7 @@ private val SOON = Color(0xFFE0A25C)
 // account (Settings → Sync); the same account on each device shares the space.
 @Composable
 fun SharedSpacesTab() {
-    if (!SupabaseAuth.isSignedIn()) {
+    if (!FirebaseAuth.isSignedIn()) {
         Column(Modifier.fillMaxSize().padding(20.dp)) {
             Text(
                 "Shared spaces let you and a friend post links and notes to the same box, live.",
@@ -68,7 +68,7 @@ fun SharedSpacesTab() {
     var items by remember { mutableStateOf<List<ItemRow>>(emptyList()) }
     var members by remember { mutableStateOf<List<MemberRow>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
-    var myName by remember { mutableStateOf(loadSharebox().myName.ifBlank { SupabaseAuth.email()?.substringBefore("@") ?: "Me" }) }
+    var myName by remember { mutableStateOf(loadSharebox().myName.ifBlank { FirebaseAuth.email()?.substringBefore("@") ?: "Me" }) }
 
     fun reloadSpaces() {
         scope.launch {
@@ -135,7 +135,7 @@ fun SharedSpacesTab() {
                     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(sorted, key = { it.id }) { item ->
                             SharedItemRow(
-                                item, nameFor(item.postedBy), myUid = SupabaseAuth.userId(),
+                                item, nameFor(item.postedBy), myUid = FirebaseAuth.userId(),
                                 onOpenFile = {
                                     SaveToast.show("Opening…")
                                     scope.launch {

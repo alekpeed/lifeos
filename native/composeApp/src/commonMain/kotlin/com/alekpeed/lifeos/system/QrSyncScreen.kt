@@ -31,7 +31,7 @@ import com.alekpeed.lifeos.Storage
 import com.alekpeed.lifeos.data.DATA_SOURCES
 import com.alekpeed.lifeos.data.countOf
 import com.alekpeed.lifeos.platform.Native
-import com.alekpeed.lifeos.sync.SupabaseAuth
+import com.alekpeed.lifeos.sync.FirebaseAuth
 
 // Storage key a scanned pairing code writes the account email into; the Settings
 // sign-in field reads it as a pre-fill so the second device is one tap from
@@ -40,7 +40,7 @@ const val PAIR_EMAIL_KEY = "__pair_email"
 
 // QR Sync — pairs a second device to your account. Cross-device sync on native is
 // the account itself: sign into the same email on each device and the data merges
-// (Supabase). So this screen makes that one scan away — the QR carries the account
+// (Firebase). So this screen makes that one scan away — the QR carries the account
 // email (not a secret), the other device scans it and lands on a pre-filled
 // sign-in. Below, a read-only fingerprint of what this device holds.
 @Composable
@@ -54,8 +54,8 @@ fun QrSyncScreen() {
         append(active.joinToString(",") { "${it.first.take(3).lowercase()}=${it.second}" })
     }
 
-    val signedIn = SupabaseAuth.isSignedIn()
-    val email = SupabaseAuth.email()
+    val signedIn = FirebaseAuth.isSignedIn()
+    val email = FirebaseAuth.email()
     val pairToken = if (signedIn && !email.isNullOrBlank()) "lifeos:pair;v1;email=$email" else null
     val qr = remember(pairToken) { pairToken?.let { encodeQr(it) } }
     var status by remember { mutableStateOf<String?>(null) }

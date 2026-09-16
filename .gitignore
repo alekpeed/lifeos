@@ -20,3 +20,8 @@ android/.gradle/
 android/local.properties
 android/app/build/
 android/build/
+
+# Firebase CLI diagnostics and emulator state
+firebase-debug.log*
+firestore-debug.log*
+.firebase/

@@ -28,11 +28,11 @@ import com.alekpeed.lifeos.platform.restoreBlob
 // halfway, and never needs to list the bucket.
 object BlobSync {
     private const val BUCKET = "attachments"
-    private val OBJECT = "${SupabaseConfig.URL}/storage/v1/object"
+    private val OBJECT = "${FirebaseConfig.URL}/storage/v1/object"
 
     // Device-local record of what this device has already sent. The `__` prefix keeps it
     // out of both SyncMeta (so it is never pushed as user data) and the backup.
-    private const val K_UPLOADED = "__blobsUploaded"
+    private const val K_UPLOADED = "__firebase_blobsUploaded"
 
     // Bound on one run. A first sync over a large library would otherwise hold the whole
     // sync open; the rest go on the next pass, and the caller is told how many are left
@@ -49,15 +49,15 @@ object BlobSync {
     }
 
     private fun headers(contentType: String? = null): Map<String, String> = buildMap {
-        put("apikey", SupabaseConfig.ANON_KEY)
-        SupabaseAuth.accessToken()?.let { put("Authorization", "Bearer $it") }
+        // Firebase ID token is the only authorization credential.
+        FirebaseAuth.accessToken()?.let { put("Authorization", "Bearer $it") }
         contentType?.let { put("content-type", it) }
     }
 
     // Send attachments this device holds but has not uploaded. Runs before records are
     // pushed, so a record never reaches another device ahead of its bytes.
     suspend fun push(): BlobSummary {
-        val uid = SupabaseAuth.userId() ?: return BlobSummary(0, 0, 0, 0)
+        val uid = FirebaseAuth.userId() ?: return BlobSummary(0, 0, 0, 0)
         val already = uploadedIds()
         val pending = auditBlobs().documents.filterNot { it in already }
         if (pending.isEmpty()) return BlobSummary(0, 0, 0, 0)
@@ -76,7 +76,7 @@ object BlobSync {
                 headers("application/octet-stream") + ("x-upsert" to "true"),
                 base64,
             )
-            if (res.status == 401 && SupabaseAuth.refresh()) {
+            if (res.status == 401 && FirebaseAuth.refresh()) {
                 res = httpSendBytes(
                     "POST", "$OBJECT/$BUCKET/$uid/$id",
                     headers("application/octet-stream") + ("x-upsert" to "true"),
@@ -92,7 +92,7 @@ object BlobSync {
     // Fetch attachments this device's records point at but does not hold. Runs after the
     // record pull, because that pull is what creates the gap.
     suspend fun pull(): BlobSummary {
-        val uid = SupabaseAuth.userId() ?: return BlobSummary(0, 0, 0, 0)
+        val uid = FirebaseAuth.userId() ?: return BlobSummary(0, 0, 0, 0)
         val missing = auditBlobs().dangling
         if (missing.isEmpty()) return BlobSummary(0, 0, 0, 0)
 
@@ -102,7 +102,7 @@ object BlobSync {
         for (id in batch) {
             val url = "$OBJECT/$BUCKET/$uid/$id"
             val base64 = httpGetBytesBase64(url, headers())
-                ?: if (SupabaseAuth.refresh()) httpGetBytesBase64(url, headers()) else null
+                ?: if (FirebaseAuth.refresh()) httpGetBytesBase64(url, headers()) else null
             when {
                 base64 == null -> failed++
                 restoreBlob(id, base64) -> got++

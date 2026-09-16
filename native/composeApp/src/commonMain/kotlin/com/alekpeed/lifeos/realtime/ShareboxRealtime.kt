@@ -1,6 +1,6 @@
 package com.alekpeed.lifeos.realtime
 
-// Live push for shared Sharebox spaces. Opens a Supabase Realtime (Phoenix
+// Live push for shared Sharebox spaces. Opens a Firebase Realtime (Phoenix
 // channel) websocket subscribed to postgres changes on sharebox_items, filtered
 // to one space; onChange() fires on any insert/update/delete so the screen can
 // reload without a manual refresh. Both platforms are JVM and back this with
