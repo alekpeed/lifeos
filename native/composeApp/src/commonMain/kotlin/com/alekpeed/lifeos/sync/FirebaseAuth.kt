@@ -57,6 +57,11 @@ object FirebaseAuth {
             true
         }.getOrDefault(false)
     }
+    suspend fun resetPassword(email: String): Result<Unit> {
+        val body = buildJsonObject { put("requestType", "PASSWORD_RESET"); put("email", email) }.toString()
+        val res = httpPostJson("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FirebaseConfig.API_KEY}", headers, body)
+        return if (res.ok) Result.success(Unit) else Result.failure(RuntimeException("Couldn't request a password reset. Check your email and connection."))
+    }
     private fun error(raw: String): String = runCatching {
         when (Json.parseToJsonElement(raw).jsonObject["error"]?.jsonObject?.get("message")?.jsonPrimitive?.content) {
             "INVALID_LOGIN_CREDENTIALS", "INVALID_PASSWORD", "EMAIL_NOT_FOUND" -> "Email or password is incorrect."

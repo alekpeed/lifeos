@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -692,6 +693,18 @@ fun SettingsScreen() {
                     },
                 ) { Text("Create account") }
             }
+            TextButton(
+                enabled = !sbBusy && sbEmail.isNotBlank(),
+                onClick = {
+                    sbBusy = true
+                    scope.launch {
+                        FirebaseAuth.resetPassword(sbEmail.trim())
+                            .onSuccess { sbMsg = "Check your email for a link to set or reset your password." }
+                            .onFailure { sbMsg = it.message ?: "Couldn't request password reset" }
+                        sbBusy = false
+                    }
+                },
+            ) { Text("Set/reset password") }
         } else {
             Text("Signed in as ${FirebaseAuth.email() ?: "?"}", style = MaterialTheme.typography.bodyLarge)
 
